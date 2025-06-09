@@ -22,7 +22,6 @@ using Content.Shared.Shuttles.Components; // Frontier
 using Robust.Shared.Configuration;
 using Content.Shared.Ghost;
 using System.Numerics; // Frontier
-using TimedDespawnComponent = Robust.Shared.Spawners.TimedDespawnComponent;
 
 namespace Content.Server.Salvage;
 
@@ -129,9 +128,6 @@ public sealed partial class SalvageSystem
     private void OnExpeditionMapInit(EntityUid uid, SalvageExpeditionComponent component, MapInitEvent args)
     {
         component.SelectedSong = _audio.ResolveSound(component.Sound);
-
-        var despawn = EnsureComp<TimedDespawnComponent>(uid);
-        despawn.Lifetime = (float) TimeSpan.FromMinutes(30).TotalSeconds;
     }
 
     private void OnExpeditionShutdown(EntityUid uid, SalvageExpeditionComponent component, ComponentShutdown args)
@@ -146,8 +142,6 @@ public sealed partial class SalvageSystem
                 _salvageJobs.Remove((job, cancelToken));
             }
         }
-
-        CleanupHostedExpeditionContent(component);
 
         // HARDLIGHT: Handle round persistence - station might be deleted during round transitions
         if (Deleted(component.Station))
