@@ -1,9 +1,42 @@
 - type: worldgenConfig
   id: Default
   components:
+    - type: WorldSeed
     - type: WorldController
-    - type: BiomeSelection
-      biomes:
-        - AsteroidsFallback
-        - Failsafe
-        - AsteroidsStandard
+    - type: SectorWorld
+      planetTypes:
+        - id: lava
+          name: Cinder
+          biomeTemplate: NFVGRoidLava
+          surfaceTiles: [FloorBasalt]
+          weatherPrototype: Ashfall
+          minTemperature: 340
+          maxTemperature: 500
+        - id: tundra
+          name: Rime
+          biomeTemplate: NFVGRoidSnow
+          surfaceTiles: [FloorSnow, FloorIce]
+          weatherPrototype: SnowfallHeavy
+          minTemperature: 190
+          maxTemperature: 255
+          minOxygen: 2
+          maxOxygen: 12
+          minNitrogen: 8
+          maxNitrogen: 36
+        - id: shadow
+          name: Umbra
+          biomeTemplate: NFVGRoidShadow
+          surfaceTiles: [FloorChromite]
+          minTemperature: 250
+          maxTemperature: 320
+          minOxygen: 0
+          maxOxygen: 8
+          minNitrogen: 0
+          maxNitrogen: 18
+        - id: scrap
+          name: Husk
+          biomeTemplate: NFVGRoidScrapyard
+          surfaceTiles: [Lattice]
+          weatherPrototype: Rain
+          minTemperature: 260
+          maxTemperature: 335

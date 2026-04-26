@@ -416,14 +416,17 @@ public sealed partial class SalvageSystem
             EntityManager,
             _timing,
             _logManager,
+            _mapManager,
             _prototypeManager,
             _anchorable,
+            _audio,
             _biome,
             _dungeon,
             _metaData,
             _mapSystem,
             _station, // Frontier
             _shuttle, // Frontier
+            _sectorWorld,
             this, // Frontier
             station,
             console,
@@ -500,7 +503,7 @@ public sealed partial class SalvageSystem
         var newCoords = new MapCoordinates(Vector2.Zero, _gameTicker.DefaultMap);
         while (ghosts.MoveNext(out var ghostUid, out _, out var xform))
         {
-            if (xform.MapUid == uid)
+            if (IsEntityOnExpedition(ghostUid, uid, xform))
                 _transform.SetMapCoordinates(ghostUid, newCoords);
         }
     }

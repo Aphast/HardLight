@@ -6,12 +6,13 @@ namespace Content.Server.Worldgen.Components;
 ///     This is used for allowing some objects to load the game world.
 /// </summary>
 [RegisterComponent]
-[Access(typeof(WorldControllerSystem))]
+[Access(typeof(WorldControllerSystem), typeof(SectorWorldSystem))]
 public sealed partial class WorldLoaderComponent : Component
 {
     /// <summary>
     ///     The radius in which the loader loads the world.
     /// </summary>
+    [Access(typeof(WorldControllerSystem), typeof(SectorWorldSystem))]
     [ViewVariables(VVAccess.ReadWrite)] [DataField("radius")]
     public int Radius = 64;
 

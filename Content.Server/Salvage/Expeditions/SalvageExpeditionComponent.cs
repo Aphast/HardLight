@@ -27,7 +27,7 @@ public sealed partial class SalvageExpeditionComponent : SharedSalvageExpedition
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite), DataField("endTime", customTypeSerializer: typeof(TimeOffsetSerializer))]
     [AutoPausedField]
-    public TimeSpan EndTime;
+    public TimeSpan? EndTime;
 
     /// <summary>
     /// Station whose mission this is.

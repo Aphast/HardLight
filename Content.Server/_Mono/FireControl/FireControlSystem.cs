@@ -19,7 +19,7 @@ using Robust.Shared.Timing;
 using Content.Shared.Interaction;
 using Content.Shared._Mono.ShipGuns;
 using Content.Shared.Examine;
-using Content.Server.Salvage.Expeditions;
+using Content.Server.Salvage;
 
 namespace Content.Server._Mono.FireControl;
 
@@ -31,6 +31,7 @@ public sealed partial class FireControlSystem : EntitySystem
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly PowerReceiverSystem _power = default!;
     [Dependency] private readonly RotateToFaceSystem _rotateToFace = default!;
+    [Dependency] private readonly SalvageSystem _salvage = default!;
 
     /// <summary>
     /// Dictionary of entities that have visualization enabled
@@ -417,7 +418,7 @@ public sealed partial class FireControlSystem : EntitySystem
 
         var gridXform = Transform(grid);
         // Check if the weapon is an expedition
-        if (gridXform.MapUid != null && HasComp<SalvageExpeditionComponent>(gridXform.MapUid.Value))
+        if (_salvage.IsOnExpedition(grid, gridXform))
             return false;
 
         return true;
@@ -516,7 +517,7 @@ public sealed partial class FireControlSystem : EntitySystem
         var weaponXform = Transform(weapon);
         var weaponCoords = _xform.GetMapCoordinates(weaponXform);
         var weaponPos = weaponCoords.Position;
-        var targetCoords = coords.ToMap(EntityManager, _xform);
+        var targetCoords = _xform.ToMapCoordinates(coords);
         var targetPos = targetCoords.Position;
 
         // Calculate direction

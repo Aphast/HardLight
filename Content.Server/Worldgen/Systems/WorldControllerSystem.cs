@@ -34,6 +34,15 @@ public sealed class WorldControllerSystem : EntitySystem
         SubscribeLocalEvent<WorldChunkComponent, ComponentShutdown>(OnChunkShutdown);
     }
 
+    public void SetLoaderRadius(EntityUid uid, int radius, WorldLoaderComponent? loader = null)
+    {
+        if (!Resolve(uid, ref loader, false))
+            return;
+
+        loader.Radius = radius;
+        Dirty(uid, loader);
+    }
+
     /// <summary>
     ///     Handles deleting chunks properly.
     /// </summary>

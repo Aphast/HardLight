@@ -2,6 +2,8 @@ using System.Linq;
 using Content.Server.Gateway.Components;
 using Content.Server.Parallax;
 using Content.Server.Procedural;
+using Content.Server.Worldgen.Components;
+using Content.Server.Worldgen.Systems;
 using Content.Shared.CCVar;
 using Content.Shared.Dataset;
 using Content.Shared.Maps;
@@ -15,6 +17,7 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
+using Robust.Shared.GameObjects;
 
 namespace Content.Server.Gateway.Systems;
 
@@ -36,6 +39,8 @@ public sealed class GatewayGeneratorSystem : EntitySystem
     [Dependency] private readonly SharedMapSystem _maps = default!;
     [Dependency] private readonly SharedSalvageSystem _salvage = default!;
     [Dependency] private readonly TileSystem _tile = default!;
+    [Dependency] private readonly SectorWorldSystem _sectorWorld = default!;
+    [Dependency] private readonly SharedTransformSystem _xform = default!;
 
     private static readonly ProtoId<LocalizedDatasetPrototype> PlanetNamesId = "NamesBorer";
     private static readonly ProtoId<BiomeTemplatePrototype> ContinentalId = "Continental";
@@ -97,21 +102,46 @@ public sealed class GatewayGeneratorSystem : EntitySystem
             return;
 
         var tileDef = _tileDefManager["FloorSteel"];
-        const int MaxOffset = 256;
         var tiles = new List<(Vector2i Index, Tile Tile)>();
         var seed = _random.Next();
         var random = new Random(seed);
-        var mapId = _mapManager.CreateMap();
-        var mapUid = _mapManager.GetMapEntityId(mapId);
+
+        if (!_sectorWorld.TryGetDefaultSectorMap(out _, out var sector) || sector.Planets.Count == 0)
+            return;
+
+        var hostPlanet = sector.Planets[random.Next(sector.Planets.Count)];
+        if (!_sectorWorld.TryGetPersistentMap(hostPlanet.PlanetTypeId, out var hostMapUid, out _))
+            return;
+
+        var mapId = Comp<MapComponent>(hostMapUid).MapId;
+        var siteGrid = _mapManager.CreateGridEntity(mapId);
+        var mapUid = siteGrid.Owner;
+
+        if (!_sectorWorld.TryReserveExpeditionSite(seed, mapUid, hostPlanet.PlanetTypeId, out var placement))
+        {
+            QueueDel(mapUid);
+            return;
+        }
 
         var gatewayName = _salvage.GetFTLName(_protoManager.Index(PlanetNamesId), seed);
         _metadata.SetEntityName(mapUid, gatewayName);
+        _xform.SetCoordinates(mapUid, new EntityCoordinates(placement.SectorMap, placement.Center));
 
-        var origin = new Vector2i(random.Next(-MaxOffset, MaxOffset), random.Next(-MaxOffset, MaxOffset));
+        var site = EnsureComp<SectorExpeditionSiteComponent>(mapUid);
+        site.SectorMap = placement.SectorMap;
+        site.PlanetId = placement.Planet.PlanetId;
+        site.Center = placement.Center;
+        site.Radius = placement.ReservationRadius;
 
-        _biome.EnsurePlanet(mapUid, _protoManager.Index(ContinentalId), seed);
+        var biome = EnsureComp<BiomeComponent>(mapUid);
+        var biomeTemplate = string.IsNullOrWhiteSpace(hostPlanet.BiomeTemplate)
+            ? ContinentalId
+            : new ProtoId<BiomeTemplatePrototype>(hostPlanet.BiomeTemplate);
+        _biome.SetTemplate(mapUid, biome, _protoManager.Index(biomeTemplate));
+        _biome.SetSeed(mapUid, biome, seed);
 
-        var grid = Comp<MapGridComponent>(mapUid);
+        var origin = Vector2i.Zero;
+        var grid = siteGrid.Comp;
 
         for (var x = -2; x <= 2; x++)
         {
@@ -167,7 +197,7 @@ public sealed class GatewayGeneratorSystem : EntitySystem
             GenerateDestination(ent.Comp.Generator);
         }
 
-        if (!TryComp(args.MapUid, out MapGridComponent? grid))
+        if (!TryComp(ent.Owner, out MapGridComponent? grid))
             return;
 
         ent.Comp.Locked = false;
@@ -181,7 +211,7 @@ public sealed class GatewayGeneratorSystem : EntitySystem
         var dungeonRotation = _dungeon.GetDungeonRotation(seed);
         var dungeonPosition = (origin + dungeonRotation.RotateVec(new Vector2i(0, dungeonDistance))).Floored();
 
-        _dungeon.GenerateDungeon(_protoManager.Index(ExperimentDungeonId), "Experiment", args.MapUid, grid, dungeonPosition, seed); // Frontier: add "Experiment" arg
+        _dungeon.GenerateDungeon(_protoManager.Index(ExperimentDungeonId), "Experiment", ent.Owner, grid, dungeonPosition, seed); // Frontier: add "Experiment" arg
 
         // TODO: Dungeon mobs + loot.
 

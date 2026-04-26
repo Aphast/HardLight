@@ -20,6 +20,7 @@ using Robust.Shared.Timing;
 using Content.Shared.Labels.EntitySystems;
 using Content.Server.GameTicking;
 using Robust.Shared.EntitySerialization.Systems;
+using Content.Server.Worldgen.Systems;
 
 namespace Content.Server.Salvage
 {
@@ -43,6 +44,7 @@ namespace Content.Server.Salvage
         [Dependency] private readonly SharedMapSystem _mapSystem = default!;
         [Dependency] private readonly ShuttleSystem _shuttle = default!;
         [Dependency] private readonly StationSystem _station = default!;
+        [Dependency] private readonly SectorWorldSystem _sectorWorld = default!;
         [Dependency] private readonly UserInterfaceSystem _ui = default!;
 
         private EntityQuery<MapGridComponent> _gridQuery;

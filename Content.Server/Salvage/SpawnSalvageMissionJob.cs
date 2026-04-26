@@ -39,6 +39,9 @@ using Content.Server.Station.Components; // Frontier
 using Content.Server.Station.Systems; // Frontier
 using Content.Server.Shuttles.Systems;
 using Content.Server._NF.Salvage.Expeditions.Structure; // Frontier
+using Content.Server.Worldgen.Components;
+using Content.Server.Worldgen.Systems;
+using Robust.Shared.Audio.Systems;
 
 namespace Content.Server.Salvage;
 
@@ -46,14 +49,17 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
 {
     private readonly IEntityManager _entManager;
     private readonly IGameTiming _timing;
+    private readonly IMapManager _mapManager;
     private readonly IPrototypeManager _prototypeManager;
     private readonly AnchorableSystem _anchorable;
+    private readonly SharedAudioSystem _audio;
     private readonly BiomeSystem _biome;
     private readonly DungeonSystem _dungeon;
     private readonly MetaDataSystem _metaData;
     private readonly SharedMapSystem _map;
     private readonly StationSystem _station; // Frontier
     private readonly ShuttleSystem _shuttle; // Frontier
+    private readonly SectorWorldSystem _sectorWorld;
     private readonly SalvageSystem _salvage; // Frontier
 
     public readonly EntityUid Station;
@@ -76,14 +82,17 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
         IEntityManager entManager,
         IGameTiming timing,
         ILogManager logManager,
+        IMapManager mapManager,
         IPrototypeManager protoManager,
         AnchorableSystem anchorable,
+        SharedAudioSystem audio,
         BiomeSystem biome,
         DungeonSystem dungeon,
         MetaDataSystem metaData,
         SharedMapSystem map,
         StationSystem stationSystem, // Frontier
         ShuttleSystem shuttleSystem, // Frontier
+        SectorWorldSystem sectorWorld,
         SalvageSystem salvageSystem, // Frontier
         EntityUid station,
         EntityUid? console, // HARDLIGHT: Console that initiated this mission
@@ -93,14 +102,17 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
     {
         _entManager = entManager;
         _timing = timing;
+        _mapManager = mapManager;
         _prototypeManager = protoManager;
         _anchorable = anchorable;
+        _audio = audio;
         _biome = biome;
         _dungeon = dungeon;
         _metaData = metaData;
         _map = map;
         _station = stationSystem; // Frontier
         _shuttle = shuttleSystem; // Frontier
+        _sectorWorld = sectorWorld;
         _salvage = salvageSystem; // Frontier
         Station = station;
         Console = console; // HARDLIGHT: Store console reference
@@ -118,19 +130,22 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
         IEntityManager entManager,
         IGameTiming timing,
         ILogManager logManager,
+        IMapManager mapManager,
         IPrototypeManager protoManager,
         AnchorableSystem anchorable,
+        SharedAudioSystem audio,
         BiomeSystem biome,
         DungeonSystem dungeon,
         MetaDataSystem metaData,
         SharedMapSystem map,
         StationSystem stationSystem,
         ShuttleSystem shuttleSystem,
+        SectorWorldSystem sectorWorld,
         SalvageSystem salvageSystem,
         EntityUid station,
         SalvageMissionParams missionParams,
         CancellationToken cancellation = default)
-        : this(maxTime, entManager, timing, logManager, protoManager, anchorable, biome, dungeon, metaData, map, stationSystem, shuttleSystem, salvageSystem, station, null, null, missionParams, cancellation)
+        : this(maxTime, entManager, timing, logManager, mapManager, protoManager, anchorable, audio, biome, dungeon, metaData, map, stationSystem, shuttleSystem, sectorWorld, salvageSystem, station, null, null, missionParams, cancellation)
     {
         // Intentionally empty
     }
@@ -185,28 +200,9 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
     private async Task<bool> InternalProcess() // Frontier: make process an internal function (for a try block indenting an entire), add "out EntityUid mapUid" param
     {
         _sawmill.Debug($"Spawning salvage mission with seed {_missionParams.Seed}");
-        mapUid = _map.CreateMap(out var mapId, runMapInit: false); // Frontier: remove var
-        MetaDataComponent? metadata = null;
-        var grid = _entManager.EnsureComponent<MapGridComponent>(mapUid);
-        var random = new Random(_missionParams.Seed);
-    // HARDLIGHT: Make expedition destination globally FTL-accessible without requiring disks or beacons.
-    // Previously this required a coordinates disk and was beacon-limited which prevented ad-hoc rescue / support.
-    var destComp = _entManager.AddComponent<FTLDestinationComponent>(mapUid);
-    destComp.BeaconsOnly = false; // Allow direct FTL targeting anywhere on the expedition map.
-    destComp.RequireCoordinateDisk = CoordinatesDisk.HasValue; // Disk missions require a coordinates disk.
-    destComp.Enabled = true; // Keep enabled for entire expedition so multiple ships can jump in.
-        _metaData.SetEntityName(
-            mapUid,
-            _entManager.System<SharedSalvageSystem>().GetFTLName(_prototypeManager.Index(PlanetNamesId), _missionParams.Seed));
-        _entManager.AddComponent<FTLBeaconComponent>(mapUid);
 
-        // Saving the mission mapUid to a CD is made optional, in case one is somehow made in a process without a CD entity
-        if (CoordinatesDisk.HasValue)
-        {
-            var cd = _entManager.EnsureComponent<ShuttleDestinationCoordinatesComponent>(CoordinatesDisk.Value);
-            cd.Destination = _entManager.GetNetEntity(mapUid);
-            _entManager.Dirty(CoordinatesDisk.Value, cd);
-        }
+        MetaDataComponent? metadata = null;
+        var random = new Random(_missionParams.Seed);
 
         // Setup mission configs
         // As we go through the config the rating will deplete so we'll go for most important to least important.
@@ -219,6 +215,46 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             .GetMission(_missionParams.MissionType, difficultyProto, _missionParams.Seed); // Frontier: add MissionType
 
         var missionBiome = _prototypeManager.Index<SalvageBiomeModPrototype>(mission.Biome);
+        _sectorWorld.TryResolvePlanetTypeForBiome(missionBiome.BiomePrototype, out var planetTypeId);
+
+        if (!_sectorWorld.TryGetPersistentMap(planetTypeId, out var hostMapUid, out var hostPlanet))
+            return false;
+
+        var mapId = _entManager.GetComponent<MapComponent>(hostMapUid).MapId;
+        var spawnedGrid = _mapManager.CreateGridEntity(mapId);
+        mapUid = spawnedGrid.Owner;
+        var grid = spawnedGrid.Comp;
+
+        if (!_sectorWorld.TryReserveExpeditionSite(_missionParams.Seed, mapUid, planetTypeId, out var placement))
+        {
+            _entManager.QueueDeleteEntity(mapUid);
+            return false;
+        }
+
+        _entManager.System<SharedTransformSystem>().SetCoordinates(mapUid, new EntityCoordinates(placement.SectorMap, placement.Center));
+        var site = _entManager.EnsureComponent<SectorExpeditionSiteComponent>(mapUid);
+        site.SectorMap = placement.SectorMap;
+        site.PlanetId = placement.Planet.PlanetId;
+        site.Center = placement.Center;
+        site.Radius = placement.ReservationRadius;
+
+        // HARDLIGHT: Make expedition destination globally FTL-accessible without requiring disks or beacons.
+        // Previously this required a coordinates disk and was beacon-limited which prevented ad-hoc rescue / support.
+        var destComp = _entManager.AddComponent<FTLDestinationComponent>(mapUid);
+        destComp.BeaconsOnly = false;
+        destComp.RequireCoordinateDisk = CoordinatesDisk.HasValue;
+        destComp.Enabled = true;
+        _metaData.SetEntityName(
+            mapUid,
+            $"{placement.Planet.Name} Expedition {_missionParams.Index}");
+        _entManager.AddComponent<FTLBeaconComponent>(mapUid);
+
+        if (CoordinatesDisk.HasValue)
+        {
+            var cd = _entManager.EnsureComponent<ShuttleDestinationCoordinatesComponent>(CoordinatesDisk.Value);
+            cd.Destination = _entManager.GetNetEntity(mapUid);
+            _entManager.Dirty(CoordinatesDisk.Value, cd);
+        }
 
         if (missionBiome.BiomePrototype != null)
         {
@@ -232,33 +268,14 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             var gravity = _entManager.EnsureComponent<GravityComponent>(mapUid);
             gravity.Enabled = true;
             _entManager.Dirty(mapUid, gravity, metadata);
-
-            // Atmos
-            var air = _prototypeManager.Index<SalvageAirMod>(mission.Air);
-            // copy into a new array since the yml deserialization discards the fixed length
-            var moles = new float[Atmospherics.AdjustedNumberOfGases];
-            air.Gases.CopyTo(moles, 0);
-            var atmos = _entManager.EnsureComponent<MapAtmosphereComponent>(mapUid);
-            _entManager.System<AtmosphereSystem>().SetMapSpace(mapUid, air.Space, atmos);
-            _entManager.System<AtmosphereSystem>().SetMapGasMixture(mapUid, new GasMixture(moles, mission.Temperature), atmos);
-
-            if (mission.Color != null)
-            {
-                var lighting = _entManager.EnsureComponent<MapLightComponent>(mapUid);
-                lighting.AmbientLightColor = mission.Color.Value;
-                _entManager.Dirty(mapUid, lighting);
-            }
         }
-
-        _map.InitializeMap(mapId);
-        _map.SetPaused(mapUid, true);
 
         // Setup expedition
         var expedition = _entManager.AddComponent<SalvageExpeditionComponent>(mapUid);
         expedition.Station = Station;
         expedition.Console = Console; // HARDLIGHT: Store console reference for FTL targeting
-        expedition.EndTime = _timing.CurTime + mission.Duration;
         expedition.MissionParams = _missionParams;
+        expedition.SelectedSong = _audio.ResolveSound(expedition.Sound);
 
         var landingPadRadius = 4; // Frontier: 24<4 - using this as a margin (4-16), not a radius
         var minDungeonOffset = landingPadRadius + 4;

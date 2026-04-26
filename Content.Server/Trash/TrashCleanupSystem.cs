@@ -1,3 +1,4 @@
+using Content.Server._Mono.Cleanup;
 using Content.Server.Station.Components;
 using System.Linq;
 using Content.Server.Worldgen.Components;
@@ -155,8 +156,7 @@ public sealed class TrashCleanupSystem : EntitySystem
         {
             if (session.AttachedEntity is not { } playerEntity)
                 continue;
-            if (!TryComp<TransformComponent>(playerEntity, out var xform))
-                continue;
+            var xform = Transform(playerEntity);
             if (HasComp<GhostComponent>(playerEntity))
                 continue;
 
@@ -203,6 +203,9 @@ public sealed class TrashCleanupSystem : EntitySystem
     /// </summary>
     private bool ShouldProtectGrid(EntityUid gridUid)
     {
+        if (HasComp<CleanupImmuneComponent>(gridUid))
+            return true;
+
         // Protect station grids
         if (HasComp<StationMemberComponent>(gridUid))
             return true;

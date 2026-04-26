@@ -257,11 +257,10 @@ public sealed partial class SalvageSystem
     /// </summary>
     public bool TryEndExpeditionEarlyFromConsole(EntityUid consoleUid)
     {
-        if (!TryComp(consoleUid, out TransformComponent? xform) || xform.MapUid == null)
+        if (!TryComp(consoleUid, out TransformComponent? xform))
             return false;
 
-        var expeditionMapUid = xform.MapUid.Value;
-        if (!TryComp(expeditionMapUid, out SalvageExpeditionComponent? expedition))
+        if (!TryGetExpeditionForEntity(consoleUid, out var expeditionMapUid, out SalvageExpeditionComponent? expedition, xform))
             return false;
 
         // HardLight: Return has already been queued; treat this as handled to avoid duplicate countdown timers.
@@ -318,7 +317,7 @@ public sealed partial class SalvageSystem
         // Find shuttles on the expedition map and FTL them home
         while (shuttleQuery.MoveNext(out var shuttleUid, out var shuttle, out var shuttleXform, out _))
         {
-            if (shuttleXform.MapUid != expeditionMapUid || TryComp(shuttleUid, out FTLComponent? _))
+            if (!IsEntityOnExpedition(shuttleUid, expeditionMapUid, shuttleXform) || TryComp(shuttleUid, out FTLComponent? _))
                 continue;
 
             var dropLocation = PickExpeditionReturnDropLocation(existingPositions); // HardLight
@@ -434,14 +433,17 @@ public sealed partial class SalvageSystem
             EntityManager,
             _timing,
             _logManager,
+            _mapManager,
             _prototypeManager,
             _anchorable,
+            _audio,
             _biome,
             _dungeon,
             _metaData,
             _mapSystem,
             _station,
             _shuttle,
+            _sectorWorld,
             this,
             missionStation,
             consoleUid, // HARDLIGHT: Pass console reference for FTL targeting
