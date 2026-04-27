@@ -2,9 +2,10 @@ using System.Numerics;
 using System.IO;
 using System.Text;
 using Content.Server.Worldgen.Components;
-using Content.Server.Worldgen.Prototypes;
+using Content.Server.Worldgen.Tools;
 using Content.Shared.Maps;
 using Content.Shared.Storage;
+using Content.Shared.Worldgen.Prototypes;
 using Robust.Shared.Maths;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
@@ -41,6 +42,7 @@ public sealed class SectorChunkCarverSystem : EntitySystem
     [Dependency] private readonly IRobustRandom _random = default!;
 
     private string _cacheDirectory = string.Empty;
+    private readonly Dictionary<string, Dictionary<string, EntitySpawnCollectionCache>> _biomeCaches = new();
 
     public override void Initialize()
     {
@@ -195,10 +197,15 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
         foreach (var generated in ent.Comp.GeneratedEntities)
         {
-            if (!Exists(generated) || !TryComp<MetaDataComponent>(generated, out var meta) || meta.EntityPrototype == null)
+            if (!Exists(generated))
                 continue;
 
-            if (!TryComp<TransformComponent>(generated, out var xform) || xform.GridUid != gridUid)
+            var meta = MetaData(generated);
+            if (meta.EntityPrototype == null || meta.EntityLifeStage >= EntityLifeStage.Terminating)
+                continue;
+
+            var xform = Transform(generated);
+            if (xform.GridUid != gridUid)
                 continue;
 
             var indices = _mapSystem.TileIndicesFor(gridUid, grid, xform.Coordinates);
@@ -329,7 +336,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
             var tileId = tile.Tile.GetContentTileDefinition(_tileDefs).ID;
             var handledByBiome = false;
 
-            if (biome != null && biome.Caches.TryGetValue(tileId, out var cache))
+            var biomeCache = GetBiomeCache(biome);
+            if (biomeCache != null && biomeCache.TryGetValue(tileId, out var cache))
             {
                 handledByBiome = true;
                 spawns.Clear();
@@ -354,6 +362,19 @@ public sealed class SectorChunkCarverSystem : EntitySystem
             var fallback = Spawn(wallPrototype, new EntityCoordinates(gridUid, indices + new Vector2(0.5f, 0.5f)));
             ent.Comp.GeneratedEntities.Add(fallback);
         }
+    }
+
+    private Dictionary<string, EntitySpawnCollectionCache>? GetBiomeCache(SectorAsteroidBiomePrototype? biome)
+    {
+        if (biome == null)
+            return null;
+
+        if (_biomeCaches.TryGetValue(biome.ID, out var cache))
+            return cache;
+
+        cache = biome.Entries.ToDictionary(pair => pair.Key, pair => new EntitySpawnCollectionCache(pair.Value));
+        _biomeCaches[biome.ID] = cache;
+        return cache;
     }
 
     private List<Entity<MapGridComponent>> GetBlockingGrids(EntityUid sectorMap, EntityUid sectorGridUid, WorldChunkComponent chunk)
