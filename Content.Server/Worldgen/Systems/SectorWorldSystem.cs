@@ -112,7 +112,10 @@ public sealed class SectorWorldSystem : EntitySystem
             return false;
 
         EnsureInitialized((sectorMap, sector));
-        var match = sector.PlanetTypes.FirstOrDefault(candidate => candidate.BiomeTemplate == biomeTemplateId);
+        var match = sector.PlanetTypes.FirstOrDefault(candidate =>
+            string.Equals(candidate.BiomeTemplate, biomeTemplateId, StringComparison.OrdinalIgnoreCase)
+            || candidate.BiomeAliases.Any(alias => string.Equals(alias, biomeTemplateId, StringComparison.OrdinalIgnoreCase)));
+
         if (match == null)
             return false;
 

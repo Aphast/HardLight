@@ -1,6 +1,7 @@
 salvage-expedition-window-finish = Finish expedition
 salvage-expedition-window-refresh = Refresh
 salvage-expedition-announcement-early-finish = The expedition was completed ahead of schedule. Shuttle will depart in {$departTime} seconds.
+salvage-expedition-announcement-briefing = Objective: {$objective}. Difficulty: {$difficulty}. Biome: {$biome}.
 salvage-expedition-announcement-destruction = { $count ->
     [1] Destroy the {$structure} before the expedition ends.
     *[others] Destroy {$count} {MAKEPLURAL($structure)} before the expedition ends.

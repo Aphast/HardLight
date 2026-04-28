@@ -147,6 +147,8 @@ public sealed partial class SalvageSystem
             }
         }
 
+        CleanupHostedExpeditionContent(component);
+
         // HARDLIGHT: Handle round persistence - station might be deleted during round transitions
         if (Deleted(component.Station))
         {
@@ -167,6 +169,35 @@ public sealed partial class SalvageSystem
             HandleExpeditionOutcome(uid, component);
             Log.Info($"Expedition shutdown: No expedition data on {component.Station}, used fallback outcome handling.");
         }
+    }
+
+    private void CleanupHostedExpeditionContent(SalvageExpeditionComponent component)
+    {
+        foreach (var generated in component.GeneratedEntities)
+        {
+            if (Exists(generated))
+                QueueDel(generated);
+        }
+
+        component.GeneratedEntities.Clear();
+
+        if (component.HostGridUid == EntityUid.Invalid || component.OriginalTiles.Count == 0)
+            return;
+
+        if (!TryComp<MapGridComponent>(component.HostGridUid, out var grid))
+        {
+            component.OriginalTiles.Clear();
+            return;
+        }
+
+        var tiles = new List<(Vector2i, Tile)>(component.OriginalTiles.Count);
+        foreach (var (indices, tile) in component.OriginalTiles)
+        {
+            tiles.Add((indices, tile));
+        }
+
+        _mapSystem.SetTiles(component.HostGridUid, grid, tiles);
+        component.OriginalTiles.Clear();
     }
 
     private void UpdateExpeditions()

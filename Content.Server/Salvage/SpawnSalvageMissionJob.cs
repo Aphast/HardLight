@@ -3,6 +3,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using Content.Server._Mono.Cleanup;
 using Content.Server.Atmos;
 using Content.Server.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
@@ -72,6 +73,7 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
     // Frontier: Used for saving state between async job
 #pragma warning disable IDE1006 // suppressing prefix warnings to reduce merge conflict area
     private EntityUid mapUid = EntityUid.Invalid;
+    private EntityUid hostGridUid = EntityUid.Invalid;
 #pragma warning restore IDE1006
     private static readonly ProtoId<SalvageDifficultyPrototype> FallbackDifficulty = "NFModerate";
     private static readonly ProtoId<LocalizedDatasetPrototype> PlanetNamesId = "NamesBorer";
@@ -221,9 +223,9 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             return false;
 
         var mapId = _entManager.GetComponent<MapComponent>(hostMapUid).MapId;
-        var spawnedGrid = _mapManager.CreateGridEntity(mapId);
-        mapUid = spawnedGrid.Owner;
-        var grid = spawnedGrid.Comp;
+        hostGridUid = hostMapUid;
+        var grid = _entManager.EnsureComponent<MapGridComponent>(hostGridUid);
+        mapUid = _entManager.SpawnEntity(null, new MapCoordinates(Vector2.Zero, mapId));
 
         if (!_sectorWorld.TryReserveExpeditionSite(_missionParams.Seed, mapUid, planetTypeId, out var placement))
         {
@@ -231,7 +233,8 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             return false;
         }
 
-        _entManager.System<SharedTransformSystem>().SetCoordinates(mapUid, new EntityCoordinates(placement.SectorMap, placement.Center));
+        _entManager.System<SharedTransformSystem>().SetCoordinates(mapUid, new EntityCoordinates(hostGridUid, placement.Center));
+        _entManager.EnsureComponent<CleanupImmuneComponent>(mapUid);
         var site = _entManager.EnsureComponent<SectorExpeditionSiteComponent>(mapUid);
         site.SectorMap = placement.SectorMap;
         site.PlanetId = placement.Planet.PlanetId;
@@ -256,26 +259,17 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             _entManager.Dirty(CoordinatesDisk.Value, cd);
         }
 
-        if (missionBiome.BiomePrototype != null)
-        {
-            var biome = _entManager.AddComponent<BiomeComponent>(mapUid);
-            var biomeSystem = _entManager.System<BiomeSystem>();
-            biomeSystem.SetTemplate(mapUid, biome, _prototypeManager.Index<BiomeTemplatePrototype>(missionBiome.BiomePrototype));
-            biomeSystem.SetSeed(mapUid, biome, mission.Seed);
-            _entManager.Dirty(mapUid, biome);
-
-            // Gravity
-            var gravity = _entManager.EnsureComponent<GravityComponent>(mapUid);
-            gravity.Enabled = true;
-            _entManager.Dirty(mapUid, gravity, metadata);
-        }
-
         // Setup expedition
         var expedition = _entManager.AddComponent<SalvageExpeditionComponent>(mapUid);
         expedition.Station = Station;
         expedition.Console = Console; // HARDLIGHT: Store console reference for FTL targeting
         expedition.MissionParams = _missionParams;
         expedition.SelectedSong = _audio.ResolveSound(expedition.Sound);
+        expedition.HostGridUid = hostGridUid;
+
+        var captureRadius = placement.ReservationRadius + 32f;
+        CaptureOriginalTiles(expedition, hostGridUid, grid, placement.Center, captureRadius);
+        var existingEntities = CaptureNearbyEntities(hostMapUid, placement.Center, captureRadius);
 
         var landingPadRadius = 4; // Frontier: 24<4 - using this as a margin (4-16), not a radius
         var minDungeonOffset = landingPadRadius + 4;
@@ -287,9 +281,11 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
         var dungeonOffsetDistance = minDungeonOffset + (maxDungeonOffset - minDungeonOffset) * random.NextFloat();
         var dungeonOffset = new Vector2(0f, dungeonOffsetDistance);
         dungeonOffset = dungeonRotation.RotateVec(dungeonOffset);
+        var expeditionOrigin = placement.Center.Rounded();
+        var dungeonOrigin = expeditionOrigin + dungeonOffset;
         var dungeonMod = _prototypeManager.Index<SalvageDungeonModPrototype>(mission.Dungeon);
         var dungeonConfig = _prototypeManager.Index(dungeonMod.Proto);
-        var dungeons = await WaitAsyncTask(_dungeon.GenerateDungeonAsync(dungeonConfig, dungeonMod.Proto, mapUid, grid, (Vector2i)dungeonOffset, // Frontier: add dungeonMod.Proto
+        var dungeons = await WaitAsyncTask(_dungeon.GenerateDungeonAsync(dungeonConfig, dungeonMod.Proto, hostGridUid, grid, (Vector2i)dungeonOrigin, // Frontier: add dungeonMod.Proto
             _missionParams.Seed));
 
         var dungeon = dungeons.First();
@@ -300,13 +296,13 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             return false;
         }
 
-        expedition.DungeonLocation = dungeonOffset;
+        expedition.DungeonLocation = dungeonOrigin - expeditionOrigin;
 
         // Frontier: map generation and offset
         #region Frontier map generation
 
         // Get map bounding box
-        Box2 dungeonBox = new Box2(dungeonOffset, dungeonOffset);
+        Box2 dungeonBox = new Box2(dungeonOrigin, dungeonOrigin);
         foreach (var tile in dungeon.AllTiles)
         {
             dungeonBox = dungeonBox.ExtendToContain(tile);
@@ -395,7 +391,7 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
 
             try
             {
-                await SpawnDungeonLoot(lootProto, mapUid);
+                await SpawnDungeonLoot(lootProto, hostGridUid);
             }
             catch (Exception e)
             {
@@ -432,7 +428,7 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
 
             try
             {
-                await SpawnRandomEntry((mapUid, grid), entry, dungeon, random);
+                await SpawnRandomEntry((hostGridUid, grid), entry, dungeon, random);
             }
             catch (Exception e)
             {
@@ -467,13 +463,15 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
                             break;
 
                         _sawmill.Debug($"Spawning dungeon loot {entry.Proto}");
-                        await SpawnRandomEntry((mapUid, grid), entry, dungeon, random);
+                        await SpawnRandomEntry((hostGridUid, grid), entry, dungeon, random);
                     }
                     break;
                 default:
                     throw new NotImplementedException();
             }
         }
+
+        CaptureGeneratedEntities(expedition, existingEntities, hostMapUid, placement.Center, captureRadius);
 
         // Frontier: delay ship FTL
         if (shuttleUid is { Valid: true })
@@ -487,12 +485,69 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
             }
             else
             {
-                _shuttle.FTLToCoordinates(shuttleUid.Value, shuttle, new EntityCoordinates(mapUid, coords), 0f, 5.5f, _salvage.TravelTime);
+                _shuttle.FTLToCoordinates(shuttleUid.Value, shuttle, new EntityCoordinates(hostGridUid, coords), 0f, 5.5f, _salvage.TravelTime);
             }
         }
         // End Frontier
 
         return true;
+    }
+
+    private void CaptureOriginalTiles(SalvageExpeditionComponent expedition, EntityUid gridUid, MapGridComponent grid, Vector2 center, float radius)
+    {
+        expedition.OriginalTiles.Clear();
+
+        foreach (var tile in _map.GetTilesIntersecting(gridUid, grid, new Circle(center, radius), false))
+        {
+            expedition.OriginalTiles[tile.GridIndices] = tile.Tile;
+        }
+    }
+
+    private HashSet<EntityUid> CaptureNearbyEntities(EntityUid mapUid, Vector2 center, float radius)
+    {
+        var entities = new HashSet<EntityUid>();
+        var radiusSquared = radius * radius;
+        var query = _entManager.AllEntityQueryEnumerator<TransformComponent>();
+
+        while (query.MoveNext(out var uid, out var xform))
+        {
+            if (uid == mapUid || uid == hostGridUid || uid == this.mapUid)
+                continue;
+
+            if (xform.MapUid != mapUid)
+                continue;
+
+            var pos = xform.Coordinates.Position;
+            if ((pos - center).LengthSquared() > radiusSquared)
+                continue;
+
+            entities.Add(uid);
+        }
+
+        return entities;
+    }
+
+    private void CaptureGeneratedEntities(SalvageExpeditionComponent expedition, HashSet<EntityUid> existingEntities, EntityUid mapUid, Vector2 center, float radius)
+    {
+        expedition.GeneratedEntities.Clear();
+
+        var radiusSquared = radius * radius;
+        var query = _entManager.AllEntityQueryEnumerator<TransformComponent>();
+
+        while (query.MoveNext(out var uid, out var xform))
+        {
+            if (uid == mapUid || uid == hostGridUid || uid == this.mapUid || existingEntities.Contains(uid))
+                continue;
+
+            if (xform.MapUid != mapUid)
+                continue;
+
+            var pos = xform.Coordinates.Position;
+            if ((pos - center).LengthSquared() > radiusSquared)
+                continue;
+
+            expedition.GeneratedEntities.Add(uid);
+        }
     }
 
     private async Task SpawnRandomEntry(Entity<MapGridComponent> grid, IBudgetEntry entry, Dungeon dungeon, Random random)
@@ -592,7 +647,7 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
                     continue;
                 }
 
-                var uid = _entManager.SpawnEntity(shaggy, _map.GridTileToLocal(mapUid, grid, tile));
+                var uid = _entManager.SpawnEntity(shaggy, _map.GridTileToLocal(hostGridUid, grid, tile));
                 _entManager.AddComponent<SalvageStructureComponent>(uid);
                 structureComp.Structures.Add(uid);
                 break;
@@ -633,7 +688,7 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
                     continue;
                 }
 
-                uid = _entManager.SpawnAtPosition(prototype, _map.GridTileToLocal(mapUid, grid, tile));
+                uid = _entManager.SpawnAtPosition(prototype, _map.GridTileToLocal(hostGridUid, grid, tile));
                 break;
             }
         }

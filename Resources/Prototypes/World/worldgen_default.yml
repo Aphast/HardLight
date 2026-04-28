@@ -5,9 +5,33 @@
     - type: WorldController
     - type: SectorWorld
       planetTypes:
+        - id: grassland
+          name: Verdure
+          biomeTemplate: Grasslands
+          biomeAliases: [Grasslands]
+          surfaceTiles: [FloorPlanetGrass]
+          weatherPrototype: Rain
+          minTemperature: 270
+          maxTemperature: 320
+          minOxygen: 12
+          maxOxygen: 24
+          minNitrogen: 32
+          maxNitrogen: 82
+        - id: caves
+          name: Hollow
+          biomeTemplate: NFVGRoidCaves
+          biomeAliases: [Caves]
+          surfaceTiles: [FloorCaveDrought]
+          minTemperature: 250
+          maxTemperature: 310
+          minOxygen: 2
+          maxOxygen: 16
+          minNitrogen: 10
+          maxNitrogen: 42
         - id: lava
           name: Cinder
           biomeTemplate: NFVGRoidLava
+          biomeAliases: [Lava]
           surfaceTiles: [FloorBasalt]
           weatherPrototype: Ashfall
           minTemperature: 340
@@ -15,6 +39,7 @@
         - id: tundra
           name: Rime
           biomeTemplate: NFVGRoidSnow
+          biomeAliases: [Snow]
           surfaceTiles: [FloorSnow, FloorIce]
           weatherPrototype: SnowfallHeavy
           minTemperature: 190
@@ -26,6 +51,7 @@
         - id: shadow
           name: Umbra
           biomeTemplate: NFVGRoidShadow
+          biomeAliases: [Shadow]
           surfaceTiles: [FloorChromite]
           minTemperature: 250
           maxTemperature: 320
@@ -36,6 +62,7 @@
         - id: scrap
           name: Husk
           biomeTemplate: NFVGRoidScrapyard
+          biomeAliases: [Scrapyard]
           surfaceTiles: [Lattice]
           weatherPrototype: Rain
           minTemperature: 260

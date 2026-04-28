@@ -1,6 +1,7 @@
 using Content.Shared.Shuttles.Components;
 using Content.Shared.Procedural;
 using Content.Shared.Salvage.Expeditions;
+using Content.Shared.Salvage.Expeditions.Modifiers;
 using Content.Shared.Dataset;
 using Robust.Shared.Prototypes;
 using Content.Shared.Popups; // Frontier
@@ -166,8 +167,23 @@ public sealed partial class SalvageSystem
         {
             var filter = Filter.Empty().AddInGrid(consoleXform.GridUid.Value);
             var announcement = Loc.GetString("salvage-expedition-announcement-claimed");
+            var biomeProto = _prototypeManager.Index<SalvageBiomeModPrototype>(mission.Biome);
+            var biome = string.IsNullOrWhiteSpace(Loc.GetString(biomeProto.Description))
+                ? Loc.GetString(biomeProto.ID)
+                : Loc.GetString(biomeProto.Description);
+            var objective = Loc.GetString($"salvage-expedition-type-{missionparams.MissionType}");
+            var difficulty = Loc.GetString($"salvage-expedition-difficulty-{missionparams.Difficulty}");
             _chatSystem.DispatchFilteredAnnouncement(filter, announcement, uid,
                 sender: "Expedition Console", colorOverride: Color.LightBlue);
+            _chatSystem.DispatchFilteredAnnouncement(
+                filter,
+                Loc.GetString("salvage-expedition-announcement-briefing",
+                    ("objective", objective),
+                    ("difficulty", difficulty),
+                    ("biome", biome)),
+                uid,
+                sender: "Expedition Console",
+                colorOverride: Color.LightBlue);
         }
 
         Log.Info($"Mission {args.Index} successfully claimed on independent console {ToPrettyString(uid)}");

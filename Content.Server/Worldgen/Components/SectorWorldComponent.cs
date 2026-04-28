@@ -61,6 +61,9 @@ public sealed partial class SectorPlanetTypeDefinition
     [DataField(required: true)]
     public string BiomeTemplate = string.Empty;
 
+    [DataField]
+    public List<string> BiomeAliases = new();
+
     [DataField(required: true)]
     public List<string> SurfaceTiles = new();
 
