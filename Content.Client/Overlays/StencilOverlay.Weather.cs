@@ -1,9 +1,9 @@
 using System.Numerics;
 using Content.Shared.Light.Components;
+using Content.Shared.StatusEffectNew.Components;
 using Content.Shared.Weather;
 using Robust.Client.Graphics;
 using Robust.Shared.Map.Components;
-using Robust.Shared.Physics.Components;
 
 namespace Content.Client.Overlays;
 
@@ -14,8 +14,7 @@ public sealed partial class StencilOverlay
     private void DrawWeather(
         in OverlayDrawArgs args,
         CachedResources res,
-        WeatherPrototype weatherProto,
-        float alpha,
+        HashSet<Entity<WeatherStatusEffectComponent, StatusEffectComponent>> weathers,
         Matrix3x2 invMatrix)
     {
         var worldHandle = args.WorldHandle;
@@ -46,10 +45,8 @@ public sealed partial class StencilOverlay
                     foreach (var tile in _map.GetTilesIntersecting(grid.Owner, grid, worldAABB))
                     {
                         // Ignored tiles for stencil
-                        if (_weather.CanWeatherAffect(grid.Owner, grid, tile, roofComp))
-                        {
+                        if (_weather.CanWeatherAffect((grid.Owner, grid, roofComp), tile))
                             continue;
-                        }
 
                         var gridTile = new Box2(tile.GridIndices * grid.Comp.TileSize,
                             (tile.GridIndices + Vector2i.One) * grid.Comp.TileSize);
@@ -64,11 +61,22 @@ public sealed partial class StencilOverlay
         worldHandle.UseShader(_protoManager.Index(StencilMaskId).Instance());
         worldHandle.DrawTextureRect(res.Blep!.Texture, worldBounds);
         var curTime = _timing.RealTime;
-        var sprite = _sprite.GetFrame(weatherProto.Sprite, curTime);
 
-        // Draw the rain
-        worldHandle.UseShader(_protoManager.Index(StencilDrawId).Instance());
-        _parallax.DrawParallax(worldHandle, worldAABB, sprite, curTime, position, Vector2.Zero, modulate: (weatherProto.Color ?? Color.White).WithAlpha(alpha));
+        foreach (var (uid, weather, status) in weathers)
+        {
+            var alpha = _weather.GetWeatherPercent((uid, status));
+            var sprite = _sprite.GetFrame(weather.Sprite, curTime);
+
+            // Draw the rain
+            worldHandle.UseShader(_protoManager.Index(StencilDrawId).Instance());
+            _parallax.DrawParallax(worldHandle,
+                worldAABB,
+                sprite,
+                curTime,
+                position,
+                weather.Scrolling ?? Vector2.Zero,
+                modulate: (weather.Color ?? Color.White).WithAlpha(alpha));
+        }
 
         worldHandle.SetTransform(Matrix3x2.Identity);
         worldHandle.UseShader(null);
