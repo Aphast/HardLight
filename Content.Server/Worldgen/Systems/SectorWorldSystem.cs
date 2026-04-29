@@ -166,7 +166,14 @@ public sealed class SectorWorldSystem : EntitySystem
 
     public void CleanupHostedSite(Entity<SectorExpeditionSiteComponent> ent)
     {
+        var liveEntities = CollectHostedSiteEntities(ent.Comp);
+
         foreach (var generated in ent.Comp.GeneratedEntities.ToArray())
+        {
+            liveEntities.Add(generated);
+        }
+
+        foreach (var generated in liveEntities)
         {
             if (Exists(generated))
                 QueueDel(generated);
@@ -223,27 +230,7 @@ public sealed class SectorWorldSystem : EntitySystem
 
         if (TryGetHostedSiteMapUid(gridUid, out var mapUid))
         {
-            var generated = new HashSet<EntityUid>();
-
-            foreach (var entity in ent.Comp.GeneratedEntities.ToArray())
-            {
-                if (!Exists(entity))
-                {
-                    ent.Comp.GeneratedEntities.Remove(entity);
-                    continue;
-                }
-
-                var xform = Transform(entity);
-
-                if (xform.MapUid != mapUid)
-                    continue;
-
-                var tile = _mapSystem.LocalToTile(gridUid, grid, xform.Coordinates);
-                if (!IsChunkTile(tile, chunkOrigin, chunkSize) || !IsTileWithinHostedSite(ent.Comp, tile))
-                    continue;
-
-                generated.Add(entity);
-            }
+            var generated = CollectHostedChunkEntities(ent.Comp, mapUid, gridUid, grid, chunkOrigin, chunkSize);
 
             if (generated.Count > 0)
             {
@@ -306,6 +293,68 @@ public sealed class SectorWorldSystem : EntitySystem
             if (entity != ent.Owner && entity != ent.Comp.HostGridUid)
                 ent.Comp.GeneratedEntities.Add(entity);
         }
+    }
+
+    private HashSet<EntityUid> CollectHostedSiteEntities(SectorExpeditionSiteComponent site)
+    {
+        var entities = new HashSet<EntityUid>();
+
+        if (site.HostGridUid == EntityUid.Invalid || !TryGetHostedSiteMapUid(site.HostGridUid, out var mapUid))
+            return entities;
+
+        var radius = GetHostedSiteRadius(site);
+        var radiusSquared = radius * radius;
+        var query = AllEntityQuery<TransformComponent>();
+
+        while (query.MoveNext(out var uid, out var xform))
+        {
+            if (uid == site.HostGridUid || uid == mapUid || site.OriginalEntities.Contains(uid))
+                continue;
+
+            if (xform.MapUid != mapUid)
+                continue;
+
+            if ((xform.Coordinates.Position - site.Center).LengthSquared() > radiusSquared)
+                continue;
+
+            entities.Add(uid);
+        }
+
+        return entities;
+    }
+
+    private HashSet<EntityUid> CollectHostedChunkEntities(
+        SectorExpeditionSiteComponent site,
+        EntityUid mapUid,
+        EntityUid gridUid,
+        MapGridComponent grid,
+        Vector2i chunkOrigin,
+        int chunkSize)
+    {
+        var entities = new HashSet<EntityUid>();
+        var query = AllEntityQuery<TransformComponent>();
+
+        while (query.MoveNext(out var uid, out var xform))
+        {
+            if (uid == gridUid || uid == mapUid || site.OriginalEntities.Contains(uid))
+                continue;
+
+            if (xform.MapUid != mapUid)
+                continue;
+
+            var tile = _mapSystem.LocalToTile(gridUid, grid, xform.Coordinates);
+            if (!IsChunkTile(tile, chunkOrigin, chunkSize) || !IsTileWithinHostedSite(site, tile))
+                continue;
+
+            entities.Add(uid);
+        }
+
+        foreach (var entity in entities)
+        {
+            site.GeneratedEntities.Add(entity);
+        }
+
+        return entities;
     }
 
     private bool DoesSiteIntersectChunk(SectorExpeditionSiteComponent site, Vector2i chunkOrigin, int chunkSize)

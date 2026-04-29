@@ -9,6 +9,7 @@ using Content.Server.Decals;
 using Content.Server.Ghost.Roles.Components;
 using Content.Server.Shuttles.Events;
 using Content.Server.Shuttles.Systems;
+using Content.Server.Worldgen.Components;
 using Content.Server.Worldgen.Systems;
 using Content.Shared.Atmos;
 using Content.Shared.Decals;
@@ -397,6 +398,27 @@ public sealed partial class BiomeSystem : SharedBiomeSystem
             }
         }
 
+        var loaderEnum = EntityQueryEnumerator<WorldLoaderComponent, TransformComponent>();
+
+        while (loaderEnum.MoveNext(out _, out var loader, out var xform))
+        {
+            if (loader.Disabled ||
+                !_biomeQuery.TryGetComponent(xform.MapUid, out var biome) ||
+                !biome.Enabled)
+            {
+                continue;
+            }
+
+            var worldPos = _transform.GetWorldPosition(xform);
+            AddChunksInRange(biome, worldPos, loader.Radius);
+
+            foreach (var layer in biome.MarkerLayers)
+            {
+                var layerProto = ProtoManager.Index(layer);
+                AddMarkerChunksInRange(biome, worldPos, layerProto, loader.Radius);
+            }
+        }
+
         var loadBiomes = AllEntityQuery<BiomeComponent, MapGridComponent>();
 
         while (loadBiomes.MoveNext(out var gridUid, out var biome, out var grid))
@@ -427,7 +449,14 @@ public sealed partial class BiomeSystem : SharedBiomeSystem
 
     private void AddChunksInRange(BiomeComponent biome, Vector2 worldPos)
     {
-        var enumerator = new ChunkIndicesEnumerator(_loadArea.Translated(worldPos), ChunkSize);
+        AddChunksInRange(biome, worldPos, _loadRange);
+    }
+
+    private void AddChunksInRange(BiomeComponent biome, Vector2 worldPos, float range)
+    {
+        var loadRange = MathF.Ceiling(range / ChunkSize) * ChunkSize;
+        var loadArea = new Box2(-loadRange, -loadRange, loadRange, loadRange);
+        var enumerator = new ChunkIndicesEnumerator(loadArea.Translated(worldPos), ChunkSize);
 
         while (enumerator.MoveNext(out var chunkOrigin))
         {
@@ -437,8 +466,14 @@ public sealed partial class BiomeSystem : SharedBiomeSystem
 
     private void AddMarkerChunksInRange(BiomeComponent biome, Vector2 worldPos, IBiomeMarkerLayer layer)
     {
+        AddMarkerChunksInRange(biome, worldPos, layer, _loadRange);
+    }
+
+    private void AddMarkerChunksInRange(BiomeComponent biome, Vector2 worldPos, IBiomeMarkerLayer layer, float range)
+    {
         // Offset the load area so it's centralised.
-        var loadArea = new Box2(0, 0, layer.Size, layer.Size);
+        var loadRange = MathF.Ceiling(range / ChunkSize) * ChunkSize;
+        var loadArea = new Box2(-loadRange, -loadRange, loadRange, loadRange);
         var halfLayer = new Vector2(layer.Size / 2f);
 
         var enumerator = new ChunkIndicesEnumerator(loadArea.Translated(worldPos - halfLayer), layer.Size);
