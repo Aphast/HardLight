@@ -5,6 +5,7 @@ using Content.Server.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Salvage;
 using Content.Server.Salvage.Expeditions;
+using Content.Server.Parallax;
 using Content.Server.Shuttles.Events;
 using Content.Server.Worldgen;
 using Content.Server.Worldgen.Components;
@@ -26,6 +27,8 @@ namespace Content.IntegrationTests.Tests;
 [TestFixture]
 public sealed class SectorWorldExpeditionIntegrationTest
 {
+    private static readonly ProtoId<BiomeTemplatePrototype> SnowBiomeTemplateId = "NFVGRoidSnow";
+
     private static List<SectorPlanetTypeDefinition> CreatePlanetTypes() =>
     [
         new SectorPlanetTypeDefinition
@@ -195,14 +198,15 @@ public sealed class SectorWorldExpeditionIntegrationTest
             var proto = server.ResolveDependency<IPrototypeManager>();
             var biomeSystem = entMan.System<BiomeSystem>();
             var mapSystem = entMan.System<SharedMapSystem>();
+            var worldController = entMan.System<WorldControllerSystem>();
 
             mapUid = mapSystem.CreateMap(out _);
-            var biomeTemplate = proto.Index<BiomeTemplatePrototype>("NFVGRoidSnow");
+            var biomeTemplate = proto.Index(SnowBiomeTemplateId);
             biomeSystem.EnsurePlanet(mapUid, biomeTemplate, seed: 1337);
 
             loaderUid = entMan.SpawnEntity(null, new EntityCoordinates(mapUid, new Vector2(WorldGen.ChunkSize / 2f, 0f)));
-            var loader = entMan.EnsureComponent<WorldLoaderComponent>(loaderUid);
-            loader.Radius = WorldGen.ChunkSize;
+            entMan.EnsureComponent<WorldLoaderComponent>(loaderUid);
+            worldController.SetLoaderRadius(loaderUid, WorldGen.ChunkSize);
         });
 
         await pair.RunTicksSync(5);
@@ -210,9 +214,9 @@ public sealed class SectorWorldExpeditionIntegrationTest
         await server.WaitPost(() =>
         {
             var entMan = server.ResolveDependency<IEntityManager>();
-            var biome = entMan.GetComponent<BiomeComponent>(mapUid);
+            var biomeSystem = entMan.System<BiomeSystem>();
 
-            Assert.That(biome.LoadedChunks.Contains(targetChunk), Is.True,
+            Assert.That(biomeSystem.IsChunkLoaded(mapUid, targetChunk), Is.True,
                 "The biome chunk should load from world-loader coverage even without player PVS.");
         });
 
@@ -228,9 +232,9 @@ public sealed class SectorWorldExpeditionIntegrationTest
         await server.WaitPost(() =>
         {
             var entMan = server.ResolveDependency<IEntityManager>();
-            var biome = entMan.GetComponent<BiomeComponent>(mapUid);
+            var biomeSystem = entMan.System<BiomeSystem>();
 
-            Assert.That(biome.LoadedChunks.Contains(targetChunk), Is.True,
+            Assert.That(biomeSystem.IsChunkLoaded(mapUid, targetChunk), Is.True,
                 "Crossing a chunk edge should not unload a chunk while the world loader still covers it.");
         });
 
@@ -246,9 +250,9 @@ public sealed class SectorWorldExpeditionIntegrationTest
         await server.WaitPost(() =>
         {
             var entMan = server.ResolveDependency<IEntityManager>();
-            var biome = entMan.GetComponent<BiomeComponent>(mapUid);
+            var biomeSystem = entMan.System<BiomeSystem>();
 
-            Assert.That(biome.LoadedChunks.Contains(targetChunk), Is.False,
+            Assert.That(biomeSystem.IsChunkLoaded(mapUid, targetChunk), Is.False,
                 "The biome chunk should unload once it leaves world-loader coverage.");
         });
 

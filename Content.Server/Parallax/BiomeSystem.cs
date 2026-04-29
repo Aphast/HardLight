@@ -185,6 +185,11 @@ public sealed partial class BiomeSystem : SharedBiomeSystem
         Dirty(ent, ent.Comp);
     }
 
+    public bool IsChunkLoaded(EntityUid uid, Vector2i chunkOrigin, BiomeComponent? component = null)
+    {
+        return Resolve(uid, ref component, false) && component.LoadedChunks.Contains(chunkOrigin);
+    }
+
     public void SetSeed(EntityUid uid, BiomeComponent component, int seed, bool dirty = true)
     {
         component.Seed = seed;
