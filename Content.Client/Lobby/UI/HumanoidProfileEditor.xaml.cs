@@ -405,7 +405,7 @@ namespace Content.Client.Lobby.UI
 
             HeightSlider.OnValueChanged += args =>
             {
-                SetHeight((float)args.Value);
+                SetProfileHeight((float)args.Value);
             };
 
             HeightResetButton.OnPressed += _ =>
@@ -419,7 +419,7 @@ namespace Content.Client.Lobby.UI
 
             WidthSlider.OnValueChanged += args =>
             {
-                SetWidth((float)args.Value);
+                SetProfileWidth((float)args.Value);
             };
 
             WidthResetButton.OnPressed += _ =>
@@ -1937,29 +1937,29 @@ namespace Content.Client.Lobby.UI
             SetDirty();
         }
 
-        private void SetHeight(float newHeight)
+        private void SetProfileHeight(float newHeight)
         {
-            Profile = Profile?.WithCharacterAppearance(Profile.Appearance.WithHeight(newHeight));
+            Profile = Profile?.WithCharacterAppearance(Profile.Appearance.WithHeight(Math.Clamp(newHeight, HumanoidCharacterAppearance.MinScale, HumanoidCharacterAppearance.MaxScale)));
             SetDirty();
             ReloadPreview();
         }
 
         private void ResetHeight()
         {
-            SetHeight(1.0f);
+            SetProfileHeight(HumanoidCharacterAppearance.DefaultScale);
             UpdateHeightControls();
         }
 
-        private void SetWidth(float newWidth)
+        private void SetProfileWidth(float newWidth)
         {
-            Profile = Profile?.WithCharacterAppearance(Profile.Appearance.WithWidth(newWidth));
+            Profile = Profile?.WithCharacterAppearance(Profile.Appearance.WithWidth(Math.Clamp(newWidth, HumanoidCharacterAppearance.MinScale, HumanoidCharacterAppearance.MaxScale)));
             SetDirty();
             ReloadPreview();
         }
 
         private void ResetWidth()
         {
-            SetWidth(1.0f);
+            SetProfileWidth(HumanoidCharacterAppearance.DefaultScale);
             UpdateWidthControls();
         }
 

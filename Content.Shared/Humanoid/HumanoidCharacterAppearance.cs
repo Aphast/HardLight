@@ -11,6 +11,10 @@ namespace Content.Shared.Humanoid;
 [Serializable, NetSerializable]
 public sealed partial class HumanoidCharacterAppearance : ICharacterAppearance, IEquatable<HumanoidCharacterAppearance>
 {
+    public const float DefaultScale = 1.0f;
+    public const float MinScale = 0.4f;
+    public const float MaxScale = 1.5f;
+
     [DataField("hair")]
     public string HairStyleId { get; set; } = HairStyles.DefaultHairStyle;
 
@@ -39,10 +43,10 @@ public sealed partial class HumanoidCharacterAppearance : ICharacterAppearance, 
     public List<Marking> Markings { get; set; } = new();
 
     [DataField]
-    public float Height { get; set; } = 1.0f;
+    public float Height { get; set; } = DefaultScale;
 
     [DataField]
-    public float Width { get; set; } = 1.0f;
+    public float Width { get; set; } = DefaultScale;
 
     public HumanoidCharacterAppearance(string hairStyleId,
         Color hairColor,
@@ -54,8 +58,8 @@ public sealed partial class HumanoidCharacterAppearance : ICharacterAppearance, 
         bool eyeGlowing, //starlight
         Color skinColor,
         List<Marking> markings,
-        float height = 1.0f,
-        float width = 1.0f)
+        float height = DefaultScale,
+        float width = DefaultScale)
     {
         HairStyleId = hairStyleId;
         HairColor = ClampColor(hairColor);
@@ -64,8 +68,8 @@ public sealed partial class HumanoidCharacterAppearance : ICharacterAppearance, 
         EyeColor = ClampColor(eyeColor);
         SkinColor = ClampColor(skinColor);
         Markings = markings;
-        Height = height <= 0.005f ? 1.0f : height;
-        Width = width <= 0.005f ? 1.0f : width;
+        Height = ClampScale(height);
+        Width = ClampScale(width);
         HairGlowing = hairGlowing; //starlight
         FacialHairGlowing = facialHairGlowing; //starlight
         EyeGlowing = eyeGlowing; //starlight
@@ -175,8 +179,8 @@ public sealed partial class HumanoidCharacterAppearance : ICharacterAppearance, 
             false, //starlight
             skinColor,
             new (),
-            1.0f,
-            1.0f
+            DefaultScale,
+            DefaultScale
         );
     }
 
@@ -250,14 +254,22 @@ public sealed partial class HumanoidCharacterAppearance : ICharacterAppearance, 
                 break;
         }
 
-        var newHeight = random.NextFloat(0.8f, 1.2f); // Random height between 80% and 120% of normal
-        var newWidth = random.NextFloat(0.8f, 1.2f); // Random width between 80% and 120% of normal
+        var newHeight = random.NextFloat(MinScale, MaxScale);
+        var newWidth = random.NextFloat(MinScale, MaxScale);
         return new HumanoidCharacterAppearance(newHairStyle, newHairColor, false, newFacialHairStyle, newHairColor, false, newEyeColor, false, newSkinColor, new (), newHeight, newWidth); //starlight, glowing
 
         float RandomizeColor(float channel)
         {
             return MathHelper.Clamp01(channel + random.Next(-25, 25) / 100f);
         }
+    }
+
+    private static float ClampScale(float scale)
+    {
+        if (scale <= 0.005f)
+            return DefaultScale;
+
+        return Math.Clamp(scale, MinScale, MaxScale);
     }
 
     public static Color ClampColor(Color color)
