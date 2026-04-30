@@ -269,11 +269,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
         var tilePlacements = new List<(Vector2i, Tile)>();
         var entityPlacements = new List<(Vector2i Indices, string PrototypeId)>();
-        foreach (var line in File.ReadLines(cachePath))
+        foreach (var line in File.ReadLines(cachePath).Where(line => !string.IsNullOrWhiteSpace(line) && line != "v1" && line != "v2"))
         {
-            if (string.IsNullOrWhiteSpace(line) || line == "v1" || line == "v2")
-                continue;
-
             var parts = line.Split(',', 4);
 
             if (parts.Length == 3)
