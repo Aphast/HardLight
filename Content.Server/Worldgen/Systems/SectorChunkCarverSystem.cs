@@ -426,11 +426,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
         var spawned = Spawn(prototypeId, new EntityCoordinates(gridUid, indices + new Vector2(0.5f, 0.5f)));
         var after = GetTileEntities(gridUid, grid, indices);
 
-        foreach (var entity in after)
+        foreach (var entity in after.Where(entity => !before.Contains(entity)))
         {
-            if (before.Contains(entity))
-                continue;
-
             var meta = MetaData(entity);
             if (meta.EntityPrototype == null)
                 continue;
