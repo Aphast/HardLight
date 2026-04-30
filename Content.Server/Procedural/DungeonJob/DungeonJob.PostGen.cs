@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Numerics;
 using Content.Shared.Procedural;
 using Content.Shared.Tag;
@@ -53,11 +54,8 @@ public sealed partial class DungeonJob
     {
         var after = GetTileEntities(tile);
 
-        foreach (var entity in after)
+        foreach (var entity in after.Where(entity => !before.Contains(entity) && ShouldAnchorDungeonStructure(entity)))
         {
-            if (before.Contains(entity) || !ShouldAnchorDungeonStructure(entity))
-                continue;
-
             var xform = _xformQuery.Comp(entity);
             if (!xform.Anchored)
                 _transform.AnchorEntity((entity, xform), (_gridUid, _grid), tile);
