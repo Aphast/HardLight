@@ -36,7 +36,7 @@ public sealed class WorldControllerSystem : EntitySystem
 
     public void SetLoaderRadius(EntityUid uid, int radius, WorldLoaderComponent? loader = null)
     {
-        if (!Resolve(uid, ref loader, false))
+        if (!Resolve(uid, ref loader, false) || loader == null)
             return;
 
         loader.Radius = radius;

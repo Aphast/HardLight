@@ -331,11 +331,9 @@ internal static class WeatherCommandHelpers
         if (TryGetColcommMap(entManager, out var colCommMap))
             options.Add(new CompletionOption("colcomm", DescribeMap(entManager, colCommMap)));
 
-        foreach (var planetType in sector.PlanetTypes)
+        foreach (var planetType in sector.PlanetTypes.Where(pt => sector.PlanetTypeMaps.ContainsKey(pt.Id)))
         {
-            if (!sector.PlanetTypeMaps.TryGetValue(planetType.Id, out var mapUid))
-                continue;
-
+            sector.PlanetTypeMaps.TryGetValue(planetType.Id, out var mapUid);
             options.Add(new CompletionOption(planetType.Id, $"{planetType.Name} - {DescribeMap(entManager, mapUid)}"));
         }
 

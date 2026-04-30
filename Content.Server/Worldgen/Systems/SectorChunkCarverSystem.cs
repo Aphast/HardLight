@@ -309,11 +309,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
         var tilePlacements = new List<(Vector2i, Tile)>();
         var entityPlacements = new List<(Vector2i Indices, string PrototypeId)>();
-        foreach (var line in File.ReadLines(cachePath))
+        foreach (var line in File.ReadLines(cachePath).Where(line => !string.IsNullOrWhiteSpace(line) && line != "v1" && line != "v2"))
         {
-            if (string.IsNullOrWhiteSpace(line) || line == "v1" || line == "v2")
-                continue;
-
             var parts = line.Split(',', 4);
 
             if (parts.Length == 3)
@@ -346,11 +343,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
         if (entityPlacements.Count > 0)
         {
-            foreach (var entityPlacement in entityPlacements)
+            foreach (var entityPlacement in entityPlacements.Where(ep => _proto.HasIndex<EntityPrototype>(ep.PrototypeId)))
             {
-                if (!_proto.HasIndex<EntityPrototype>(entityPlacement.PrototypeId))
-                    continue;
-
                 ClearChunkMaterialEntitiesAtTile((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.Indices);
                 SpawnTrackedTileEntity((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.Indices, entityPlacement.PrototypeId);
             }
@@ -421,11 +415,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
                 spawns.Clear();
                 cache.GetSpawns(_random, ref spawns);
 
-                foreach (var prototype in spawns)
+                foreach (var prototype in spawns.Where(p => p != null && _proto.HasIndex<EntityPrototype>(p)))
                 {
-                    if (prototype == null || !_proto.HasIndex<EntityPrototype>(prototype))
-                        continue;
-
                     SpawnTrackedTileEntity(ent, gridUid, grid, indices, prototype);
                 }
             }
@@ -469,11 +460,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
         var spawned = Spawn(prototypeId, new EntityCoordinates(gridUid, indices + new Vector2(0.5f, 0.5f)));
         var after = GetTileEntities(gridUid, grid, indices);
 
-        foreach (var entity in after)
+        foreach (var entity in after.Where(entity => !before.Contains(entity)))
         {
-            if (before.Contains(entity))
-                continue;
-
             var meta = MetaData(entity);
             if (meta.EntityPrototype == null)
                 continue;

@@ -173,10 +173,9 @@ public sealed partial class SalvageSystem
 
     private void CleanupHostedExpeditionContent(SalvageExpeditionComponent component)
     {
-        foreach (var generated in component.GeneratedEntities)
+        foreach (var generated in component.GeneratedEntities.Where(generated => Exists(generated)))
         {
-            if (Exists(generated))
-                QueueDel(generated);
+            QueueDel(generated);
         }
 
         component.GeneratedEntities.Clear();

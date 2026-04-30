@@ -967,11 +967,8 @@ public sealed partial class BiomeSystem : SharedBiomeSystem
         var tiles = new List<(Vector2i, Tile)>(ChunkSize * ChunkSize);
         var chunks = component.LoadedChunks.ToArray();
 
-        foreach (var chunk in chunks)
+        foreach (var chunk in chunks.Where(component.LoadedChunks.Contains))
         {
-            if (!component.LoadedChunks.Contains(chunk))
-                continue;
-
             UnloadChunk(component, gridUid, grid, chunk, seed, tiles);
         }
     }
