@@ -415,9 +415,12 @@ public sealed class SectorChunkCarverSystem : EntitySystem
                 spawns.Clear();
                 cache.GetSpawns(_random, ref spawns);
 
-                foreach (var prototype in spawns.Where(p => p != null && _proto.HasIndex<EntityPrototype>(p)))
+                foreach (var prototype in spawns)
                 {
-                    SpawnTrackedTileEntity(ent, gridUid, grid, indices, prototype);
+                    if (prototype is not { } prototypeId || !_proto.HasIndex<EntityPrototype>(prototypeId))
+                        continue;
+
+                    SpawnTrackedTileEntity(ent, gridUid, grid, indices, prototypeId);
                 }
             }
 
