@@ -13,6 +13,7 @@ using Content.Server.Shuttles.Events;
 using Content.Server.Shuttles.Systems;
 using Content.Server.Station.Components;
 using Content.Server.Station.Systems; // Add this if missing
+using Content.Server.Worldgen.Systems;
 using Content.Shared._NF.Shipyard.Components;
 using Content.Shared.CCVar;
 using Content.Shared.Database;
@@ -45,6 +46,7 @@ namespace Content.Server.GameTicking
         [Dependency] private readonly ITaskManager _taskManager = default!;
         [Dependency] private readonly ArrivalsSystem _arrivalsSystem = default!;
         [Dependency] private readonly ShuttleSystem _shuttleSystem = default!;
+        [Dependency] private readonly SectorWorldSystem _sectorWorld = default!;
 
         private static readonly Counter RoundNumberMetric = Metrics.CreateCounter(
             "ss14_round_number",
@@ -615,23 +617,38 @@ namespace Content.Server.GameTicking
             // HardLight end
             // --- End Corrected Colcomm logic ---
 
-            // Aggressively delete the default map after a 30 second delay
+            // Aggressively delete the default map and any generated layer maps after a 30 second delay.
             var defaultMapEntityUid = _mapManager.GetMapEntityId(DefaultMap);
+            var roundEndCleanupMaps = _sectorWorld.GetRoundEndCleanupMapIds();
             if (DefaultMap != null)
             {
                 Timer.Spawn(TimeSpan.FromSeconds(30), () =>
                 {
-                    // Send all players on the default map to the lobby before deleting the map
+                    // Send all players on round-end cleanup maps to the lobby before deleting those maps.
                     foreach (var session in _playerManager.Sessions)
                     {
                         var attachedEntity = session.AttachedEntity;
-                        if (attachedEntity != null && Transform(attachedEntity.Value).MapID == DefaultMap)
+                        if (attachedEntity == null)
+                            continue;
+
+                        var playerMap = Transform(attachedEntity.Value).MapID;
+                        if (playerMap == DefaultMap || roundEndCleanupMaps.Contains(playerMap))
                         {
                             PlayerJoinLobby(session);
                         }
                     }
 
                     QueueDel(defaultMapEntityUid);
+
+                    foreach (var mapId in roundEndCleanupMaps)
+                    {
+                        if (!_map.MapExists(mapId))
+                            continue;
+
+                        var mapUid = _map.GetMapOrInvalid(mapId);
+                        if (mapUid.IsValid())
+                            QueueDel(mapUid);
+                    }
                 });
             }
 

@@ -1,5 +1,6 @@
 using System.Linq;
 using Content.Server.Administration;
+using Content.Server.Shuttles.Systems;
 using Content.Server.Weather;
 using Content.Server.Worldgen.Components;
 using Content.Server.Worldgen.Systems;
@@ -150,7 +151,7 @@ public sealed class WeatherPlanetCommand : IConsoleCommand
         }
 
         var sectorWorld = _entManager.System<SectorWorldSystem>();
-        if (!WeatherCommandHelpers.TryResolvePersistentMap(sectorWorld, args[0], out var mapUid, out var targetLabel, out var targetError))
+        if (!WeatherCommandHelpers.TryResolvePersistentMap(_entManager, sectorWorld, args[0], out var mapUid, out var targetLabel, out var targetError))
         {
             shell.WriteError(targetError);
             return;
@@ -221,7 +222,7 @@ public sealed class ListPlanetMapsCommand : IConsoleCommand
         if (sector.FtlMap is { } ftlMap)
             shell.WriteLine($"ftl: map {GetMapIdText(ftlMap)}");
 
-        if (sector.ColCommMap is { } colCommMap)
+        if (WeatherCommandHelpers.TryGetColcommMap(_entManager, out var colCommMap))
             shell.WriteLine($"colcomm: map {GetMapIdText(colCommMap)}");
 
         foreach (var planetType in sector.PlanetTypes)
@@ -272,7 +273,7 @@ internal static class WeatherCommandHelpers
         return false;
     }
 
-    public static bool TryResolvePersistentMap(SectorWorldSystem sectorWorld, string target, out EntityUid mapUid, out string targetLabel, out string error)
+    public static bool TryResolvePersistentMap(IEntityManager entManager, SectorWorldSystem sectorWorld, string target, out EntityUid mapUid, out string targetLabel, out string error)
     {
         mapUid = EntityUid.Invalid;
         targetLabel = target;
@@ -298,7 +299,7 @@ internal static class WeatherCommandHelpers
                 mapUid = ftlMap;
                 targetLabel = "ftl";
                 return true;
-            case "colcomm" when sector.ColCommMap is { } colCommMap:
+            case "colcomm" when TryGetColcommMap(entManager, out var colCommMap):
                 mapUid = colCommMap;
                 targetLabel = "colcomm";
                 return true;
@@ -327,7 +328,7 @@ internal static class WeatherCommandHelpers
         if (sector.FtlMap is { } ftlMap)
             options.Add(new CompletionOption("ftl", DescribeMap(entManager, ftlMap)));
 
-        if (sector.ColCommMap is { } colCommMap)
+        if (TryGetColcommMap(entManager, out var colCommMap))
             options.Add(new CompletionOption("colcomm", DescribeMap(entManager, colCommMap)));
 
         foreach (var planetType in sector.PlanetTypes)
@@ -346,5 +347,18 @@ internal static class WeatherCommandHelpers
         return entManager.TryGetComponent<MapComponent>(mapUid, out var mapComp)
             ? $"Map {mapComp.MapId}"
             : "Map unknown";
+    }
+
+    public static bool TryGetColcommMap(IEntityManager entManager, out EntityUid mapUid)
+    {
+        mapUid = EntityUid.Invalid;
+
+        var emergencyShuttle = entManager.System<EmergencyShuttleSystem>();
+        var colcommMaps = emergencyShuttle.GetColcommMaps();
+        if (colcommMaps.Count == 0)
+            return false;
+
+        mapUid = colcommMaps.First();
+        return true;
     }
 }

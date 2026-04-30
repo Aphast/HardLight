@@ -1,12 +1,14 @@
 using System.Numerics;
 using System.Linq;
 using Content.Server._Mono.Cleanup;
+using Content.Server._NF.RoundNotifications.Events;
 using Content.Server._NF.Shuttles.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.GameTicking;
 using Content.Server.Parallax;
 using Content.Server.Weather;
 using Content.Server.Worldgen.Components;
+using Content.Shared.GameTicking;
 using Content.Shared.Atmos;
 using Content.Shared.Gravity;
 using Content.Shared.Light.Components;
@@ -14,6 +16,7 @@ using Content.Shared.Maps;
 using Content.Shared.Parallax.Biomes;
 using Content.Shared.Shuttles.Components;
 using Content.Shared.Weather;
+using Robust.Shared.ContentPack;
 using Robust.Shared.EntitySerialization;
 using Robust.Shared.EntitySerialization.Systems;
 using Robust.Server.GameObjects;
@@ -44,16 +47,32 @@ public sealed class SectorWorldSystem : EntitySystem
     [Dependency] private readonly MetaDataSystem _metaData = default!;
     [Dependency] private readonly SharedMapSystem _mapSystem = default!;
     [Dependency] private readonly PhysicsSystem _physics = default!;
+    [Dependency] private readonly IResourceManager _resources = default!;
     [Dependency] private readonly ITileDefinitionManager _tileDefs = default!;
     [Dependency] private readonly WeatherSystem _weather = default!;
 
     private static readonly string[] TimeOfDayStates = ["Dawn", "Day", "Dusk", "Night"];
     private readonly string _siteCacheSession = Guid.NewGuid().ToString("N");
+    private bool _roundRestartCleanupActive;
 
     public override void Initialize()
     {
         SubscribeLocalEvent<SectorWorldComponent, ComponentStartup>(OnSectorStartup);
         SubscribeLocalEvent<SectorExpeditionSiteComponent, ComponentShutdown>(OnExpeditionSiteShutdown);
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestartCleanup);
+        SubscribeLocalEvent<RoundStartedEvent>(OnRoundStarted);
+    }
+
+    private void OnRoundRestartCleanup(RoundRestartCleanupEvent ev)
+    {
+        _roundRestartCleanupActive = true;
+        CleanupHostedSiteCachesForRoundRestart();
+        CleanupLayerMapsForRoundRestart();
+    }
+
+    private void OnRoundStarted(RoundStartedEvent ev)
+    {
+        _roundRestartCleanupActive = false;
     }
 
     private void OnSectorStartup(Entity<SectorWorldComponent> ent, ref ComponentStartup args)
@@ -131,6 +150,9 @@ public sealed class SectorWorldSystem : EntitySystem
 
     public void SaveHostedChunkContent(EntityUid gridUid, MapGridComponent grid, Vector2i chunkOrigin, int chunkSize)
     {
+        if (_roundRestartCleanupActive)
+            return;
+
         var query = EntityQueryEnumerator<SectorExpeditionSiteComponent>();
 
         while (query.MoveNext(out var uid, out var site))
@@ -203,6 +225,68 @@ public sealed class SectorWorldSystem : EntitySystem
     public void CleanupHostedSite(EntityUid uid, SectorExpeditionSiteComponent component)
     {
         CleanupHostedSite((uid, component));
+    }
+
+    private void CleanupHostedSiteCachesForRoundRestart()
+    {
+        var siteQuery = EntityQueryEnumerator<SectorExpeditionSiteComponent>();
+        while (siteQuery.MoveNext(out var uid, out var site))
+        {
+            CleanupHostedSite((uid, site));
+        }
+
+        var cacheRoot = GetHostedSiteCacheRoot();
+        if (_resources.UserData.Exists(cacheRoot))
+            _resources.UserData.Delete(cacheRoot);
+    }
+
+    private void CleanupLayerMapsForRoundRestart()
+    {
+        var defaultMapUid = _mapSystem.GetMapOrInvalid(_gameTicker.DefaultMap);
+        var sectorQuery = EntityQueryEnumerator<SectorWorldComponent>();
+
+        while (sectorQuery.MoveNext(out var sectorUid, out var sector))
+        {
+            foreach (var loader in sector.StartupLoaders.ToArray())
+            {
+                if (Exists(loader))
+                    QueueDel(loader);
+            }
+
+            sector.StartupLoaders.Clear();
+            sector.Reservations.Clear();
+
+            foreach (var mapUid in sector.PlanetTypeMaps.Values.Distinct().ToArray())
+            {
+                DeleteLayerMapForRoundRestart(sectorUid, defaultMapUid, mapUid);
+            }
+
+            sector.PlanetTypeMaps.Clear();
+
+            if (sector.FtlMap is { } ftlMap)
+                DeleteLayerMapForRoundRestart(sectorUid, defaultMapUid, ftlMap);
+
+            if (sector.ColCommMap is { } colCommMap)
+                DeleteLayerMapForRoundRestart(sectorUid, defaultMapUid, colCommMap);
+
+            sector.FtlMap = null;
+            sector.ColCommMap = null;
+            sector.SpaceMap = sectorUid;
+        }
+    }
+
+    private void DeleteLayerMapForRoundRestart(EntityUid sectorUid, EntityUid defaultMapUid, EntityUid mapUid)
+    {
+        if (!Exists(mapUid) || mapUid == sectorUid || mapUid == defaultMapUid)
+            return;
+
+        if (!TryComp<MapComponent>(mapUid, out var mapComp))
+            return;
+
+        if (mapComp.MapId == _gameTicker.DefaultMap || !_mapSystem.MapExists(mapComp.MapId))
+            return;
+
+        _mapSystem.DeleteMap(mapComp.MapId);
     }
 
     private void SaveHostedChunkContent(Entity<SectorExpeditionSiteComponent> ent, EntityUid gridUid, MapGridComponent grid, Vector2i chunkOrigin, int chunkSize)
@@ -429,6 +513,38 @@ public sealed class SectorWorldSystem : EntitySystem
     private ResPath GetHostedChunkEntityCachePath(EntityUid siteUid, Vector2i chunkOrigin)
     {
         return new ResPath($"/HardLight/hosted-site-cache/{_siteCacheSession}/{siteUid.Id.ToString()}/{chunkOrigin.X}_{chunkOrigin.Y}.yml");
+    }
+
+    private ResPath GetHostedSiteCacheRoot()
+    {
+        return new ResPath($"/HardLight/hosted-site-cache/{_siteCacheSession}");
+    }
+
+    public HashSet<MapId> GetRoundEndCleanupMapIds()
+    {
+        var mapIds = new HashSet<MapId>();
+
+        var sectorQuery = EntityQueryEnumerator<SectorWorldComponent>();
+        while (sectorQuery.MoveNext(out _, out var sector))
+        {
+            foreach (var mapUid in sector.PlanetTypeMaps.Values)
+            {
+                TryAddRoundEndCleanupMapId(mapIds, mapUid);
+            }
+        }
+
+        return mapIds;
+    }
+
+    private void TryAddRoundEndCleanupMapId(HashSet<MapId> mapIds, EntityUid mapUid)
+    {
+        if (!Exists(mapUid) || !TryComp<MapComponent>(mapUid, out var mapComp))
+            return;
+
+        if (mapComp.MapId == _gameTicker.DefaultMap)
+            return;
+
+        mapIds.Add(mapComp.MapId);
     }
 
     public bool TryGetDefaultSectorMap(out EntityUid sectorMap, out SectorWorldComponent sector)
@@ -762,8 +878,7 @@ public sealed class SectorWorldSystem : EntitySystem
         if (ent.Comp.FtlMap is { } ftlMap && !Exists(ftlMap))
             ent.Comp.FtlMap = null;
 
-        if (ent.Comp.ColCommMap is { } colCommMap && !Exists(colCommMap))
-            ent.Comp.ColCommMap = null;
+        CleanupLegacyColCommLayerMap(ent);
 
         var invalidPlanetMaps = ent.Comp.PlanetTypeMaps
             .Where(pair => !Exists(pair.Value))
@@ -776,10 +891,8 @@ public sealed class SectorWorldSystem : EntitySystem
         }
 
         ent.Comp.FtlMap ??= CreateLayerMap($"{MetaData(ent.Owner).EntityName} FTL", space: true, gravity: false);
-        ent.Comp.ColCommMap ??= CreateLayerMap($"{MetaData(ent.Owner).EntityName} ColComm", space: false, gravity: true, mixture: CreateStandardAirMixture(), timeOfDay: "Day");
 
         EnsurePersistentWorldGrid(ent.Comp.FtlMap.Value);
-        EnsurePersistentWorldGrid(ent.Comp.ColCommMap.Value);
 
         foreach (var planet in ent.Comp.Planets)
         {
@@ -801,6 +914,29 @@ public sealed class SectorWorldSystem : EntitySystem
 
             EnsurePersistentWorldGrid(ent.Comp.PlanetTypeMaps[planet.PlanetTypeId]);
         }
+    }
+
+    private void CleanupLegacyColCommLayerMap(Entity<SectorWorldComponent> ent)
+    {
+        if (ent.Comp.ColCommMap is not { } colCommMap)
+            return;
+
+        ent.Comp.ColCommMap = null;
+
+        if (!Exists(colCommMap) || colCommMap == ent.Owner)
+            return;
+
+        var defaultMapUid = _mapSystem.GetMapOrInvalid(_gameTicker.DefaultMap);
+        if (colCommMap == defaultMapUid)
+            return;
+
+        if (TryComp<MapComponent>(colCommMap, out var mapComp))
+        {
+            _mapSystem.DeleteMap(mapComp.MapId);
+            return;
+        }
+
+        QueueDel(colCommMap);
     }
 
     private void EnsurePersistentWorldGrid(EntityUid mapOrGridUid)

@@ -3,8 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Robust.Server.GameObjects;
+using Content.Server._NF.RoundNotifications.Events;
 using Content.Server.Worldgen.Components;
 using Content.Server.Worldgen.Tools;
+using Content.Shared.GameTicking;
 using Content.Shared.Maps;
 using Content.Shared.Storage;
 using Content.Shared.Worldgen.Prototypes;
@@ -48,21 +50,58 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
     private string _cacheDirectory = string.Empty;
     private readonly Dictionary<string, Dictionary<string, EntitySpawnCollectionCache>> _biomeCaches = new();
+    private bool _roundRestartCleanupActive;
 
     public override void Initialize()
     {
-        var cacheRunId = Path.GetFileName(Guid.NewGuid().ToString("N"));
-        _cacheDirectory = Path.Combine(Path.GetTempPath(), "HardLight", "sector-chunk-cache", cacheRunId);
-        Directory.CreateDirectory(_cacheDirectory);
+        ResetCacheDirectory();
 
         SubscribeLocalEvent<SectorChunkCarverComponent, WorldChunkLoadedEvent>(OnChunkLoaded);
         SubscribeLocalEvent<SectorChunkCarverComponent, WorldChunkUnloadedEvent>(OnChunkUnloaded);
         SubscribeLocalEvent<SectorChunkCarverComponent, ComponentShutdown>(OnChunkShutdown);
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestartCleanup);
+        SubscribeLocalEvent<RoundStartedEvent>(OnRoundStarted);
     }
 
     public override void Shutdown()
     {
         base.Shutdown();
+
+        DeleteCacheDirectory();
+    }
+
+    private void OnRoundRestartCleanup(RoundRestartCleanupEvent ev)
+    {
+        _roundRestartCleanupActive = true;
+        ResetAllChunkCachePaths();
+        ResetCacheDirectory();
+    }
+
+    private void OnRoundStarted(RoundStartedEvent ev)
+    {
+        _roundRestartCleanupActive = false;
+    }
+
+    private void ResetAllChunkCachePaths()
+    {
+        var query = EntityQueryEnumerator<SectorChunkCarverComponent>();
+        while (query.MoveNext(out _, out var carver))
+        {
+            carver.CacheFilePath = null;
+        }
+    }
+
+    private void ResetCacheDirectory()
+    {
+        DeleteCacheDirectory();
+
+        var cacheRunId = Path.GetFileName(Guid.NewGuid().ToString("N"));
+        _cacheDirectory = Path.Combine(Path.GetTempPath(), "HardLight", "sector-chunk-cache", cacheRunId);
+        Directory.CreateDirectory(_cacheDirectory);
+    }
+
+    private void DeleteCacheDirectory()
+    {
 
         try
         {
@@ -147,6 +186,9 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
     private void OnChunkUnloaded(Entity<SectorChunkCarverComponent> ent, ref WorldChunkUnloadedEvent args)
     {
+        if (_roundRestartCleanupActive)
+            return;
+
         if (!ent.Comp.Materialized || ent.Comp.GeneratedTiles.Count == 0)
             return;
 
@@ -188,6 +230,9 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
     private void OnChunkShutdown(Entity<SectorChunkCarverComponent> ent, ref ComponentShutdown args)
     {
+        if (_roundRestartCleanupActive)
+            return;
+
         if (!ent.Comp.Materialized || ent.Comp.GeneratedTiles.Count == 0)
             return;
 
