@@ -52,7 +52,12 @@ public sealed class SectorChunkCarverSystem : EntitySystem
     public override void Initialize()
     {
         var cacheRunId = Path.GetFileName(Guid.NewGuid().ToString("N"));
-        _cacheDirectory = Path.Combine(Path.GetTempPath(), "HardLight", "sector-chunk-cache", cacheRunId);
+        var cacheSegments = new[] { "HardLight", "sector-chunk-cache", cacheRunId };
+
+        if (cacheSegments.Any(Path.IsPathRooted))
+            throw new InvalidOperationException("Cache directory segments must be relative paths.");
+
+        _cacheDirectory = Path.Combine(Path.GetTempPath(), Path.Combine(cacheSegments));
         Directory.CreateDirectory(_cacheDirectory);
 
         SubscribeLocalEvent<SectorChunkCarverComponent, WorldChunkLoadedEvent>(OnChunkLoaded);
