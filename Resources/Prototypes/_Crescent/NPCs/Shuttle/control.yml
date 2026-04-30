@@ -59,7 +59,7 @@
     rootTask:
       task: DroneCompound
   - type: WorldLoader
-    radius: 256
+    radius: 64
   - type: DeviceNetwork
     deviceNetId: Wireless
     receiveFrequencyId: DroneControl
@@ -94,7 +94,7 @@
         type: DroneConsoleBoundUserInterface
   - type: RadarConsole
   - type: WorldLoader
-    radius: 256
+    radius: 64
   - type: DeviceNetwork
     deviceNetId: Wireless
     transmitFrequencyId: DroneControl

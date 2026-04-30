@@ -134,7 +134,7 @@
           type: WiresBoundUserInterface
   - type: RadarConsole
   - type: WorldLoader
-    radius: 384 # Mono
+    radius: 64    # Mono
   - type: PointLight
     radius: 1.5
     energy: 1.6
@@ -241,7 +241,7 @@
       - Syndicate
   - type: RadarConsole
   - type: WorldLoader
-    radius: 1536
+    radius: 64
   - type: PointLight
     radius: 1.5
     energy: 1.6
