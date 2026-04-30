@@ -303,11 +303,8 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
         if (entityPlacements.Count > 0)
         {
-            foreach (var entityPlacement in entityPlacements)
+            foreach (var entityPlacement in entityPlacements.Where(ep => _proto.HasIndex<EntityPrototype>(ep.PrototypeId)))
             {
-                if (!_proto.HasIndex<EntityPrototype>(entityPlacement.PrototypeId))
-                    continue;
-
                 ClearChunkMaterialEntitiesAtTile((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.Indices);
                 SpawnTrackedTileEntity((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.Indices, entityPlacement.PrototypeId);
             }
