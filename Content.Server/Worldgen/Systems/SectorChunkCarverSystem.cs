@@ -545,14 +545,7 @@ public sealed class SectorChunkCarverSystem : EntitySystem
             return false;
 
         var coords = new MapCoordinates(worldPos, mapId);
-        foreach (var grid in blockedGrids)
-        {
-            var tile = _mapSystem.GetTileRef(grid.Owner, grid.Comp, coords);
-            if (!tile.Tile.IsEmpty)
-                return true;
-        }
-
-        return false;
+        return blockedGrids.Any(grid => !_mapSystem.GetTileRef(grid.Owner, grid.Comp, coords).Tile.IsEmpty);
     }
 
     private bool TryGetPlanetWallPrototype(EntityUid gridUid, MapGridComponent grid, Vector2i indices, out string prototype)
