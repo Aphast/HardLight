@@ -49,6 +49,7 @@ public sealed class SectorWorldSystem : EntitySystem
     [Dependency] private readonly PhysicsSystem _physics = default!;
     [Dependency] private readonly IResourceManager _resources = default!;
     [Dependency] private readonly ITileDefinitionManager _tileDefs = default!;
+    [Dependency] private readonly SharedTransformSystem _transform = default!;
     [Dependency] private readonly WeatherSystem _weather = default!;
 
     private static readonly string[] TimeOfDayStates = ["Dawn", "Day", "Dusk", "Night"];
@@ -374,9 +375,35 @@ public sealed class SectorWorldSystem : EntitySystem
 
         foreach (var entity in result.Entities)
         {
-            if (entity != ent.Owner && entity != ent.Comp.HostGridUid)
-                ent.Comp.GeneratedEntities.Add(entity);
+            if (entity == ent.Owner || entity == ent.Comp.HostGridUid)
+                continue;
+
+            ent.Comp.GeneratedEntities.Add(entity);
+
+            var meta = MetaData(entity);
+            if (meta.EntityPrototype == null || !ShouldAnchorHostedCachedEntity(meta.EntityPrototype.ID))
+                continue;
+
+            var xform = Transform(entity);
+            if (xform.GridUid != gridUid || xform.Anchored)
+                continue;
+
+            _transform.AnchorEntity(entity, xform);
         }
+    }
+
+    private static bool ShouldAnchorHostedCachedEntity(string prototypeId)
+    {
+        return prototypeId.StartsWith("Wall", StringComparison.OrdinalIgnoreCase)
+            || prototypeId.StartsWith("NFWall", StringComparison.OrdinalIgnoreCase)
+            || prototypeId.Contains("Door", StringComparison.OrdinalIgnoreCase)
+            || prototypeId.Contains("Airlock", StringComparison.OrdinalIgnoreCase)
+            || prototypeId.Contains("Windoor", StringComparison.OrdinalIgnoreCase)
+            || prototypeId.Contains("Mineral", StringComparison.OrdinalIgnoreCase)
+            || (prototypeId.Contains("Cable", StringComparison.OrdinalIgnoreCase)
+                && !prototypeId.Contains("Stack", StringComparison.OrdinalIgnoreCase)
+                && !prototypeId.Contains("Placer", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(prototypeId, "Grille", StringComparison.OrdinalIgnoreCase);
     }
 
     private HashSet<EntityUid> CollectHostedSiteEntities(SectorExpeditionSiteComponent site)

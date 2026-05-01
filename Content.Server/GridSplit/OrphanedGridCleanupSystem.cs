@@ -2,6 +2,7 @@ using System.Linq;
 using Content.Server.Power.Components;
 using Content.Server.Procedural;
 using Content.Server._Mono.Cleanup;
+using Content.Server.Salvage.Expeditions;
 using Content.Server.Worldgen.Components;
 using Content.Server.Station.Components;
 using Content.Shared.CCVar;
@@ -305,6 +306,12 @@ public sealed class OrphanedGridCleanupSystem : EntitySystem
     private bool ShouldPreserveGrid(EntityUid gridUid)
     {
         if (HasComp<CleanupImmuneComponent>(gridUid))
+            return true;
+
+        if (HasComp<ExpeditionParticipantShuttleComponent>(gridUid))
+            return true;
+        
+        if (HasComp<WorldLoaderComponent>(gridUid))
             return true;
 
         if (HasComp<WorldControllerComponent>(gridUid))
