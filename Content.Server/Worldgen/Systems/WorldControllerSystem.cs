@@ -43,6 +43,15 @@ public sealed class WorldControllerSystem : EntitySystem
         Dirty(uid, loader);
     }
 
+    public void SetLoaderEnabled(EntityUid uid, bool enabled, WorldLoaderComponent? loader = null)
+    {
+        if (!Resolve(uid, ref loader, false) || loader == null)
+            return;
+
+        loader.Disabled = !enabled;
+        Dirty(uid, loader);
+    }
+
     /// <summary>
     ///     Handles deleting chunks properly.
     /// </summary>

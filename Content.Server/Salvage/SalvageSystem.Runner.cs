@@ -16,6 +16,8 @@ using Robust.Shared.Map; // Frontier
 using Content.Server.GameTicking; // Frontier
 using Content.Server._NF.Salvage.Expeditions.Structure; // Frontier
 using Content.Server._NF.Salvage.Expeditions;
+using Content.Shared.Ghost;
+using Content.Shared.Mind.Components;
 using Content.Shared.Salvage; // Frontier
 using RobustTimer = Robust.Shared.Timing.Timer; // HardLight
 
@@ -227,7 +229,7 @@ public sealed partial class SalvageSystem
         if (HasComp<ExpeditionParticipantShuttleComponent>(ev.Entity))
             RemComp<ExpeditionParticipantShuttleComponent>(ev.Entity);
 
-        if (HasExpeditionParticipantShuttlesOnMap(expeditionMapUid))
+        if (HasExpeditionParticipantShuttlesOnMap(expeditionMapUid) || HasActivePlayersOnExpedition(expeditionMapUid))
             return;
 
         // Last shuttle has left so finish the mission.
@@ -570,6 +572,23 @@ public sealed partial class SalvageSystem
         return false;
     }
 
+    private bool HasActivePlayersOnExpedition(EntityUid expeditionMapUid)
+    {
+        var ghostQuery = GetEntityQuery<GhostComponent>();
+        var mindQuery = EntityQueryEnumerator<MindContainerComponent, TransformComponent>();
+
+        while (mindQuery.MoveNext(out var uid, out var mind, out var xform))
+        {
+            if (!mind.HasMind || ghostQuery.HasComponent(uid))
+                continue;
+
+            if (IsEntityOnExpedition(uid, expeditionMapUid, xform))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// HardLight: FTL all shuttles currently on an expedition map back to the home map.
     /// </summary>
@@ -608,11 +627,11 @@ public sealed partial class SalvageSystem
         if (!Exists(expeditionMapUid) || !TryComp<SalvageExpeditionComponent>(expeditionMapUid, out _))
             return;
 
-        if (HasExpeditionParticipantShuttlesOnMap(expeditionMapUid))
+        if (HasExpeditionParticipantShuttlesOnMap(expeditionMapUid) || HasActivePlayersOnExpedition(expeditionMapUid))
         {
             if (attempt >= 24)
             {
-                Log.Warning($"Expedition {expeditionMapUid} still has expedition participant shuttles after cleanup retries; skipping forced map deletion to avoid deleting active players.");
+                Log.Warning($"Expedition {expeditionMapUid} still has expedition occupants after cleanup retries; skipping forced map deletion to avoid deleting active players.");
                 return;
             }
 

@@ -16,9 +16,6 @@ using Content.Shared.Maps;
 using Content.Shared.Parallax.Biomes;
 using Content.Shared.Shuttles.Components;
 using Content.Shared.Weather;
-using Robust.Shared.ContentPack;
-using Robust.Shared.EntitySerialization;
-using Robust.Shared.EntitySerialization.Systems;
 using Robust.Server.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
@@ -43,17 +40,14 @@ public sealed class SectorWorldSystem : EntitySystem
     [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly AtmosphereSystem _atmosphere = default!;
     [Dependency] private readonly BiomeSystem _biome = default!;
-    [Dependency] private readonly MapLoaderSystem _loader = default!;
     [Dependency] private readonly MetaDataSystem _metaData = default!;
     [Dependency] private readonly SharedMapSystem _mapSystem = default!;
     [Dependency] private readonly PhysicsSystem _physics = default!;
-    [Dependency] private readonly IResourceManager _resources = default!;
     [Dependency] private readonly ITileDefinitionManager _tileDefs = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
     [Dependency] private readonly WeatherSystem _weather = default!;
 
     private static readonly string[] TimeOfDayStates = ["Dawn", "Day", "Dusk", "Night"];
-    private readonly string _siteCacheSession = Guid.NewGuid().ToString("N");
     private bool _roundRestartCleanupActive;
 
     public override void Initialize()
@@ -99,7 +93,7 @@ public sealed class SectorWorldSystem : EntitySystem
         ent.Comp.OriginalEntities.Clear();
         ent.Comp.GeneratedEntities.Clear();
         ent.Comp.CachedChunkTiles.Clear();
-        ent.Comp.CachedChunkEntityFiles.Clear();
+        ent.Comp.CachedChunkEntities.Clear();
 
         foreach (var tile in _mapSystem.GetTilesIntersecting(hostGridUid, grid, new Circle(center, radius), false))
         {
@@ -177,7 +171,7 @@ public sealed class SectorWorldSystem : EntitySystem
             if (site.HostGridUid != gridUid)
                 continue;
 
-            if (!site.CachedChunkTiles.ContainsKey(chunkOrigin) && !site.CachedChunkEntityFiles.ContainsKey(chunkOrigin))
+            if (!site.CachedChunkTiles.ContainsKey(chunkOrigin) && !site.CachedChunkEntities.ContainsKey(chunkOrigin))
                 continue;
 
             if (!DoesSiteIntersectChunk(site, chunkOrigin, chunkSize))
@@ -220,7 +214,7 @@ public sealed class SectorWorldSystem : EntitySystem
         ent.Comp.OriginalTiles.Clear();
         ent.Comp.OriginalEntities.Clear();
         ent.Comp.CachedChunkTiles.Clear();
-        ent.Comp.CachedChunkEntityFiles.Clear();
+        ent.Comp.CachedChunkEntities.Clear();
     }
 
     public void CleanupHostedSite(EntityUid uid, SectorExpeditionSiteComponent component)
@@ -235,10 +229,6 @@ public sealed class SectorWorldSystem : EntitySystem
         {
             CleanupHostedSite((uid, site));
         }
-
-        var cacheRoot = GetHostedSiteCacheRoot();
-        if (_resources.UserData.Exists(cacheRoot))
-            _resources.UserData.Delete(cacheRoot);
     }
 
     private void CleanupLayerMapsForRoundRestart()
@@ -310,28 +300,45 @@ public sealed class SectorWorldSystem : EntitySystem
             }
         }
 
-        if (cachedTiles.Count > 0)
-            ent.Comp.CachedChunkTiles[chunkOrigin] = cachedTiles;
+        ent.Comp.CachedChunkTiles[chunkOrigin] = cachedTiles;
 
         if (TryGetHostedSiteMapUid(gridUid, out var mapUid))
         {
             var generated = CollectHostedChunkEntities(ent.Comp, mapUid, gridUid, grid, chunkOrigin, chunkSize);
+            var cachedEntities = new List<ChunkEntityMutationRecord>(generated.Count);
 
-            if (generated.Count > 0)
+            foreach (var entity in generated)
             {
-                var cachePath = GetHostedChunkEntityCachePath(ent.Owner, chunkOrigin);
-                if (_loader.TrySaveGeneric(generated, cachePath, out _))
-                {
-                    ent.Comp.CachedChunkEntityFiles[chunkOrigin] = cachePath.ToString();
-                }
+                if (!Exists(entity))
+                    continue;
 
-                foreach (var entity in generated)
-                {
-                    ent.Comp.GeneratedEntities.Remove(entity);
-                    if (Exists(entity))
-                        QueueDel(entity);
-                }
+                var meta = MetaData(entity);
+                if (meta.EntityPrototype == null || meta.EntityLifeStage >= EntityLifeStage.Terminating)
+                    continue;
+
+                var xform = Transform(entity);
+                if (xform.GridUid != gridUid)
+                    continue;
+
+                cachedEntities.Add(new ChunkEntityMutationRecord(
+                    xform.Coordinates.Position,
+                    meta.EntityPrototype.ID,
+                    xform.LocalRotation.Theta,
+                    xform.Anchored));
             }
+
+            ent.Comp.CachedChunkEntities[chunkOrigin] = cachedEntities;
+
+            foreach (var entity in generated)
+            {
+                ent.Comp.GeneratedEntities.Remove(entity);
+                if (Exists(entity))
+                    QueueDel(entity);
+            }
+        }
+        else
+        {
+            ent.Comp.CachedChunkEntities[chunkOrigin] = new List<ChunkEntityMutationRecord>();
         }
 
         if (cachedTiles.Count == 0)
@@ -359,51 +366,27 @@ public sealed class SectorWorldSystem : EntitySystem
             _mapSystem.SetTiles(gridUid, grid, restoreTiles);
         }
 
-        if (!ent.Comp.CachedChunkEntityFiles.Remove(chunkOrigin, out var cachePathString))
+        if (!ent.Comp.CachedChunkEntities.Remove(chunkOrigin, out var cachedEntities))
             return;
 
-        if (!TryGetHostedSiteMapId(gridUid, out var mapId))
-            return;
-
-        var loadOptions = new MapLoadOptions
+        foreach (var record in cachedEntities)
         {
-            MergeMap = mapId,
-        };
-
-        if (!_loader.TryLoadGeneric(new ResPath(cachePathString), out var result, loadOptions) || result == null)
-            return;
-
-        foreach (var entity in result.Entities)
-        {
-            if (entity == ent.Owner || entity == ent.Comp.HostGridUid)
+            if (!_proto.HasIndex<EntityPrototype>(record.PrototypeId))
                 continue;
+
+            var coordinates = new EntityCoordinates(gridUid, record.LocalPosition);
+            var entity = Spawn(record.PrototypeId, _transform.ToMapCoordinates(coordinates));
+            _transform.SetCoordinates(entity, coordinates);
+            var xform = Transform(entity);
+            _transform.SetLocalRotation(entity, new Angle(record.Rotation), xform);
+
+            if (record.Anchored)
+                _transform.AnchorEntity(entity, xform);
+            else if (xform.Anchored)
+                _transform.Unanchor(entity, xform);
 
             ent.Comp.GeneratedEntities.Add(entity);
-
-            var meta = MetaData(entity);
-            if (meta.EntityPrototype == null || !ShouldAnchorHostedCachedEntity(meta.EntityPrototype.ID))
-                continue;
-
-            var xform = Transform(entity);
-            if (xform.GridUid != gridUid || xform.Anchored)
-                continue;
-
-            _transform.AnchorEntity(entity, xform);
         }
-    }
-
-    private static bool ShouldAnchorHostedCachedEntity(string prototypeId)
-    {
-        return prototypeId.StartsWith("Wall", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.StartsWith("NFWall", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Door", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Airlock", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Windoor", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Mineral", StringComparison.OrdinalIgnoreCase)
-            || (prototypeId.Contains("Cable", StringComparison.OrdinalIgnoreCase)
-                && !prototypeId.Contains("Stack", StringComparison.OrdinalIgnoreCase)
-                && !prototypeId.Contains("Placer", StringComparison.OrdinalIgnoreCase))
-            || string.Equals(prototypeId, "Grille", StringComparison.OrdinalIgnoreCase);
     }
 
     private HashSet<EntityUid> CollectHostedSiteEntities(SectorExpeditionSiteComponent site)
@@ -443,14 +426,15 @@ public sealed class SectorWorldSystem : EntitySystem
         int chunkSize)
     {
         var entities = new HashSet<EntityUid>();
-        var query = AllEntityQuery<TransformComponent>();
 
-        while (query.MoveNext(out var uid, out var xform))
+        foreach (var uid in site.GeneratedEntities.ToArray())
         {
-            if (uid == gridUid || uid == mapUid || site.OriginalEntities.Contains(uid))
+            if (!Exists(uid))
                 continue;
 
-            if (xform.MapUid != mapUid)
+            var xform = Transform(uid);
+
+            if (xform.MapUid != mapUid || xform.GridUid != gridUid)
                 continue;
 
             var tile = _mapSystem.LocalToTile(gridUid, grid, xform.Coordinates);
@@ -511,40 +495,12 @@ public sealed class SectorWorldSystem : EntitySystem
         return true;
     }
 
-    private bool TryGetHostedSiteMapId(EntityUid gridUid, out MapId mapId)
-    {
-        mapId = MapId.Nullspace;
-
-        if (TryComp<MapComponent>(gridUid, out var mapComp))
-        {
-            mapId = mapComp.MapId;
-            return true;
-        }
-
-        var xform = Transform(gridUid);
-        if (xform.MapUid is not { } mapUid || !TryComp<MapComponent>(mapUid, out mapComp))
-            return false;
-
-        mapId = mapComp.MapId;
-        return true;
-    }
-
     private static bool IsChunkTile(Vector2i tile, Vector2i chunkOrigin, int chunkSize)
     {
         return tile.X >= chunkOrigin.X
             && tile.Y >= chunkOrigin.Y
             && tile.X < chunkOrigin.X + chunkSize
             && tile.Y < chunkOrigin.Y + chunkSize;
-    }
-
-    private ResPath GetHostedChunkEntityCachePath(EntityUid siteUid, Vector2i chunkOrigin)
-    {
-        return new ResPath($"/HardLight/hosted-site-cache/{_siteCacheSession}/{siteUid.Id.ToString()}/{chunkOrigin.X}_{chunkOrigin.Y}.yml");
-    }
-
-    private ResPath GetHostedSiteCacheRoot()
-    {
-        return new ResPath($"/HardLight/hosted-site-cache/{_siteCacheSession}");
     }
 
     public HashSet<MapId> GetRoundEndCleanupMapIds()

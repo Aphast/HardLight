@@ -40,6 +40,7 @@ using Content.Server.Station.Components; // Frontier
 using Content.Server.Station.Systems; // Frontier
 using Content.Server.Shuttles.Systems;
 using Content.Server._NF.Salvage.Expeditions.Structure; // Frontier
+using Content.Server.Worldgen;
 using Content.Server.Worldgen.Components;
 using Content.Server.Worldgen.Systems;
 using Robust.Shared.Audio.Systems;
@@ -268,6 +269,11 @@ public sealed class SpawnSalvageMissionJob : Job<bool>
         expedition.HostGridUid = hostGridUid;
 
         var captureRadius = placement.ReservationRadius + 32f;
+        _entManager.EnsureComponent<WorldLoaderComponent>(mapUid);
+        var worldController = _entManager.System<WorldControllerSystem>();
+        worldController.SetLoaderRadius(mapUid, (int) MathF.Ceiling(captureRadius + WorldGen.ChunkSize));
+        worldController.SetLoaderEnabled(mapUid, true);
+
         _sectorWorld.CaptureHostedSiteBaseline((mapUid, site), hostGridUid, grid, placement.Center, captureRadius);
         CaptureOriginalTiles(expedition, hostGridUid, grid, placement.Center, captureRadius);
         var existingEntities = CaptureNearbyEntities(hostMapUid, placement.Center, captureRadius);

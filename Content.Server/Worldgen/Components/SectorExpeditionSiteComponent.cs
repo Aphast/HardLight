@@ -34,5 +34,5 @@ public sealed partial class SectorExpeditionSiteComponent : Component
 
     public Dictionary<Vector2i, Dictionary<Vector2i, Tile>> CachedChunkTiles = new();
 
-    public Dictionary<Vector2i, string> CachedChunkEntityFiles = new();
+    public Dictionary<Vector2i, List<ChunkEntityMutationRecord>> CachedChunkEntities = new();
 }

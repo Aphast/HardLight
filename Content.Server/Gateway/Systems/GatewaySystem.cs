@@ -203,6 +203,7 @@ public sealed class GatewaySystem : EntitySystem
 
         // TODO: admin log???
         ClosePortal(uid, comp, false);
+        ClosePortal(desto, dest, false);
         OpenPortal(uid, comp, desto, dest);
     }
 

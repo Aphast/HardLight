@@ -2,6 +2,7 @@ using System.Numerics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using Robust.Server.GameObjects;
 using Content.Server._NF.RoundNotifications.Events;
 using Content.Server.Worldgen.Components;
@@ -253,7 +254,7 @@ public sealed class SectorChunkCarverSystem : EntitySystem
         Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
 
         var builder = new StringBuilder();
-        builder.AppendLine("v2");
+        builder.AppendLine("v3");
 
         foreach (var indices in ent.Comp.GeneratedTiles)
         {
@@ -285,14 +286,17 @@ public sealed class SectorChunkCarverSystem : EntitySystem
             if (xform.GridUid != gridUid)
                 continue;
 
-            var indices = _mapSystem.TileIndicesFor(gridUid, grid, xform.Coordinates);
             builder.Append('e')
                 .Append(',')
-                .Append(indices.X)
+                .Append(xform.Coordinates.Position.X.ToString(CultureInfo.InvariantCulture))
                 .Append(',')
-                .Append(indices.Y)
+                .Append(xform.Coordinates.Position.Y.ToString(CultureInfo.InvariantCulture))
                 .Append(',')
                 .Append(meta.EntityPrototype.ID)
+                .Append(',')
+                .Append(xform.LocalRotation.Theta.ToString(CultureInfo.InvariantCulture))
+                .Append(',')
+                .Append(xform.Anchored)
                 .AppendLine();
         }
 
@@ -308,10 +312,21 @@ public sealed class SectorChunkCarverSystem : EntitySystem
             return false;
 
         var tilePlacements = new List<(Vector2i, Tile)>();
-        var entityPlacements = new List<(Vector2i Indices, string PrototypeId)>();
-        foreach (var line in File.ReadLines(cachePath).Where(line => !string.IsNullOrWhiteSpace(line) && line != "v1" && line != "v2"))
+        var entityPlacements = new List<ChunkEntityMutationRecord>();
+        var cacheVersion = 1;
+
+        foreach (var line in File.ReadLines(cachePath))
         {
-            var parts = line.Split(',', 4);
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            if (line is "v1" or "v2" or "v3")
+            {
+                cacheVersion = line[1] - '0';
+                continue;
+            }
+
+            var parts = line.Split(',');
 
             if (parts.Length == 3)
             {
@@ -319,37 +334,67 @@ public sealed class SectorChunkCarverSystem : EntitySystem
                 continue;
             }
 
-            if (parts.Length != 4)
-                continue;
-
             switch (parts[0])
             {
                 case "t":
+                    if (parts.Length != 4)
+                        continue;
+
                     RestoreCachedTile(parts[1], parts[2], parts[3], tilePlacements, ent.Comp.GeneratedTiles);
                     break;
                 case "e":
-                    if (!int.TryParse(parts[1], out var entityX) || !int.TryParse(parts[2], out var entityY))
-                        continue;
+                    if (cacheVersion >= 3)
+                    {
+                        if (parts.Length != 6
+                            || !float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var entityPosX)
+                            || !float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var entityPosY)
+                            || !float.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out var entityRotation)
+                            || !bool.TryParse(parts[5], out var entityAnchored))
+                        {
+                            continue;
+                        }
 
-                    entityPlacements.Add((new Vector2i(entityX, entityY), parts[3]));
+                        entityPlacements.Add(new ChunkEntityMutationRecord(
+                            new Vector2(entityPosX, entityPosY),
+                            parts[3],
+                            entityRotation,
+                            entityAnchored));
+                        continue;
+                    }
+
+                    if (parts.Length != 4
+                        || !int.TryParse(parts[1], out var entityX)
+                        || !int.TryParse(parts[2], out var entityY))
+                    {
+                        continue;
+                    }
+
+                    entityPlacements.Add(new ChunkEntityMutationRecord(
+                        new Vector2(entityX + 0.5f, entityY + 0.5f),
+                        parts[3],
+                        0f,
+                        ChunkEntityMutationRules.ShouldAnchor(parts[3])));
                     break;
             }
         }
 
-        if (tilePlacements.Count == 0)
+        var authoritativeSnapshot = cacheVersion >= 3;
+        if (!authoritativeSnapshot && tilePlacements.Count == 0)
             return false;
 
-        _mapSystem.SetTiles(gridUid, grid, tilePlacements);
+        if (tilePlacements.Count > 0)
+            _mapSystem.SetTiles(gridUid, grid, tilePlacements);
 
         if (entityPlacements.Count > 0)
         {
             foreach (var entityPlacement in entityPlacements.Where(ep => _proto.HasIndex<EntityPrototype>(ep.PrototypeId)))
             {
-                ClearChunkMaterialEntitiesAtTile((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.Indices);
-                SpawnTrackedTileEntity((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.Indices, entityPlacement.PrototypeId);
+                var indices = _mapSystem.TileIndicesFor(gridUid, grid, new EntityCoordinates(gridUid, entityPlacement.LocalPosition));
+                ClearChunkMaterialEntitiesAtTile((ent.Owner, ent.Comp), gridUid, grid, indices);
+                SpawnTrackedChunkEntity((ent.Owner, ent.Comp), gridUid, grid, entityPlacement.LocalPosition, entityPlacement.PrototypeId, new Angle(entityPlacement.Rotation), entityPlacement.Anchored);
             }
         }
-        else
+        else if (!authoritativeSnapshot)
         {
             SpawnChunkEntities((ent.Owner, ent.Comp), gridUid, grid, chunkBiome);
         }
@@ -459,8 +504,26 @@ public sealed class SectorChunkCarverSystem : EntitySystem
 
     private void SpawnTrackedTileEntity(Entity<SectorChunkCarverComponent> ent, EntityUid gridUid, MapGridComponent grid, Vector2i indices, string prototypeId)
     {
+        SpawnTrackedChunkEntity(ent, gridUid, grid, indices + new Vector2(0.5f, 0.5f), prototypeId);
+    }
+
+    private void SpawnTrackedChunkEntity(
+        Entity<SectorChunkCarverComponent> ent,
+        EntityUid gridUid,
+        MapGridComponent grid,
+        Vector2 localPosition,
+        string prototypeId,
+        Angle? rotation = null,
+        bool? anchored = null)
+    {
+        var coordinates = new EntityCoordinates(gridUid, localPosition);
+        var indices = _mapSystem.TileIndicesFor(gridUid, grid, coordinates);
         var before = GetTileEntities(gridUid, grid, indices);
-        var spawned = Spawn(prototypeId, new EntityCoordinates(gridUid, indices + new Vector2(0.5f, 0.5f)));
+        var spawned = Spawn(prototypeId, _transform.ToMapCoordinates(coordinates));
+        _transform.SetCoordinates(spawned, coordinates);
+        if (rotation != null)
+            _transform.SetLocalRotation(spawned, rotation.Value);
+
         var after = GetTileEntities(gridUid, grid, indices);
 
         foreach (var entity in after.Where(entity => !before.Contains(entity)))
@@ -477,8 +540,7 @@ public sealed class SectorChunkCarverSystem : EntitySystem
                 continue;
             }
 
-            if (ShouldAnchorChunkEntity(meta.EntityPrototype.ID))
-                AnchorToGrid(entity);
+            ApplyChunkEntityAnchoring(entity, meta.EntityPrototype.ID, anchored);
 
             ent.Comp.GeneratedEntities.Add(entity);
         }
@@ -494,8 +556,7 @@ public sealed class SectorChunkCarverSystem : EntitySystem
                     return;
                 }
 
-                if (ShouldAnchorChunkEntity(spawnedMeta.EntityPrototype.ID))
-                    AnchorToGrid(spawned);
+                ApplyChunkEntityAnchoring(spawned, spawnedMeta.EntityPrototype.ID, anchored);
             }
 
             ent.Comp.GeneratedEntities.Add(spawned);
@@ -508,13 +569,21 @@ public sealed class SectorChunkCarverSystem : EntitySystem
         return _lookup.GetLocalEntitiesIntersecting(tileRef, flags: LookupFlags.Dynamic | LookupFlags.Static | LookupFlags.StaticSundries | LookupFlags.Sundries | LookupFlags.Approximate).ToHashSet();
     }
 
-    private void AnchorToGrid(EntityUid entity)
+    private void ApplyChunkEntityAnchoring(EntityUid entity, string prototypeId, bool? anchored)
     {
         var xform = Transform(entity);
-        if (xform.Anchored)
-            return;
+        var shouldAnchor = anchored ?? ChunkEntityMutationRules.ShouldAnchor(prototypeId);
 
-        _transform.AnchorEntity(entity, xform);
+        if (shouldAnchor)
+        {
+            if (!xform.Anchored)
+                _transform.AnchorEntity(entity, xform);
+
+            return;
+        }
+
+        if (xform.Anchored)
+            _transform.Unanchor(entity, xform);
     }
 
     private static bool IsTransientChunkSpawnerPrototype(string prototypeId)
@@ -531,20 +600,6 @@ public sealed class SectorChunkCarverSystem : EntitySystem
             || prototypeId.EndsWith("RoomMarker", StringComparison.OrdinalIgnoreCase)
             || prototypeId.Contains("Mineral", StringComparison.OrdinalIgnoreCase)
             || prototypeId.EndsWith("Spawner", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(prototypeId, "Grille", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ShouldAnchorChunkEntity(string prototypeId)
-    {
-        return prototypeId.StartsWith("Wall", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.StartsWith("NFWall", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Door", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Airlock", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Windoor", StringComparison.OrdinalIgnoreCase)
-            || prototypeId.Contains("Mineral", StringComparison.OrdinalIgnoreCase)
-            || (prototypeId.Contains("Cable", StringComparison.OrdinalIgnoreCase)
-                && !prototypeId.Contains("Stack", StringComparison.OrdinalIgnoreCase)
-                && !prototypeId.Contains("Placer", StringComparison.OrdinalIgnoreCase))
             || string.Equals(prototypeId, "Grille", StringComparison.OrdinalIgnoreCase);
     }
 

@@ -7,6 +7,7 @@ using Content.Shared.CCVar;
 using Content.Shared.Examine;
 using Content.Shared.Random.Helpers;
 using Content.Shared.Salvage.Expeditions;
+using Content.Shared.Salvage.Expeditions.Modifiers;
 using Robust.Shared.Audio;
 using Robust.Shared.CPUJob.JobQueues;
 using Robust.Shared.CPUJob.JobQueues.Queues;
@@ -400,14 +401,8 @@ public sealed partial class SalvageSystem
             var missionIndex = 0;
             for (var i = 0; i < MissionLimit; i++)
             {
-                var mission = new SalvageMissionParams
-                {
-                    Index = (ushort)missionIndex,
-                    // Pick a valid mission type; Max is a sentinel and must be excluded.
-                    MissionType = (SalvageMissionType)_random.NextByte((byte)SalvageMissionType.Max),
-                    Seed = _random.Next(),
-                    Difficulty = difficulties[i].id,
-                };
+                if (!TryGenerateSectorMission(difficulties[i].id, (ushort) missionIndex, out var mission))
+                    continue;
 
                 component.Missions[(ushort)missionIndex] = mission;
                 missionIndex++;
@@ -424,6 +419,43 @@ public sealed partial class SalvageSystem
             // HARDLIGHT: Always clear the flag, even if generation fails
             component.GeneratingMissions = false;
         }
+    }
+
+    private bool TryGenerateSectorMission(string difficultyId, ushort missionIndex, out SalvageMissionParams mission)
+    {
+        const int maxAttempts = 32;
+        mission = default!;
+
+        if (!_prototypeManager.TryIndex<SalvageDifficultyPrototype>(difficultyId, out var difficultyProto))
+            return false;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var seed = _random.Next();
+            var missionType = (SalvageMissionType) _random.NextByte((byte) SalvageMissionType.Max);
+            var generatedMission = GetMission(missionType, difficultyProto, seed);
+            var biomeProto = _prototypeManager.Index<SalvageBiomeModPrototype>(generatedMission.Biome);
+
+            if (!_sectorWorld.TryResolvePlanetTypeForBiome(biomeProto.BiomePrototype, out var planetTypeId) ||
+                string.IsNullOrWhiteSpace(planetTypeId) ||
+                !_sectorWorld.TryGetPersistentMap(planetTypeId, out _, out _))
+            {
+                continue;
+            }
+
+            mission = new SalvageMissionParams
+            {
+                Index = missionIndex,
+                Seed = seed,
+                Difficulty = difficultyId,
+                MissionType = missionType,
+            };
+
+            return true;
+        }
+
+        Log.Warning($"Failed to generate sector-valid salvage mission for difficulty {difficultyId} after {maxAttempts} attempts.");
+        return false;
     }
 
     // HARDLIGHT: Public method for round persistence system to properly regenerate missions
