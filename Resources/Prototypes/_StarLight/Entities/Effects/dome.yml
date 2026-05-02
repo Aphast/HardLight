@@ -1,0 +1,68 @@
+- type: entity
+  id: EnergyDomeNullspace
+  categories: [ HideSpawnMenu ]
+  parent: EnergyDomeBase
+  components:
+  - type: Fixtures
+    fixtures:
+      fix1:
+        shape:
+          !type:PhysShapeCircle
+          radius: 8
+        density: 0
+        hard: false
+        mask:
+        - None
+        layer:
+        - MidImpassable
+  - type: Sprite
+    drawdepth: WallTops
+    sprite: Effects/EnergyDome/energydome_big.rsi
+    scale: 3.25, 3.25
+    layers:
+    - state: big
+      color: "#6c15ae"
+  - type: Stealth
+    minVisibility: 0.8
+    maxVisibility: 0.8
+    lastVisibility: 0.8
+  - type: NullSpaceBlocker
+    bypassPVS: true
+    unphaseOnCollide: false
+  - type: Visibility
+    layer: 32
+  - type: AmbientSound
+    enabled: false
+
+- type: entity
+  id: EnergyDomeNullspaceAnchor
+  categories: [ HideSpawnMenu ]
+  parent: EnergyDomeBase
+  components:
+  - type: Fixtures
+    fixtures:
+      fix1:
+        shape:
+          !type:PhysShapeCircle
+          radius: 10
+        density: 0
+        hard: false
+        mask:
+        - None
+        layer:
+        - MidImpassable
+  - type: Sprite
+    drawdepth: WallTops
+    sprite: Effects/EnergyDome/energydome_big.rsi
+    scale: 4, 4
+    layers:
+    - state: big
+      color: "#6c15ae"
+  - type: Stealth
+    minVisibility: 0.8
+    maxVisibility: 0.8
+    lastVisibility: 0.8
+  - type: NullSpaceBlocker
+    bypassPVS: true
+  - type: Visibility
+    layer: 32

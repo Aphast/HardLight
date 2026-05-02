@@ -1,0 +1,45 @@
+- type: npcFaction
+  id: Shadekin
+
+- type: npcFaction
+  id: ShadekinHostile
+  friendly:
+  - Shadekin
+  hostile:
+  ## SS14 factions
+  - NanoTrasen
+  - Dragon
+  - Mouse
+  - Passive
+  - PetsNT
+  - SimpleHostile
+  - SimpleNeutral
+  - Syndicate
+  - Xeno
+  - Zombie
+  - Revolutionary
+  - Wizard
+  - AllHostile
+  - HostileUniversally
+  ## Frontier Factions
+  - Cat
+  - Dwarf
+  - Harpy
+  - Monkey
+  - Goblin
+  - SyndicateNF
+  - WizFedFaction
+  - BloodCultNF
+  - PirateNF
+  - ExplorersExpeditionNF
+  - ArtifactConstruct
+  - StreetGangNF
+  - DinosaursNF
+  - MercenariesExpeditionNF
+  - SiliconsExpeditionNF
+  - AberrantFleshExpeditionNF
+  - ContrabandClothing
+  - ContrabandDetection
+  - TSFMC # Mono
+  - TSFMCTurret # Mono
+  - USSP # Mono

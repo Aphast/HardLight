@@ -1,5 +1,6 @@
 using Content.Shared._HL.Traits.Physical;
 using Content.Shared._Starlight;
+using Content.Shared._Starlight.Shadekin;
 using Content.Shared.Damage;
 using Content.Shared.FixedPoint;
 using Content.Shared.Mobs.Systems;
@@ -26,7 +27,7 @@ public sealed class ShadekinRegenerationSystem : EntitySystem
 
         while (query.MoveNext(out var uid, out var regen, out var shadekin, out var damageable))
         {
-            if (shadekin.LightExposure > 0)
+            if (shadekin.CurrentState != ShadekinState.Dark)
                 continue;
 
             if (regen.NextUpdate > curTime)

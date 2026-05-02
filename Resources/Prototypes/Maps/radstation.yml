@@ -90,3 +90,5 @@
             Lawyer: [ 1, 1 ]
             # MISSING JOB PROTOTYPE
             #Prosecutor: [ 1, 1]
+            # Anomaly (1)
+            Anomaly: [ 5, 5 ]

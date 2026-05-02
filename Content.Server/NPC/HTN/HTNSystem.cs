@@ -7,10 +7,12 @@ using Robust.Shared.CPUJob.JobQueues;
 using Robust.Shared.CPUJob.JobQueues.Queues;
 using Content.Server.NPC.HTN.PrimitiveTasks;
 using Content.Server.NPC.Systems;
+using Content.Shared.CCVar;
 using Content.Shared.Administration;
 using Content.Shared.Mobs;
 using Content.Shared.NPC;
 using JetBrains.Annotations;
+using Robust.Shared.Configuration;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Map; // Mono
@@ -19,21 +21,27 @@ using Content.Server.Worldgen; // Frontier
 using Content.Server.Worldgen.Components; // Frontier
 using Content.Server.Worldgen.Systems; // Frontier
 using Robust.Server.GameObjects; // Frontier
+using Robust.Shared;
 
 namespace Content.Server.NPC.HTN;
 
 public sealed class HTNSystem : EntitySystem
 {
     [Dependency] private readonly IAdminManager _admin = default!;
+    [Dependency] private readonly IConfigurationManager _cfg = default!;
     [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
     [Dependency] private readonly NPCSystem _npc = default!;
     [Dependency] private readonly NPCUtilitySystem _utility = default!;
+    [Dependency] private readonly EntityLookupSystem _lookup = default!;
     // Frontier
     [Dependency] private readonly WorldControllerSystem _world = default!;
     [Dependency] private readonly TransformSystem _transform = default!;
     private EntityQuery<WorldControllerComponent> _mapQuery;
     private EntityQuery<LoadedChunkComponent> _loadedQuery;
+    private EntityQuery<ActorComponent> _actorQuery;
     // Frontier
+
+    private float _netMaxUpdateRange;
 
     private readonly JobQueue _planQueue = new(0.004);
 
@@ -45,6 +53,8 @@ public sealed class HTNSystem : EntitySystem
         base.Initialize();
         _mapQuery = GetEntityQuery<WorldControllerComponent>(); // Frontier
         _loadedQuery = GetEntityQuery<LoadedChunkComponent>(); // Frontier
+        _actorQuery = GetEntityQuery<ActorComponent>();
+        _cfg.OnValueChanged(CVars.NetMaxUpdateRange, value => _netMaxUpdateRange = value, true);
         SubscribeLocalEvent<HTNComponent, MobStateChangedEvent>(_npc.OnMobStateChange);
         SubscribeLocalEvent<HTNComponent, MapInitEvent>(_npc.OnNPCMapInit);
         SubscribeLocalEvent<HTNComponent, PlayerAttachedEvent>(_npc.OnPlayerNPCAttach);
@@ -319,9 +329,33 @@ public sealed class HTNSystem : EntitySystem
         if (!_mapQuery.TryGetComponent(transform.MapUid, out var worldComponent))
             return true;
 
+        if (!HasPlayerInRange(entity))
+            return false;
+
         var chunk = _world.GetOrCreateChunk(WorldGen.WorldToChunkCoords(_transform.GetWorldPosition(transform)).Floored(), transform.MapUid.Value, worldComponent);
 
-        return _loadedQuery.TryGetComponent(chunk, out var loaded) && loaded.Loaders is not null;
+        if (!_loadedQuery.TryGetComponent(chunk, out var loaded) || loaded.Loaders is null)
+            return false;
+
+        foreach (var loader in loaded.Loaders)
+        {
+            if (_actorQuery.HasComponent(loader))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasPlayerInRange(EntityUid uid)
+    {
+        var coords = Transform(uid).Coordinates;
+
+        foreach (var _ in _lookup.GetEntitiesInRange<ActorComponent>(coords, _netMaxUpdateRange))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private void AppendDebugText(HTNTask task, StringBuilder text, List<int> planBtr, List<int> btr, ref int level)

@@ -2,17 +2,17 @@
   id: SecTechInventory
   startingInventory: # HL - Paritied to NFSDtech inventory with minor changes
     NFHyperlinkBookSpaceLaw: 20
-    SecurityWhistle: 5 
+    SecurityWhistle: 5
     Handcuffs: 10
-    Zipties: 12 
+    Zipties: 12
     GrenadeFlashBang: 10
-    TearGasGrenade: 4   
-    ClusterBangFull: 2 
-    GrenadeStinger: 4 
+    TearGasGrenade: 4
+    ClusterBangFull: 2
+    GrenadeStinger: 4
     Flash: 10
     FlashlightSeclite: 10
     HoloprojectorSecurity: 5
-    Tourniquet: 5 
+    Tourniquet: 5
     ClothingEyesGlassesSunglasses: 5
     ClothingEyesHudSecurity: 5
     ClothingEyesEyepatchHudSecurity: 10
@@ -26,18 +26,19 @@
     Bola: 10
     ContrabandAppraisalTool: 5
     CrowbarRed: 10
-    CombatKnife: 3 
+    CombatKnife: 3
     LogProbeCartridge: 4 # Frontier
     ForensicScanner: 3 # Frontier
     BoxForensicPad: 4 # Frontier
-    RadioHandheldSecurity: 5 # Frontier 
-    FoodBoxDonut: 2 
+    RadioHandheldSecurity: 5 # Frontier
+    FoodBoxDonut: 2
     SecurityStimpack: 4 # _CD
     TrackingImplanter: 5
     ClothingEyesGlassesNullSpace: 4
     BluespaceFlasher: 4
+    GrenadeDePhase: 4
     ClothingNullHarness: 4
   # contrabandInventory: # Frontier
   #   WeaponMeleeNeedle: 2 # Frontier
   #   FoodDonutHomer: 12 # Frontier
- 
+

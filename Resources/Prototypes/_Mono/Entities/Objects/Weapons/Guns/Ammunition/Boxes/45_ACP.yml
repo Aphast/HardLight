@@ -45,6 +45,70 @@
     zeroVisible: false
   - type: Appearance
 
+- type: entity # Mono Big Pistol Mags
+  parent: AmmoBox45_ACPBigFMJ
+  id: AmmoBox45_ACPBigPractice
+  name: ammunition box (.45 ACP practice)
+  suffix: Big
+  components:
+  - type: BallisticAmmoProvider
+    proto: Cartridge45_ACPPractice
+  - type: Sprite
+    layers:
+    - state: base-b
+      map: ["enum.GunVisualLayers.Base"]
+    - state: magb-1
+      map: ["enum.GunVisualLayers.Mag"]
+    - state: practice
+
+- type: entity # Mono Big Pistol Mags
+  parent: AmmoBox45_ACPBigFMJ
+  id: AmmoBox45_ACPBigRubber
+  name: ammunition box (.45 ACP rubber)
+  suffix: Big
+  components:
+  - type: BallisticAmmoProvider
+    proto: Cartridge45_ACPRubber
+  - type: Sprite
+    layers:
+    - state: base-b
+      map: ["enum.GunVisualLayers.Base"]
+    - state: magb-1
+      map: ["enum.GunVisualLayers.Mag"]
+    - state: rubber
+
+- type: entity # Mono Big Pistol Mags
+  parent: AmmoBox45_ACPBigFMJ
+  id: AmmoBox45_ACPBigIncendiary
+  name: ammunition box (.45 ACP incendiary)
+  suffix: Big
+  components:
+  - type: BallisticAmmoProvider
+    proto: Cartridge45_ACPIncendiary
+  - type: Sprite
+    layers:
+    - state: base-b
+      map: ["enum.GunVisualLayers.Base"]
+    - state: magb-1
+      map: ["enum.GunVisualLayers.Mag"]
+    - state: incendiary
+
+- type: entity # Mono Big Pistol Mags
+  parent: AmmoBox45_ACPBigFMJ
+  id: AmmoBox45_ACPBigUranium
+  name: ammunition box (.45 ACP uranium)
+  suffix: Big
+  components:
+  - type: BallisticAmmoProvider
+    proto: Cartridge45_ACPUranium
+  - type: Sprite
+    layers:
+    - state: base-b
+      map: ["enum.GunVisualLayers.Base"]
+    - state: magb-1
+      map: ["enum.GunVisualLayers.Mag"]
+    - state: uranium
+
 - type: entity
   parent: BaseAmmoBox45_ACP
   id: AmmoBox45_ACPFMJ

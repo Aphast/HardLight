@@ -13,7 +13,7 @@ public sealed partial class DepartmentWhitelistPanel : PanelContainer
 {
     public Action<ProtoId<JobPrototype>, bool>? OnSetJob;
 
-    public DepartmentWhitelistPanel(DepartmentPrototype department, IPrototypeManager proto, HashSet<ProtoId<JobPrototype>> whitelists, bool globalWhitelist) // Frontier: add globalWhitelist
+    public DepartmentWhitelistPanel(DepartmentPrototype department, IPrototypeManager proto, HashSet<ProtoId<JobPrototype>> whitelists)
     {
         RobustXamlLoader.Load(this);
 
@@ -36,8 +36,8 @@ public sealed partial class DepartmentWhitelistPanel : PanelContainer
             button.Text = jobProto.LocalizedName;
             if (!jobProto.Whitelisted)
                 button.Modulate = grey; // Let admins know whitelisting this job is only for futureproofing.
-            button.Pressed = whitelists.Contains(id) || globalWhitelist;
-            button.OnPressed += _ => OnButtonPressed(thisJob, button, globalWhitelist); // Frontier: check global whitelist
+            button.Pressed = whitelists.Contains(id);
+            button.OnPressed += _ => OnButtonPressed(thisJob, button);
             JobsContainer.AddChild(button);
 
             allWhitelisted &= button.Pressed;
@@ -49,28 +49,17 @@ public sealed partial class DepartmentWhitelistPanel : PanelContainer
         Department.Text = Loc.GetString(department.Name);
         Department.Modulate = department.Color;
         Department.Pressed = allWhitelisted;
-        Department.OnPressed += args => OnDepartmentPressed(department, proto, whitelists, globalWhitelist); // Frontier: check global whitelist
+        Department.OnPressed += args => OnDepartmentPressed(department, proto, whitelists);
     }
 
     // Frontier: global whitelist handling
-    private void OnButtonPressed(ProtoId<JobPrototype> thisJob, CheckBox button, bool globalWhitelist)
+    private void OnButtonPressed(ProtoId<JobPrototype> thisJob, CheckBox button)
     {
-        if (globalWhitelist)
-            button.Pressed = true; // Force the button on.
-        else
-            OnSetJob?.Invoke(thisJob, button.Pressed);
+        OnSetJob?.Invoke(thisJob, button.Pressed);
     }
 
-    private void OnDepartmentPressed(DepartmentPrototype department, IPrototypeManager proto, HashSet<ProtoId<JobPrototype>> whitelists, bool globalWhitelist)
+    private void OnDepartmentPressed(DepartmentPrototype department, IPrototypeManager proto, HashSet<ProtoId<JobPrototype>> whitelists)
     {
-        // Frontier: global override
-        if (globalWhitelist)
-        {
-            Department.Pressed = true;
-            return;
-        }
-        // End Frontier: global override
-
         foreach (var id in department.Roles)
         {
             // only request to whitelist roles that aren't already whitelisted, and vice versa - Frontier: roles must be whitelisted

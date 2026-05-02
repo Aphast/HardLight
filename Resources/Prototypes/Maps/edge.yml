@@ -91,3 +91,5 @@
             #Contractor: [ -1, -1 ]
             #Pilot: [ 5, 5 ]
             Mercenary: [ 0, 40 ]
+            # Anomaly (1)
+            Anomaly: [ 5, 5 ]

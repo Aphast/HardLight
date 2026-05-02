@@ -14,7 +14,7 @@
     - type: GoblinAccent # Frontier
     - type: LizardAccent
     - type: MothAccent
-    - type: FelionoidAccent
+    - type: OwOAccent # HL: lets felionoids opt out of cat-flavored speech
     - type: ReplacementAccent
       accent: dwarf
 

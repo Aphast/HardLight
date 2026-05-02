@@ -16,7 +16,7 @@
   special:
   - !type:AddImplantSpecial
     implants: [ MindShieldImplant, DeathRattleImplantColcomm ]
-  whitelisted: true # Frontier
+  #whitelisted: true # Frontier
 
 - type: startingGear
   id: ERTLeaderGear
@@ -111,7 +111,7 @@
     - type: BibleUser #Lets them heal with bibles
   - !type:AddImplantSpecial
     implants: [ MindShieldImplant, DeathRattleImplantColcomm ]
-  whitelisted: true # Frontier
+  #whitelisted: true # Frontier
 
 - type: startingGear
   id: ERTChaplainGear
@@ -193,7 +193,7 @@
   special:
   - !type:AddImplantSpecial
     implants: [ MindShieldImplant, DeathRattleImplantColcomm ]
-  whitelisted: true # Frontier
+  #whitelisted: true # Frontier
 
 - type: startingGear
   id: ERTEngineerGear
@@ -269,7 +269,7 @@
   special:
   - !type:AddImplantSpecial
     implants: [ MindShieldImplant, DeathRattleImplantColcomm ]
-  whitelisted: true # Frontier
+  #whitelisted: true # Frontier
 
 - type: startingGear
   id: ERTSecurityGear
@@ -363,7 +363,7 @@
   special:
   - !type:AddImplantSpecial
     implants: [ MindShieldImplant, DeathRattleImplantColcomm ]
-  whitelisted: true # Frontier
+  #whitelisted: true # Frontier
 
 - type: startingGear
   id: ERTMedicalGear
@@ -431,7 +431,7 @@
   special:
   - !type:AddImplantSpecial
     implants: [ MindShieldImplant, DeathRattleImplantColcomm ]
-  whitelisted: true # Frontier
+  #whitelisted: true # Frontier
 
 - type: startingGear
   id: ERTJanitorGear

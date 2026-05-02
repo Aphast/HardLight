@@ -23,7 +23,7 @@ public sealed class ShipShieldOverlay : Overlay
     private readonly ShaderInstance _unshadedShader;
     private readonly List<DrawVertexUV2D> _verts = new(128); // Mono
 
-    public override OverlaySpace Space => OverlaySpace.WorldSpaceBelowWorld;
+    public override OverlaySpace Space => OverlaySpace.WorldSpaceBelowEntities;
 
     public ShipShieldOverlay(IEntityManager entityManager, IPrototypeManager prototypeManager, IResourceCache resourceCache)
     {
@@ -52,15 +52,45 @@ public sealed class ShipShieldOverlay : Overlay
 
             // TODO: We can probably at least test its parent grid is in PVS range...?
 
-            var fixture = _fixture.GetFixtureOrNull(uid, "shield", fixtures);
+            var fixture = _fixture.GetFixtureOrNull(uid, "shield", fixtures)
+                ?? _fixture.GetFixtureOrNull(uid, "internalShield", fixtures);
 
-            if (fixture == null || fixture.Shape is not ChainShape chain)
+            if (fixture == null)
                 continue;
 
-            var texture = _resourceCache.GetTexture("/Textures/_Crescent/ShipShields/shieldtex.png");
+            switch (fixture.Shape)
+            {
+                case ChainShape chain:
+                {
+                    var texture = _resourceCache.GetTexture("/Textures/_Crescent/ShipShields/shieldtex.png");
+                    DrawShield(handle, uid, chain, xform, texture, visuals.ShieldColor, _verts);
+                    _verts.Clear(); // Clear for next shield - Mono
+                    break;
+                }
+                case PolygonShape poly:
+                    DrawShieldFallback(handle, uid, poly, visuals.ShieldColor.WithAlpha(0.85f));
+                    break;
+            }
+        }
+    }
 
-            DrawShield(handle, uid, chain, xform, texture, visuals.ShieldColor, _verts);
-            _verts.Clear(); // Clear for next shield - Mono
+    private void DrawShieldFallback(
+        DrawingHandleWorld handle,
+        EntityUid uid,
+        PolygonShape polygon,
+        Color color)
+    {
+        if (polygon.VertexCount < 2)
+            return;
+
+        var transform = _physics.GetPhysicsTransform(uid);
+
+        for (var i = 0; i < polygon.VertexCount; i++)
+        {
+            var next = i + 1 < polygon.VertexCount ? i + 1 : 0;
+            var start = VertexToWorldPos(polygon.Vertices[i], transform);
+            var end = VertexToWorldPos(polygon.Vertices[next], transform);
+            handle.DrawLine(start, end, color);
         }
     }
 

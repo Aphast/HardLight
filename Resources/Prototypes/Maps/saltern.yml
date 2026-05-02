@@ -72,3 +72,5 @@
             MailCarrier: [ 1, 1 ]
             Prisoner: [ 3, 3 ]
             ForensicMantis: [ 1, 1 ]
+            # Anomaly (1)
+            Anomaly: [ 5, 5 ]

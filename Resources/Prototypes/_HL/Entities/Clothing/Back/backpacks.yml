@@ -1,0 +1,8 @@
+- type: entity
+  parent: ClothingBackpackHolding
+  id: ClothingBackpackHoldingBorg
+  name: cyborg internal storage
+  description: Internalized storage that opens into a pocket of bluespace, adapted for cyborg use.
+  components:
+  - type: ClothingSpeedModifier
+    sprintModifier: 1

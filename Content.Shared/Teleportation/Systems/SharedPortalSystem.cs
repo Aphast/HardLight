@@ -104,6 +104,14 @@ public abstract class SharedPortalSystem : EntitySystem
         if (subjectXform.Anchored)
             return;
 
+        // Starlight - OnAttemptPortalEvent - Start
+        var ev = new OnAttemptPortalEvent(subject);
+        RaiseLocalEvent(uid, ev);
+
+        if (ev.Cancelled)
+            return;
+        // Starlight - OnAttemptPortalEvent - End
+
         // break pulls before portal enter so we dont break shit
         if (TryComp<PullableComponent>(subject, out var pullable) && pullable.BeingPulled)
         {

@@ -1,0 +1,105 @@
+- type: entity
+  name: handheld fax
+  parent: BaseItem
+  id: HandheldFax
+  description: Bluespace bureaucracy in a mildly upsetting portable format. # HardLight: Rewritten for flavor.
+  components:
+  - type: Item
+    size: Huge
+  - type: Sprite
+    sprite: Structures/Machines/fax_machine.rsi
+    drawdepth: SmallObjects
+    layers:
+    - state: icon
+      map: [ "enum.FaxMachineVisuals.VisualState" ]
+  - type: Icon
+    sprite: Structures/Machines/fax_machine.rsi
+    state: icon
+  - type: Appearance
+  - type: ActivatableUI
+    key: enum.FaxUiKey.Key
+  - type: UserInterface
+    interfaces:
+      enum.FaxUiKey.Key:
+        type: FaxBoundUi
+  - type: Faxecute
+    damage:
+      types:
+        Blunt: 100
+  - type: ApcPowerReceiver
+    needsPower: false
+    powerLoad: 250
+  - type: FaxMachine
+    paperSlot:
+      insertSound: /Audio/Machines/scanning.ogg
+      ejectSound: /Audio/Machines/tray_eject.ogg
+      whitelist:
+        components:
+          - FaxableObject
+  - type: GenericVisualizer
+    visuals:
+      enum.PowerDeviceVisuals.Powered:
+        enum.FaxMachineVisuals.VisualState:
+          True: { state: idle }
+          False: { state: icon }
+      enum.FaxMachineVisuals.VisualState:
+        enum.FaxMachineVisuals.VisualState:
+          Printing: { state: printing }
+          Normal: { state: idle }
+  - type: DeviceNetwork
+    deviceNetId: Wireless
+    receiveFrequencyId: Fax
+    transmitFrequencyId: Fax
+  - type: ItemSlots
+  - type: ContainerContainer
+    containers:
+      Paper: !type:ContainerSlot
+
+- type: entity
+  name: head of personnel handheld fax # HardLight: nanotrasen representative<head of personnel
+  parent: HandheldFax
+  id: HandheldFaxNanorep
+  # suffix: Nanotrasen Representative # HardLight
+  components:
+  - type: FaxMachine
+    name: "Head of Personnel" # HardLight: nanotrasen representative<head of personnel
+    notifyAdmins: false # HardLight: true<false
+  - type: Sprite
+    sprite: _Goobstation/Objects/Tools/handheld_fax.rsi
+    drawdepth: SmallObjects
+    layers:
+    - state: icon
+      map: [ "enum.FaxMachineVisuals.VisualState" ]
+    - state: scanner
+      shader: unshaded
+  # - type: Prayable
+  #   sentMessage: prayer-popup-notify-centcom-sent
+  #   notificationPrefix: prayer-chat-notify-centcom
+  #   verb: prayer-verbs-call
+  #   verbImage: null
+  - type: MultiHandedItem
+
+- type: entity
+  name: ColComm official handheld fax # HardLight: CentComm<ColComm
+  parent: HandheldFax
+  id: HandheldFaxOfficial
+  suffix: Admin # HardLight: CentComm Official<Admin
+  components:
+  - type: FaxMachine
+    name: "ColComm Official" # HardLight: CentComm<ColComm
+  - type: Item
+    size: Normal
+    sprite: _Goobstation/Objects/Tools/official_fax.rsi
+  # - type: Prayable
+  #   sentMessage: prayer-popup-notify-centcom-sent
+  #   notificationPrefix: prayer-chat-notify-centcom
+  #   verb: prayer-verbs-call
+  #   verbImage: null
+  - type: Sprite
+    sprite: _Goobstation/Objects/Tools/official_fax.rsi
+    drawdepth: SmallObjects
+    layers:
+    - state: icon
+      map: [ "enum.FaxMachineVisuals.VisualState" ]
+    - state: scanner
+      shader: unshaded

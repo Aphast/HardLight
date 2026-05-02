@@ -19,7 +19,6 @@
       - right leg
       - left leg
       organs:
-        core: OrganShadekinCore
         heart: OrganShadekinHeart
         stomach: OrganShadekinStomach
         liver: OrganShadekinLiver

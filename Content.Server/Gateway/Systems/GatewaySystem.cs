@@ -13,6 +13,7 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
+using Content.Shared.Gateway.Components;
 
 namespace Content.Server.Gateway.Systems;
 

@@ -10,10 +10,10 @@
   moduleWhitelist:
     tags:
     - BorgModuleGeneric
-    - BorgModuleScience #until sciborgs are added
-    - BorgModuleSyndicate # Hardlight
-    - BorgModuleSyndicateAssault # Hardlight
-    - XenoborgModuleGeneric # Hardlight
+    - BorgModuleScience # until sciborgs are added
+    - BorgModuleSyndicate # HardLight
+    - BorgModuleSyndicateAssault # HardLight
+    - XenoborgModuleGeneric # HardLight
 
   defaultModules:
   - BorgModuleTool
@@ -22,7 +22,7 @@
   - Science
 
   # Visual
-  inventoryTemplateId: borgShortHL #HL
+  inventoryTemplateId: borgShortHL # HardLight
   spritePath: Mobs/Silicon/Chassis/generic/default.rsi
 
   # Pet
@@ -43,9 +43,9 @@
     tags:
     - BorgModuleGeneric
     - BorgModuleEngineering
-    - BorgModuleSyndicate # Hardlight
-    - BorgModuleSyndicateAssault # Hardlight
-    - XenoborgModuleGeneric # Hardlight
+    - BorgModuleSyndicate # HardLight
+    - BorgModuleSyndicateAssault # HardLight
+    - XenoborgModuleGeneric # HardLight
 
   defaultModules:
   - BorgModuleTool
@@ -58,7 +58,7 @@
   - Science
 
   # Visual
-  inventoryTemplateId: borgShortHL #HL
+  inventoryTemplateId: borgShortHL # HardLight
   spritePath: Mobs/Silicon/Chassis/engineering/default.rsi
 
   # Pet
@@ -79,9 +79,9 @@
     tags:
     - BorgModuleGeneric
     - BorgModuleCargo
-    - BorgModuleSyndicate # Hardlight
-    - BorgModuleSyndicateAssault # Hardlight
-    - XenoborgModuleGeneric # Hardlight
+    - BorgModuleSyndicate # HardLight
+    - BorgModuleSyndicateAssault # HardLight
+    - XenoborgModuleGeneric # HardLight
 
   defaultModules:
   - BorgModuleTool
@@ -94,7 +94,7 @@
   - Science
 
   # Visual
-  inventoryTemplateId: borgTallHL #HL
+  inventoryTemplateId: borgTallHL # HardLight
   spritePath: Mobs/Silicon/Chassis/mining/default.rsi
   spriteBodyMovementState: borg_moving
 
@@ -116,9 +116,9 @@
     tags:
     - BorgModuleGeneric
     - BorgModuleJanitor
-    - BorgModuleSyndicate # Hardlight
-    - BorgModuleSyndicateAssault # Hardlight
-    - XenoborgModuleGeneric # Hardlight
+    - BorgModuleSyndicate # HardLight
+    - BorgModuleSyndicateAssault # HardLight
+    - XenoborgModuleGeneric # HardLight
 
   defaultModules:
   - BorgModuleTool # Starlight
@@ -130,7 +130,7 @@
   - Service
 
   # Visual
-  inventoryTemplateId: borgShortHL # HL
+  inventoryTemplateId: borgShortHL # HardLight
   spritePath: Mobs/Silicon/Chassis/janitor/default.rsi
   spriteBodyMovementState: borg_moving
 
@@ -152,9 +152,9 @@
     tags:
     - BorgModuleGeneric
     - BorgModuleMedical
-    - BorgModuleSyndicate # Hardlight
-    - BorgModuleSyndicateAssault # Hardlight
-    - XenoborgModuleGeneric # Hardlight
+    - BorgModuleSyndicate # HardLight
+    - BorgModuleSyndicateAssault # HardLight
+    - XenoborgModuleGeneric # HardLight
 
   defaultModules:
   - BorgModuleTool # Starlight
@@ -171,18 +171,18 @@
   - type: ShowHealthBars
     damageContainers:
     - Biological
-    - Synth #HL
+    - Synth # HardLight
   - type: ShowHealthIcons
     damageContainers:
     - Biological
-  #Start HL
+  # HardLight start
   - type: SurgerySpeedModifier
     speedModifier: 1.75
   - type: Sanitized
-  #End HL
+  # HardLight end
 
   # Visual
-  inventoryTemplateId: borgDutchHL # HL
+  inventoryTemplateId: borgDutchHL # HardLight
   spritePath: Mobs/Silicon/Chassis/medical/default.rsi
   spriteBodyMovementState: borg_moving
 
@@ -208,9 +208,9 @@
     tags:
     - BorgModuleGeneric
     - BorgModuleService
-    - BorgModuleSyndicate # Hardlight
-    - BorgModuleSyndicateAssault # Hardlight
-    - XenoborgModuleGeneric # Hardlight
+    - BorgModuleSyndicate # HardLight
+    - BorgModuleSyndicateAssault # HardLight
+    - XenoborgModuleGeneric # HardLight
 
   defaultModules:
   - BorgModuleTool # Starlight
@@ -224,8 +224,13 @@
   - Science
   - Service
 
+  addComponents: # HardLight
+  - type: FabricateActions # HardLight
+    actions:
+    - ActionFabricatePaper
+
   # Visual
-  inventoryTemplateId: borgTallHL # HL
+  inventoryTemplateId: borgTallHL # HardLight
   spritePath: Mobs/Silicon/Chassis/service/default.rsi
 
   # Pet

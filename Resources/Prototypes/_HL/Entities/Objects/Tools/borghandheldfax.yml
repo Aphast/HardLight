@@ -1,0 +1,5 @@
+- type: entity
+  parent: HandheldFax
+  id: HandheldFaxBorg
+  components:
+  - type: BorgHandheldFaxName

@@ -160,6 +160,18 @@ public sealed class MoverController : SharedMoverController
                 continue;
             }
 
+            // perf: if the physics body is asleep, no movement keys are held, and there is no
+            // pending rotation lerp, HandleMobMovement has nothing to do this tick (no velocity
+            // changes, no friction, no lerp progress). Any code that wakes the body earlier in
+            // the same tick (damage, interactions, etc.) sets body.Awake = true before
+            // UpdateBeforeSolve runs, so the guard won't fire for those cases.
+            if (!body.Awake
+                && mover.HeldMoveButtons == MoveButtons.None
+                && mover.CurTickWalkMovement.LengthSquared() == 0f
+                && mover.CurTickSprintMovement.LengthSquared() == 0f
+                && mover.TargetRelativeRotation == mover.RelativeRotation)
+                continue;
+
             HandleMobMovement((uid, mover), frameTime);
         }
 

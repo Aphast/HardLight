@@ -206,7 +206,9 @@
     VintageUniformSuit: 4
     CargoOverallsUniformSuit: 4
     RedRegaliaSuit: 4
-    # End Coats
+    ClothingUniformJumpsuitVampir: 4
+    ClothingUniformDama235123: 4
+    # End Coats / Hardlight End
   contrabandInventory:
     ClothingMaskNeckGaiter: 2
     ClothingUniformJumpsuitTacticool: 1

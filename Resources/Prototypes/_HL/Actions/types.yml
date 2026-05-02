@@ -45,3 +45,16 @@
       sprite: Interface/Actions/jump.rsi
       state: icon
     event: !type:GravityJumpEvent {}
+
+- type: entity
+  id: ActionFabricatePaper
+  name: action-name-fabricate-paper
+  description: action-description-fabricate-paper
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: InstantAction
+    icon: { sprite: Objects/Misc/bureaucracy.rsi, state: paper }
+    useDelay: 20
+    event:
+      !type:FabricateActionEvent
+      fabrication: Paper

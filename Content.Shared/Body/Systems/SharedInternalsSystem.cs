@@ -1,3 +1,4 @@
+using Content.Shared._Starlight.NullSpace;
 using Content.Shared.Alert;
 using Content.Shared.Atmos.Components;
 using Content.Shared.Atmos.EntitySystems;
@@ -196,6 +197,10 @@ public abstract class SharedInternalsSystem : EntitySystem
     public bool TryConnectTank(Entity<InternalsComponent> ent, EntityUid tankEntity)
     {
         if (ent.Comp.BreathTools.Count == 0)
+            return false;
+
+        // HL - Deny if in nullspace.
+        if (HasComp<NullSpaceComponent>(ent))
             return false;
 
         if (TryComp(ent.Comp.GasTankEntity, out GasTankComponent? tank))

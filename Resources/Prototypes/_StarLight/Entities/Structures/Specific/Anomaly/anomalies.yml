@@ -1,0 +1,200 @@
+- type: entity
+  id: PortalShadekin
+  suffix: Dark
+  description: The portal to the dark...
+  parent: AnomalyShadow
+  components:
+    - type: Portal
+      arrivalSound: /Audio/Items/hiss.ogg
+      departureSound: /Audio/Items/hiss.ogg
+      canTeleportToOtherMaps: true
+      randomTeleport: false
+    - type: DarkPortal
+    - type: Anomaly
+      corePrototype: null
+      coreInertPrototype: null
+      minPointsPerSecond: 0
+      maxPointsPerSecond: 0
+      animationTime: 5
+      minPulseLength: 60
+      maxPulseLength: 120
+      decayhreshold: 0
+      deleteEntity: false
+    - type: SecretDataAnomaly
+      randomStartSecretMin: 2
+      randomStartSecretMax: 5
+    - type: Sprite
+      sprite: _Starlight/Structures/Specific/Anomalies/dark.rsi
+      layers:
+        - state: portal
+          map: ["enum.AnomalyVisualLayers.Base"]
+    - type: Fixtures
+      fixtures:
+        fix1:
+          shape: !type:PhysShapeCircle
+            radius: 0.35
+          density: 50
+          mask:
+            - FlyingMobMask
+          layer:
+            - FlyingMobLayer
+        portalFixture:
+          shape: !type:PhysShapeAabb
+            bounds: "-0.25,-0.48,0.25,0.48"
+          mask:
+            - FullTileMask
+          layer:
+            - WallLayer
+          hard: false
+    - type: PointLight
+      radius: 3
+      energy: 1
+      color: "#793a80dd"
+    - type: DarkLight
+    - type: Shadegen
+      range: 5
+    - type: AmbientSound
+      range: 5
+      volume: -5
+      sound:
+        path: /Audio/Ambience/Objects/gravity_gen_hum.ogg
+    - type: EntitySpawnAnomaly
+      entries:
+        - settings:
+            spawnOnPulse: true
+            minAmount: 3
+            maxAmount: 7
+            maxRange: 5
+          spawns:
+            - DarkRandom
+            - ShadekinShadow
+
+- type: entity
+  id: PortalShadekinHub
+  parent: BasePortal
+  name: dark hub
+  description: This portal is used by shadekins to go nearly anywhere in the universe!
+  placement:
+    mode: SnapgridCenter
+  components:
+    - type: DarkHub
+    - type: Sprite
+      noRot: true
+      sprite: _Starlight/Structures/Specific/Anomalies/dark.rsi
+      layers:
+        - state: hub_portal
+    - type: PointLight
+      color: "#793a80dd"
+      radius: 3
+      energy: 1
+    - type: AmbientSound
+      range: 5
+      volume: -5
+      sound:
+        path: /Audio/Ambience/Objects/gravity_gen_hum.ogg
+    - type: Portal
+      arrivalSound: /Audio/Items/hiss.ogg
+      departureSound: /Audio/Items/hiss.ogg
+      canTeleportToOtherMaps: true
+      randomTeleport: false
+    - type: WarpPoint
+      location: The Dark
+      blacklist:
+        tags:
+          - GhostOnlyWarp
+    - type: DarkLight
+
+- type: entity
+  id: ShadekinTrapSpawn
+  placement:
+    mode: SnapgridCenter
+  components:
+    - type: Sprite
+      sprite: _Starlight/Structures/Specific/Anomalies/dark.rsi
+      noRot: true
+      layers:
+        - state: darktrap-spawn
+          shader: unshaded
+    - type: Physics
+      bodyType: Static
+      fixedRotation: true
+      canCollide: false
+    - type: Transform
+      anchored: true
+    - type: TimedSpawner
+      prototypes:
+        - ShadekinTrap
+      intervalSeconds: 2
+    - type: TimedDespawn
+      lifetime: 2
+    - type: Tag
+      tags:
+        - HideContextMenu
+
+- type: entity
+  id: ShadekinTrapTrigger
+  parent: ShadekinTrapSpawn
+  categories: [HideSpawnMenu]
+  components:
+    - type: Sprite
+      sprite: _Starlight/Structures/Specific/Anomalies/dark.rsi
+      noRot: true
+      layers:
+        - state: darktrap-active
+          shader: unshaded
+    - type: TimedDespawn
+      lifetime: 1
+
+- type: entity
+  id: ShadekinTrap
+  parent: BaseShadow
+  name: dark trap
+  placement:
+    mode: SnapgridCenter
+  components:
+    - type: Physics
+      fixedRotation: true
+    - type: Transform
+      anchored: true
+    - type: Fixtures
+      fixtures:
+        floortrap:
+          shape: !type:PhysShapeAabb
+            bounds: "-0.2,-0.2,0.2,0.2"
+          hard: false
+          mask:
+            - ItemMask
+          layer:
+            - SlipLayer
+    - type: Sprite
+      noRot: true
+      sprite: _Starlight/Structures/Specific/Anomalies/dark.rsi
+      layers:
+        - state: darktrap
+    - type: TriggerOnCollide
+      fixtureID: floortrap
+      whitelist:
+        components:
+          - MobState
+      blacklist:
+        components:
+          - Brighteye
+    - type: DarkTrap
+    - type: SpawnOnTrigger
+      proto: ShadekinTrapTrigger
+    - type: DeleteOnTrigger
+    - type: Tag
+      tags:
+        - HideContextMenu
+
+- type: entity
+  name: dark net
+  id: ShadekinDarkNet
+  categories: [HideSpawnMenu]
+  components:
+    - type: Ensnaring
+      freeTime: 10
+      walkSpeed: 0.3
+      sprintSpeed: 0.3
+      staminaDamage: 100
+      ensnareSound: /Audio/_Starlight/Effects/Shadekin/nullphase.ogg

@@ -192,6 +192,44 @@ public sealed partial class ShipSteererComponent : Component
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
     public float TurnEaseIn = 0.2f;
+
+    /// <summary>
+    /// If set, enables distance-based speed capping. Speed is throttled based on distance to target.
+    /// Provides scaling between SpeedCapCloseMaxSpeed at SpeedCapCloseDistance and
+    /// SpeedCapFarMaxSpeed at SpeedCapFarDistance. Null = disabled.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float? DistanceSpeedCapEnabled = null;
+
+    /// <summary>
+    /// Distance at which speed cap reaches its close-range maximum. Below this, full speed is allowed.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float SpeedCapCloseDistance = 300f;
+
+    /// <summary>
+    /// Maximum speed allowed at SpeedCapCloseDistance.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float SpeedCapCloseMaxSpeed = float.PositiveInfinity;
+
+    /// <summary>
+    /// Distance at which speed cap reaches its far-range minimum. Beyond this, minimum speed is applied.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float SpeedCapFarDistance = 1000f;
+
+    /// <summary>
+    /// Maximum speed allowed at SpeedCapFarDistance and beyond.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float SpeedCapFarMaxSpeed = 2f;
+
+    /// <summary>
+    /// Hard cap on maximum speed for this ship (m/s). Applies regardless of distance-based throttling.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float MaximumSpeed = float.PositiveInfinity;
 }
 
 public enum ShipSteeringStatus : byte

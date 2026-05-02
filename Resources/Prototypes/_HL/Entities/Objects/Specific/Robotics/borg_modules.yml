@@ -12,6 +12,6 @@
   - type: ItemBorgModule
     moduleId: Storage
     items:
-    - ClothingBackpackHolding
+    - ClothingBackpackHoldingBorg
   - type: BorgModuleIcon
     icon: { sprite: _HL/Interface/Actions/actions_borg.rsi, state: storage-module }

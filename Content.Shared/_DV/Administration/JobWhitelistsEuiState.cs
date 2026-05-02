@@ -14,12 +14,11 @@ public sealed class JobWhitelistsEuiState : EuiStateBase
     public HashSet<ProtoId<GhostRolePrototype>> GhostRoleWhitelists;
     public bool GlobalWhitelist;
 
-    public JobWhitelistsEuiState(string playerName, HashSet<ProtoId<JobPrototype>> whitelists, HashSet<ProtoId<GhostRolePrototype>> ghostRoleWhitelists, bool globalWhitelist)
+    public JobWhitelistsEuiState(string playerName, HashSet<ProtoId<JobPrototype>> whitelists, HashSet<ProtoId<GhostRolePrototype>> ghostRoleWhitelists)
     {
         PlayerName = playerName;
         Whitelists = whitelists;
         GhostRoleWhitelists = ghostRoleWhitelists;
-        GlobalWhitelist = globalWhitelist;
     }
 }
 

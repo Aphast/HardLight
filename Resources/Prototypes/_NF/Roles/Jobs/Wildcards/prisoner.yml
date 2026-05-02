@@ -9,8 +9,8 @@
     - !type:DepartmentTimeRequirement
       department: Security
       time: 10800 # 3 hrs
-  whitelisted: true
-  canBeAntag: false
+  #whitelisted: true
+  canBeAntag: true
   weight: -10 # HardLight: displayWeight<weight; 10<-10
   startingGear: PrisonerGear
   alwaysUseSpawner: true

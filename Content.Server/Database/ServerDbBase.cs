@@ -1635,6 +1635,26 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({playerDbId}, {id}) ON 
         public async Task<bool> AddJobWhitelist(Guid player, ProtoId<JobPrototype> job)
         {
             await using var db = await GetDb();
+
+            // HL - Its paints me to do this.
+
+            var dbPlayer = await db.DbContext.Player
+                .SingleOrDefaultAsync(p => p.UserId == player);
+
+            if (dbPlayer == null)
+            {
+                db.DbContext.Player.Add(new Player
+                {
+                    UserId = player,
+                    FirstSeenTime = DateTime.UtcNow,
+                    LastSeenTime = DateTime.UtcNow,
+                    LastSeenAddress = IPAddress.None,
+                    LastSeenUserName = player.ToString(),
+                });
+            }
+
+            // HL
+
             var exists = await db.DbContext.RoleWhitelists
                 .Where(w => w.PlayerUserId == player)
                 .Where(w => w.RoleId == job.Id)
@@ -1695,6 +1715,24 @@ INSERT INTO player_round (players_id, rounds_id) VALUES ({playerDbId}, {id}) ON 
         public async Task<bool> AddGhostRoleWhitelist(Guid player, ProtoId<GhostRolePrototype> ghostRole)
         {
             await using var db = await GetDb();
+
+           // HL - Its paints me to do this.
+            var dbPlayer = await db.DbContext.Player
+                .SingleOrDefaultAsync(p => p.UserId == player);
+
+            if (dbPlayer == null)
+            {
+                db.DbContext.Player.Add(new Player
+                {
+                    UserId = player,
+                    FirstSeenTime = DateTime.UtcNow,
+                    LastSeenTime = DateTime.UtcNow,
+                    LastSeenAddress = IPAddress.None,
+                    LastSeenUserName = player.ToString(),
+                });
+            }
+            // HL
+
             var exists = await db.DbContext.RoleWhitelists
                 .Where(w => w.PlayerUserId == player)
                 .Where(w => w.RoleId == ghostRole.Id)

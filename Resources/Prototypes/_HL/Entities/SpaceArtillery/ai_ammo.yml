@@ -1,0 +1,144 @@
+# SPDX-FileCopyrightText: 2026 HardLightSector contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Reduced-structural ammo variants for Xenoborg NPC byte ships.
+# These variants deal 50% less Structural damage than their player-usable
+# counterparts so that walls survive long enough for shields to recharge
+# during an engagement. All other damage values are unchanged.
+
+# ── Hitscans ──────────────────────────────────────────────────────────────────
+
+- type: hitscan
+  id: AISunderLaser
+  maxLength: 500
+  damage:
+    types:
+      Heat: 350
+      Structural: 1250
+  muzzleFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: proton_muzzle
+  travelFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: proton_beam
+  impactFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: proton_impact
+
+- type: hitscan
+  id: AIPhalanxLaser
+  maxLength: 500
+  damage:
+    types:
+      Heat: 100
+      Structural: 50
+  muzzleFlash:
+    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+    state: muzzle_beam_heavy
+  travelFlash:
+    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+    state: beam_heavy
+  impactFlash:
+    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+    state: impact_beam_heavy
+
+- type: hitscan
+  id: AIGaussRound
+  maxLength: 500
+  damage:
+    types:
+      Piercing: 125
+      Heat: 25
+      Structural: 100
+  muzzleFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: gauss_muzzle
+  travelFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: gauss_trail
+  impactFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: gauss_impact
+
+- type: hitscan
+  id: AIShredderRound
+  maxLength: 500
+  damage:
+    types:
+      Piercing: 25
+      Heat: 5
+      Structural: 10
+  muzzleFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: gauss_muzzle
+  travelFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: gauss_trail
+  impactFlash:
+    sprite: _Mono/Objects/Weapons/Guns/Projectiles/ship_lasers.rsi
+    state: gauss_impact
+
+# ── Projectiles ───────────────────────────────────────────────────────────────
+
+- type: entity
+  id: AIAdderBullet
+  name: AIAdderBullet
+  parent: AdderBullet
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Projectile
+    damage:
+      types:
+        Structural: 175
+        Piercing: 125
+
+- type: entity
+  id: AIAdderSpread
+  categories: [ HideSpawnMenu ]
+  parent: AIAdderBullet
+  components:
+  - type: ProjectileSpread
+    proto: AIAdderBullet
+    count: 6
+    spread: 5
+
+- type: entity
+  id: AIShipMiniRailgunProjectile
+  name: M194 CHARONETTE 280mm 10.25 kg slug
+  parent: ShipMiniRailgunProjectile
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Projectile
+    damage:
+      types:
+        Structural: 27500
+        Blunt: 3000
+        Ion: 600
+
+- type: entity
+  id: AIShipMediumPlasmaProjectile
+  name: plasma projectile
+  parent: ShipMediumPlasmaProjectile
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Projectile
+    damage:
+      types:
+        Radiation: 1250
+        Structural: 2125
+        Heat: 350
+        Ion: 350
+
+- type: entity
+  id: AIShipNeutronProjectile
+  name: neutron projectile
+  parent: ShipNeutronProjectile
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Projectile
+    damage:
+      types:
+        Radiation: 1500
+        Structural: 2500
+        Heat: 1000

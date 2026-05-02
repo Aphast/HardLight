@@ -1,0 +1,24 @@
+- type: job
+  id: Anomaly
+  name: job-name-anomaly
+  description: job-description-anomaly
+  playTimeTracker: RoleAnomaly
+  overrideConsoleVisibility: true
+  canBeAntag: false
+  icon: "JobIconNoId"
+  joinNotifyCrew: false
+  whitelisted: true
+  setPreference: true
+  access:
+    - Maintenance
+  accessGroups:
+    - GeneralAccess
+  special:
+    - !type:AddComponentSpecial
+      components:
+        - type: Brighteye
+          energy: 200
+        - type: NullSpace
+        - type: MailDisabled
+        - type: SpecialSectorStationRecord
+          recordGeneration: NoRecord

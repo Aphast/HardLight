@@ -6,7 +6,7 @@
   requirements:
     - !type:OverallPlaytimeRequirement
       time: 72000 # 20 hrs
-  whitelisted: true
+  #whitelisted: true
   startingGear: DocGear
   alwaysUseSpawner: true
   setPreference: false # Frontier

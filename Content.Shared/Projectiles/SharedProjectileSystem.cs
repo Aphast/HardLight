@@ -79,7 +79,6 @@ public abstract partial class SharedProjectileSystem : EntitySystem
     [Dependency] private readonly SharedPhysicsSystem _physics = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
     [Dependency] private readonly TagSystem _tag = default!;
-    private static readonly string GunCanAimShooterTag = "GunCanAimShooter";
 
     [Dependency] private readonly IGameTiming _gameTiming = default!;
     [Dependency] private readonly INetManager _net = default!;
@@ -501,11 +500,6 @@ public abstract partial class SharedProjectileSystem : EntitySystem
             args.Cancelled = true;
             return;
         }
-
-            if ((component.Shooter == args.OtherEntity || component.Weapon == args.OtherEntity) &&
-            component.Weapon != null && _tag.HasTag(component.Weapon.Value, GunCanAimShooterTag) &&
-            TryComp<TargetedProjectileComponent>(uid, out var targeted) && EntityManager.GetEntity(targeted.Target) == args.OtherEntity)
-            return;
     }
 
     // Goobstation - Crawling fix

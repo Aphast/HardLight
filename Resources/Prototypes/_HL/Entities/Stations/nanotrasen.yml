@@ -18,6 +18,7 @@
     # - BaseStationGateway # Frontier: prevent test issues from non-Frontier maps
     # - BaseStationShuttles # Frontier: prevent test issues from non-Frontier maps
     - BaseStationColcomm # Frontier: prevent test issues from non-Frontier maps
+    - BaseStationTheDark # HL
     - BaseStationEvacuation # Frontier: prevent test issues from non-Frontier maps
     - BaseStationBusDepot
     - BaseStationAlertLevels

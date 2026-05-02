@@ -25,7 +25,7 @@
     - !type:RoleTimeRequirement
       role: JobWarden
       time: 21600 # 6 hours
-  whitelisted: true
+  #whitelisted: true
   startingGear: SheriffGear
   setPreference: false # Frontier
   alwaysUseSpawner: true

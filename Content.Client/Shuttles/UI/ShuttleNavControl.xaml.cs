@@ -3,6 +3,8 @@ using System.Numerics;
 using Content.Client._Mono.Radar;
 using Content.Client.Station; // Frontier
 using Content.Shared._Crescent.ShipShields;
+using Content.Shared.Ghost;
+using Robust.Client.Player;
 using Content.Shared._Mono.Company;
 using Content.Shared._Mono.Detection;
 using Content.Shared._Mono.Radar;
@@ -32,6 +34,7 @@ public partial class ShuttleNavControl : BaseShuttleControl // Mono
 {
     [Dependency] private readonly IMapManager _mapManager = default!;
     [Dependency] private readonly IUserInterfaceManager _uiManager = default!;
+    [Dependency] private readonly IPlayerManager _playerManager = default!;
     private readonly DetectionSystem _detection; // Mono
     private readonly StationSystem _station; // Frontier
     private readonly SharedShuttleSystem _shuttles;
@@ -924,14 +927,11 @@ public partial class ShuttleNavControl : BaseShuttleControl // Mono
         var shields = EntManager.AllEntityQueryEnumerator<ShipShieldVisualsComponent, FixturesComponent, TransformComponent>();
         while (shields.MoveNext(out var uid, out var visuals, out var fixtures, out var xform))
         {
-            if (!EntManager.TryGetComponent<TransformComponent>(xform.GridUid, out var parentXform))
-                continue;
-
             if (xform.MapID != consoleXform.MapID)
                 continue;
 
             // Don't draw shields when in FTL
-            if (xform.GridUid == null)
+            if (xform.GridUid == null || !EntManager.HasComponent<TransformComponent>(xform.GridUid.Value))
                 continue;
 
             var parentGridUid = xform.GridUid.Value;
@@ -939,21 +939,54 @@ public partial class ShuttleNavControl : BaseShuttleControl // Mono
             if (EntManager.HasComponent<FTLComponent>(parentGridUid))
                 continue;
 
-            var detectionLevel = _consoleEntity == null ? DetectionLevel.Detected : GetGridDetected(parentGridUid);
-            if (detectionLevel != DetectionLevel.Detected)
+            // Ghosts can see all shields regardless of detection range.
+            // For regular users, match the same visibility rule used by radar blips.
+            var isGhost = _playerManager.LocalEntity is { } localEnt && EntManager.HasComponent<GhostComponent>(localEnt);
+
+            if (!isGhost && _consoleEntity != null)
+            {
+                EntManager.TryGetComponent<IFFComponent>(parentGridUid, out var iff);
+                var hideLabel = iff != null && (iff.Flags & IFFFlags.HideLabel) != 0x0;
+                var detectionLevel = GetGridDetected(parentGridUid);
+                var detected = detectionLevel != DetectionLevel.Undetected || !hideLabel;
+
+                if (!detected)
+                    continue;
+            }
+
+            var shieldFixture = fixtures.Fixtures.TryGetValue("shield", out var fixture) ? fixture
+                : fixtures.Fixtures.TryGetValue("internalShield", out fixture) ? fixture
+                : null;
+
+            if (shieldFixture == null)
                 continue;
 
-            var shieldFixture = fixtures.Fixtures.TryGetValue("shield", out var fixture) ? fixture : null;
+            Vector2[] verticies;
+            int count;
 
-            if (shieldFixture == null || shieldFixture.Shape is not ChainShape)
+            switch (shieldFixture.Shape)
+            {
+                case ChainShape chain:
+                    count = chain.Count;
+                    verticies = chain.Vertices;
+                    break;
+                case PolygonShape poly:
+                    count = poly.VertexCount + 1;
+                    verticies = new Vector2[count];
+                    for (var i = 0; i < poly.VertexCount; i++)
+                        verticies[i] = poly.Vertices[i];
+                    verticies[count - 1] = poly.Vertices[0]; // close the loop
+                    break;
+                default:
+                    continue;
+            }
+
+            if (count < 2)
                 continue;
 
-            ChainShape chain = (ChainShape) shieldFixture.Shape;
-
-            var count = chain.Count;
-            var verticies = chain.Vertices;
-
-            var center = _transform.WithEntityId(xform.Coordinates, xform.GridUid.Value).Position;
+            // The fixture vertices are grid-local, so the shield center must stay grid-local too.
+            // Converting Coordinates to map-space here and then applying parentWorldMatrix double-transforms the ring.
+            var center = xform.LocalPosition;
             var parentWorldMatrix = _transform.GetWorldMatrix(parentGridUid);
 
             for (int i = 1; i < count; i++)

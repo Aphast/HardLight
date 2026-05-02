@@ -36,6 +36,9 @@ using Content.Server.Power.Components;
 using Content.Shared.PowerCell;
 using Content.Server.Nutrition.EntitySystems;
 using Content.Shared.Mind.Components;
+using Content.Shared._Starlight.NullSpace;
+using Content.Server._Starlight.NullSpace;
+using Content.Shared._Starlight.Shadekin;
 
 namespace Content.Server.FloofStation;
 
@@ -60,6 +63,7 @@ public sealed class VoreSystem : EntitySystem
     [Dependency] private readonly StandingStateSystem _standingState = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
     [Dependency] private readonly FoodSystem _food = default!;
+    [Dependency] private readonly NullSpacePhaseSystem _phase = default!;
 
     public override void Initialize()
     {
@@ -83,6 +87,7 @@ public sealed class VoreSystem : EntitySystem
     private void AddVerbs(EntityUid uid, VoreComponent component, GetVerbsEvent<InnateVerb> args)
     {
         DevourVerb(uid, component, args);
+        PhaseNomVerb(uid, component, args);
         VoreVerb(uid, component, args);
     }
 
@@ -90,6 +95,28 @@ public sealed class VoreSystem : EntitySystem
     {
         if (!args.CanInteract
             || !args.CanAccess
+            || args.User == args.Target
+            || !HasComp<VoreComponent>(args.Target)
+            || !_consent.HasConsent(args.Target, "Vore")
+            || !_consent.HasConsent(args.User, "Vore")
+            || HasComp<VoredComponent>(args.User))
+            return;
+
+        InnateVerb verbDevour = new()
+        {
+            Act = () => TryDevour(uid, args.Target, component),
+            Text = Loc.GetString("vore-devour"),
+            Category = VerbCategory.Vore,
+            Icon = new SpriteSpecifier.Rsi(new ResPath("Interface/Actions/devour.rsi"), "icon-on"),
+            Priority = -1
+        };
+        args.Verbs.Add(verbDevour);
+    }
+
+    private void PhaseNomVerb(EntityUid uid, VoreComponent component, GetVerbsEvent<InnateVerb> args)
+    {
+        if (!HasComp<NullSpaceComponent>(uid)
+            || HasComp<NullSpaceComponent>(args.Target)
             || args.User == args.Target
             || !HasComp<VoreComponent>(args.Target)
             || !_consent.HasConsent(args.Target, "Vore")
@@ -191,8 +218,6 @@ public sealed class VoreSystem : EntitySystem
         if (_food.IsMouthBlocked(uid, uid))
             return;
 
-        _popups.PopupEntity(Loc.GetString("vore-attempt-devour", ("entity", uid), ("prey", target)), uid, PopupType.LargeCaution);
-
         if (!TryComp<PhysicsComponent>(uid, out var predPhysics)
             || !TryComp<PhysicsComponent>(target, out var preyPhysics))
             return;
@@ -202,12 +227,28 @@ public sealed class VoreSystem : EntitySystem
                         * _contests.StaminaContest(uid, target)
                         * (_standingState.IsDown(target) ? 0.5f : 1));
 
-        _doAfterSystem.TryStartDoAfter(new DoAfterArgs(EntityManager, uid, length, new VoreDoAfterEvent(), uid, target: target)
+        if (HasComp<NullSpaceComponent>(uid))
         {
-            BreakOnMove = true,
-            BreakOnDamage = true,
-            RequireCanInteract = true
-        });
+            _popups.PopupEntity(Loc.GetString("vore-attempt-phasenom", ("entity", uid), ("prey", target)), uid, PopupType.LargeCaution);
+
+            _doAfterSystem.TryStartDoAfter(new DoAfterArgs(EntityManager, uid, length, new VoreDoAfterEvent(), uid, target: target)
+            {
+                BreakOnMove = true,
+                BreakOnWeightlessMove = false,
+                RequireCanInteract = false
+            });
+        }
+        else
+        {
+            _popups.PopupEntity(Loc.GetString("vore-attempt-devour", ("entity", uid), ("prey", target)), uid, PopupType.LargeCaution);
+
+            _doAfterSystem.TryStartDoAfter(new DoAfterArgs(EntityManager, uid, length, new VoreDoAfterEvent(), uid, target: target)
+            {
+                BreakOnMove = true,
+                BreakOnDamage = true,
+                RequireCanInteract = true
+            });
+        }
     }
 
     private void OnDoAfter(EntityUid uid, VoreComponent component, VoreDoAfterEvent args)
@@ -226,6 +267,12 @@ public sealed class VoreSystem : EntitySystem
     {
         if (!Resolve(uid, ref component))
             return;
+
+        if (HasComp<NullSpaceComponent>(uid))
+        {
+            _transform.SetWorldPositionRotation(uid, _transform.GetWorldPositionRotation(target).WorldPosition, _transform.GetWorldPositionRotation(target).WorldRotation);
+            _phase.Phase(uid);
+        }
 
         var vored = EnsureComp<VoredComponent>(target);
         vored.Pred = uid;
@@ -496,7 +543,12 @@ public sealed class VoreSystem : EntitySystem
 
                 // Give 1 Hunger per 1 Caustic Damage.
                 if (TryComp<HungerComponent>(vored.Pred, out var hunger))
+                {
                     _hunger.ModifyHunger(vored.Pred, 1, hunger);
+                    // HL - Brighteye / 1 Energy
+                    if (TryComp<BrighteyeComponent>(vored.Pred, out var brighteye))
+                        brighteye.Energy += 1;
+                }
 
                 // Give 2 Power per 1 Caustic Damage.
                 if (TryComp<BatteryComponent>(vored.Pred, out var internalbattery))
@@ -511,6 +563,7 @@ public sealed class VoreSystem : EntitySystem
                     if (TryComp<BatteryComponent>(battery, out var batterycomp))
                         _battery.SetCharge(battery, batterycomp.CurrentCharge + 2, batterycomp);
                 }
+
             }
         }
     }

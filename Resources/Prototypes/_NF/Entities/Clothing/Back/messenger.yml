@@ -630,7 +630,7 @@
   parent: ClothingBackpackHolding
   id: ClothingBackpackMessengerHolding
   name: messenger bag of holding
-  description: A messenger bag that opens into a localized pocket of bluespace.
+  description: A messenger bag that opens into a localized pocket of bluespace. It is unwieldy due to condensed gravitational emissions.
   components:
   - type: Sprite
     sprite: _NF/Clothing/Back/Messenger/holding.rsi
@@ -639,6 +639,9 @@
     - state: icon
     - state: icon-unlit
       shader: unshaded
+  - type: ClothingSpeedModifier
+    sprintModifier: 0.75 # movespeed nerf in exchange for massive storage
+  - type: HeldSpeedModifier
   - type: Clothing
     sprite: _NF/Clothing/Back/Messenger/holding.rsi
     clothingVisuals:

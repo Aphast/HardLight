@@ -6,17 +6,21 @@ using Content.Shared.Maps;
 using Robust.Server.GameObjects;
 using Content.Shared.Popups;
 using Content.Shared.Physics;
-using Content.Shared._Starlight;
 using System.Linq;
 using Content.Server.Ghost;
 using Robust.Server.Containers;
 using Robust.Shared.Prototypes;
+using Content.Shared.Light.Components;
+using Robust.Shared.Containers;
+using Content.Shared.Mobs.Components;
+using Content.Shared.Inventory;
+using Content.Shared._Starlight.Shadekin;
+using Content.Shared.Timing;
 using Robust.Shared.Timing;
-using Content.Shared.Light.Components; // HardLight: Merged with upstream
 
 namespace Content.Server._Starlight.NullSpace;
 
-public sealed class EtherealPhaseSystem : EntitySystem
+public sealed class NullSpacePhaseSystem : EntitySystem
 {
     [Dependency] private readonly SharedActionsSystem _actionsSystem = default!;
     [Dependency] private readonly PhysicsSystem _physics = default!;
@@ -24,26 +28,26 @@ public sealed class EtherealPhaseSystem : EntitySystem
     [Dependency] private readonly EntityLookupSystem _lookup = default!;
     [Dependency] private readonly GhostSystem _ghost = default!;
     [Dependency] private readonly ContainerSystem _container = default!;
+    [Dependency] private readonly TurfSystem _turf = default!;
+    [Dependency] private readonly InventorySystem _inventorySystem = default!;
+    [Dependency] private readonly UseDelaySystem _usedelay = default!;
     [Dependency] private readonly IGameTiming _gameTiming = default!;
 
-    private EntProtoId ShadekinShadow = "ShadekinShadow";
-    private EntProtoId ShadekinPhaseInEffect = "ShadekinPhaseInEffect";
-    private EntProtoId ShadekinPhaseOutEffect = "ShadekinPhaseOutEffect";
+    private readonly EntProtoId _shadekinShadow = "ShadekinShadow";
+    private readonly EntProtoId ShadekinPhaseInEffect = "ShadekinPhaseInEffect";
+    private readonly EntProtoId ShadekinPhaseOutEffect = "ShadekinPhaseOutEffect";
 
     public override void Initialize()
     {
         base.Initialize();
-        SubscribeLocalEvent<NullPhaseComponent, ComponentStartup>(OnStartup);
+        SubscribeLocalEvent<NullPhaseComponent, MapInitEvent>(OnInit);
         SubscribeLocalEvent<NullPhaseComponent, ComponentShutdown>(OnShutdown);
         SubscribeLocalEvent<NullPhaseComponent, GotEquippedEvent>(OnEquipped);
         SubscribeLocalEvent<NullPhaseComponent, GotUnequippedEvent>(OnUnequipped);
         SubscribeLocalEvent<NullPhaseComponent, NullPhaseActionEvent>(OnPhaseAction);
-        SubscribeLocalEvent<NullPhaseComponent, BeingUnequippedAttemptEvent>(OnUnequipAttempt);
-        SubscribeLocalEvent<NullHarnessComponent, GotEquippedEvent>(OnHarnessEquipped);
-        SubscribeLocalEvent<NullHarnessComponent, GotUnequippedEvent>(OnHarnessUnequipped);
     }
 
-    private void OnStartup(EntityUid uid, NullPhaseComponent component, ComponentStartup args)
+    private void OnInit(EntityUid uid, NullPhaseComponent component, MapInitEvent args)
     {
         Toggle(uid, component, true);
     }
@@ -59,63 +63,49 @@ public sealed class EtherealPhaseSystem : EntitySystem
             || !clothing.Slots.HasFlag(args.SlotFlags))
             return;
 
-        var playerComp = EnsureComp<NullPhaseComponent>(args.Equipee);
-        playerComp.ExitDelay = component.ExitDelay;
-        playerComp.ForcedEjectionPenalty = component.ForcedEjectionPenalty;
+        var nullphase = EnsureComp<NullPhaseComponent>(args.Equipee);
+        nullphase.Cooldown = component.Cooldown;
+        nullphase.ShuntCooldown = component.ShuntCooldown;
+
+        if (TryComp<UseDelayComponent>(uid, out var usedelay) && _usedelay.IsDelayed((uid, usedelay), "nullphase-delay"))
+        {
+            if (_usedelay.TryGetDelayInfo(uid, out var info, "nullphase-delay"))
+            {
+                _usedelay.SetLength(args.Equipee, info.EndTime - _gameTiming.CurTime, "nullphase-delay");
+                _usedelay.TryResetDelay(args.Equipee, id: "nullphase-delay");
+            }
+
+            _usedelay.CancelDelay((uid, usedelay), "nullphase-delay");
+        }
     }
 
     private void OnUnequipped(EntityUid uid, NullPhaseComponent component, GotUnequippedEvent args)
     {
-        RemComp<NullPhaseComponent>(args.Equipee);
-    }
-
-    private void OnHarnessEquipped(EntityUid uid, NullHarnessComponent component, GotEquippedEvent args)
-    {
-        if (!TryComp<ClothingComponent>(uid, out var clothing) || !clothing.Slots.HasFlag(args.SlotFlags))
-            return;
-
-        EnsureComp<BlockNullPhaseComponent>(args.Equipee);
-    }
-
-    private void OnHarnessUnequipped(EntityUid uid, NullHarnessComponent component, GotUnequippedEvent args)
-    {
-        RemComp<BlockNullPhaseComponent>(args.Equipee);
-    }
-
-    private void OnUnequipAttempt(EntityUid uid, NullPhaseComponent component, ref BeingUnequippedAttemptEvent args)
-    {
-        if (!TryComp<ClothingComponent>(uid, out var clothing) || !clothing.Slots.HasFlag(args.SlotFlags))
-            return;
-
-        if (!TryComp<NullPhaseComponent>(args.UnEquipTarget, out var playerComp))
-            return;
-
-        if (!_actionsSystem.TryGetActionData(playerComp.PhaseAction, out var action, logError: false))
-            return;
-
-        if (action.Cooldown is { End: var end } && end > _gameTiming.CurTime
-            && args.Unequipee == args.UnEquipTarget)
+        if (TryComp<NullPhaseComponent>(args.Equipee, out var nullphase))
         {
-            args.Cancel();
-            _popup.PopupEntity(Loc.GetString("null-phase-cooldown-locked"), args.UnEquipTarget, args.UnEquipTarget);
+            component.Cooldown = nullphase.Cooldown;
+            component.ShuntCooldown = nullphase.ShuntCooldown;
+
+            if (TryComp<UseDelayComponent>(args.Equipee, out var usedelay) && _usedelay.IsDelayed((args.Equipee, usedelay), "nullphase-delay"))
+            {
+                if (_usedelay.TryGetDelayInfo(args.Equipee, out var info, "nullphase-delay"))
+                {
+                    _usedelay.SetLength(uid, info.EndTime - _gameTiming.CurTime, "nullphase-delay");
+                    _usedelay.TryResetDelay(uid, id: "nullphase-delay");
+                }
+
+                _usedelay.CancelDelay((args.Equipee, usedelay), "nullphase-delay");
+            }
         }
+
+        RemComp<NullPhaseComponent>(args.Equipee);
     }
 
     private void OnPhaseAction(EntityUid uid, NullPhaseComponent component, NullPhaseActionEvent args)
     {
-        if (HasComp<BlockNullPhaseComponent>(args.Performer))
-        {
-            _popup.PopupEntity(Loc.GetString("null-harness-blocks-phase"), args.Performer, args.Performer);
-            args.Handled = true;
-            return;
-        }
+        if (CanPhase(uid))
+            Phase(uid);
 
-        // Apply exit cooldown when leaving; no cooldown on enter
-        var exitingNullspace = HasComp<NullSpaceComponent>(args.Performer);
-        _actionsSystem.SetUseDelay(component.PhaseAction, exitingNullspace ? TimeSpan.FromSeconds(component.ExitDelay) : null);
-
-        // Perform phase on the user performing the action, not the provider entity.
-        Phase(args.Performer);
         args.Handled = true;
     }
 
@@ -127,11 +117,77 @@ public sealed class EtherealPhaseSystem : EntitySystem
             _actionsSystem.RemoveAction(uid, component.PhaseAction);
     }
 
-    public bool Phase(EntityUid uid)
+    public bool CanPhase(EntityUid uid)
     {
-        if (TryComp<NullSpaceComponent>(uid, out var ethereal))
+        if (TryComp<NullSpaceComponent>(uid, out var nullspace))
         {
-            if (HasComp<ShadekinComponent>(uid))
+            var tileref = _turf.GetTileRef(Transform(uid).Coordinates);
+            if (tileref != null
+            && _physics.GetEntitiesIntersectingBody(uid, (int)CollisionGroup.Impassable).Count > 0)
+            {
+                _popup.PopupEntity(Loc.GetString("revenant-in-solid"), uid, uid);
+                return false;
+            }
+        }
+        else
+        {
+            // HL - UseDelay.
+            if (_usedelay.IsDelayed(uid, "nullphase-delay"))
+                return false;
+
+            // No phaising if were in a container.
+            if (_container.IsEntityInContainer(uid))
+            {
+                _popup.PopupEntity(Loc.GetString("phase-fail-generic"), uid, uid);
+                return false;
+            }
+
+            // No phaising if were blocked by a NullSpaceBlockerComponent entity.
+            foreach (var entity in _lookup.GetEntitiesIntersecting(Transform(uid).Coordinates))
+            {
+                if (HasComp<NullSpaceBlockerComponent>(entity))
+                {
+                    _popup.PopupEntity(Loc.GetString("phase-fail-generic"), uid, uid);
+                    return false;
+                }
+            }
+
+            // No phaising if were holding or have an entity with the MobStateComponent (including backpack)
+            if (TryComp<InventoryComponent>(uid, out var inventoryComponent) && _inventorySystem.TryGetSlots(uid, out var slots))
+                foreach (var slot in slots)
+                    if (_inventorySystem.TryGetSlotEntity(uid, slot.Name, out var slotEnt, inventoryComponent))
+                    {
+                        if (HasComp<MobStateComponent>(slotEnt))
+                        {
+                            _popup.PopupEntity(Loc.GetString("phase-fail-generic"), uid, uid);
+                            return false;
+                        }
+
+                        if (TryComp<ContainerManagerComponent>(slotEnt, out var containercomp))
+                            foreach (var container in containercomp.Containers.Values)
+                                foreach (var contEnt in container.ContainedEntities)
+                                    if (HasComp<MobStateComponent>(contEnt))
+                                    {
+                                        _popup.PopupEntity(Loc.GetString("phase-fail-generic"), uid, uid);
+                                        return false;
+                                    }
+                    }
+        }
+
+        return true;
+    }
+
+    public void Phase(EntityUid uid)
+    {
+        if (TryComp<NullSpaceComponent>(uid, out var nullspace))
+        {
+            if (TryComp<NullPhaseComponent>(uid, out var nullphase) && nullphase.Cooldown is not null)
+            {
+                _usedelay.SetLength(uid, nullphase.Cooldown.Value, "nullphase-delay");
+                _usedelay.TryResetDelay(uid, checkDelayed: true, id: "nullphase-delay");
+            }
+
+            if (TryComp<ShadekinComponent>(uid, out var shadekin))
             {
                 var lightQuery = _lookup.GetEntitiesInRange(uid, 5, flags: LookupFlags.StaticSundries)
                     .Where(x => HasComp<PoweredLightComponent>(x));
@@ -142,23 +198,15 @@ public sealed class EtherealPhaseSystem : EntitySystem
                 Transform(effect).LocalRotation = Transform(uid).LocalRotation;
             }
             else
-                SpawnAtPosition(ShadekinShadow, Transform(uid).Coordinates);
+                SpawnAtPosition(_shadekinShadow, Transform(uid).Coordinates);
 
-            if (TryComp<NullPhaseComponent>(uid, out var phaseComp))
-                phaseComp.VoluntaryExit = true;
-            RemComp<NullSpaceComponent>(uid);
+            RemComp(uid, nullspace);
         }
         else
         {
-            if (_container.IsEntityInContainer(uid))
-            {
-                _popup.PopupEntity(Loc.GetString("phase-fail-generic"), uid, uid);
-                return false;
-            }
-
             EnsureComp<NullSpaceComponent>(uid);
 
-            if (HasComp<ShadekinComponent>(uid))
+            if (TryComp<ShadekinComponent>(uid, out var shadekin))
             {
                 var lightQuery = _lookup.GetEntitiesInRange(uid, 5, flags: LookupFlags.StaticSundries)
                     .Where(x => HasComp<PoweredLightComponent>(x));
@@ -169,8 +217,7 @@ public sealed class EtherealPhaseSystem : EntitySystem
                 Transform(effect).LocalRotation = Transform(uid).LocalRotation;
             }
             else
-                SpawnAtPosition(ShadekinShadow, Transform(uid).Coordinates);
+                SpawnAtPosition(_shadekinShadow, Transform(uid).Coordinates);
         }
-        return true;
     }
 }

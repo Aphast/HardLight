@@ -628,7 +628,6 @@
   desc: "Subject's cellular repair mechanisms provide strong protection against ionizing radiation damage."
   popupText: "You feel like radiation isn't a big deal."
   instability: 25
-  sequencerResistant: true
   scrambleResistant: true
   probabilityWeight: 5
   researchPoints: 900

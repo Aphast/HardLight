@@ -171,11 +171,7 @@ public sealed partial class JobRequirementsManager : ISharedPlaytimeManager
         if (!_cfg.GetCVar(CCVars.GameRoleWhitelist))
             return true;
 
-        // DeltaV - blanket whitelist check in client
-        //if (_whitelisted)
-        //    return true;
-
-        if (job.Whitelisted && !_jobWhitelists.Contains(job.ID) && !_whitelisted) // Frontier: add _whitelisted
+        if (job.Whitelisted && !_jobWhitelists.Contains(job.ID)) // Frontier: add _whitelisted
         {
             reason = FormattedMessage.FromUnformatted(Loc.GetString("role-not-whitelisted"));
             return false;

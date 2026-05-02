@@ -3445,3 +3445,73 @@ Entries:
       message: gunnery console has shield status and draws shields
   id: 367
   time: '2026-04-30T20:59:38.0000000+00:00'
+- author: NotLivyathan
+  changes:
+    - type: Add
+      message: Handheld fax machines can now be spawned by admins.
+    - type: Add
+      message: >-
+        Service Cyborgs now have access to fax machines as part of the
+        bureaucracy module.
+    - type: Add
+      message: Service Cyborgs can now fabricate blank sheets of paper.
+    - type: Tweak
+      message: Fax machine UI has received minor improvements for better clarity.
+  id: 368
+  time: '2026-05-01T00:19:28.0000000+00:00'
+- author: Eb-
+  changes:
+    - type: Tweak
+      message: >-
+        Bags of Holding now have a 25% move speed penalty, to encourage use of
+        other bags such as: tactical pack, rucksack, explorer pack
+  id: 369
+  time: '2026-05-01T03:49:15.0000000+00:00'
+- author: fenndragon
+  changes:
+    - type: Add
+      message: 'Added new world generation system '
+  id: 370
+  time: '2026-05-01T03:50:13.0000000+00:00'
+- author: Illumos
+  changes:
+    - type: Add
+      message: Added the noble suit to the clothesmate
+    - type: Add
+      message: Added the bloodstained aristocrat suit to clothesmate
+  id: 371
+  time: '2026-05-02T06:14:37.0000000+00:00'
+- author: Kronyxxx
+  changes:
+    - type: Fix
+      message: >-
+        Jet injector no longer shows selectable transfer amounts (1u, 5u, etc.)
+        in its right-click menu; it always injects the full reservoir.
+    - type: Fix
+      message: >-
+        Jet injector now plays its unique injection sound when used on humanoid
+        mobs.
+  id: 372
+  time: '2026-05-02T06:45:36.0000000+00:00'
+- author: Kronyxxx
+  changes:
+    - type: Fix
+      message: >-
+        Full-reservoir injector modes now clear stale transfer amount state, so
+        Advanced Jet Injectors correctly inject their full contents.
+  id: 373
+  time: '2026-05-02T07:50:25.0000000+00:00'
+- author: R3v3l4t1on
+  changes:
+    - type: Fix
+      message: Fixed a test
+  id: 374
+  time: '2026-05-02T07:51:13.0000000+00:00'
+- author: TrylobyteWasTaken
+  changes:
+    - type: Tweak
+      message: >-
+        The Ionizing Radiation Resistance mutation is now actually able to be
+        researched instead of taunting the geneticist all shift.
+  id: 375
+  time: '2026-05-02T19:05:16.0000000+00:00'

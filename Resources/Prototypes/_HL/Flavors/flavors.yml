@@ -17,3 +17,8 @@
   id: liquid-suffering
   flavorType: complex
   description: flavor-complex-liquid-suffering
+
+- type: flavor
+  id: nebuladream
+  flavorType: Complex
+  description: flavor-complex-nebula-dream

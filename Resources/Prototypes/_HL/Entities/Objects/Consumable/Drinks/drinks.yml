@@ -1,0 +1,31 @@
+- type: entity
+  parent: DrinkBaseMug
+  id: DrinkMugBone
+  name: bone mug
+  description: A hand-made bone mug.
+  components:
+  - type: Sprite
+    sprite: _HL/Objects/Consumable/Drinks/bonemug.rsi
+  - type: SolutionContainerManager
+    solutions:
+      drink:
+        maxVol: 25
+  - type: Construction
+    graph: BoneMug
+    node: BoneMug
+
+- type: entity
+  parent: DrinkGlass
+  id: DrinkNebulaDreamGlass
+  suffix: nebula dream
+  components:
+  - type: SolutionContainerManager
+    solutions:
+      drink:
+        maxVol: 30
+        reagents:
+        - ReagentId: NebulaDream
+          Quantity: 30
+  - type: Icon
+    sprite: _HL/Objects/Consumable/Drinks/nebuladream.rsi
+    state: icon

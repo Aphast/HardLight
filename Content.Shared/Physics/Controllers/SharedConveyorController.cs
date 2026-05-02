@@ -280,15 +280,17 @@ public abstract class SharedConveyorController : VirtualController
         bestConveyorUid = null;
         priority = 0f;
 
+        // perf: check awake before HasPlayerInRange - the awake check is free while
+        // HasPlayerInRange does an AABB entity lookup every tick per conveyed entity.
+        if (!entity.Comp3.Awake)
+            return true;
+
         if (!HasPlayerInRange(entity.Owner))
             return true;
 
         var fixtures = entity.Comp2;
         var physics = entity.Comp3;
         var xform = entity.Comp4;
-
-        if (!physics.Awake)
-            return true;
 
         // Client moment
         if (!physics.Predict && prediction)

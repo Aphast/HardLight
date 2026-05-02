@@ -7,6 +7,3 @@
       icon: { sprite: Interface/Actions/psionics.rsi, state: telekinetic_pulse }
       useDelay: 45
       checkCanInteract: false
-      event: !type:BluespacePulseActionEvent
-              radius: 6
-              stunSeconds: 4

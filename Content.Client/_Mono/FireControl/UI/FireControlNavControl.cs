@@ -442,14 +442,39 @@ public sealed class FireControlNavControl : BaseShuttleControl
             if (EntManager.HasComponent<FTLComponent>(xform.GridUid.Value))
                 continue;
 
-            if (!fixtures.Fixtures.TryGetValue("shield", out var fixture) || fixture.Shape is not ChainShape chain)
+            if (!fixtures.Fixtures.TryGetValue("shield", out var fixture)
+                && !fixtures.Fixtures.TryGetValue("internalShield", out fixture))
                 continue;
 
             var center = xform.LocalPosition;
             var parentWorldMatrix = _transform.GetWorldMatrix(xform.GridUid.Value);
 
-            var count = chain.Count;
-            var vertices = chain.Vertices;
+            var count = 0;
+            Vector2[] vertices;
+
+            switch (fixture.Shape)
+            {
+                case ChainShape chain:
+                    count = chain.Count;
+                    vertices = chain.Vertices;
+                    break;
+                case PolygonShape poly:
+                    count = poly.VertexCount + 1;
+                    vertices = new Vector2[count];
+                    for (var i = 0; i < poly.VertexCount; i++)
+                    {
+                        vertices[i] = poly.Vertices[i];
+                    }
+
+                    vertices[count - 1] = poly.Vertices[0];
+                    break;
+                default:
+                    continue;
+            }
+
+            if (count < 2)
+                continue;
+
             for (var i = 1; i < count; i++)
             {
                 var v1 = Vector2.Add(center, vertices[i - 1]);

@@ -136,6 +136,43 @@ public sealed partial class ShipMoveToOperator : HTNOperator, IHtnConditionalShu
     [DataField]
     public float TargetRotation = 0f;
 
+    /// <summary>
+    /// If set to a positive value, enables distance-based speed capping.
+    /// Ship speed is throttled based on distance to target.
+    /// </summary>
+    [DataField]
+    public float? DistanceSpeedCapEnabled = null;
+
+    /// <summary>
+    /// Distance at which speed cap reaches its close-range maximum (m).
+    /// </summary>
+    [DataField]
+    public float SpeedCapCloseDistance = 300f;
+
+    /// <summary>
+    /// Maximum speed allowed at close range (m/s).
+    /// </summary>
+    [DataField]
+    public float SpeedCapCloseMaxSpeed = float.PositiveInfinity;
+
+    /// <summary>
+    /// Distance at which speed cap reaches its far-range minimum (m).
+    /// </summary>
+    [DataField]
+    public float SpeedCapFarDistance = 1000f;
+
+    /// <summary>
+    /// Maximum speed allowed at far range and beyond (m/s).
+    /// </summary>
+    [DataField]
+    public float SpeedCapFarMaxSpeed = 2f;
+
+    /// <summary>
+    /// Hard cap on maximum speed for this ship (m/s). Applies regardless of distance-based throttling.
+    /// </summary>
+    [DataField]
+    public float MaximumSpeed = float.PositiveInfinity;
+
     private const string MovementCancelToken = "ShipMovementCancelToken";
 
     public override void Initialize(IEntitySystemManager sysManager)
@@ -189,6 +226,12 @@ public sealed partial class ShipMoveToOperator : HTNOperator, IHtnConditionalShu
         comp.Range = Range;
         comp.RangeTolerance = RangeTolerance;
         comp.TargetRotation = TargetRotation;
+        comp.DistanceSpeedCapEnabled = DistanceSpeedCapEnabled;
+        comp.SpeedCapCloseDistance = SpeedCapCloseDistance;
+        comp.SpeedCapCloseMaxSpeed = SpeedCapCloseMaxSpeed;
+        comp.SpeedCapFarDistance = SpeedCapFarDistance;
+        comp.SpeedCapFarMaxSpeed = SpeedCapFarMaxSpeed;
+        comp.MaximumSpeed = MaximumSpeed;
     }
 
     public override HTNOperatorStatus Update(NPCBlackboard blackboard, float frameTime)

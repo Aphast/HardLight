@@ -4,7 +4,7 @@
   name: job-name-ertmailcarrier
   description: job-description-ertmailcarrier
   playTimeTracker: JobERTMailCarrier
-  whitelisted: true
+  #whitelisted: true
   setPreference: false
   startingGear: ERTMailCarrierGearEVA
   icon: "JobIconNanotrasen"

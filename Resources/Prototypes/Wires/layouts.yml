@@ -111,6 +111,7 @@
   wires:
   - !type:PowerWireAction
   - !type:AiVisionWireAction
+  - !type:CameraMapVisibilityWireAction
 
 - type: wireLayout
   id: SurveillanceCameraArmoured
@@ -118,6 +119,7 @@
   wires:
   - !type:PowerWireAction
   - !type:AiVisionWireAction
+  - !type:CameraMapVisibilityWireAction # HardLight
 
 - type: wireLayout
   id: CryoPod
@@ -212,7 +214,7 @@
   - !type:PowerWireAction
   - !type:AiInteractWireAction
   - !type:AccessWireAction
-  
+
 - type: wireLayout
   id: WeaponEnergyTurret
   dummyWires: 4
@@ -222,7 +224,7 @@
     pulseTimeout: 15
   - !type:AiInteractWireAction
   - !type:AccessWireAction
-  
+
 - type: wireLayout
   id: TurretControls
   dummyWires: 2
@@ -231,5 +233,5 @@
   - !type:PowerWireAction
     pulseTimeout: 15
   - !type:AiInteractWireAction
-  - !type:AccessWireAction 
-  
+  - !type:AccessWireAction
+

@@ -224,7 +224,7 @@
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelHolding
   name: duffelbag of holding
-  description: A duffelbag that opens into a localized pocket of bluespace.
+  description: A duffelbag that opens into a localized pocket of bluespace. It is unwieldy due to condensed gravitational emissions.
   components:
   - type: Sprite
     sprite: _NF/Clothing/Back/Duffels/holding.rsi # Frontier
@@ -249,7 +249,7 @@
     grid:
     - 0,0,19,9 # Frontier: Was 0,0,19,9 - FRONTIER MADE IT 0,0,7,7 AND THAT'S DUMB - Loki
   - type: ClothingSpeedModifier
-    sprintModifier: 1 # makes its stats identical to other variants of bag of holding
+    sprintModifier: 0.75 # movespeed nerf in exchange for massive storage
   - type: HeldSpeedModifier
   - type: Clothing # Frontier
     sprite: _NF/Clothing/Back/Duffels/holding.rsi # Frontier

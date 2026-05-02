@@ -230,6 +230,9 @@ namespace Content.Server.Hands.Systems
                 !_actionBlockerSystem.CanThrow(player, throwEnt))
                 return false;
 
+            if (!coordinates.IsValid(EntityManager))
+                return false;
+
            // Goobstation start: Added throwing for grabbed mobs, mnoved direction.
             var direction = _transformSystem.ToMapCoordinates(coordinates).Position - _transformSystem.GetWorldPosition(player);
 

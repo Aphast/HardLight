@@ -145,6 +145,7 @@
     moduleId: Bureaucracy
     items:
     - HandLabeler
+    - HandheldFaxBorg
   - type: DroppableBorgModule
     moduleId: Bureaucracy
     items:

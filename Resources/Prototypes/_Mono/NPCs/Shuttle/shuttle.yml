@@ -129,6 +129,11 @@
         shutdownState: TaskFinished
         removeKeyOnFinish: false
         leadingAccuracy: 0.4 # stupid
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 500
         targetKey: TargetCoordinates
       services:
@@ -200,11 +205,17 @@
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
         mode: GoToRange
+        maximumSpeed: 40
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
-        leadingAccuracy: 0.7 # medium-rank: imperfect target leading
+        leadingAccuracy: 0.65 # medium-rank: reduced lead to encourage escape
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
       services:
@@ -235,11 +246,23 @@
         maxTargetingRange: 500
         targetKey: TargetCoordinates
         mode: Orbit
+        # Distance-based speed throttling: slow down as target moves away
+        distanceSpeedCapEnabled: 1.0
+        speedCapCloseDistance: 400
+        speedCapCloseMaxSpeed: 9999999
+        speedCapFarDistance: 1000
+        speedCapFarMaxSpeed: 3.0
+        maximumSpeed: 40
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
-        leadingAccuracy: 0.7 # medium-rank: imperfect target leading
+        leadingAccuracy: 0.65 # medium-rank: reduced lead to encourage escape
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 500
         targetKey: TargetCoordinates
       services:
@@ -268,11 +291,23 @@
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
         mode: GoToRange
+        # Distance-based speed throttling: slow down as target moves away
+        distanceSpeedCapEnabled: 1.0
+        speedCapCloseDistance: 400
+        speedCapCloseMaxSpeed: 9999999
+        speedCapFarDistance: 1000
+        speedCapFarMaxSpeed: 2.0
+        maximumSpeed: 40
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
-        leadingAccuracy: 0.7 # medium-rank: imperfect target leading
+        leadingAccuracy: 0.65 # medium-rank: reduced lead to encourage escape
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
       services:
@@ -364,11 +399,17 @@
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
         mode: GoToRange
+        maximumSpeed: 30
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
         leadingAccuracy: 0.4 # bad shot
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
       services:
@@ -393,11 +434,23 @@
         maxTargetingRange: 500
         targetKey: TargetCoordinates
         mode: Orbit
+        # Distance-based speed throttling: small bytes throttle faster (more timid)
+        distanceSpeedCapEnabled: 1.0
+        speedCapCloseDistance: 300
+        speedCapCloseMaxSpeed: 9999999
+        speedCapFarDistance: 800
+        speedCapFarMaxSpeed: 1.5
+        maximumSpeed: 30
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
         leadingAccuracy: 0.4 # bad shot
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 500
         targetKey: TargetCoordinates
       services:
@@ -422,11 +475,23 @@
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
         mode: GoToRange
+        # Distance-based speed throttling: small bytes throttle faster (more timid)
+        distanceSpeedCapEnabled: 1.0
+        speedCapCloseDistance: 300
+        speedCapCloseMaxSpeed: 9999999
+        speedCapFarDistance: 800
+        speedCapFarMaxSpeed: 1.0
+        maximumSpeed: 30
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
         leadingAccuracy: 0.4
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
       services:
@@ -460,11 +525,17 @@
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
         mode: GoToRange
+        maximumSpeed: 50
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
-        leadingAccuracy: 0.9 # strong lead, but can still miss
+        leadingAccuracy: 0.8 # strong lead but reduced, lets players dodge more
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
       services:
@@ -489,11 +560,23 @@
         maxTargetingRange: 500
         targetKey: TargetCoordinates
         mode: Orbit
+        # Distance-based speed throttling: large bytes throttle slowly (aggressive pursuit)
+        distanceSpeedCapEnabled: 1.0
+        speedCapCloseDistance: 500
+        speedCapCloseMaxSpeed: 9999999
+        speedCapFarDistance: 1200
+        speedCapFarMaxSpeed: 4.0
+        maximumSpeed: 50
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
-        leadingAccuracy: 0.9 # strong lead, but can still miss
+        leadingAccuracy: 0.8 # strong lead but reduced, lets players dodge more
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 500
         targetKey: TargetCoordinates
       services:
@@ -518,11 +601,23 @@
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
         mode: GoToRange
+        # Distance-based speed throttling: large bytes throttle slowly (aggressive pursuit)
+        distanceSpeedCapEnabled: 1.0
+        speedCapCloseDistance: 500
+        speedCapCloseMaxSpeed: 9999999
+        speedCapFarDistance: 1200
+        speedCapFarMaxSpeed: 3.0
+        maximumSpeed: 50
     - !type:HTNPrimitiveTask
       operator: !type:ShipFireGunsOperator
         shutdownState: TaskFinished
         removeKeyOnFinish: false
-        leadingAccuracy: 0.9 # strong lead, but can still miss
+        leadingAccuracy: 0.8 # strong lead but reduced, lets players dodge more
+        hitscanBurstEnabled: true
+        hitscanBurstMinDuration: 0.35
+        hitscanBurstMaxDuration: 0.9
+        hitscanReaimMinDelay: 0.12
+        hitscanReaimMaxDelay: 0.3
         maxTargetingRange: 1000
         targetKey: TargetCoordinates
       services:

@@ -148,6 +148,35 @@
         Quantity: 650
 
 - type: spawnCharacterOverrideRule
+  id: chocoblood
+  match: Coco 
+  checkProfileName: true
+  checkEntityName: true
+  logins:
+  - Slatebreaker 
+  components:
+  - type: Temperature
+    heatDamageThreshold: 300
+  - type: BloodSolutionModifier
+    solution:
+      reagents:
+      - ReagentId: HotCocoa
+        Quantity: 1250
+  - type: TemperatureSpeed
+    thresholds:
+      0: 0.9
+      -250: 0.8
+      -290: 0.7
+  - type: ThermalRegulator
+    metabolismHeat: 800
+    radiatedHeat: 100
+    implicitHeatRegulation: 500
+    sweatHeatRegulation: 2000
+    shiveringHeatRegulation: 2000
+    normalBodyTemperature: 293
+    thermalRegulationTemperatureThreshold: 2
+    
+- type: spawnCharacterOverrideRule
   id: Phlogbloodphoenix
   match: Kalista Phoenix
   checkProfileName: true

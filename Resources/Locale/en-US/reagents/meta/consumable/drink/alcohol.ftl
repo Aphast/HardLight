@@ -366,3 +366,7 @@ reagent-desc-zombiecocktail = It gets in your head. Your he-eyeh-ead.
 # Frontier: capitalize Bacchus, no s post-apostrophe
 reagent-name-bacchus-blessing = Bacchus' blessing
 reagent-desc-bacchus-blessing = You didn't think it was possible for a liquid to be so utterly revolting. Are you sure about this...?
+
+# Hardlight
+reagent-name-nebula-dream = Nebula dream
+reagent-desc-nebula-dream = A sweet party drink dreamt up by a popular musician under employ of the Colonial Domestic Division. Affectionately referred to as "Neb Juice."

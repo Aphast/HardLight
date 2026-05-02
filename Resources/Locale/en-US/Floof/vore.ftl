@@ -8,6 +8,7 @@ vore-show-examine-on = Show On Examine: YES
 vore-show-examine-off = Show On Examine: NO
 
 vore-attempt-devour = {CAPITALIZE($entity)} is trying to devour {CAPITALIZE($prey)}!
+vore-attempt-phasenom = the shadows seems to try to devour {CAPITALIZE($prey)}!
 vore-devoured = {CAPITALIZE($entity)} devoured {CAPITALIZE($prey)}
 vore-digest-start = {CAPITALIZE($entity)} belly begins to get more active...
 vore-digest-start-chat = [color=red]{CAPITALIZE($entity)} belly begins to get more active...[/color]

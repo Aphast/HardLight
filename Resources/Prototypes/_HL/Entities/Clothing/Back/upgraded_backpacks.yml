@@ -63,7 +63,7 @@
   id: ClothingBackpackTacticalHolding
   name: tactical pack of holding
   parent: [ NFClothingBackpack, RecyclableItemClothDurable ]
-  description: An extra large tactical pack for all your extra tacticool needs.
+  description: An extra large tactical pack for all your extra tacticool needs. It is unwieldy due to condensed gravitational emissions.
   components:
   - type: Sprite
     sprite: _HL/Clothing/Back/tacticalpack.rsi
@@ -93,6 +93,9 @@
   - type: ChameleonClothing
     slot: [back]
     default: ClothingBackpackTacticalHolding
+  - type: ClothingSpeedModifier
+    sprintModifier: 0.75 # movespeed nerf in exchange for massive storage
+  - type: HeldSpeedModifier
   - type: UserInterface
     interfaces:
       enum.StorageUiKey.Key:

@@ -10,7 +10,6 @@
         <ScrollContainer VerticalExpand="True">
             <!-- Frontier: global checkbox -->
             <BoxContainer Orientation="Vertical">
-                <CheckBox Name="Global" Margin="4"/>
                 <BoxContainer Name="Departments" Orientation="Vertical"/>
                 <BoxContainer Name="GhostRoles" Orientation="Vertical"/> <!-- Frontier: ghost roles -->
             </BoxContainer>

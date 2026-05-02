@@ -44,6 +44,36 @@ public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalS
     public float LeadingAccuracy = 1f;
 
     /// <summary>
+    /// Whether hitscan weapons should fire in bursts with randomized short re-aim delays.
+    /// </summary>
+    [DataField]
+    public bool HitscanBurstEnabled = false;
+
+    /// <summary>
+    /// Minimum duration of a continuous hitscan burst in seconds.
+    /// </summary>
+    [DataField]
+    public float HitscanBurstMinDuration = 0.35f;
+
+    /// <summary>
+    /// Maximum duration of a continuous hitscan burst in seconds.
+    /// </summary>
+    [DataField]
+    public float HitscanBurstMaxDuration = 0.9f;
+
+    /// <summary>
+    /// Minimum delay between bursts in seconds.
+    /// </summary>
+    [DataField]
+    public float HitscanReaimMinDelay = 0.12f;
+
+    /// <summary>
+    /// Maximum delay between bursts in seconds.
+    /// </summary>
+    [DataField]
+    public float HitscanReaimMaxDelay = 0.3f;
+
+    /// <summary>
     /// Whether to require us to be anchored.
     /// Here because HTN does not allow us to continuously check a condition by itself.
     /// Ignored if we're not anchorable.
@@ -101,6 +131,13 @@ public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalS
             return;
 
         comp.LeadingAccuracy = LeadingAccuracy;
+        comp.HitscanBurstEnabled = HitscanBurstEnabled;
+        comp.HitscanBurstMinDuration = HitscanBurstMinDuration;
+        comp.HitscanBurstMaxDuration = HitscanBurstMaxDuration;
+        comp.HitscanReaimMinDelay = HitscanReaimMinDelay;
+        comp.HitscanReaimMaxDelay = HitscanReaimMaxDelay;
+        comp.HitscanBurstTimeRemaining = 0f;
+        comp.HitscanReaimTimeRemaining = 0f;
     }
 
     public override HTNOperatorStatus Update(NPCBlackboard blackboard, float frameTime)

@@ -296,7 +296,7 @@
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
   id: ClothingBackpackHolding
   name: bag of holding
-  description: A backpack that opens into a localized pocket of bluespace.
+  description: A backpack that opens into a localized pocket of bluespace. It is unwieldy due to condensed gravitational emissions.
   components:
   - type: Sprite
     sprite: _NF/Clothing/Back/Backpacks/holding.rsi # Frontier
@@ -328,6 +328,9 @@
     maxItemSize: Huge
     grid:
     - 0,0,19,9 # Frontier: Was 0,0,19,9 - FRONTIER MADE IT 0,0,7,7 AND THAT'S DUMB - Loki
+  - type: ClothingSpeedModifier
+    sprintModifier: 0.75 # movespeed nerf in exchange for massive storage
+  - type: HeldSpeedModifier
   - type: ChameleonClothing
     slot: [back]
     default: ClothingBackpackHolding

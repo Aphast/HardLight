@@ -81,17 +81,12 @@ public sealed class JobWhitelistManager : IPostInjectInit
             return true;
         }
 
-        // DeltaV: Blanket player whitelist allows all roles
-        if (session.ContentData()?.Whitelisted ?? false)
-            return true;
-
         return IsWhitelisted(session.UserId, job);
     }
 
     public bool IsWhitelisted(NetUserId player, ProtoId<JobPrototype> job)
     {
-        if (!_whitelists.TryGetValue(player, out var whitelists) || // Frontier: added globalWhitelist check
-        !_globalWhitelists.TryGetValue(player, out var globalWhitelist)) // Frontier
+        if (!_whitelists.TryGetValue(player, out var whitelists)) // Frontier
         {
             Log.Error("Unable to check if player {Player} is whitelisted for {Job}. Stack trace:\\n{StackTrace}",
                 player,
@@ -100,7 +95,7 @@ public sealed class JobWhitelistManager : IPostInjectInit
             return false;
         }
 
-        return globalWhitelist || whitelists.Contains(job); // Frontier: added globalWhitelist
+        return whitelists.Contains(job);
     }
 
     public async void RemoveWhitelist(NetUserId player, ProtoId<JobPrototype> job)
@@ -150,8 +145,7 @@ public sealed class JobWhitelistManager : IPostInjectInit
 
     public bool IsWhitelisted(NetUserId player, ProtoId<GhostRolePrototype> ghostRole)
     {
-        if (!_whitelists.TryGetValue(player, out var whitelists) ||
-        !_globalWhitelists.TryGetValue(player, out var globalWhitelist))
+        if (!_whitelists.TryGetValue(player, out var whitelists))
         {
             Log.Error("Unable to check if player {Player} is whitelisted for {GhostRole}. Stack trace:\\n{StackTrace}",
                 player,
@@ -160,7 +154,7 @@ public sealed class JobWhitelistManager : IPostInjectInit
             return false;
         }
 
-        return globalWhitelist || whitelists.Contains(ghostRole);
+        return whitelists.Contains(ghostRole);
     }
 
     public async void RemoveWhitelist(NetUserId player, ProtoId<GhostRolePrototype> ghostRole)

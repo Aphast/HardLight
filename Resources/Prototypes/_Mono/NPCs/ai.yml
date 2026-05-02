@@ -182,8 +182,8 @@
     # Medium tier: 1.0x EMP duration (baseline; weakest weapon gives 10s)
     durationMultiplier: 1.0
   - type: ShipAggro
-    aggroProximityRange: 500
-    aggroLeashRange: 1000
+    aggroProximityRange: 400
+    aggroLeashRange: 800
     aggroDuration: 10
     # Keep byte ships at least 5km away from any player station: they
     # disengage and steer outward whenever they cross the border. The
@@ -191,6 +191,10 @@
     # camping right on the 5km edge.
     avoidStationRange: 5000
     avoidStationBuffer: 1000
+  - type: ShipAutoFTL
+    ftlTriggerDistance: 4500
+    ftlTargetDistance: 10000
+    checkCooldown: 2.0
 
 # Small-rank byte (e.g. sgbyte): slower in the orbit ring and worse at
 # leading moving targets, so it sprays and misses more often.

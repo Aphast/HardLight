@@ -6,6 +6,7 @@
   components:
   - type: LightBulb
     color: "#5D0CED"
+  - type: DarkLight
 
 - type: entity
   parent: LightBulb

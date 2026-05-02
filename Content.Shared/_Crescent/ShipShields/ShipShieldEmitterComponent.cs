@@ -34,7 +34,9 @@ public sealed partial class ShipShieldEmitterComponent : Component
     public float HealPerSecond = 250f;
 
     /// <summary>
-    /// Multiplier applied to healing rate when the emitter is in recharge mode.
+    /// Maximum multiplier applied to healing rate when the emitter is in recharge mode.
+    /// Actual recharge speed scales up toward this multiplier based on how much
+    /// of the emitter's recharge draw the ship can supply.
     /// </summary>
     [DataField]
     public float UnpoweredBonus = 6f;

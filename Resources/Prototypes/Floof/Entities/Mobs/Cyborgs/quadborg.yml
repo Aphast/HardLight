@@ -686,6 +686,9 @@
     access: [["Command"], ["Research"], ["Mercenary"]] # Hardlight allow freelancers to unlock borgs.
   - type: SiliconLawProvider
     laws: StationEfficiency
+  - type: FabricateActions # HardLight
+    actions:
+    - ActionFabricatePaper
   - type: SpriteStateToggle
     spriteLayer: movement
     stateOff: quadspriteserv

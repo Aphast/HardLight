@@ -10,6 +10,20 @@
   - type: Sprite
     sprite: _Starlight/Objects/Fun/Plushies/nebula_plushie.rsi
     state: icon
+  - type: Extractable
+    juiceSolution:
+      reagents:
+      - ReagentId: NebulaDream
+        Quantity: 30
+  - type: SolutionContainerManager
+    solutions:
+      food:
+        maxVol: 20
+        reagents:
+        - ReagentId: Fiber
+          Quantity: 10
+        - ReagentId: NebulaDream
+          Quantity: 10
 
 - type: entity
   parent: BasePlushie

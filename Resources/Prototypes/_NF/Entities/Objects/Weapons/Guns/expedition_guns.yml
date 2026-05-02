@@ -173,6 +173,14 @@
   id: NFWeaponPistolViperExpedition
   name: worn Viper
 
+- type: entity
+  parent:
+  - BaseExpeditionWeaponTier2Pirate
+  - WeaponPistolAnaconda
+#  categories: [ HideSpawnMenu ]
+  id: WeaponPistolAnacondaExpedition
+  name: worn Anaconda
+
 ## Revolvers
 - type: entity
   parent:

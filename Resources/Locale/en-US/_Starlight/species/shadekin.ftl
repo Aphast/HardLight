@@ -1,14 +1,21 @@
 alerts-shadekin-name = Light Exposure
 alerts-shadekin-desc = How much light is around you.
 
-shadekin-alert-0 = [color=green]Light Exposure: Darkness...[/color]
-                    The darkness is nice... its like home... i feel my wounds healing...
-shadekin-alert-1 = [color=green]Light Exposure: Low[/color]
-shadekin-alert-2 = [color=green]Light Exposure: Annoying[/color]
-                    The light is annoying in this place... i feel my wounds will not heal properly...
-shadekin-alert-3 = [color=green]Light Exposure: High[/color]
-                    too many lights... too many! i feel exausted...
-shadekin-alert-4 = [color=green]Light Exposure:[/color] [color=red]EXTREME[/color]
-                    LIGHTS... I NEED DARKNESS! its burns!
+alerts-shadekin-energy-name = Energy
+alerts-shadekin-energy-desc = Your energy level.
 
-phase-fail-generic = I can't phase!
+shadekin-portal-owner = This is your portal.
+shadekin-portal-stability-stable = Current state: [color=forestgreen]Stable[/color]
+shadekin-portal-stability-unstable = Current state: [color=crimson]Growing[/color]
+shadekin-portal-health-percentage = Current health: [color=red]{$percent}[/color]
+shadekin-portal-destroy = [color=red]Destroy Portal[/color]
+shadekin-portal-stabilize = Stabilize Portal
+shadekin-portal-stabilize-info = Stabilize and heal your portal using your energy. (Costs 50 energy)
+
+shadekin-noenergy = Not enough energy to perform that action.
+shadekin-fail-generic = You cant use your energy!
+phase-fail-generic = You can't phase!
+shadekin-shunt = Something resonates with your bones and brings you to your knees.
+shadekin-too-bright = The light is too intense here!
+
+shadekinTrap-trigger = A set of crystals spring out of the ground and shadowy tendrils start wrapping around {$user}!

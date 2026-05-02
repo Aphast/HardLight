@@ -1,5 +1,5 @@
 - type: entity
-  name: Shadekin Haze
+  name: shadekin Haze
   id: ShadekinShadow
   parent: BaseShadow
   placement:
@@ -28,7 +28,6 @@
     - type: Tag
       tags:
         - HideContextMenu
-        - SpookyFog
     - type: OptionsVisualizer
       visuals:
         base:
@@ -39,7 +38,7 @@
 
 - type: entity
   id: ShadekinPhaseInEffect
-  name: Shadekin Phase in
+  name: shadekin Phase in
   components:
     - type: EmitSoundOnSpawn
       sound:
@@ -53,16 +52,13 @@
           shader: unshaded
       netsync: false
       drawdepth: Effects
+      noRot: true
 
 - type: entity
   id: ShadekinPhaseOutEffect
-  name: Shadekin Phase out
+  parent: ShadekinPhaseInEffect
+  name: shadekin Phase out
   components:
-    - type: EmitSoundOnSpawn
-      sound:
-        path: /Audio/_Starlight/Effects/Shadekin/shadekinphase.ogg
-    - type: TimedDespawn
-      lifetime: 0.5
     - type: Sprite
       layers:
         - sprite: _Starlight/Effects/shadekin.rsi
@@ -70,3 +66,17 @@
           shader: unshaded
       netsync: false
       drawdepth: Effects
+      noRot: true
+
+- type: entity
+  id: ShadekinShadegen
+  categories: [HideSpawnMenu]
+  components:
+  - type: Shadegen
+  - type: Physics
+    canCollide: false
+  - type: EmitSoundOnSpawn
+    sound:
+      path: /Audio/_Starlight/Effects/Shadekin/nullphase.ogg
+  - type: TimedDespawn
+    lifetime: 20

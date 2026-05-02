@@ -443,6 +443,38 @@
           - SecurityUplink
 
 - type: listing
+  id: UplinkSecurityClothingNullHarness
+  name: null harness
+  description: A security harness reinforced with bluespace crystals. Prevents the wearer from entering NullSpace. Cannot be removed by the wearer themselves.
+  productEntity: ClothingNullHarness
+  icon: { sprite: _HL/Clothing/Back/nullharness.rsi, state: icon }
+  cost:
+    FrontierUplinkCoin: 1
+  categories:
+    - UplinkSecurityUtility
+  conditions:
+    - !type:StoreWhitelistCondition
+      whitelist:
+        tags:
+          - SecurityUplink
+
+- type: listing
+  id: UplinkSecurityGrenadeDePhase
+  name: dephasing grenade
+  description: Causes localized instability in bluespace, dephasing things into real space if they are near enough to it.
+  productEntity: GrenadeDePhase
+  icon: { sprite: Objects/Weapons/Grenades/stingergrenade.rsi, state: icon }
+  cost:
+    FrontierUplinkCoin: 1
+  categories:
+    - UplinkSecurityUtility
+  conditions:
+    - !type:StoreWhitelistCondition
+      whitelist:
+        tags:
+          - SecurityUplink
+
+- type: listing
   id: UplinkSecurityJetpack
   name:  uplink-security-jetpack-name
   description: uplink-security-jetpack-desc

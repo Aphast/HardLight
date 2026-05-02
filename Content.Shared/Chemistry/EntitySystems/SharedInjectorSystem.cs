@@ -44,8 +44,10 @@ public abstract class SharedInjectorSystem : EntitySystem
         var user = args.User;
         var component = entity.Comp;
 
+        // If an active mode is set, use its transfer amounts exclusively — even if empty.
+        // An empty list means "no selectable amounts" (jet injectors always inject the full reservoir).
         var transferSet = TransferAmounts.AsEnumerable();
-        if (TryGetActiveMode(entity, out var mode) && mode.TransferAmounts.Count > 0)
+        if (TryGetActiveMode(entity, out var mode))
             transferSet = mode.TransferAmounts;
 
         var amounts = transferSet.Distinct().Order().ToArray();
@@ -233,6 +235,12 @@ public abstract class SharedInjectorSystem : EntitySystem
 
             injector.Comp.CurrentTransferAmount = selected;
             injector.Comp.TransferAmount = selected.Value;
+        }
+        else
+        {
+            // Modes with no transfer amounts (e.g. jet injectors) should always use
+            // runtime fallback volume in GetTransferAmount, not a stale persisted value.
+            injector.Comp.CurrentTransferAmount = null;
         }
 
         if (mode.Behavior.HasFlag(InjectorBehavior.Draw))

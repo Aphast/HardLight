@@ -54,6 +54,17 @@
 
 - type: entity
   parent: WeaponCaseShort
+  id: WeaponCaseShortAnacondaExpedition
+  suffix: Dungeon, Anaconda
+#  categories: [ HideSpawnMenu ]
+  components:
+  - type: StorageFill
+    contents:
+    - id: WeaponPistolAnacondaExpedition
+      amount: 1
+
+- type: entity
+  parent: WeaponCaseShort
   id: WeaponCaseShortCobra
   suffix: Dungeon, Cobra
 #  categories: [ HideSpawnMenu ]

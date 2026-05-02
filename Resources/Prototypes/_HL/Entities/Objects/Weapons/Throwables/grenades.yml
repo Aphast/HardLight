@@ -197,3 +197,27 @@
       reagents:
       - ReagentId: SpaceCleanerFast
         Quantity: 30
+
+- type: entity
+  name: dephasing grenade
+  description: Causes localized instability in bluespace, dephasing things into real space if they are near enough to it.
+  parent: [ GrenadeBase, BaseC2ContrabandUnredeemable ]
+  id: GrenadeDePhase
+  components:
+  - type: Sprite
+    sprite: Objects/Weapons/Grenades/stingergrenade.rsi
+  - type: BluespacePulseOnTrigger
+    radius: 10
+  - type: SoundOnTrigger
+    sound:
+      path: "/Audio/Effects/Lightning/lightningbolt.ogg"
+  - type: DeleteOnTrigger
+  - type: SpawnOnTrigger
+    proto: EffectFlashBluespace
+  - type: Appearance
+  - type: TimerTriggerVisuals
+    primingSound:
+      path: /Audio/Effects/countdown.ogg
+  - type: Tag
+    tags:
+    - HandGrenade

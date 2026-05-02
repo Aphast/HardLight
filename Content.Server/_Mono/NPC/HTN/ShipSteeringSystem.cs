@@ -104,9 +104,18 @@ public sealed partial class ShipSteeringSystem : EntitySystem
         if (ent.Comp.Status == ShipSteeringStatus.InRange)
             return;
 
+        // Compute effective max arrived speed, factoring in distance-based throttling and hard cap if enabled
+        var maxArrivedVel = ent.Comp.InRangeMaxSpeed ?? float.PositiveInfinity;
+        if (ent.Comp.DistanceSpeedCapEnabled.HasValue && ent.Comp.DistanceSpeedCapEnabled.Value > 0f)
+        {
+            maxArrivedVel = MathF.Min(maxArrivedVel, ComputeDistanceSpeedCap(distance, ent.Comp));
+        }
+        // Apply hard maximum speed cap
+        maxArrivedVel = MathF.Min(maxArrivedVel, ent.Comp.MaximumSpeed);
+
         var config = new SteeringConfig
         {
-            MaxArrivedVel = ent.Comp.InRangeMaxSpeed ?? float.PositiveInfinity,
+            MaxArrivedVel = maxArrivedVel,
             BrakeThreshold = ent.Comp.BrakeThreshold,
             TurnEaseIn = ent.Comp.TurnEaseIn,
 
@@ -608,6 +617,26 @@ public sealed partial class ShipSteeringSystem : EntitySystem
             brakeInput = 1f;
 
         return brakeInput;
+    }
+
+    /// <summary>
+    /// Computes a distance-based speed cap that throttles ship speed as distance to target increases.
+    /// At close range, full speed is permitted. As distance increases toward the far-distance threshold,
+    /// speed is linearly throttled down to the far-range maximum.
+    /// </summary>
+    private float ComputeDistanceSpeedCap(float distance, ShipSteererComponent comp)
+    {
+        // If within close distance, allow full speed
+        if (distance <= comp.SpeedCapCloseDistance)
+            return comp.SpeedCapCloseMaxSpeed;
+
+        // If beyond far distance, apply far-range speed cap
+        if (distance >= comp.SpeedCapFarDistance)
+            return comp.SpeedCapFarMaxSpeed;
+
+        // Linear interpolation between close and far ranges
+        var t = (distance - comp.SpeedCapCloseDistance) / (comp.SpeedCapFarDistance - comp.SpeedCapCloseDistance);
+        return MathHelper.Lerp(comp.SpeedCapCloseMaxSpeed, comp.SpeedCapFarMaxSpeed, t);
     }
 
     private void OnShuttleStartCollide(Entity<ShipSteererComponent> ent, ref PilotedShuttleRelayedEvent<StartCollideEvent> outerArgs)

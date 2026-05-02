@@ -112,6 +112,30 @@
     Plastic: 1500
 
 - type: latheRecipe
+  id: AmmoBoxBigPractice
+  abstract: true
+  completetime: 5
+  materials:
+    Steel: 450
+
+- type: latheRecipe
+  id: AmmoBoxBigIncendiary
+  abstract: true
+  completetime: 5
+  materials:
+    Steel: 900
+    Plastic: 1800
+    Plasma: 2700
+
+- type: latheRecipe
+  id: AmmoBoxBigUranium
+  abstract: true
+  completetime: 5
+  materials:
+    Steel: 1500
+    Uranium: 3000
+
+- type: latheRecipe
   id: AmmoBox46x30mmBig
   parent: AmmoBoxBig
   result: AmmoBox46x30mmBig
@@ -150,6 +174,31 @@
   id: AmmoBox9x19mmBigFMJ
   parent: AmmoBoxBig
   result: AmmoBox9x19mmBigFMJ
+
+- type: latheRecipe
+  id: AmmoBox45_ACPBigFMJ
+  parent: AmmoBoxBig
+  result: AmmoBox45_ACPBigFMJ
+
+- type: latheRecipe
+  id: AmmoBox45_ACPBigPractice
+  parent: AmmoBoxBigPractice
+  result: AmmoBox45_ACPBigPractice
+
+- type: latheRecipe
+  id: AmmoBox45_ACPBigRubber
+  parent: AmmoBoxBigRubber
+  result: AmmoBox45_ACPBigRubber
+
+- type: latheRecipe
+  id: AmmoBox45_ACPBigIncendiary
+  parent: AmmoBoxBigIncendiary
+  result: AmmoBox45_ACPBigIncendiary
+
+- type: latheRecipe
+  id: AmmoBox45_ACPBigUranium
+  parent: AmmoBoxBigUranium
+  result: AmmoBox45_ACPBigUranium
 
 - type: latheRecipe
   id: AmmoBox762x51mmRubberBig

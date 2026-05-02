@@ -348,6 +348,9 @@ public sealed class InjectorSystem : SharedInjectorSystem
             ("amount", removedSolution.Volume),
             ("target", Identity.Entity(targetEntity, EntityManager))), injector.Owner, user);
 
+        if (TryGetActiveMode(injector, out var injectMode) && injectMode.InjectSound != null)
+            _audio.PlayPvs(injectMode.InjectSound, injector.Owner);
+
         Dirty(injector);
         AfterInject(injector, targetEntity);
         return true;

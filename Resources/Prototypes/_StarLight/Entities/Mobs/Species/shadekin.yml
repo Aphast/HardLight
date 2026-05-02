@@ -12,6 +12,11 @@
     - type: Genetics # Funkystation - Genetics
       mutationSlots: 8
     - type: Shadekin
+      thresholds:
+        0.8: Low
+        5: Annoying
+        10: High
+        15: Extreme
     - type: HumanoidAppearance
       species: Shadekin
     - type: Icon
@@ -21,7 +26,7 @@
       prototype: Shadekin
       requiredLegs: 2
     - type: Speech
-      allowedEmotes: ["Marr", "Wurble", "Hiss", "Purr"]
+      allowedEmotes: ["Marr", "Wurble", "Hiss", "Purr", "Growl"]
     - type: Vocal
       sounds:
         Male: MaleShadekin
@@ -35,7 +40,6 @@
       damage:
         types:
           Slash: 5
-    #- type: FlashImmunity
     - type: Damageable
       damageContainer: Biological
       damageModifierSet: Shadekin
@@ -58,6 +62,12 @@
       bloodlossHealDamage:
         types:
           Bloodloss: -0.25
+      bloodReagent: DarkBlood
+    - type: DamageVisuals
+      damageOverlayGroups:
+        Brute:
+          sprite: Mobs/Effects/brute_damage.rsi
+          color: "#1c1624"
     - type: Flammable
       damage:
         types:
@@ -99,6 +109,10 @@
                   min: 1
                   max: 1
             - !type:BurnBodyBehavior {}
+    - type: NpcFactionMember
+      factions:
+      - NanoTrasen
+      - Shadekin
 
     # BaseMobSpeciesOrganic // Because we dont want respirator to be used.
     - type: Barotrauma
@@ -153,3 +167,5 @@
     - type: HumanoidAppearance
       species: Shadekin
     - type: Shadekin # needed so whitelist: components: [Shadekin] works in the character editor
+      thresholds:
+        15: Low
