@@ -286,7 +286,7 @@ public sealed class GatewaySystem : EntitySystem
         if (ev.Cancelled)
             return;
 
-        _linkedEntity.Link(uid, dest);
+        _linkedEntity.TryLink(uid, dest);
 
         var sourcePortal = EnsureComp<PortalComponent>(uid);
         var targetPortal = EnsureComp<PortalComponent>(dest);
