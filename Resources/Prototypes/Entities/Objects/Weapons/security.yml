@@ -245,13 +245,13 @@
     - type: SpawnOnTrigger
       proto: EffectFlashBluespace
     - type: BluespacePulseOnTrigger
-      radius: 8
+      radius: 12
       dome: EnergyDomeNullspace
     - type: TriggerOnProximity
       enabled: true
       cooldown: 5
       shape: !type:PhysShapeCircle
-        radius: 8
+        radius: 12
       whitelist:
         components:
           - NullSpace
