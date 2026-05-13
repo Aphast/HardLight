@@ -3906,3 +3906,27 @@ Entries:
       message: Fixed some service roles not recording playtime
   id: 419
   time: '2026-05-13T23:16:21.0000000+00:00'
+- author: NotLivyathan
+  changes:
+    - type: Add
+      message: >-
+        Added a new system to allow reagents to spoil, currently only being
+        utilized by Nanites.
+    - type: Add
+      message: >-
+        Synths now bleed a mix of SynthBlood and Nanites, the latter of which
+        immediately spoils into InertNanites when bled.
+    - type: Tweak
+      message: >-
+        Completely reworked Synth bloodstreams in preparation for future
+        improvements.
+    - type: Tweak
+      message: >-
+        Characters with the Synthetic trait now bleed dark purple instead of
+        cyan blue.
+    - type: Tweak
+      message: >-
+        Nanites now spoil into InertNanites unless store in cryostasis beakers,
+        cryostasis syringes, or Synths.
+  id: 420
+  time: '2026-05-13T23:17:53.0000000+00:00'
