@@ -424,3 +424,66 @@
     blockHypospray: true
     blockInjectOnProjectile: true
     blockReason: hardskin
+
+- type: trait
+  id: LegAmputeeL
+  name: trait-amputee-left-leg-name
+  description: trait-amputee-left-leg-desc
+  category: Physical
+  cost: -6
+  mutuallyExclusiveTraits:
+  - LegAmputeeR
+  - LegAmputeeBoth
+  - WheelchairBound
+  blacklist:
+    components:
+      - BorgChassis
+  components:
+  - type: Amputee
+    removeBodyPart: Leg
+    partSymmetry: Left
+  - type: BuckleOnMapInit
+    prototype: VehicleWheelchair
+  - type: LegsParalyzed
+
+- type: trait
+  id: LegAmputeeR
+  name: trait-amputee-right-leg-name
+  description: trait-amputee-right-leg-desc
+  category: Physical
+  cost: -6
+  mutuallyExclusiveTraits:
+  - LegAmputeeL
+  - LegAmputeeBoth
+  - WheelchairBound
+  blacklist:
+    components:
+      - BorgChassis
+  components:
+  - type: Amputee
+    removeBodyPart: Leg
+    partSymmetry: Right
+  - type: BuckleOnMapInit
+    prototype: VehicleWheelchair
+  - type: LegsParalyzed
+
+- type: trait
+  id: LegAmputeeBoth
+  name: trait-amputee-both-legs-name
+  description: trait-amputee-both-legs-desc
+  category: Physical
+  cost: -6
+  mutuallyExclusiveTraits:
+  - LegAmputeeL
+  - LegAmputeeR
+  - WheelchairBound
+  blacklist:
+    components:
+      - BorgChassis
+  components:
+  - type: Amputee
+    removeBodyPart: Leg
+    ignoreSymmetry: true
+  - type: BuckleOnMapInit
+    prototype: VehicleWheelchair
+  - type: LegsParalyzed

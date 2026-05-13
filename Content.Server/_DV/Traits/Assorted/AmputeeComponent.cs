@@ -13,6 +13,13 @@ public sealed partial class AmputeeComponent : Component
     public BodyPartSymmetry PartSymmetry { get; private set; } = BodyPartSymmetry.Left;
 
     /// <summary>
+    /// If true, ignore <see cref="PartSymmetry"/> and remove every body part of <see cref="RemoveBodyPart"/>.
+    /// Used for traits like "Amputee (Leg, Both)" that strip both sides at once.
+    /// </summary>
+    [DataField]
+    public bool IgnoreSymmetry { get; private set; }
+
+    /// <summary>
     /// Body part prototype to use as a replacement limb, if applicable.
     /// </summary>
     [DataField]

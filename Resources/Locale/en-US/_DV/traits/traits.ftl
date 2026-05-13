@@ -22,3 +22,18 @@ trait-amputee-right-arm-name = Amputee (Arm, Right)
 trait-amputee-right-arm-desc =
     Your right arm is missing!
     (Note: Amputee traits do not appear in the character editor preview!)
+
+trait-amputee-left-leg-name = Amputee (Leg, Left)
+trait-amputee-left-leg-desc =
+    Your left leg is missing! You cannot move without your wheelchair. Wheelchair included.
+    (Note: Amputee traits do not appear in the character editor preview!)
+
+trait-amputee-right-leg-name = Amputee (Leg, Right)
+trait-amputee-right-leg-desc =
+    Your right leg is missing! You cannot move without your wheelchair. Wheelchair included.
+    (Note: Amputee traits do not appear in the character editor preview!)
+
+trait-amputee-both-legs-name = Amputee (Leg, Both)
+trait-amputee-both-legs-desc =
+    Both of your legs are missing! You cannot move without your wheelchair. Wheelchair included.
+    (Note: Amputee traits do not appear in the character editor preview!)
