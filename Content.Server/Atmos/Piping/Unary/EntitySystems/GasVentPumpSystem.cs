@@ -61,6 +61,7 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
             SubscribeLocalEvent<GasVentPumpComponent, GasAnalyzerScanEvent>(OnAnalyzed);
             SubscribeLocalEvent<GasVentPumpComponent, WeldableChangedEvent>(OnWeldChanged);
             SubscribeLocalEvent<GasVentPumpComponent, GetVerbsEvent<Verb>>(OnGetVerbs);
+            SubscribeLocalEvent<GasVentPumpComponent, GetVerbsEvent<AlternativeVerb>>(OnGetAltVerbs);
             SubscribeLocalEvent<GasVentPumpComponent, VentScrewedDoAfterEvent>(OnVentScrewed);
         }
 
@@ -387,7 +388,7 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
 
         private void OnGetVerbs(Entity<GasVentPumpComponent> ent, ref GetVerbsEvent<Verb> args)
         {
-            if (ent.Comp.UnderPressureLockout == false || !Transform(ent).Anchored)
+            if (!CanAddReleaseLockoutVerb(ent)) // HardLight
                 return;
 
             var user = args.User;
@@ -399,22 +400,51 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
                 Text = Loc.GetString("gas-vent-pump-release-lockout"),
                 Impact = LogImpact.Low,
                 DoContactInteraction = true,
-                Act = () =>
-                {
-                    var doAfter = new DoAfterArgs(EntityManager, user, ent.Comp.ManualLockoutDisableDoAfter, new VentScrewedDoAfterEvent(), ent, ent)
-                    {
-                        BreakOnDamage = true,
-                        NeedHand = true,
-                        BreakOnMove = true,
-                        BreakOnWeightlessMove = true,
-                    };
+                Act = () => TryStartReleaseLockoutDoAfter(ent, user), // HardLight
+            };
 
-                    _doAfterSystem.TryStartDoAfter(doAfter);
-                },
+            args.Verbs.Add(v); // HardLight
+        }
+
+        // HardLight start
+        private void OnGetAltVerbs(Entity<GasVentPumpComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)
+        {
+            if (!CanAddReleaseLockoutVerb(ent) || !args.CanAccess || !args.CanInteract || args.Hands == null)
+                return;
+
+            var user = args.User;
+
+            var v = new AlternativeVerb
+            {
+                Priority = 1,
+                Icon = new SpriteSpecifier.Texture(new ResPath("/Textures/Interface/VerbIcons/unlock.svg.192dpi.png")),
+                Text = Loc.GetString("gas-vent-pump-release-lockout"),
+                Impact = LogImpact.Low,
+                DoContactInteraction = true,
+                Act = () => TryStartReleaseLockoutDoAfter(ent, user),
             };
 
             args.Verbs.Add(v);
         }
+
+        private bool CanAddReleaseLockoutVerb(Entity<GasVentPumpComponent> ent)
+        {
+            return ent.Comp.UnderPressureLockout && Transform(ent).Anchored;
+        }
+
+        private void TryStartReleaseLockoutDoAfter(Entity<GasVentPumpComponent> ent, EntityUid user)
+        {
+            var doAfter = new DoAfterArgs(EntityManager, user, ent.Comp.ManualLockoutDisableDoAfter, new VentScrewedDoAfterEvent(), ent, ent)
+            {
+                BreakOnDamage = true,
+                NeedHand = true,
+                BreakOnMove = true,
+                BreakOnWeightlessMove = true,
+            };
+
+            _doAfterSystem.TryStartDoAfter(doAfter);
+        }
+        // HardLight end
 
         private void OnVentScrewed(EntityUid uid, GasVentPumpComponent component, VentScrewedDoAfterEvent args)
         {
