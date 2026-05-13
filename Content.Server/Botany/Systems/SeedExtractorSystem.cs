@@ -64,7 +64,7 @@ public sealed class SeedExtractorSystem : EntitySystem
             if (TryComp<ActorComponent>(args.User, out var actor))
             {
                 var ownerComp = EnsureComp<ExtractedSeedOwnerComponent>(seedPacket);
-                ownerComp.Owner = actor.PlayerSession.UserId;
+                ownerComp.OwnerId = actor.PlayerSession.UserId;
             }
         }
 

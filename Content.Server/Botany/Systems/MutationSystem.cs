@@ -31,11 +31,38 @@ public sealed class MutationSystem : EntitySystem
         {
             if (Random(Math.Min(mutation.BaseOdds * severity, 1.0f)))
             {
+                var category = PlantMutationCategories.GetCategory(mutation.Name);
+                var previousGrowthStages = seed.GrowthStages;
+
+                if (category != null)
+                {
+                    seed.EnsureMutationCategoryState(category.Value);
+                    seed.RestoreMutationCategoryState(category.Value);
+                }
+
                 if (mutation.AppliesToPlant)
                 {
                     var args = new EntityEffectBaseArgs(plantHolder, EntityManager);
                     mutation.Effect.Effect(args);
+
+                    var plant = Comp<Components.PlantHolderComponent>(plantHolder);
+                    if (plant.Seed != null)
+                        seed = plant.Seed;
                 }
+
+                if (category == PlantMutationCategory.Stages)
+                    seed.GrowthStages = Math.Min(seed.GrowthStages, previousGrowthStages);
+
+                if (category != null)
+                {
+                    seed.Mutations.RemoveAll(existing => PlantMutationCategories.GetCategory(existing.Name) == category.Value);
+
+                    if (mutation.Persists)
+                        seed.Mutations.Add(mutation);
+
+                    continue;
+                }
+
                 // Stat adjustments do not persist by being an attached effect, they just change the stat.
                 if (mutation.Persists && !seed.Mutations.Any(m => m.Name == mutation.Name))
                     seed.Mutations.Add(mutation);
@@ -99,7 +126,11 @@ public sealed class MutationSystem : EntitySystem
         // LINQ Explanation
         // For the list of mutation effects on both plants, use a 50% chance to pick each one.
         // Union all of the chosen mutations into one list, and pick ones with a Distinct (unique) name.
-        result.Mutations = result.Mutations.Where(m => Random(0.5f)).Union(a.Mutations.Where(m => Random(0.5f))).DistinctBy(m => m.Name).ToList();
+        result.MutationCategoryStates.Clear();
+        result.Mutations = result.Mutations.Where(m => Random(0.5f))
+            .Union(a.Mutations.Where(m => Random(0.5f)))
+            .DistinctBy(PlantMutationCategories.GetIdentity)
+            .ToList();
 
         // Hybrids have a high chance of being seedless. Balances very
         // effective hybrid crossings.

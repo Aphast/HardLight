@@ -11,6 +11,8 @@ namespace Content.Server.EntityEffects.Effects.PlantMetabolism;
 [DataDefinition]
 public sealed partial class PlantDiethylamine : EntityEffect
 {
+    private const float MaxDiethylamineLifespan = 120f;
+
     public override void Effect(EntityEffectBaseArgs args)
     {
         if (!args.EntityManager.TryGetComponent(args.TargetEntity, out PlantHolderComponent? plantHolderComp)
@@ -23,10 +25,10 @@ public sealed partial class PlantDiethylamine : EntityEffect
 
         var random = IoCManager.Resolve<IRobustRandom>();
 
-        if (random.Prob(0.1f))
+        if (random.Prob(0.1f) && plantHolderComp.Seed.Lifespan < MaxDiethylamineLifespan)
         {
             plantHolder.EnsureUniqueSeed(args.TargetEntity, plantHolderComp);
-            plantHolderComp.Seed.Lifespan++;
+            plantHolderComp.Seed.Lifespan = MathF.Min(plantHolderComp.Seed.Lifespan + 1f, MaxDiethylamineLifespan);
         }
 
         if (random.Prob(0.1f))

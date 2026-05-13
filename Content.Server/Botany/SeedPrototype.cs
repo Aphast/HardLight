@@ -332,12 +332,17 @@ public partial class SeedData
             TurnIntoKudzu = TurnIntoKudzu,
             SplatPrototype = SplatPrototype,
             Mutations = new List<RandomPlantMutation>(),
+            MutationCategoryStates = new List<PlantMutationCategoryState>(),
 
             // Newly cloned seed is unique. No need to unnecessarily clone if repeatedly modified.
             Unique = true,
         };
 
         newSeed.Mutations.AddRange(Mutations);
+        foreach (var state in MutationCategoryStates)
+        {
+            newSeed.MutationCategoryStates.Add(state.Clone());
+        }
         return newSeed;
     }
 
@@ -398,10 +403,16 @@ public partial class SeedData
             CanScream = CanScream,
             TurnIntoKudzu = TurnIntoKudzu,
             SplatPrototype = other.SplatPrototype,
+            MutationCategoryStates = new List<PlantMutationCategoryState>(),
 
             // Newly cloned seed is unique. No need to unnecessarily clone if repeatedly modified.
             Unique = true,
         };
+
+        foreach (var state in MutationCategoryStates)
+        {
+            newSeed.MutationCategoryStates.Add(state.Clone());
+        }
 
         // Adding the new chemicals from the new species.
         foreach (var otherChem in other.Chemicals)

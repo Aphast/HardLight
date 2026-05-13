@@ -113,6 +113,14 @@ public sealed partial class BotanySystem : EntitySystem
 
         newSeed.SeedId = component.SeedId;
         newSeed.HealthOverride = component.HealthOverride;
+
+        if (TryComp<ExtractedSeedOwnerComponent>(uid, out var ownerComp))
+        {
+            var newOwnerComp = EnsureComp<ExtractedSeedOwnerComponent>(args.NewId);
+            newOwnerComp.OwnerId = ownerComp.OwnerId;
+            Dirty(args.NewId, newOwnerComp);
+        }
+
         UpdateSeedStackSignature(args.NewId, newSeed);
         Dirty(args.NewId, newSeed);
     }

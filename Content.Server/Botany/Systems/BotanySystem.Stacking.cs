@@ -86,6 +86,9 @@ public sealed partial class BotanySystem
         var builder = new StringBuilder();
         AppendPrototypeId(builder, uid);
 
+        if (TryComp<ExtractedSeedOwnerComponent>(uid, out var ownerComp))
+            builder.Append("owner=").Append(ownerComp.OwnerId).Append(';');
+
         builder.Append("pot=")
             .Append(seed.Potency.ToString(CultureInfo.InvariantCulture))
             .Append(';');
