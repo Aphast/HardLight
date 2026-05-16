@@ -48,7 +48,8 @@ public sealed class RadiationCollectorSystem : EntitySystem
         if (!_containerSystem.TryGetContainer(uid, GasTankContainer, out var container) || container.ContainedEntities.Count == 0)
             return false;
 
-        if (!EntityManager.TryGetComponent(container.ContainedEntities.First(), out gasTankComponent))
+        var gasTankUid = container.ContainedEntities.First();
+        if (!TryComp<GasTankComponent>(gasTankUid, out gasTankComponent))
             return false;
 
         return true;
@@ -194,7 +195,7 @@ public sealed class RadiationCollectorSystem : EntitySystem
 
     private void UpdateMachineAppearance(EntityUid uid, RadiationCollectorComponent component, AppearanceComponent? appearance = null)
     {
-        if (!Resolve(uid, ref appearance))
+        if (!Resolve(uid, ref appearance, false))
             return;
 
         var state = component.Enabled ? RadiationCollectorVisualState.Active : RadiationCollectorVisualState.Deactive;

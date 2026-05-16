@@ -22,8 +22,8 @@
     whitelist:
       components:
         - Pill
-        - Hypospray
       tags:
+        - Hypospray
         - PillCanister
         - CentrifugeCompatible
         - Syringe

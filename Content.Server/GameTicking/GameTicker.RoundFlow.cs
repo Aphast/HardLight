@@ -887,6 +887,9 @@ namespace Content.Server.GameTicking
             //            _mapManager.Restart();
 
             //            _banManager.Restart();
+            if (_map.MapExists(DefaultMap))
+                _map.DeleteMap(DefaultMap);
+
             _gameMapManager.ClearSelectedMap();
 
             // Hardlight start - Delete all rescue beacons from the previous round before the new map loads
@@ -910,7 +913,7 @@ namespace Content.Server.GameTicking
             //{
             //    _playerGameStatuses[session.UserId] = LobbyEnabled ? PlayerGameStatus.NotReadyToPlay : PlayerGameStatus.ReadyToPlay;
             //}
-            // DefaultMap = default; // This will set DefaultMap to 0 (invalid)
+            DefaultMap = MapId.Nullspace;
             RoundId = 0;
 
             // Remove all job slots from every station

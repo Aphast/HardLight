@@ -50,12 +50,29 @@ public sealed class WaggingSystem : EntitySystem
         if (!TryComp<HumanoidAppearanceComponent>(uid, out var humanoid))
             return;
 
+        if (!component.Wagging)
+            NormalizeTailMarkingsToStatic(uid, humanoid);
+
         if (!humanoid.MarkingSet.Markings.TryGetValue(MarkingCategories.Tail, out var markings))
             return;
 
-        if (markings.Any(m => _coyoteMarking.TryGetWaggingId(m.MarkingId, out _)))
+        if (markings.Any(m =>
+                _coyoteMarking.TryGetWaggingId(m.MarkingId, out _) ||
+                _coyoteMarking.TryGetStaticId(m.MarkingId, out _)))
         {
             _actions.AddAction(uid, ref component.ActionEntity, component.Action, uid);
+        }
+    }
+
+    private void NormalizeTailMarkingsToStatic(EntityUid uid, HumanoidAppearanceComponent humanoid)
+    {
+        if (!humanoid.MarkingSet.Markings.TryGetValue(MarkingCategories.Tail, out var markings))
+            return;
+
+        for (var idx = 0; idx < markings.Count; idx++)
+        {
+            if (_coyoteMarking.TryGetStaticId(markings[idx].MarkingId, out var staticId))
+                _humanoidAppearance.SetMarkingId(uid, MarkingCategories.Tail, idx, staticId, humanoid: humanoid);
         }
     }
 
@@ -89,29 +106,32 @@ public sealed class WaggingSystem : EntitySystem
         if (markings.Count == 0)
             return false;
 
-        wagging.Wagging = !wagging.Wagging;
+        var hasSupportedMarking = markings.Any(m =>
+            _coyoteMarking.TryGetWaggingId(m.MarkingId, out _) ||
+            _coyoteMarking.TryGetStaticId(m.MarkingId, out _));
+
+        if (!hasSupportedMarking)
+            return false;
+
+        var isCurrentlyWagging = markings.Any(m => _coyoteMarking.TryGetStaticId(m.MarkingId, out _));
+        wagging.Wagging = !isCurrentlyWagging;
+
         for (var idx = 0; idx < markings.Count; idx++) // Coyote: Improved wagging system
         {
-            string? target;
+            var target = markings[idx].MarkingId;
             if (wagging.Wagging)
             {
-                // Hardlight start
-                _coyoteMarking.TryGetWaggingId(markings[idx].MarkingId, out target);
+                if (_coyoteMarking.TryGetWaggingId(markings[idx].MarkingId, out var waggingId))
+                    target = waggingId;
             }
             else
             {
-                // Hardlight end
-                _coyoteMarking.TryGetStaticId(markings[idx].MarkingId, out target);
+                if (_coyoteMarking.TryGetStaticId(markings[idx].MarkingId, out var staticId))
+                    target = staticId;
             }
 
-            if (target == null)
-            {
-                Log.Error($"Unable to find corresponding wagging or static ID for {markings[idx].MarkingId}?");
-            }
-            else
-            {
+            if (target != markings[idx].MarkingId)
                 _humanoidAppearance.SetMarkingId(uid, MarkingCategories.Tail, idx, target, humanoid: humanoid);
-            }
         } // Coyote end
 
         return true;

@@ -242,7 +242,12 @@ public sealed class PositronicJumpSystem : EntitySystem
             return;
         }
 
-        if (!ReturnTargetAvailable(returnComp.ReturnTarget.Value))
+        var returnTarget = ResolveReturnOrigin(uid);
+
+        if (returnTarget == uid)
+            return;
+
+        if (!ReturnTargetAvailable(returnTarget))
             return;
 
         args.Verbs.Add(new AlternativeVerb
@@ -261,6 +266,37 @@ public sealed class PositronicJumpSystem : EntitySystem
             return false;
 
         return true;
+    }
+
+    private EntityUid ResolveReturnOrigin(EntityUid entity)
+    {
+        var resolved = entity;
+        var visited = new HashSet<EntityUid>();
+
+        while (visited.Add(resolved)
+               && TryComp<PositronicReturnComponent>(resolved, out var returnComp)
+               && returnComp.ReturnTarget is { } next
+               && next.IsValid()
+               && Exists(next))
+        {
+            resolved = next;
+        }
+
+        return resolved;
+    }
+
+    private void TransferReturnState(EntityUid from, EntityUid to)
+    {
+        var returnTarget = ResolveReturnOrigin(from);
+        var returnComp = EnsureComp<PositronicReturnComponent>(to);
+        returnComp.ReturnTarget = returnTarget;
+        _actions.AddAction(to, ref returnComp.ReturnActionEntity, ReturnToAiAction);
+
+        if (!TryComp<PositronicReturnComponent>(from, out var previousReturnComp))
+            return;
+
+        RemoveReturnAction(previousReturnComp);
+        RemComp<PositronicReturnComponent>(from);
     }
 
     private void OnReturnMindIntoAi(EntityUid uid, PositronicReturnComponent component, ref ReturnMindIntoAiEvent args)
@@ -291,12 +327,7 @@ public sealed class PositronicJumpSystem : EntitySystem
             return false;
 
         if (mind.OwnedEntity != null)
-        {
-            var previous = mind.OwnedEntity.Value;
-            var returnComp = EnsureComp<PositronicReturnComponent>(target);
-            returnComp.ReturnTarget = previous;
-            _actions.AddAction(target, ref returnComp.ReturnActionEntity, ReturnToAiAction);
-        }
+            TransferReturnState(mind.OwnedEntity.Value, target);
 
         _lawSystem.CopyLawsProvider(user, target);
         _mind.TransferTo(mindId, target, ghostCheckOverride: true, mind: mind);
@@ -317,7 +348,10 @@ public sealed class PositronicJumpSystem : EntitySystem
             return false;
         }
 
-        var returnTarget = returnComp.ReturnTarget.Value;
+        var returnTarget = ResolveReturnOrigin(target);
+
+        if (returnTarget == target)
+            return false;
 
         if (!ReturnTargetAvailable(returnTarget))
             return false;
@@ -360,9 +394,6 @@ public sealed class PositronicJumpSystem : EntitySystem
         var remotePilot = EnsureComp<RemoteMechPilotComponent>(proxy);
         remotePilot.Mech = mech;
 
-        var returnComp = EnsureComp<PositronicReturnComponent>(proxy);
-        returnComp.ReturnTarget = previous;
-
         if (!_mech.TryInsert(mech,
                 proxy,
                 mechComponent,
@@ -375,7 +406,7 @@ public sealed class PositronicJumpSystem : EntitySystem
             return false;
         }
 
-        _actions.AddAction(proxy, ref returnComp.ReturnActionEntity, ReturnToAiAction);
+        TransferReturnState(previous, proxy);
 
         if (mechComponent.MechEjectActionEntity != null)
         {
@@ -404,7 +435,10 @@ public sealed class PositronicJumpSystem : EntitySystem
             return false;
         }
 
-        var returnTarget = returnComp.ReturnTarget.Value;
+        var returnTarget = ResolveReturnOrigin(proxy);
+
+        if (returnTarget == proxy)
+            return false;
 
         if (!ReturnTargetAvailable(returnTarget))
             return false;

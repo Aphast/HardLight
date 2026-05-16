@@ -87,6 +87,7 @@
   - type: Tag
     tags:
     - HighRiskItem
+    - Hypospray
   - type: StealTarget
     stealGroup: Hypospray
   - type: Appearance
@@ -859,7 +860,13 @@
     price: 75
   - type: EmitSoundOnUse
     handle: false # don't want the sound to stop the self-inject from triggering
+  - type: Tag
+    tags:
+    - Write
+    - Pen
+    - Hypospray
   - type: Contraband # Frontier
+    severity: Class3Syndicate
     hideValues: true # Frontier - stealthy
 
 - type: entity

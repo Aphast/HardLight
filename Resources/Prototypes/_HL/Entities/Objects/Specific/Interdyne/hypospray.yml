@@ -26,6 +26,9 @@
     onlyAffectsMobs: false
   - type: UseDelay
     delay: 0.5
+  - type: Tag
+    tags:
+    - Hypospray
   - type: Appearance
   - type: SolutionContainerVisuals
     maxFillLevels: 6

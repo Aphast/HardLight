@@ -443,9 +443,13 @@ public abstract partial class SharedSurgerySystem
         foreach (var tool in args.Tools)
         {
             if (HasComp(tool, firstOrgan.Component.GetType())
-                && TryComp<OrganComponent>(tool, out var insertedOrgan)
-                && _body.InsertOrgan(args.Part, tool, insertedOrgan.SlotId, partComp, insertedOrgan))
+                && TryComp<OrganComponent>(tool, out var insertedOrgan))
             {
+                _body.TryCreateOrganSlot(args.Part, insertedOrgan.SlotId, out _, partComp);
+
+                if (!_body.InsertOrgan(args.Part, tool, insertedOrgan.SlotId, partComp, insertedOrgan))
+                    continue;
+
                 EnsureComp<OrganReattachedComponent>(tool);
                 if (_body.TrySetOrganUsed(tool, true, insertedOrgan)
                     && insertedOrgan.OriginalBody != args.Body)

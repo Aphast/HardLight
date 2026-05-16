@@ -151,6 +151,7 @@
   id: LizardTailSmooth
   bodyPart: Tail
   markingCategory: Tail
+  waggingId: LizardTailSmoothAnimated
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -162,6 +163,7 @@
   id: LizardTailLarge
   bodyPart: Tail
   markingCategory: Tail
+  waggingId: LizardTailLargeAnimated
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -171,6 +173,7 @@
   id: LizardTailSpikes
   bodyPart: Tail
   markingCategory: Tail
+  waggingId: LizardTailSpikesAnimated
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -180,6 +183,7 @@
   id: LizardTailLTiger
   bodyPart: Tail
   markingCategory: Tail
+  waggingId: LizardTailLTigerAnimated
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -189,6 +193,7 @@
   id: LizardTailDTiger
   bodyPart: Tail
   markingCategory: Tail
+  waggingId: LizardTailDTigerAnimated
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -198,6 +203,7 @@
   id: LizardTailAquatic
   bodyPart: Tail
   markingCategory: Tail
+  waggingId: LizardTailAquaticAnimated
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -393,6 +399,7 @@
   id: LizardTailSmoothAnimated
   bodyPart: Tail
   markingCategory: Tail
+  staticId: LizardTailSmooth
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
     - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -404,6 +411,7 @@
   id: LizardTailLargeAnimated
   bodyPart: Tail
   markingCategory: Tail
+  staticId: LizardTailLarge
   speciesRestriction: []
   sprites:
   - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -413,6 +421,7 @@
   id: LizardTailSpikesAnimated
   bodyPart: Tail
   markingCategory: Tail
+  staticId: LizardTailSpikes
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
     - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -422,6 +431,7 @@
   id: LizardTailLTigerAnimated
   bodyPart: Tail
   markingCategory: Tail
+  staticId: LizardTailLTiger
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
     - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -431,6 +441,7 @@
   id: LizardTailDTigerAnimated
   bodyPart: Tail
   markingCategory: Tail
+  staticId: LizardTailDTiger
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
     - sprite: Mobs/Customization/reptilian_parts.rsi
@@ -440,6 +451,7 @@
   id: LizardTailAquaticAnimated
   bodyPart: Tail
   markingCategory: Tail
+  staticId: LizardTailAquatic
   speciesRestriction: [Skrell, Thaven,Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, ProtoReptile]
   sprites:
     - sprite: Mobs/Customization/reptilian_parts.rsi

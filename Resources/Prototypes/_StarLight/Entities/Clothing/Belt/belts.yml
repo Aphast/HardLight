@@ -86,6 +86,7 @@
         - DiscreteHealthAnalyzer
         - SurgeryTool
         - Dropper
+        - Hypospray
         - Truncheon
         - Sidearm
         - MagazinePistol
@@ -98,7 +99,6 @@
         - Handcuff
         - BallisticAmmoProvider
         - Ammo
-        - Hypospray
         - Injector
         - Pill
         - HandLabeler

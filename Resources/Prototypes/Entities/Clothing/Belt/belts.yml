@@ -361,7 +361,7 @@
           - Bottle
       hypo:
         whitelist:
-          components:
+          tags:
           - Hypospray
       pill:
         whitelist:

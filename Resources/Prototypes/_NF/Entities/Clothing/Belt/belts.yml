@@ -33,9 +33,9 @@
           tags:
           - Bottle
           - DrinkBottle
+          - Hypospray
           components:
           - Drink
-          - Hypospray
       censer:
         whitelist:
           tags:

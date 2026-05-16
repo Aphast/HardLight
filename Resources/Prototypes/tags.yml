@@ -765,6 +765,9 @@
   id: HighRiskItem
 
 - type: Tag
+  id: Hypospray
+
+- type: Tag
   id: HighSecDoor
 
 - type: Tag

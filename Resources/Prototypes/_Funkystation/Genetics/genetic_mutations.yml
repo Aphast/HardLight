@@ -1348,6 +1348,25 @@
 #    radius: 1.5
 #    energy: 3.0
 
+- type: entity
+  id: ActionGeneticFireball
+  name: fire breath
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: WorldTargetAction
+    useDelay: 10
+    itemIconStyle: BigAction
+    checkCanAccess: false
+    raiseOnUser: true
+    range: 60
+    sound: !type:SoundPathSpecifier
+      path: /Audio/Magic/fireball.ogg
+    icon:
+      sprite: Objects/Magic/magicactions.rsi
+      state: fireball
+    event: !type:ProjectileSpellEvent
+      prototype: ProjectileFireballWeakest
+
 - type: geneticMutation
   id: StoragePouch
   name: "Subdermal Recess"
@@ -1414,6 +1433,26 @@
 #      state: bullet
 #    event: !type:ProjectileSpellEvent
 #      prototype: ProjectileIcicle
+
+- type: entity
+  id: ActionGeneticIceball
+  name: "Cryokinesis"
+  description: "Fire a bolt of ice from your fingertips."
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: WorldTargetAction
+    useDelay: 30
+    itemIconStyle: BigAction
+    checkCanAccess: false
+    raiseOnUser: true
+    range: 60
+    sound: !type:SoundPathSpecifier
+      path: /Audio/Weapons/bladeslice.ogg
+    icon:
+      sprite: Structures/Specific/Anomalies/ice_anom.rsi
+      state: bullet
+    event: !type:ProjectileSpellEvent
+      prototype: ProjectileIcicleLowDamage
 
 #- type: geneticMutation
 #  id: InkGlands

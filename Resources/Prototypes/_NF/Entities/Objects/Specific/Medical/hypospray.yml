@@ -26,6 +26,9 @@
     onlyAffectsMobs: false
   - type: UseDelay
     delay: 2.5
+  - type: Tag
+    tags:
+    - Hypospray
   - type: StaticPrice
     price: 550
   - type: Appearance

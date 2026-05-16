@@ -50,6 +50,10 @@ public sealed class TurbineBoundUserInterface : BoundUserInterface
         else
             _window.SetEntity(Owner);
 
+        _window.TurbineFlowRateChanged += val =>
+        {
+            _pred?.SendMessage(new TurbineChangeFlowRateMessage(val));
+        };
         _window.TurbineStatorLoadChanged += val =>
         {
             _pred?.SendMessage(new TurbineChangeStatorLoadMessage(val));

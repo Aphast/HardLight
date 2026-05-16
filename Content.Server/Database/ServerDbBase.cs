@@ -15,12 +15,14 @@ using Content.Shared.Database;
 using Content.Shared.Ghost.Roles;
 using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Markings;
+using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.Preferences;
 using Content.Shared.Preferences.Loadouts;
 using Content.Shared.Roles;
 using Content.Shared.Traits;
 using Microsoft.EntityFrameworkCore;
 using Robust.Shared.Enums;
+using Robust.Shared.IoC;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
@@ -252,6 +254,15 @@ namespace Content.Server.Database
             if (loadouts.Remove(HumanoidCharacterProfile.SpeciesLoadoutDatabaseKey, out var speciesLoadoutValue))
             {
                 speciesLoadout = speciesLoadoutValue;
+                var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
+
+                // `__species_loadout` is only the DB storage key. Restore the actual role prototype
+                // immediately so later profile validation never indexes the sentinel as a prototype.
+                if (prototypeManager.TryIndex<SpeciesPrototype>(profile.Species, out var speciesProto) &&
+                    speciesProto.Loadout != null)
+                {
+                    speciesLoadout.Role = speciesProto.Loadout.Value;
+                }
             }
             // Far Horizons End
 

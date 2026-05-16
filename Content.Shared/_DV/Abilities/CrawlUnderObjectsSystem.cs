@@ -36,7 +36,6 @@ public sealed partial class CrawlUnderObjectsSystem : EntitySystem // HardLight:
         SubscribeLocalEvent<CrawlUnderObjectsComponent, ComponentStartup>(OnStartup); // HardLight
         SubscribeLocalEvent<CrawlUnderObjectsComponent, ToggleCrawlingStateEvent>(OnToggleCrawling);
         SubscribeLocalEvent<CrawlUnderObjectsComponent, AttemptClimbEvent>(OnAttemptClimb);
-        SubscribeLocalEvent<CrawlUnderObjectsComponent, DownAttemptEvent>(CancelWhenSneaking);
         SubscribeLocalEvent<CrawlUnderObjectsComponent, StandAttemptEvent>(CancelWhenSneaking);
         SubscribeLocalEvent<CrawlUnderObjectsComponent, DownedEvent>(OnDowned); // HardLight
         SubscribeLocalEvent<CrawlUnderObjectsComponent, StoodEvent>(OnStood); // HardLight

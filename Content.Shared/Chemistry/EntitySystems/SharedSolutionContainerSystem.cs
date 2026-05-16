@@ -1197,8 +1197,16 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         else
         {
             solutionComp = Comp<SolutionComponent>(solutionId);
-            DebugTools.Assert(TryComp(solutionId, out ContainedSolutionComponent? relation) && relation.Container == uid && relation.ContainerName == name);
-            DebugTools.Assert(solutionComp.Solution.Name == name);
+            var relation = EnsureComp<ContainedSolutionComponent>(solutionId);
+            if (relation.Container != uid || relation.ContainerName != name)
+            {
+                relation.Container = uid;
+                relation.ContainerName = name;
+                Dirty(solutionId, relation);
+            }
+
+            if (solutionComp.Solution.Name != name)
+                solutionComp.Solution.Name = name;
 
             var solution = solutionComp.Solution;
             solution.MaxVolume = FixedPoint2.Max(solution.MaxVolume, maxVol);
