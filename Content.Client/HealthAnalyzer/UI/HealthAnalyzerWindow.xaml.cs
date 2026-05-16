@@ -6,6 +6,7 @@ using Content.Shared.Atmos;
 using Content.Client.UserInterface.Controls;
 using Content.Shared._Shitmed.Targeting; // Shitmed
 using Content.Shared.Alert;
+using Content.Shared.Chemistry.Reagent; // Starlight
 using Content.Shared.Damage;
 using Content.Shared.Damage.Prototypes;
 using Content.Shared.FixedPoint;
@@ -33,6 +34,9 @@ namespace Content.Client.HealthAnalyzer.UI
     [GenerateTypedNameReferences]
     public sealed partial class HealthAnalyzerWindow : FancyWindow
     {
+        private static readonly Color Green = Color.FromHex("#00FF00"); // Starlight
+        private static readonly Color Red = Color.FromHex("#FF0000"); // Starlight
+
         private readonly IEntityManager _entityManager;
         private readonly SpriteSystem _spriteSystem;
         private readonly IPrototypeManager _prototypes;
@@ -244,6 +248,7 @@ namespace Content.Client.HealthAnalyzer.UI
             IReadOnlyDictionary<string, FixedPoint2> damagePerType = damageable.Damage.DamageDict;
 
             DrawDiagnosticGroups(damageSortedGroups, damagePerType);
+            DrawMetabolizingChemicals(msg.MetabolizingReagents); // Starlight - Metabolizing Chemicals Section
         }
         // Shitmed Change End
         private static string GetStatus(MobState mobState)
@@ -302,6 +307,70 @@ namespace Content.Client.HealthAnalyzer.UI
                 }
             }
         }
+
+        // Metabolizing chemicals display
+        private void DrawMetabolizingChemicals(List<(string ReagentId, FixedPoint2 Quantity)>? reagents)
+        {
+            ChemicalsContainer.RemoveAllChildren();
+
+            var hasChemicals = reagents != null && reagents.Count > 0;
+
+            ChemicalsDivider.Visible = hasChemicals;
+            ChemicalsContainer.Visible = hasChemicals;
+
+            if (!hasChemicals || reagents == null)
+                return;
+
+            // Sort by quantity descending
+            var sortedReagents = reagents.OrderByDescending(r => r.Quantity).ToList();
+
+            foreach (var reagent in sortedReagents)
+            {
+                var reagentName = reagent.ReagentId;
+                var reagentColor = Color.White;
+
+                if (_prototypes.TryIndex<ReagentPrototype>(reagent.ReagentId, out var reagentProto))
+                {
+                    reagentName = reagentProto.LocalizedName;
+                    reagentColor = reagentProto.SubstanceColor;
+
+                }
+
+                var rowContainer = new BoxContainer
+                {
+                    Orientation = BoxContainer.LayoutOrientation.Horizontal,
+                    Margin = new Thickness(0, 2),
+                };
+
+                // Color bar
+                var colorBar = new PanelContainer
+                {
+                    MinWidth = 10,
+                    MinHeight = 16,
+                    Margin = new Thickness(0, 0, 6, 0),
+                };
+                colorBar.PanelOverride = new StyleBoxFlat(reagentColor);
+
+                var nameLabel = new Label
+                {
+                    Text = reagentName,
+                    HorizontalExpand = true,
+                    HorizontalAlignment = HAlignment.Left,
+                };
+
+                var quantityLabel = new Label
+                {
+                    Text = $"{reagent.Quantity}u",
+                    HorizontalAlignment = HAlignment.Right,
+                };
+
+                rowContainer.AddChild(colorBar);
+                rowContainer.AddChild(nameLabel);
+                rowContainer.AddChild(quantityLabel);
+                ChemicalsContainer.AddChild(rowContainer);
+            }
+        }
+        // Starlight end
 
         private Texture GetTexture(string texture)
         {

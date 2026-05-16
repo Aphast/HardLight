@@ -233,6 +233,17 @@
                 Orientation="Vertical">
             </BoxContainer>
 
+            <!-- Starlight begin - metabolizing chems section of ui -->
+            <PanelContainer Name="ChemicalsDivider" Visible="False" StyleClasses="LowDivider" />
+
+            <BoxContainer
+                Name="ChemicalsContainer"
+                Visible="False"
+                Margin="0 5 0 5"
+                Orientation="Vertical">
+            </BoxContainer>
+            <!-- Starlight end -->
+
         </BoxContainer>
     </ScrollContainer>
 </controls:FancyWindow>
