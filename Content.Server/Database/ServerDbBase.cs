@@ -143,10 +143,6 @@ namespace Content.Server.Database
 
         public async Task<PlayerPreferences> InitPrefsAsync(NetUserId userId, ICharacterProfile defaultProfile)
         {
-            var existingPrefs = await GetPlayerPreferencesAsync(userId);
-            if (existingPrefs != null)
-                return existingPrefs;
-
             await using var db = await GetDb();
 
             var profile = ConvertProfiles((HumanoidCharacterProfile) defaultProfile, 0);
@@ -161,19 +157,7 @@ namespace Content.Server.Database
 
             db.DbContext.Preference.Add(prefs);
 
-            try
-            {
-                await db.DbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                // Another concurrent preference load may have created the row after our initial lookup.
-                existingPrefs = await GetPlayerPreferencesAsync(userId);
-                if (existingPrefs != null)
-                    return existingPrefs;
-
-                throw;
-            }
+            await db.DbContext.SaveChangesAsync();
 
             return new PlayerPreferences(new[] {new KeyValuePair<int, ICharacterProfile>(0, defaultProfile)}, 0, Color.FromHex(prefs.AdminOOCColor));
         }
