@@ -1,9 +1,5 @@
 ﻿<Control Name="CFlavorText" xmlns="https://spacestation14.io">
     <BoxContainer Orientation="Vertical" HorizontalExpand="True">
         <TextEdit Name="CFlavorTextInput" Access="Public" MinSize="220 100" Margin="10" HorizontalExpand="True" VerticalExpand="True" />
-        <!-- HardLight: self-reported criminal record (shown in the Criminal Records console). -->
-        <Label Name="CCriminalRecordLabel" Access="Public" Margin="10 4 10 0" Text="{Loc 'humanoid-profile-editor-criminal-record-label'}" />
-        <Label Name="CCriminalRecordHint" Access="Public" Margin="10 0 10 2" StyleClasses="LabelSubText" Text="{Loc 'humanoid-profile-editor-criminal-record-hint'}" />
-        <TextEdit Name="CCriminalRecordInput" Access="Public" MinSize="220 80" Margin="10 0 10 10" HorizontalExpand="True" VerticalExpand="True" />
     </BoxContainer>
 </Control>

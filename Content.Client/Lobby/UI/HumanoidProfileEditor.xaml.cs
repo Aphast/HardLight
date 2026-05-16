@@ -57,8 +57,6 @@ namespace Content.Client.Lobby.UI
 
         private FlavorText.FlavorText? _flavorText;
         private TextEdit? _flavorTextEdit;
-        // HardLight: shared editor instance also hosts the self-reported criminal record textbox.
-        private TextEdit? _criminalRecordEdit;
 
         // One at a time.
         private LoadoutWindow? _loadoutWindow;
@@ -606,11 +604,8 @@ namespace Content.Client.Lobby.UI
                 TabContainer.AddChild(_flavorText);
                 TabContainer.SetTabTitle(TabContainer.ChildCount - 1, Loc.GetString("humanoid-profile-editor-flavortext-tab"));
                 _flavorTextEdit = _flavorText.CFlavorTextInput;
-                // HardLight: self-reported criminal record lives on the same tab.
-                _criminalRecordEdit = _flavorText.CCriminalRecordInput;
 
                 _flavorText.OnFlavorTextChanged += OnFlavorTextChange;
-                _flavorText.OnCriminalRecordChanged += OnCriminalRecordChange;
             }
             else
             {
@@ -619,12 +614,9 @@ namespace Content.Client.Lobby.UI
 
                 TabContainer.RemoveChild(_flavorText);
                 _flavorText.OnFlavorTextChanged -= OnFlavorTextChange;
-                _flavorText.OnCriminalRecordChanged -= OnCriminalRecordChange; // HardLight
                 _flavorText.Dispose();
                 _flavorTextEdit?.Dispose();
                 _flavorTextEdit = null;
-                _criminalRecordEdit?.Dispose(); // HardLight
-                _criminalRecordEdit = null; // HardLight
                 _flavorText = null;
             }
         }
@@ -1714,16 +1706,6 @@ namespace Content.Client.Lobby.UI
             SetDirty();
         }
 
-        // HardLight: persist the self-reported criminal record entry into the profile.
-        private void OnCriminalRecordChange(string content)
-        {
-            if (Profile is null)
-                return;
-
-            Profile = Profile.WithCriminalRecordEntry(content);
-            SetDirty();
-        }
-
         private void OnMarkingChange(MarkingSet markings)
         {
             if (Profile is null)
@@ -2009,11 +1991,6 @@ namespace Content.Client.Lobby.UI
             if (_flavorTextEdit != null)
             {
                 _flavorTextEdit.TextRope = new Rope.Leaf(Profile?.FlavorText ?? "");
-            }
-            // HardLight: keep the criminal record editor in sync with the loaded profile.
-            if (_criminalRecordEdit != null)
-            {
-                _criminalRecordEdit.TextRope = new Rope.Leaf(Profile?.CriminalRecordEntry ?? "");
             }
         }
 

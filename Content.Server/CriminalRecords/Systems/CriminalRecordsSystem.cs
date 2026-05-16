@@ -44,26 +44,6 @@ public sealed class CriminalRecordsSystem : SharedCriminalRecordsSystem
     private void OnGeneralRecordCreated(AfterGeneralRecordCreatedEvent ev)
     {
         _records.AddRecordEntry(ev.Key, new CriminalRecord());
-
-        // HardLight: seed the freshly-created criminal record with the player's
-        // self-reported entries from character creation. Each non-empty line becomes
-        // its own CrimeHistory entry attributed as "Self-reported" so officers can
-        // tell them apart from real Security entries. Status is left at None so this
-        // never auto-flags the player as Wanted.
-        var entry = ev.Profile.CriminalRecordEntry;
-        if (!string.IsNullOrWhiteSpace(entry))
-        {
-            var initiator = Loc.GetString("criminal-records-self-reported-initiator");
-            foreach (var rawLine in entry.Split('\n'))
-            {
-                var line = rawLine.Trim();
-                if (line.Length == 0)
-                    continue;
-
-                TryAddHistory(ev.Key, line, initiator);
-            }
-        }
-
         _records.Synchronize(ev.Key);
     }
 

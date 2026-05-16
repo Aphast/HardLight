@@ -79,14 +79,6 @@ namespace Content.Shared.Preferences
         public string FlavorText { get; set; } = string.Empty;
 
         /// <summary>
-        /// HardLight: Self-reported criminal record. Each non-empty line becomes a CrimeHistory
-        /// entry on the character's CriminalRecord at spawn, attributed as "Self-reported".
-        /// Purely flavour: never sets the Wanted/Detained status.
-        /// </summary>
-        [DataField]
-        public string CriminalRecordEntry { get; set; } = string.Empty;
-
-        /// <summary>
         /// Associated <see cref="SpeciesPrototype"/> for this profile.
         /// </summary>
         [DataField]
@@ -173,12 +165,10 @@ namespace Content.Shared.Preferences
             HashSet<ProtoId<TraitPrototype>> traitPreferences,
             Dictionary<string, RoleLoadout> loadouts,
             string company = "None",
-            RoleLoadout? speciesLoadout = null, // Far Horizons
-            string criminalRecordEntry = "") // HardLight
+            RoleLoadout? speciesLoadout = null) // Far Horizons
         {
             Name = name;
             FlavorText = flavortext;
-            CriminalRecordEntry = criminalRecordEntry;
             Species = species;
             CustomSpecies = customSpecies;
             Age = age;
@@ -204,8 +194,7 @@ namespace Content.Shared.Preferences
             HashSet<ProtoId<TraitPrototype>> traitPreferences,
             Dictionary<string, RoleLoadout> loadouts)
             : this(other.Name, other.FlavorText, other.Species, other.CustomSpecies, other.Age, other.Sex, other.Gender, other.BankBalance, other.Appearance, other.SpawnPriority,
-                jobPriorities, other.PreferenceUnavailable, antagPreferences, traitPreferences, loadouts, other.Company,
-                criminalRecordEntry: other.CriminalRecordEntry) // HardLight
+                jobPriorities, other.PreferenceUnavailable, antagPreferences, traitPreferences, loadouts, other.Company)
         {
         }
 
@@ -227,8 +216,7 @@ namespace Content.Shared.Preferences
                 new HashSet<ProtoId<TraitPrototype>>(other.TraitPreferences),
                 new Dictionary<string, RoleLoadout>(other.Loadouts),
                 other.Company,
-                other.SpeciesLoadout, // Far Horizons
-                other.CriminalRecordEntry) // HardLight
+                other.SpeciesLoadout) // Far Horizons
         {
         }
 
@@ -344,11 +332,6 @@ namespace Content.Shared.Preferences
         public HumanoidCharacterProfile WithFlavorText(string flavorText)
         {
             return new(this) { FlavorText = flavorText };
-        }
-
-        public HumanoidCharacterProfile WithCriminalRecordEntry(string entry)
-        {
-            return new(this) { CriminalRecordEntry = entry };
         }
 
         public HumanoidCharacterProfile WithAge(int age)
@@ -543,7 +526,6 @@ namespace Content.Shared.Preferences
             if (!_antagPreferences.SequenceEqual(other._antagPreferences)) return false;
             if (!_traitPreferences.SequenceEqual(other._traitPreferences)) return false;
             if (FlavorText != other.FlavorText) return false;
-            if (CriminalRecordEntry != other.CriminalRecordEntry) return false;
             if (!Appearance.MemberwiseEquals(other.Appearance)) return false;
             if (!SpeciesLoadoutEquals(SpeciesLoadout, other.SpeciesLoadout)) return false; // Far Horizons
 
@@ -639,13 +621,6 @@ namespace Content.Shared.Preferences
                 flavortext = FormattedMessage.RemoveMarkupOrThrow(FlavorText);
             }
 
-            // HardLight: sanitize the self-reported criminal record entry.
-            string criminalRecordEntry;
-            if (CriminalRecordEntry.Length > MaxDescLength)
-                criminalRecordEntry = FormattedMessage.RemoveMarkupOrThrow(CriminalRecordEntry)[..MaxDescLength];
-            else
-                criminalRecordEntry = FormattedMessage.RemoveMarkupOrThrow(CriminalRecordEntry);
-
             // Frontier
             //make sure theres no funny bank stuff going on
             var bankBalance = BankBalance;
@@ -703,7 +678,6 @@ namespace Content.Shared.Preferences
 
             Name = name;
             FlavorText = flavortext;
-            CriminalRecordEntry = criminalRecordEntry; // HardLight
             Age = age;
             Sex = sex;
             Gender = gender;

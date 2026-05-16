@@ -9,8 +9,6 @@ namespace Content.Client.FlavorText
     public sealed partial class FlavorText : Control
     {
         public Action<string>? OnFlavorTextChanged;
-        // HardLight: fired when the player edits their self-reported criminal record entry.
-        public Action<string>? OnCriminalRecordChanged;
 
         public FlavorText()
         {
@@ -20,21 +18,11 @@ namespace Content.Client.FlavorText
             var loc = IoCManager.Resolve<ILocalizationManager>();
             CFlavorTextInput.Placeholder = new Rope.Leaf(loc.GetString("flavor-text-placeholder"));
             CFlavorTextInput.OnTextChanged  += _ => FlavorTextChanged();
-
-            // HardLight: criminal record entry editor.
-            CCriminalRecordInput.Placeholder = new Rope.Leaf(loc.GetString("humanoid-profile-editor-criminal-record-placeholder"));
-            CCriminalRecordInput.OnTextChanged += _ => CriminalRecordChanged();
         }
 
         public void FlavorTextChanged()
         {
             OnFlavorTextChanged?.Invoke(Rope.Collapse(CFlavorTextInput.TextRope).Trim());
-        }
-
-        // HardLight: notify the editor when the criminal record text changes.
-        public void CriminalRecordChanged()
-        {
-            OnCriminalRecordChanged?.Invoke(Rope.Collapse(CCriminalRecordInput.TextRope).Trim());
         }
     }
 }

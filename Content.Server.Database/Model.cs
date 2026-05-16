@@ -471,8 +471,6 @@ namespace Content.Server.Database
         public int Slot { get; set; }
         [Column("char_name")] public string CharacterName { get; set; } = null!;
         public string FlavorText { get; set; } = null!;
-        // HardLight: Self-reported criminal record (flavour, see CriminalRecordsSystem).
-        public string CriminalRecordEntry { get; set; } = string.Empty;
         public int Age { get; set; }
         public int BankBalance { get; set; }
         public string Sex { get; set; } = null!;
