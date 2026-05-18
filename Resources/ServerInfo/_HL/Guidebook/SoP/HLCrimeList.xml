@@ -1,0 +1,1752 @@
+<!--
+SPDX-FileCopyrightText: 2026 CarefulLilCassie <4233621+CarefulLilCassie@users.noreply.github.com>
+
+SPDX-License-Identifier: AGPL 3.0
+-->
+
+<Document>
+  # Pathos Of The Law
+  [bold]Space Law is a tool used to benefit the sector, not a cudgel.[/bold]
+  [bullet] The greater good of the station is to be considered during sentencing
+  [bullet] Space Law is designed to protect the station and crew, not to hinder them.
+  [bullet] Station-Wide emergencies are to take priority over enforcing Space law.
+  [bullet] Roleplay fun is to take priority over all others.
+
+  # Modifiers
+  <Table Columns="4">
+    <ColorBox Color="#55ff55" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Code[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#55ff55" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Crime[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#55ff55" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Description[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#55ff55" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Adjustments[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M01[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Good Samaritan Clause[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Crimes committed in the interest of saving life, property, or preventing a disaster may have their sentences reduced, voided, or expunged.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Voiding of charges.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M02[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Elevated Sentencing[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]The scope of the crime(s), or repetitive behavior committed, warrants the charge be elevated to a higher offense for punishment in increments of one level per instance.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Adjustments are to be decided by the HoS, Warden, or Captain.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M03[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Self Defense[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Actions taken to defend oneself from an assailant may have sentences reduced, voided, or expunged if the officer(s) involved deem that use of force reasonable.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Voiding of charges.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M04[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Non Compos Mentis[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Those of unstable mind should be referred to medical treatment or, if required, forced cryogenic storage.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Forced medical treatment or cryogenic storage.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M05[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Griseo Maris[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Coordinated behavior by those with no clear assigned duty, which interrupts the normal function of any one department.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Severity increased by one level.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M06[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Resisting Arrest[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Knowingly resisting attempts at legal detention by members of the security team.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]20% Punishment increase.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M06[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Resisting Arrest[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Knowingly resisting attempts at legal detention by members of the security team.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]20% Punishment increase.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M07[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Escaped Prisoner[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Someone who has escaped their cell should be recaptured and returned to the brig.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Reset of the time of imprisonment, if prisoner is in permanent confinement Cryogenic storage.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M08[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Attempted Crime[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Anyone that tries to commit a Felony or below offense but fails to achieve it, is to be charged under the relevant crime while recording that it was an attempt.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Charged for the same crime, with a 5% decrease in punishment.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M09[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Hate Crime[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]If the crime is committed to cause fear, injury, or other harm due to racial reasons, spiritual, physical, sexual orientation, gender identity, or other reasons that could be classified as a hate crime.
+
+        This can not be applied to the crime of discriminatory language, as it is implied.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]50% time increase.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M10[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Colonial Command Directive[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To be issued a pardon/sentence modification by Colonial Command. Colonial Command may waive sections of Space Law. Irrespective of the original crime, if a pardon or modification to a sentence is issued, it is to be followed immediately.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Immediate release or modification.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M11[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Medical Attention[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]A sick or injured prisoner requires medical aid. Prisoners have the right to medical aid if injured or sick. In cases of self-harm, aid is discretionary by security. The timer is to continue running during medical aid being provided.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Running timer.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M11[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Medical Attention[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]A sick or injured prisoner requires medical aid. Prisoners have the right to medical aid if injured or sick. In cases of self-harm, aid is discretionary by security. The timer is to continue running during medical aid being provided.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Running timer.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M12[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Hostile Brainwashing[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To be under the mind control of a Cult, a head revolutionary, a vampire, or other mind-controlling circumstances. Brainwashed persons are to be detained non-lethally if possible and deconverted. Once deconverted, they are to be released.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Deconversion and release.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]M13[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Cooperation with Security[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To completely comply and work with security during detainment, Search, or arrest. Such as willingly being put into cuffs without causing disruption, or actively turning oneself in. In cases of Capital crimes, It would lower punishment to Permanent Confinement.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#aaffaa" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]25% punishment decrease.[/color]
+      </Box>
+    </ColorBox>
+  </Table>
+
+  # Infraction
+  These crimes tend to have only fines as punishments.
+  <Table Columns="4">
+    <ColorBox Color="#11ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Code[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#11ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Crime[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#11ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Description[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#11ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Punishment[/bold][/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]003[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Superficial Vandalism[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To deface the station or property of another individual.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Force repairing [bold]OR[/bold] 15000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]006[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Possession, Drugs[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]The possession of illegal drugs in quantities appropriate for personal use.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Confiscation of illegal drugs, 25000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]007[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Disorderly Conduct[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To conduct oneself in a way unsuitable for the retention of one’s position, When sentenced along with M02 results in demotion.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Brig until 25000 speso fine paid.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]008[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Creating a Hazard[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To create a situation that may lead to the harm of others during normal operation in that department.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Forced removal of the situation, 15000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]011[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Disruptive Comms[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly disrupt or needlessly populate a radio frequency with the intent to be a nuisance to users of that frequency. If done whilst brigged, the right to a headset is voided.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#88ffff" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Brig until fine paid, unless under M02, 10000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+  </Table>
+
+  # Minor
+  These crimes tend to have only brig time as punishments.
+  <Table Columns="4">
+    <ColorBox Color="#ffee42" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Code[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee42" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Crime[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee42" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Description[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee42" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Punishment[/bold][/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]101[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Assault[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To use physical force against someone without the apparent intent to kill them.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Restraining and separation of individuals, 5 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]102[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Pickpocketing[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To steal items from another person.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Return of object(s), 5 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]103[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Minor Vandalism[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To damage, destroy, or permanently deface non-critical furniture, vendors, or personal property.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Work duty to repair damage. Brig time according to the damage and repairs done.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]104[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Vigilantism[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To perform the responsibilities and duties of the security department without approval or due cause to act.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]106[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Illegal Distribution[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]The possession of dangerous or illegal drugs/equipment in a quantity greater than that which is reasonable for personal consumption.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 40000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]107[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Disturbing the Peace[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly organize a movement that disrupts the normal operations of a department.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Warning to disperse, up to 10 minutes of brig time, depending on how easily the illegal protest is dispersed.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]108[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Criminal Negligence[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To be negligent in one’s duty to an extent that it may cause harm, illness, or other negative effects to another. This includes the reckless operation of a craft.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Simple Negligence does not result in death, and should only have a sentence of 5 minutes.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]109[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Trespass[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To be in an area which a person has either not purposefully been admitted to, does not have access, or has been asked to leave by someone a part of the department.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Non-resisting offenders without damage or theft may be released without punishment. Resisting offenders should be sentenced, minimum 5 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]110[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Breaking &amp; Entering[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To trespass into an area using a method of forcible entry, regardless of destructiveness.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Damage caused in entry should be reflected by brig timer. Minimum 5 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]111[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Discriminatory Language[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To use language that demeans, generalizes, or otherwise de-personifies the individual to whom it is targeted.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]112[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Fine Evasion[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To purposefully avoid or refuse to pay a legal fine, Or to be unable to be able to pay a fine.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Reasonable time &amp; notification should be provided to offender. If fine is blatantly opposed or ignored after multiple warnings, time in brig equal to 15 seconds per 1000 spesos. Example, 30000 spesos gives time of 7.5 minutes.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]117[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Brandishing[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To brandish a weapon unlawfully and without due cause.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffee93" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig [bold]OR[/bold] a person search.[/color]
+      </Box>
+    </ColorBox>
+  </Table>
+
+  # Misdemeanor
+  These crimes tend to have both fines and brig time as punishments.
+  <Table Columns="4">
+    <ColorBox Color="#ffa34b" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Code[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa34b" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Crime[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa34b" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Description[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa34b" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Punishment[/bold][/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]201[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Aggravated Assault[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To take physical action against a person with the intent to grievously harm, but not to kill.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 25000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]202[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Theft[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To steal equipment or items from a workplace, or items of extraordinary value from one’s person.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Return of item(s), 5 minutes in brig, 20000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]203[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Vandalism, Major[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To destroy or damage non-critical furniture, vendors, or personal property in a manner that can not be repaired.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Replacement of item(s), 5 minutes in brig, fine equal to monetary damages.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]204[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Conspiracy[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly work with another person in the interest of committing an illegal action.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5-10 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]205[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Hostile Agent[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly act as a recruiter, representative, messenger, ally, benefactor, or other associate of a hostile organization as defined within Code 405.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 25000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]206[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Possession, Contraband Equipment[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly act as a recruiter, representative, messenger, ally, benefactor, or other associate of a hostile organization as defined within Code 405.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 25000 speso fine, confiscation of contraband equipment.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]207[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Rioting[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To act as a member in a group that collectively commits acts of major vandalism, sabotage, grand sabotage, or other felony crimes.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Per judgment of Head of Securty or Warden.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]208[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Gross Criminal Negligence[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To be negligent in one’s duty to an extent that it may cause harm to multiple individuals, a department, or in a manner that directly leads to a serious injury of another person, which requires emergency medical treatment.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Time in brig according to severity of harm minimum 10 minutes, 30000 speso fine, possible demotion.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]209[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Trespass, Inherently Dangerous Areas[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Trespassing in an area that may lead to the injury of oneself or others. This also includes NFZs.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Removal from area, 15 minutes in brig, 25000 speso fine, with adjustments per 109.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]210[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Breaking &amp; Entering, Inherently Dangerous Areas[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To trespass into an area which may lead to the injury of oneself or others using a method of forcible entry, regardless of destructiveness.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Damage caused in entry should be reflected by brig timer. Minimum 10 minutes in brig, 30000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]211[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Insubordination[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly disobey a lawful order from a superior or Security without good reason.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 25000 speso fine, possible demotion.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]212[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Fraud[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To misrepresent one's intention in the interest of gaining property or money from another individual.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 45000 speso fine, return of property of money to victim.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]213[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Mutilation[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To purposefully modify an individual without consent, or with the intent to harm, including medical malpractice.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Reverse of operations if applicable, 5 minutes in brig.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]215[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]False Imprisonment[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To unlawfully confine or restrain a person.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 20000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]217[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Intimidation[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To threaten to take violent action against a person.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 15000 speso fine, instead 35000 if methods to follow up are found on person.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]218[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Sexual Harassment[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Any unwelcome conduct of a sexual nature, incl. physical contact, verbal comments, or non-verbal gestures, that violate a person's dignity or create an intimidating, hostile, or offensive environment[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffc995" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]5 minutes in brig, 10000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+  </Table>
+
+  # Felonies
+  These crimes tend to have both heavy fines and brig time as punishments.
+  <Table Columns="4">
+    <ColorBox Color="#ff5050" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Code[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ff5050" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Crime[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ff5050" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Description[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ff5050" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Punishment[/bold][/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]301[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Murder[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To unlawfully cause the death of someone with intent to kill.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10-20 minutes in brig, 40000-60000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]302[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Larceny[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To steal rare, expensive (greater than 50000 speso value) or restricted equipment from secure areas or one's person.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 40000 speso fine, return of item(s).[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]303[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Sabotage[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To destroy station assets or resources critical to normal or emergency station procedures, or cause sections of the station to become uninhabitable.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 40000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]304[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Grand Conspiracy[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly work with another person in the interest of committing a Felony or Capital crime.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Punishment equal to the punishment of the other conspirators.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]305[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Hostile Activity[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To knowingly commit an act which is in direct opposition to the interests of Colonial Command, or to directly assist a known enemy of the New Avalon Government.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 20000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]306[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Possession, Illegal Inherently Dangerous Equipment[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To possess restricted or illegal equipment that has a primary purpose of causing harm to others, or large amounts of destruction, including any and all C3 equipment.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 35000 speso fine, removal of item(s), shuttle search.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]307[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Inciting a Riot[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To perform actions in the interest of causing large amounts of unrest up to and including rioting.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 45000-60000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]308[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Manslaughter[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To unlawfully cause the death of someone without intent to kill.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 35000-50000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]309[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Trespass, High Security Areas[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Trespassing in any of the following areas or includes NFZs declared around them:
+        [bullet]Command areas
+        [bullet]Personnel offices
+        [bullet]Weapon production areas
+        [bullet]Explosives storage or production areas
+        [bullet]Nanotrasen vaults
+        [bullet]Syndicate caches
+        [bullet]Et cetera[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]15 minutes in brig, 45000-60000 speso fine, return of item(s). If result of NFZ violation, add half of time in NFZ.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]310[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Breaking &amp; Entering, High Security Areas[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To trespass into an area detailed in 309 using a method of forcible entry, regardless of destructiveness.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Per 210, additional 10000 speso fine suggested.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]311[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Dereliction[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To willfully abandon an obligation that is critical to the station's continued operation.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]40000 speso fine, mandatory demotion.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]312[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Embezzlement[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To unlawfully transfer funds from station accounts to personal accounts.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]15 minutes in brig, 40000 speso fine, return of funds, mandatory demotion.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]313[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Illegal Mindbreaking[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To unlawfully and permanently remove a psion's abilities and/or latency, outside of an extenuating emergency situation.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]15 minutes in brig, 85000 speso fine, return of victim's powers if able, removal of the offender's powers. (if applicable)[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]314[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Impersonation[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To assume the identity of another individual or job.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 40000 speso fine, removal of impersonatory items.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]315[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Kidnapping[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To unlawfully abduct a person to a new location and confine them against their will.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 70000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]317[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Coercion[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]To accept a bribe as a contracted member of the station, to offer a bribe to a contracted member of the station, or to blackmail a person.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]10 minutes in brig, 40000 speso fine, confication of the bribe money or items.[/color]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]318[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black][bold]Sexual Assault[/bold][/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]Any involuntary, non-consensual sexual act, including unwanted contact and forced penetration, which violates a person's bodily autonomy.[/color]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#ffa397" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [color=black]15 minutes in brig, 40000 speso fine.[/color]
+      </Box>
+    </ColorBox>
+  </Table>
+
+  # Capital Crimes
+  These crimes tend to have extreme punishments.
+  <Table Columns="4">
+    <ColorBox Color="#000000" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Code[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#000000" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Crime[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#000000" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Description[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#000000" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Punishment[/bold]
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        401
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Capital Murder[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To unlawfully cause the death of someone with intent to kill, and to have then materially taken steps to prevent the revival of that person, or to force the borging or decorporalisation of a person without consent or command authorization.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Execution [bold]OR[/bold] permanent confinement [bold]OR[/bold] forced borging.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        403
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Grand Sabotage[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To destroy or modify station assets or equipment that the lack of may cause the station to collapse or become otherwise uninhabitable.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement, demotion.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        404
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Espionage[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To knowingly betray critical information to enemies of the station.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        405
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Enemy Of The Government[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To be a member of any of the following organizations:
+        [bullet]True Nexus
+        [bullet]The Unity
+        [bullet]Xenoborg Collective
+        [bullet]Cults
+        [bullet]Hostile boarding parties
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement [bold]OR[/bold] transportation to Colonial Command.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        407
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Subversion of the Chain of Command[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To disrupt the chain of command via either the murder of a member of Command, [bold]OR[/bold] illegally declaring oneself to be a member of Command.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement. Execution if the offender is a Head Revolutionary.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        408
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Biological Terror[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To knowingly release, cause, or otherwise incite the station to become affected by a disease, plant, or other biological form which may spread contained and/or cause serious physical harm.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Execution [bold]OR[/bold] permanent confinement [bold]OR[/bold] forced borging.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        411
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Grand Dereliction[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        As a member of Security or Command, to act in a way that is detrimental to the station, sector, or Colonial Command, including but not limited to selling station gear to spacers or intentionally permitting or encouraging felony or capital crimes.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement [bold]OR[/bold] transporation to Colonial Command. Execution in extreme cases.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        415
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Grand Kidnapping[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To unlawfully abduct a member of Command or higher to a new location and confine them against their will.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        416
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Perfidy[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To incite a Security or Command to believe peaceful resolution is sought, to then either attempt to flee or to start a surprise attack.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Permanent confinement.
+      </Box>
+    </ColorBox>
+
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        417
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        [bold]Brainwashing[/bold]
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        To non-consentually brainwash a person, or to make them commit crimes through brainwashing.
+      </Box>
+    </ColorBox>
+    <ColorBox Color="#696969" OutlineColor="#000000">
+      <Box HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="2">
+        Execution [bold]OR[/bold] permanent confinement [bold]OR[/bold] forced borging.
+      </Box>
+    </ColorBox>
+  </Table>
+</Document>
