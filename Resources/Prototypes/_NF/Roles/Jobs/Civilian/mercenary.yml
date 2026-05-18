@@ -2,6 +2,7 @@
   id: Mercenary
   name: job-name-mercenary
   description: job-description-mercenary
+  canBeAntag: false # HardLight
   playTimeTracker: JobMercenary
   startingGear: MercenaryGear
   icon: "JobIconMercenary"
@@ -21,6 +22,7 @@
   id: MercenaryInterview
   name: job-name-mercenary-interview
   description: job-mercenary-pilot
+  canBeAntag: false # HardLight
   playTimeTracker: JobMercenaryInterview
   setPreference: false
   startingGear: MercenaryHologramGear

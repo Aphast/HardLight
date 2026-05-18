@@ -19,6 +19,12 @@
       # Shadekins (Anomaly role) cannot be targeted - they are not standard crew.
       - !type:JobMindFilter
         job: Anomaly
+      # HardLight start: Freelancers should not roll as personal targets, as it's consistently impossible to actually track them down.
+      - !type:JobMindFilter
+        job: Mercenary
+      - !type:JobMindFilter
+        job: MercenaryInterview
+      # HardLight end
 
 - type: entity
   parent: [BaseTraitorObjective, BaseTeachALessonObjective]

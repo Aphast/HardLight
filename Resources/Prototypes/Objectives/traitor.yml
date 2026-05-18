@@ -104,6 +104,12 @@
     # Anomaly players cannot be targeted.
     - !type:JobMindFilter
       job: Anomaly
+    # HardLight start: Freelancers should not roll as personal targets, as it's consistently impossible to actually track them down.
+    - !type:JobMindFilter
+      job: Mercenary
+    - !type:JobMindFilter
+      job: MercenaryInterview
+    # HardLight end
     # Can't have multiple objectives to kill the same person.
     - !type:TargetObjectiveMindFilter
       blacklist:
