@@ -4166,3 +4166,9 @@ Entries:
       message: Synthetic trait now gives you EAL
   id: 450
   time: '2026-05-21T10:40:37.0000000+00:00'
+- author: TrylobyteWasTaken
+  changes:
+    - type: Fix
+      message: (Admin) The h-series of scale commands now work as intended.
+  id: 451
+  time: '2026-05-21T10:42:30.0000000+00:00'
