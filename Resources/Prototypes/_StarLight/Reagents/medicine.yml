@@ -84,14 +84,14 @@
         damage:
           types:
             Poison: 1.5 #Ammonia is toxic injected directly into bloodstream
-            Asphyxiation: 1 
+            Asphyxiation: 1
             Bloodloss: 0.5
       - !type:ModifyBloodLevel
         conditions:
         - !type:OrganType
           type: Avali
-          shouldHave: false
+          shouldHave: true
         - !type:OrganType
           type: Resomi
-          shouldHave: false
+          shouldHave: true
         amount: 3
