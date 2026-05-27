@@ -19,6 +19,10 @@ using System.Linq;
 using Robust.Server.Audio;
 using Content.Shared.DoAfter; // Frontier
 using Content.Shared._DV.Chemistry.Components; // Frontier
+using Content.Shared.Inventory; // Hardlight
+using Content.Shared.Popups; // Hardlight
+using Content.Shared.Tag; // Hardlight
+using Robust.Shared.Prototypes; // Hardlight
 
 namespace Content.Server.Chemistry.EntitySystems;
 
@@ -28,6 +32,10 @@ public sealed class HypospraySystem : SharedHypospraySystem
     [Dependency] private readonly SharedDoAfterSystem _doAfter = default!; // Frontier - Upstream: #30704 - MIT
     [Dependency] private readonly MobStateSystem _mobState = default!;
     [Dependency] private readonly SharedCombatModeSystem _combatMode = default!;
+    [Dependency] private readonly TagSystem _tag = default!; // Hardlight
+    [Dependency] private readonly InventorySystem _inventory = default!; // Hardlight
+
+    private static readonly ProtoId<TagPrototype> HardsuitTag = "Hardsuit"; // Hardlight
 
     public override void Initialize()
     {
@@ -144,6 +152,13 @@ public sealed class HypospraySystem : SharedHypospraySystem
 
         if (!EligibleEntity(target, EntityManager, component))
             return false;
+
+        if (!component.PierceArmor && _inventory.TryGetSlotEntity(target, "outerClothing", out var suit) && _tag.HasTag(suit.Value, HardsuitTag)) // Hardlight start
+        {
+            _popup.PopupEntity(Loc.GetString(component.BlockedByHardsuitPopupMessage, ("weapon", entity.Owner)), entity.Owner, user, PopupType.SmallCaution);
+
+            return false;
+        } // Hardlight end
 
         // Target event
         var targetEvent = new TargetBeforeHyposprayInjectsEvent(user, entity.Owner, target);

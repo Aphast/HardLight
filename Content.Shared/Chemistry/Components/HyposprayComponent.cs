@@ -76,4 +76,22 @@ public sealed partial class HyposprayComponent : Component
     /// </summary>
     [DataField]
     public bool PreventCombatInjection;
+
+    // Hardlight start: Hardsuit injection prevention
+
+    /// <summary>
+    /// Whether this will inject through hardsuits or not.
+    /// </summary>
+    [DataField]
+    public bool PierceArmor = false;
+
+    /// <summary>
+    /// Contents of popup message to display to the attacker when injection
+    /// fails due to the target wearing a hardsuit.
+    /// </summary>
+    /// <remarks>
+    /// Passed values: $weapon and $target
+    /// </remarks>
+    [DataField]
+    public LocId BlockedByHardsuitPopupMessage = "melee-inject-failed-hardsuit";
 }

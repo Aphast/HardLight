@@ -743,6 +743,7 @@
   - type: Tag
     tags:
     - MonkeyWearable
+    - Hardsuit # HL
 
 #Wizard Hardsuit
 - type: entity
