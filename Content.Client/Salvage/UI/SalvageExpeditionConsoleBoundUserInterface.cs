@@ -205,7 +205,7 @@ public sealed class SalvageExpeditionConsoleBoundUserInterface : BoundUserInterf
             };
 
             offering.Claimed = current.ActiveMission == missionParams.Index;
-            offering.Disabled = current.Claimed || current.Cooldown;
+            offering.Disabled = current.Cooldown;
 
             _window.AddOption(offering);
         }

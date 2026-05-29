@@ -47,6 +47,13 @@ public sealed partial class SalvageExpeditionComponent : SharedSalvageExpedition
     [ViewVariables] public bool Completed = false;
 
     /// <summary>
+    /// True once the expedition completion reward has been spawned successfully.
+    /// Prevents duplicate payouts when success is handled both on objective completion and shutdown.
+    /// </summary>
+    [ViewVariables]
+    public bool RewardSpawned;
+
+    /// <summary>
     /// HardLight: True once expedition return flow has been triggered.
     /// Prevents duplicate FTL/cleanup scheduling.
     /// </summary>

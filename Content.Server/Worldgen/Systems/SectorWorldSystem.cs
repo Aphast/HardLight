@@ -732,7 +732,7 @@ public sealed class SectorWorldSystem : EntitySystem
 
         foreach (var planet in planets)
         {
-            if (!TryGetPersistentMap(planet.PlanetTypeId, out var targetMap, out _ , sector))
+            if (!TryGetPersistentMap(planet.PlanetTypeId, out var targetMap, out _, sector))
                 continue;
 
             var placementOrigin = targetMap == (sector.SpaceMap ?? sectorMap)
@@ -823,6 +823,8 @@ public sealed class SectorWorldSystem : EntitySystem
                 if (!_proto.TryIndex<BiomeTemplatePrototype>(type.BiomeTemplate, out _))
                     continue;
 
+                var atmosphere = RollPlanetAtmosphere(type, rng);
+
                 ent.Comp.Planets.Add(new SectorPlanetDescriptor
                 {
                     PlanetId = $"{type.Id}-{index + 1}",
@@ -834,9 +836,10 @@ public sealed class SectorWorldSystem : EntitySystem
                     Radius = radius,
                     Seed = rng.Next(),
                     Temperature = MathHelper.Lerp(type.MinTemperature, type.MaxTemperature, rng.NextSingle()),
-                    Oxygen = MathHelper.Lerp(type.MinOxygen, type.MaxOxygen, rng.NextSingle()),
-                    Nitrogen = MathHelper.Lerp(type.MinNitrogen, type.MaxNitrogen, rng.NextSingle()),
-                    CarbonDioxide = MathHelper.Lerp(type.MinCarbonDioxide, type.MaxCarbonDioxide, rng.NextSingle()),
+                    Atmosphere = atmosphere,
+                    Oxygen = GetAtmosphereMoles(atmosphere, Gas.Oxygen),
+                    Nitrogen = GetAtmosphereMoles(atmosphere, Gas.Nitrogen),
+                    CarbonDioxide = GetAtmosphereMoles(atmosphere, Gas.CarbonDioxide),
                     TimeOfDay = TimeOfDayStates[rng.Next(TimeOfDayStates.Length)],
                     WeatherPrototype = rng.NextSingle() < 0.5f ? null : type.WeatherPrototype,
                 });
@@ -1049,17 +1052,99 @@ public sealed class SectorWorldSystem : EntitySystem
     private static GasMixture CreateStandardAirMixture()
     {
         var moles = new float[Atmospherics.AdjustedNumberOfGases];
-        moles[(int) Gas.Oxygen] = 21.824779f;
-        moles[(int) Gas.Nitrogen] = 82.10312f;
+        moles[(int)Gas.Oxygen] = 21.824779f;
+        moles[(int)Gas.Nitrogen] = 82.10312f;
         return new GasMixture(moles, Atmospherics.T20C);
+    }
+
+    private static Dictionary<Gas, float> RollPlanetAtmosphere(SectorPlanetTypeDefinition type, Random rng)
+    {
+        var rollRanges = GetPlanetAtmosphereRanges(type);
+        var candidateGases = new List<Gas>(rollRanges.Count);
+
+        foreach (var (gas, range) in rollRanges)
+        {
+            if (MathF.Max(range.Min, range.Max) <= 0f)
+                continue;
+
+            candidateGases.Add(gas);
+        }
+
+        if (candidateGases.Count == 0)
+            return new Dictionary<Gas, float>();
+
+        Shuffle(candidateGases, rng);
+
+        var minGasCount = Math.Max(1, type.MinAtmosphereGasCount);
+        var maxGasCount = Math.Max(minGasCount, type.MaxAtmosphereGasCount);
+        var gasCount = Math.Clamp(rng.Next(minGasCount, maxGasCount + 1), 1, candidateGases.Count);
+        var atmosphere = new Dictionary<Gas, float>(gasCount);
+
+        for (var index = 0; index < gasCount; index++)
+        {
+            var gas = candidateGases[index];
+            var range = rollRanges[gas];
+            atmosphere[gas] = MathHelper.Lerp(range.Min, range.Max, rng.NextSingle());
+        }
+
+        return atmosphere;
+    }
+
+    private static Dictionary<Gas, SectorPlanetGasRange> GetPlanetAtmosphereRanges(SectorPlanetTypeDefinition type)
+    {
+        if (type.Atmosphere.Count > 0)
+            return new Dictionary<Gas, SectorPlanetGasRange>(type.Atmosphere);
+
+        return new Dictionary<Gas, SectorPlanetGasRange>
+        {
+            [Gas.Oxygen] = new(type.MinOxygen, type.MaxOxygen),
+            [Gas.Nitrogen] = new(type.MinNitrogen, type.MaxNitrogen),
+            [Gas.CarbonDioxide] = new(type.MinCarbonDioxide, type.MaxCarbonDioxide),
+            [Gas.Plasma] = new(0f, 8f),
+            [Gas.NitrousOxide] = new(0f, 8f),
+            [Gas.Ammonia] = new(0f, 8f),
+            [Gas.Tritium] = new(0f, 4f),
+            [Gas.WaterVapor] = new(0f, 12f),
+            [Gas.Frezon] = new(0f, 4f),
+        };
+    }
+
+    private static float GetAtmosphereMoles(IReadOnlyDictionary<Gas, float> atmosphere, Gas gas)
+    {
+        return atmosphere.TryGetValue(gas, out var amount) ? amount : 0f;
+    }
+
+    private static void Shuffle<T>(List<T> values, Random rng)
+    {
+        for (var index = values.Count - 1; index > 0; index--)
+        {
+            var swapIndex = rng.Next(index + 1);
+            (values[index], values[swapIndex]) = (values[swapIndex], values[index]);
+        }
     }
 
     private static GasMixture CreatePlanetMixture(SectorPlanetDescriptor planet)
     {
         var moles = new float[Atmospherics.AdjustedNumberOfGases];
-        moles[(int) Gas.Oxygen] = MathF.Max(planet.Oxygen, 0f);
-        moles[(int) Gas.Nitrogen] = MathF.Max(planet.Nitrogen, 0f);
-        moles[(int) Gas.CarbonDioxide] = MathF.Max(planet.CarbonDioxide, 0f);
+
+        if (planet.Atmosphere.Count == 0)
+        {
+            moles[(int)Gas.Oxygen] = MathF.Max(planet.Oxygen, 0f);
+            moles[(int)Gas.Nitrogen] = MathF.Max(planet.Nitrogen, 0f);
+            moles[(int)Gas.CarbonDioxide] = MathF.Max(planet.CarbonDioxide, 0f);
+        }
+        else
+        {
+            foreach (var (gas, amount) in planet.Atmosphere)
+            {
+                var gasIndex = (int)gas;
+                if (gasIndex < 0 || gasIndex >= moles.Length)
+                    continue;
+
+                moles[gasIndex] = MathF.Max(amount, 0f);
+            }
+        }
+
         return new GasMixture(moles, MathF.Max(planet.Temperature, Atmospherics.TCMB));
     }
 

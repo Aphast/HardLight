@@ -28,6 +28,18 @@ namespace Content.IntegrationTests.Tests;
 public sealed class SectorWorldExpeditionIntegrationTest
 {
     private static readonly ProtoId<BiomeTemplatePrototype> SnowBiomeTemplateId = "NFVGRoidSnow";
+    private static readonly HashSet<Gas> RollablePlanetGases = new()
+    {
+        Gas.Oxygen,
+        Gas.Nitrogen,
+        Gas.CarbonDioxide,
+        Gas.Plasma,
+        Gas.NitrousOxide,
+        Gas.Ammonia,
+        Gas.Tritium,
+        Gas.WaterVapor,
+        Gas.Frezon,
+    };
 
     private static List<SectorPlanetTypeDefinition> CreatePlanetTypes() =>
     [
@@ -63,6 +75,20 @@ public sealed class SectorWorldExpeditionIntegrationTest
         }
     ];
 
+    private static float GetExpectedPlanetGas(SectorPlanetDescriptor planet, Gas gas)
+    {
+        if (planet.Atmosphere.TryGetValue(gas, out var amount))
+            return amount;
+
+        return gas switch
+        {
+            Gas.Oxygen => planet.Oxygen,
+            Gas.Nitrogen => planet.Nitrogen,
+            Gas.CarbonDioxide => planet.CarbonDioxide,
+            _ => 0f,
+        };
+    }
+
     [Test]
     public async Task PersistentPlanetTypeMapsHaveConfiguredAtmosphereTest()
     {
@@ -97,6 +123,7 @@ public sealed class SectorWorldExpeditionIntegrationTest
 
             foreach (var planet in sector.Planets)
             {
+                var type = sector.PlanetTypes.First(def => def.Id == planet.PlanetTypeId);
                 Assert.That(sector.PlanetTypeMaps.TryGetValue(planet.PlanetTypeId, out var layerMap), Is.True, planet.PlanetTypeId);
                 Assert.That(entMan.TryGetComponent<MapAtmosphereComponent>(layerMap, out var mapAtmos), Is.True, planet.PlanetTypeId);
                 Assert.That(entMan.TryGetComponent<GravityComponent>(layerMap, out var gravity), Is.True, planet.PlanetTypeId);
@@ -106,9 +133,16 @@ public sealed class SectorWorldExpeditionIntegrationTest
                 Assert.That(mapAtmos!.Space, Is.False, planet.PlanetTypeId);
                 Assert.That(mix, Is.Not.Null, planet.PlanetTypeId);
                 Assert.That(mix!.Temperature, Is.EqualTo(planet.Temperature).Within(0.01f), planet.PlanetTypeId);
-                Assert.That(mix.GetMoles(Gas.Oxygen), Is.EqualTo(planet.Oxygen).Within(0.01f), planet.PlanetTypeId);
-                Assert.That(mix.GetMoles(Gas.Nitrogen), Is.EqualTo(planet.Nitrogen).Within(0.01f), planet.PlanetTypeId);
-                Assert.That(mix.GetMoles(Gas.CarbonDioxide), Is.EqualTo(planet.CarbonDioxide).Within(0.01f), planet.PlanetTypeId);
+                Assert.That(planet.Atmosphere.Count,
+                    Is.GreaterThanOrEqualTo(type.MinAtmosphereGasCount).And.LessThanOrEqualTo(type.MaxAtmosphereGasCount),
+                    planet.PlanetTypeId);
+                Assert.That(planet.Atmosphere.Keys, Is.SubsetOf(RollablePlanetGases), planet.PlanetTypeId);
+
+                foreach (var gas in RollablePlanetGases)
+                {
+                    Assert.That(mix.GetMoles(gas), Is.EqualTo(GetExpectedPlanetGas(planet, gas)).Within(0.01f),
+                        $"{planet.PlanetTypeId}:{gas}");
+                }
             }
 
             Assert.That(entMan.TryGetComponent<MapAtmosphereComponent>(sector.FtlMap!.Value, out var ftlAtmos), Is.True);

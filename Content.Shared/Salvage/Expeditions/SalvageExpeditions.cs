@@ -92,7 +92,7 @@ public sealed partial class SalvageExpeditionDataComponent : Component
     /// Is there an active salvage expedition.
     /// </summary>
     [ViewVariables]
-    public bool Claimed => ActiveMission != 0;
+    public bool Claimed => ActiveMissions.Count > 0;
 
     /// <summary>
     /// Are we actively cooling down from the last salvage mission.
@@ -113,6 +113,13 @@ public sealed partial class SalvageExpeditionDataComponent : Component
     [ViewVariables]
     public readonly Dictionary<ushort, SalvageMissionParams> Missions = new();
 
+    [ViewVariables]
+    public readonly Dictionary<ushort, SalvageMissionParams> ActiveMissions = new();
+
+    /// <summary>
+    /// Legacy primary active mission id retained for UI compatibility.
+    /// Mirrors the first active mission when one exists.
+    /// </summary>
     [ViewVariables] public ushort ActiveMission;
 
     public ushort NextIndex = 1;

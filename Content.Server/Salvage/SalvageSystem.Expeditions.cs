@@ -247,8 +247,8 @@ public sealed partial class SalvageSystem
             comp.NextOffer = currentTime + TimeSpan.FromSeconds(_cooldown); // Frontier
             comp.CooldownTime = TimeSpan.FromSeconds(_cooldown); // Frontier
 
-            // HARDLIGHT: Only generate missions if not already generating and no active mission
-            if (!comp.GeneratingMissions && comp.ActiveMission == 0)
+            // HARDLIGHT: Only generate missions if there are no outstanding offers or active expeditions.
+            if (!comp.GeneratingMissions && !comp.Claimed && comp.Missions.Count == 0)
             {
                 GenerateMissions(comp);
             }
@@ -259,28 +259,84 @@ public sealed partial class SalvageSystem
     private void FinishExpedition(Entity<SalvageExpeditionDataComponent> expedition, SalvageExpeditionComponent expeditionComp, EntityUid uid)
     {
         var component = expedition.Comp;
-        // Frontier: separate timeout/announcement for success/failures
-        if (expeditionComp.Completed)
-        {
-            component.NextOffer = _timing.CurTime + TimeSpan.FromSeconds(_cooldown);
-            component.CooldownTime = TimeSpan.FromSeconds(_cooldown);
-        }
-        else
-        {
-            component.NextOffer = _timing.CurTime + TimeSpan.FromSeconds(_failedCooldown);
-            component.CooldownTime = TimeSpan.FromSeconds(_failedCooldown);
-        }
+
+        TryRemoveActiveMission(component, expeditionComp.MissionParams.Index);
+        component.CanFinish = false;
 
         HandleExpeditionOutcome(uid, expeditionComp); // HardLight
 
-        // End Frontier: separate timeout/announcement for success/failures
-        component.ActiveMission = 0;
-        component.Cooldown = true;
+        if (ShouldStartMissionCooldown(component))
+        {
+            if (expeditionComp.Completed)
+            {
+                component.NextOffer = _timing.CurTime + TimeSpan.FromSeconds(_cooldown);
+                component.CooldownTime = TimeSpan.FromSeconds(_cooldown);
+            }
+            else
+            {
+                component.NextOffer = _timing.CurTime + TimeSpan.FromSeconds(_failedCooldown);
+                component.CooldownTime = TimeSpan.FromSeconds(_failedCooldown);
+            }
 
-        // HARDLIGHT: Clear missions when expedition finishes to prevent UI confusion
-        component.Missions.Clear();
+            component.Cooldown = true;
+        }
+        else
+        {
+            component.Cooldown = false;
+            component.CooldownTime = TimeSpan.Zero;
+        }
 
         UpdateConsoles(expedition);
+        UpdateExpeditionConsole(expeditionComp);
+    }
+
+    private bool TryClaimMission(SalvageExpeditionDataComponent component, ushort missionIndex, out SalvageMissionParams mission)
+    {
+        if (!component.Missions.TryGetValue(missionIndex, out mission))
+            return false;
+
+        component.Missions.Remove(missionIndex);
+        component.ActiveMissions[missionIndex] = mission;
+        SyncPrimaryActiveMission(component);
+        return true;
+    }
+
+    private bool TryRestoreMissionOffer(SalvageExpeditionDataComponent component, ushort missionIndex)
+    {
+        if (!component.ActiveMissions.TryGetValue(missionIndex, out var mission))
+            return false;
+
+        component.ActiveMissions.Remove(missionIndex);
+        component.Missions[missionIndex] = mission;
+        SyncPrimaryActiveMission(component);
+        return true;
+    }
+
+    private bool TryRemoveActiveMission(SalvageExpeditionDataComponent component, ushort missionIndex)
+    {
+        var removed = component.ActiveMissions.Remove(missionIndex);
+        SyncPrimaryActiveMission(component);
+        return removed;
+    }
+
+    private void SyncPrimaryActiveMission(SalvageExpeditionDataComponent component)
+    {
+        component.ActiveMission = component.ActiveMissions.Count > 0
+            ? component.ActiveMissions.Keys.First()
+            : (ushort) 0;
+    }
+
+    private static bool ShouldStartMissionCooldown(SalvageExpeditionDataComponent component)
+    {
+        return component.ActiveMissions.Count == 0 && component.Missions.Count == 0;
+    }
+
+    private void UpdateExpeditionConsole(SalvageExpeditionComponent expeditionComp)
+    {
+        if (expeditionComp.Console is not { } consoleUid || !TryComp<SalvageExpeditionConsoleComponent>(consoleUid, out var consoleComp))
+            return;
+
+        UpdateConsole((consoleUid, consoleComp));
     }
 
     // HardLight start
@@ -289,7 +345,7 @@ public sealed partial class SalvageSystem
         if (expeditionComp.Completed)
         {
             Announce(expeditionUid, Loc.GetString("salvage-expedition-mission-completed"));
-            TrySpawnExpeditionReward(expeditionComp);
+            expeditionComp.RewardSpawned |= TrySpawnExpeditionReward(expeditionComp);
             return;
         }
 
@@ -297,7 +353,7 @@ public sealed partial class SalvageSystem
     }
 
     // Spawn expedition reward at the best available location (console first, then fallback locations).
-    private void TrySpawnExpeditionReward(SalvageExpeditionComponent expeditionComp)
+    private bool TrySpawnExpeditionReward(SalvageExpeditionComponent expeditionComp)
     {
         var diffId = expeditionComp.MissionParams.Difficulty;
         var rewardProto = RewardPrototypeByDifficulty.GetValueOrDefault(diffId, "SpaceCashExpeditionT1");
@@ -305,17 +361,19 @@ public sealed partial class SalvageSystem
         if (!TryGetExpeditionRewardSpawnCoordinates(expeditionComp, out var rewardCoords, out var source))
         {
             Log.Warning("Expedition completed but no valid reward spawn location was found (console/station/grid). Reward not spawned.");
-            return;
+            return false;
         }
 
         try
         {
             EntityManager.SpawnEntity(rewardProto, rewardCoords);
             Log.Info($"Spawned expedition reward {rewardProto} at {source} for difficulty {diffId}.");
+            return true;
         }
         catch (Exception ex)
         {
             Log.Error($"Failed to spawn expedition reward {rewardProto} at {source}: {ex}");
+            return false;
         }
     }
 
@@ -515,17 +573,17 @@ public sealed partial class SalvageSystem
     private void OnExpeditionSpawnComplete(EntityUid uid, SalvageExpeditionDataComponent component, ExpeditionSpawnCompleteEvent ev)
     {
         // HARDLIGHT: Enhanced handling for round persistence
-        if (component.ActiveMission == ev.MissionIndex && !ev.Success)
+        if (!ev.Success && TryRestoreMissionOffer(component, ev.MissionIndex))
         {
-            component.ActiveMission = 0;
             component.Cooldown = false;
+            component.CanFinish = false;
             // HARDLIGHT: Don't regenerate missions here, let UpdateConsole handle it
             // This prevents the UI swapping issue
             UpdateConsoles((uid, component));
 
             Log.Info($"Expedition mission {ev.MissionIndex} failed for entity {uid}, reset console state");
         }
-        else if (component.ActiveMission == ev.MissionIndex && ev.Success)
+        else if (component.ActiveMissions.ContainsKey(ev.MissionIndex) && ev.Success)
         {
             Log.Debug($"Expedition mission {ev.MissionIndex} completed successfully for entity {uid}");
         }
@@ -536,12 +594,10 @@ public sealed partial class SalvageSystem
     {
         // Handle expedition completion events sent to consoles via station data
         var stationData = GetStationExpeditionData(uid);
-        if (stationData != null &&
-            stationData.ActiveMission == ev.MissionIndex &&
-            !ev.Success)
+        if (stationData != null && !ev.Success && TryRestoreMissionOffer(stationData, ev.MissionIndex))
         {
-            stationData.ActiveMission = 0;
             stationData.Cooldown = false;
+            stationData.CanFinish = false;
 
             // Update the console UI
             UpdateConsole((uid, component));
@@ -550,7 +606,7 @@ public sealed partial class SalvageSystem
         }
         // HARDLIGHT: Also handle successful missions to ensure proper state management
         else if (stationData != null &&
-                 stationData.ActiveMission == ev.MissionIndex &&
+                 stationData.ActiveMissions.ContainsKey(ev.MissionIndex) &&
                  ev.Success)
         {
             Log.Debug($"Expedition console {uid} handled successful mission {ev.MissionIndex}");

@@ -359,8 +359,7 @@ public sealed partial class SalvageSystem
 
             if (structure.Structures.Count == 0)
             {
-                comp.Completed = true;
-                Announce(uid, Loc.GetString("salvage-expedition-completed"));
+                CompleteExpeditionObjective(uid, comp);
             }
         }
 
@@ -389,11 +388,25 @@ public sealed partial class SalvageSystem
 
             if (elimination.Megafauna.Count == 0)
             {
-                comp.Completed = true;
-                Announce(uid, Loc.GetString("salvage-expedition-completed"));
+                CompleteExpeditionObjective(uid, comp);
             }
         }
         // End Frontier: mission-specific logic
+    }
+
+    private void CompleteExpeditionObjective(EntityUid expeditionUid, SalvageExpeditionComponent expedition)
+    {
+        if (expedition.Completed)
+            return;
+
+        expedition.Completed = true;
+        Dirty(expeditionUid, expedition);
+
+        Announce(expeditionUid, Loc.GetString("salvage-expedition-completed"));
+        expedition.RewardSpawned |= TrySpawnExpeditionReward(expedition);
+
+        if (!expedition.ReturnTriggered)
+            TriggerExpeditionFTLHome(expeditionUid, expedition);
     }
 
     // HardLight: Clean up console state when expedition ends.
@@ -446,32 +459,10 @@ public sealed partial class SalvageSystem
 
         Log.Info($"Cleaning up expedition state for console {ToPrettyString(consoleUid)}");
 
-        // Reset station expedition state immediately
-        data.ActiveMission = 0;
         data.CanFinish = false;
-        data.Cooldown = false;
-        // HardLight: Clear missions immediately to prevent UI confusion
-        data.Missions.Clear();
 
-        // Update console to show cleared state
+        // Update console to show that the current expedition can no longer be manually finished.
         UpdateConsole((consoleUid, consoleComp));
-
-        // HardLight: Generate new missions after a shorter delay to reduce confusion
-        RobustTimer.Spawn(TimeSpan.FromSeconds(0.5), () => // consoleUid.SpawnTimer<RobustTimer.Spawn
-        {
-            if (Exists(consoleUid) && TryComp<SalvageExpeditionConsoleComponent>(consoleUid, out var comp))
-            {
-                var stationData = GetStationExpeditionData(consoleUid);
-                if (stationData != null && !stationData.GeneratingMissions)
-                {
-                    GenerateMissions(stationData);
-                    UpdateConsole((consoleUid, comp));
-                    Log.Info($"Console {ToPrettyString(consoleUid)} missions regenerated after expedition cleanup");
-                }
-            }
-        });
-
-        Log.Info($"Console {ToPrettyString(consoleUid)} state reset successfully");
     }
 
     /// <summary>

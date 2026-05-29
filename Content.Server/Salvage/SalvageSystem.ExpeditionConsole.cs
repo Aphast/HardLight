@@ -56,7 +56,7 @@ public sealed partial class SalvageSystem
         // Ensure and return grid-local expedition data (independent of stations).
         if (TryComp(gridUid.Value, out SalvageExpeditionDataComponent? gridDataExisting))
         {
-            if (gridDataExisting.Missions.Count == 0 && !gridDataExisting.GeneratingMissions && !gridDataExisting.Cooldown)
+            if (gridDataExisting.Missions.Count == 0 && !gridDataExisting.GeneratingMissions && !gridDataExisting.Cooldown && !gridDataExisting.Claimed)
             {
                 GenerateMissions(gridDataExisting);
                 Dirty(gridUid.Value, gridDataExisting);
@@ -68,6 +68,7 @@ public sealed partial class SalvageSystem
         gridData.Cooldown = false;
         gridData.CanFinish = false;
         gridData.ActiveMission = 0;
+        gridData.ActiveMissions.Clear();
         gridData.CooldownTime = TimeSpan.Zero;
         gridData.NextOffer = _timing.CurTime;
         if (gridData.Missions.Count == 0 && !gridData.GeneratingMissions)
@@ -89,17 +90,16 @@ public sealed partial class SalvageSystem
         // Set this console as the active console for the mission
         component.ActiveConsole = uid;
 
-        // Skip if already claimed
-        if (data.ActiveMission != 0)
+        if (data.ActiveMissions.ContainsKey(args.Index))
         {
-            Log.Warning($"Mission claim rejected for console {ToPrettyString(uid)}: ActiveMission={data.ActiveMission} already in progress");
+            Log.Warning($"Mission claim rejected for console {ToPrettyString(uid)}: mission {args.Index} is already active");
             PlayDenySound((uid, component));
             UpdateConsole((uid, component));
             return;
         }
 
         // Check if the requested mission exists
-        if (!data.Missions.TryGetValue(args.Index, out var missionparams))
+        if (!data.Missions.ContainsKey(args.Index))
         {
             Log.Warning($"Mission claim rejected for console {ToPrettyString(uid)}: RequestedIndex={args.Index} not found, MissionCount={data.Missions.Count}, Available=[{string.Join(",", data.Missions.Keys)}]");
             PlayDenySound((uid, component));
@@ -141,6 +141,13 @@ public sealed partial class SalvageSystem
         // Store reference to console in mission params for FTL completion tracking
         component.ActiveConsole = uid;
 
+        if (!TryClaimMission(data, args.Index, out var missionparams))
+        {
+            PlayDenySound((uid, component));
+            UpdateConsole((uid, component));
+            return;
+        }
+
         // Directly spawn the mission - console is completely independent
         try
         {
@@ -149,13 +156,11 @@ public sealed partial class SalvageSystem
         }
         catch (Exception ex)
         {
+            TryRestoreMissionOffer(data, args.Index);
+            UpdateConsole((uid, component));
             Log.Error($"Failed to spawn mission for console {ToPrettyString(uid)}: {ex}");
             return; // Don't mark as claimed if spawning failed
         }
-
-        // Mark as claimed and active - console handles its own state
-        data.ActiveMission = args.Index;
-        // Do not forcibly reset CanFinish here; preserve existing early-leave availability
 
         var mission = GetMission(missionparams.MissionType, _prototypeManager.Index<SalvageDifficultyPrototype>(missionparams.Difficulty), missionparams.Seed);
         // Do not modify offer timers on claim to avoid regenerating/changing offers prematurely
@@ -216,19 +221,7 @@ public sealed partial class SalvageSystem
             return;
         }
 
-        // Find the active expedition map that was created by this console
-        EntityUid? expeditionMapUid = null;
-        var expeditionQuery = EntityQueryEnumerator<SalvageExpeditionComponent>();
-        while (expeditionQuery.MoveNext(out var expUid, out var expeditionComp))
-        {
-            if (expeditionComp.Console == entity)
-            {
-                expeditionMapUid = expUid;
-                break;
-            }
-        }
-
-        if (expeditionMapUid == null)
+        if (!TryGetExpeditionForEntity(entity, out var expeditionMapUid, out SalvageExpeditionComponent? _, xform))
         {
             Log.Warning($"Could not find active expedition for console {ToPrettyString(entity)}");
             PlayDenySound((entity, component));
@@ -244,13 +237,13 @@ public sealed partial class SalvageSystem
         const int departTime = 20;
         AnnounceEarlyFinishCountdown(entity, xform.GridUid, departTime); // HardLight
 
-        Log.Info($"Early expedition finish initiated on console {ToPrettyString(entity)}, FTL in {departTime} seconds");
+        Log.Info($"Early expedition finish initiated on console {ToPrettyString(entity)} for expedition {ToPrettyString(expeditionMapUid)}, FTL in {departTime} seconds");
 
         // Schedule the actual expedition completion after 20 seconds
             RobustTimer.Spawn(TimeSpan.FromSeconds(departTime), () =>
             {
             // Verify the expedition still exists
-                if (!Exists(expeditionMapUid.Value) || !TryComp(expeditionMapUid.Value, out SalvageExpeditionComponent? expComp))
+                if (!Exists(expeditionMapUid) || !TryComp(expeditionMapUid, out SalvageExpeditionComponent? expComp))
             {
                 Log.Warning($"Expedition {expeditionMapUid} no longer exists when trying to finish early");
                 return;
@@ -261,9 +254,9 @@ public sealed partial class SalvageSystem
             // updates expComp.Completed based on objectives.
 
             // Trigger the same FTL process as normal expedition timeout
-            TriggerExpeditionFTLHome(expeditionMapUid.Value, expComp);
+            TriggerExpeditionFTLHome(expeditionMapUid, expComp);
 
-            Log.Info($"Early expedition finish completed for {ToPrettyString(expeditionMapUid.Value)}");
+            Log.Info($"Early expedition finish completed for {ToPrettyString(expeditionMapUid)}");
         });
     }
     // End Frontier: early expedition end
@@ -302,8 +295,8 @@ public sealed partial class SalvageSystem
     }
 
     /// <summary>
-    /// HardLight: Triggers the FTL home process for shuttles on an expedition map
-    /// This is the same logic used in normal expedition timeout but extracted for early finish
+    /// HardLight: Triggers the FTL home process for shuttles on an expedition map.
+    /// Used by both manual early-finish and objective-complete success handling.
     /// </summary>
     private void TriggerExpeditionFTLHome(EntityUid expeditionMapUid, SalvageExpeditionComponent expedition)
     {
@@ -316,7 +309,7 @@ public sealed partial class SalvageSystem
 
         expedition.ReturnTriggered = true;
 
-        const float ftlTime = 20f; // 20 seconds FTL time for early finish
+        const float ftlTime = 20f;
         var shuttleQuery = EntityQueryEnumerator<ShuttleComponent, TransformComponent, ExpeditionParticipantShuttleComponent>();
 
         // HardLight start
@@ -340,7 +333,7 @@ public sealed partial class SalvageSystem
 
             // FTL the shuttle home
             _shuttle.FTLToCoordinates(shuttleUid, shuttle, new EntityCoordinates(returnMapUid, dropLocation), 0f, startupTime: _shuttle.DefaultStartupTime, hyperspaceTime: ftlTime); // HardLight
-            Log.Info($"Early finish: FTLing shuttle {shuttleUid} home from expedition {expeditionMapUid} via {targetSource}"); // HardLight: Removed via {targetSource}
+            Log.Info($"FTLing shuttle {shuttleUid} home from expedition {expeditionMapUid} via {targetSource}");
         }
 
         // Clean up console state and schedule expedition deletion
@@ -399,18 +392,15 @@ public sealed partial class SalvageSystem
             return;
         }
 
-        // Sanitize ActiveMission against current mission list to avoid UI/index errors
-        if (data.ActiveMission != 0 && !data.Missions.ContainsKey(data.ActiveMission))
-        {
-            Log.Warning($"Console {ToPrettyString(uid)} had ActiveMission={data.ActiveMission} not in mission list; resetting.");
-            data.ActiveMission = 0;
+        SyncPrimaryActiveMission(data);
+
+        if (!data.Claimed)
             data.CanFinish = false;
-        }
 
         // HardLight: Only generate missions if truly needed and not already generating
         // This prevents the race condition that causes UI issues
         bool shouldGenerateMissions = data.Missions.Count == 0 &&
-                                     data.ActiveMission == 0 &&
+                                     !data.Claimed &&
                                      !data.GeneratingMissions &&
                                      !data.Cooldown;
 
@@ -431,7 +421,7 @@ public sealed partial class SalvageSystem
         );
 
         _ui.SetUiState(component.Owner, SalvageConsoleUiKey.Expedition, state);
-        Log.Debug($"Updated console {ToPrettyString(uid)} with {state.Missions.Count} missions (Active: {data.ActiveMission}, Cooldown: {data.Cooldown})");
+        Log.Debug($"Updated console {ToPrettyString(uid)} with {state.Missions.Count} missions (PrimaryActive: {data.ActiveMission}, ActiveCount: {data.ActiveMissions.Count}, Cooldown: {data.Cooldown})");
     }
 
     // HardLight: Direct mission spawning for console-specific expeditions

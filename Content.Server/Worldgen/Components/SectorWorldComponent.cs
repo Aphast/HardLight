@@ -1,4 +1,5 @@
 using System.Numerics;
+using Content.Shared.Atmos;
 using Content.Shared.Parallax.Biomes;
 
 namespace Content.Server.Worldgen.Components;
@@ -87,6 +88,15 @@ public sealed partial class SectorPlanetTypeDefinition
     public float MaxTemperature = 360f;
 
     [DataField]
+    public Dictionary<Gas, SectorPlanetGasRange> Atmosphere = new();
+
+    [DataField]
+    public int MinAtmosphereGasCount = 3;
+
+    [DataField]
+    public int MaxAtmosphereGasCount = 5;
+
+    [DataField]
     public float MinOxygen = 0f;
 
     [DataField]
@@ -106,6 +116,26 @@ public sealed partial class SectorPlanetTypeDefinition
 
     [DataField]
     public string? WeatherPrototype;
+}
+
+[DataDefinition]
+public sealed partial class SectorPlanetGasRange
+{
+    public SectorPlanetGasRange()
+    {
+    }
+
+    public SectorPlanetGasRange(float min, float max)
+    {
+        Min = min;
+        Max = max;
+    }
+
+    [DataField]
+    public float Min;
+
+    [DataField]
+    public float Max;
 }
 
 [DataDefinition]
@@ -137,6 +167,9 @@ public sealed partial class SectorPlanetDescriptor
 
     [DataField]
     public float Temperature;
+
+    [DataField]
+    public Dictionary<Gas, float> Atmosphere = new();
 
     [DataField]
     public float Oxygen;
