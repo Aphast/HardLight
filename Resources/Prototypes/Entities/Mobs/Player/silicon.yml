@@ -488,6 +488,7 @@
     - HideContextMenu
     - StationAi
     - NoConsoleSound
+    - CanPilot # Hardlight
   - type: StartingMindRole
     mindRole: "MindRoleSiliconBrain"
     silent: true
