@@ -77,6 +77,14 @@ public sealed partial class ShipShieldEmitterComponent : Component
     [DataField]
     public Color ShieldColor = Color.White;
 
+    /// <summary>
+    /// Extra size (added to the shielded grid's bounds) of the oval shield this emitter projects.
+    /// Larger = a roomier bubble around the hull. Default 50 matches ShipShieldVisualsComponent.
+    /// Smaller tiers use a tighter value so the shield hugs the hull and is harder to hit.
+    /// </summary>
+    [DataField]
+    public float ShieldPadding = 50f;
+
     public float OverloadAccumulator = 0f;
     /// <summary>
     /// On power up, players for all on vessel, pitched down.

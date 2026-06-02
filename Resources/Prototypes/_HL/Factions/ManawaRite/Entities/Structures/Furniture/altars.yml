@@ -29,10 +29,6 @@
     - ManawaRiteStatic
   - type: MaterialStorage
     canEjectStoredMaterials: true
-    whitelist:
-      tags:
-      - Sheet
-      - RawMaterial
   - type: ContainerContainer
     containers:
       machine_board: !type:Container

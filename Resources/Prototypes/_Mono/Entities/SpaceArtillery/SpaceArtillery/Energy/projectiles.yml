@@ -498,8 +498,8 @@
   - type: HitscanBasicDamage
     damage:
      types:
-      Heat: 10000
-      Structural: 50000
+      Heat: 1500       # ~3k DPS, better than Kargil + hitscan
+      Structural: 7500
   - type: HitscanSpawnEntity
     spawnedEntity: ApolloExplosion
   - type: HitscanBasicRaycast

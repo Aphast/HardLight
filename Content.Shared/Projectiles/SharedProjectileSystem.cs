@@ -109,8 +109,19 @@ public abstract partial class SharedProjectileSystem : EntitySystem
         // Subscribe to ensure MetaDataComponent on projectile entities for networking
         SubscribeLocalEvent<ProjectileComponent, ComponentStartup>(OnProjectileMetaStartup);
 
+        // HardLight: record the origin grid so ship-gun shells can phase through their own ship.
+        SubscribeLocalEvent<Content.Shared._Mono.ProjectileGridPhaseComponent, ComponentStartup>(OnProjectileGridPhaseStartup);
+
         // Mono
         SubscribeLocalEvent<ProjectileComponent, TileFrictionEvent>(OnTileFriction);
+    }
+
+    /// <summary>
+    /// HardLight: record the origin grid so the projectile can phase through it for its whole flight.
+    /// </summary>
+    private void OnProjectileGridPhaseStartup(EntityUid uid, Content.Shared._Mono.ProjectileGridPhaseComponent component, ComponentStartup args)
+    {
+        component.SourceGrid = Transform(uid).GridUid;
     }
 
     /// <summary>
@@ -481,6 +492,16 @@ public abstract partial class SharedProjectileSystem : EntitySystem
         if (component.IgnoreShooter && (args.OtherEntity == component.Shooter || args.OtherEntity == component.Weapon))
         {
             args.Cancelled = true;
+        }
+
+        // HardLight: ship-gun shells phase through every entity on their origin grid (hull, shield,
+        // turrets) for their whole flight, so they never collide with / get slowed by their own ship.
+        if (TryComp<Content.Shared._Mono.ProjectileGridPhaseComponent>(uid, out var phaseComp)
+            && phaseComp.SourceGrid is { } sourceGrid
+            && Transform(args.OtherEntity).GridUid == sourceGrid)
+        {
+            args.Cancelled = true;
+            return;
         }
 
         // Check if any shield system wants to prevent collision

@@ -914,7 +914,7 @@
     powerUseActive: 7500
   - type: Actions
   - type: ProjectileBatteryAmmoProvider
-    proto: ShipIonProjectile
+    proto: ShipAntiMatterProjectile # HardLight: Reaper "tachyon lance" is the hull-shatterer (was ion/EMP by mistake)
     fireCost: 4000
   - type: Fixtures
     fixtures:
@@ -990,7 +990,7 @@
   - type: FireControlRotate
   - type: Actions
   - type: ProjectileBatteryAmmoProvider
-    proto: ShipAntiMatterProjectile
+    proto: ShipIonProjectile # HardLight: Harbinger "ion cannon" is the EMP weapon (was antimatter by mistake)
     fireCost: 5000
   - type: Destructible
     thresholds:

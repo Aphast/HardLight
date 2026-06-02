@@ -83,6 +83,7 @@
   - type: Appearance
   - type: ShipShieldEmitter
     damageLimit: 108000 # Mono: was 60000, scaled with Sentinel rebalance
+    shieldPadding: 50 # old default
     damageOverloadTimePunishment: 8 # Mono: brief lockout before recharge
     healPerSecond: 1700 # Mono: ~16s full recharge
     damageExp: 1.05 # Base is 1.1
@@ -118,6 +119,7 @@
   suffix: POI ONLY
   components:
   - type: ShipShieldEmitter
+    shieldPadding: 100 # big shield for stations to let people and ships hide
     damageLimit: 450000 # Mono: was 250000, scaled with Sentinel rebalance
     healPerSecond: 5400 # Mono: ~12s full recharge
     damageExp: 1
@@ -139,7 +141,7 @@
       color: "#FF9933"
   - type: Anchorable
     flags:
-    - Unanchorable 
+    - Unanchorable
   - type: Destructible
     thresholds:
     - trigger:
@@ -198,6 +200,7 @@
   suffix: TSF CAPITAL ONLY
   components:
   - type: ShipShieldEmitter
+    shieldPadding: 75 # bigger shield for carrier with fighters
     damageLimit: 215000 # Mono: was 120000, scaled with Sentinel rebalance
     healPerSecond: 3600 # Mono: ~10s full recharge
     damageExp: 1
@@ -268,6 +271,7 @@
   suffix: ADS ONLY
   components:
   - type: ShipShieldEmitter
+    shieldPadding: 45 # just a little tighter
     damageLimit: 215000 # Mono: was 120000, scaled with Sentinel rebalance
     healPerSecond: 3600 # Mono: ~10s full recharge
     damageExp: 1.05 # Base is 1.1
@@ -293,6 +297,7 @@
   suffix: ADS ONLY, SCI VOUCHER SHIPS ONLY
   components:
   - type: ShipShieldEmitter
+    shieldPadding: 15 # very tight shield
     damageLimit: 168000 # Mono: was 95000, scaled with Sentinel rebalance
     healPerSecond: 2400 # Mono: ~14s full recharge
     damageExp: 1.05 # Base is 1.1
@@ -378,6 +383,7 @@
   description: The Sentinel. A good, reliable shield.
   components:
   - type: ShipShieldEmitter
+    shieldPadding: 30 # tighter shield
     damageLimit: 120000 # Mono: tuned so lbyte (2k DPS) takes ~60s to break
     healPerSecond: 1333 # Mono: ~18s full recharge
     damageExp: 1.05 # Mono

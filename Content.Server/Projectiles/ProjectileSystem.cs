@@ -15,6 +15,7 @@ using Robust.Shared.Map;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Dynamics; // Mono
+using Robust.Shared.Physics.Events; // HardLight - PreventCollideEvent in anti-tunnel raycast
 using Robust.Shared.Physics.Systems;
 using Robust.Shared.Timing;
 using System.Linq;
@@ -163,32 +164,71 @@ public sealed class ProjectileSystem : SharedProjectileSystem
                 false) // IncludeNonHard = false
                 .ToList();
 
-            // If IgnoreShooter is true, remove the shooter from the list of potential hits.
-            if (projectileComp.IgnoreShooter && projectileComp.Shooter.HasValue)
-            {
-                hits.RemoveAll(hit => hit.HitEntity == projectileComp.Shooter.Value);
-            }
+            TryComp<ProjectileTargetWhitelistComponent>(uid, out var targetFilter); // HardLight
 
-            if (TryComp<ProjectileTargetWhitelistComponent>(uid, out var targetFilter)) // HardLight
-            {
-                hits.RemoveAll(hit => !_whitelist.CheckBoth(hit.HitEntity, targetFilter.Blacklist, targetFilter.Whitelist));
-            }
+            // HardLight: walk hits nearest-first and route them through the same PreventCollide logic
+            // as a normal physics collision. Stop at the first real hit; if a handler consumes the shell
+            // (e.g. a shield intercept), stop there too instead of punching through to hits behind it.
+            hits.Sort((a, b) => a.Distance.CompareTo(b.Distance));
 
-            if (hits.Count > 0)
+            foreach (var hit in hits)
             {
-                // Process the closest hit
-                // IntersectRay results are not guaranteed to be sorted by distance, so we sort them.
-                hits.Sort((a, b) => a.Distance.CompareTo(b.Distance));
-                var closestHit = hits.First();
+                var hitEnt = hit.HitEntity;
 
-                // teleport us so we hit it
-                // this is cursed but i don't think there's a better way to force a collision here
-                _transformSystem.SetWorldPosition(uid, _transformSystem.GetWorldPosition(closestHit.HitEntity));
+                if (projectileComp.IgnoreShooter && projectileComp.Shooter == hitEnt)
+                    continue;
+
+                if (targetFilter != null && !_whitelist.CheckBoth(hitEnt, targetFilter.Blacklist, targetFilter.Whitelist))
+                    continue;
+
+                if (RaycastHitPrevented(uid, physicsComp, projFix, hitEnt))
+                {
+                    // Collision prevented. If the shell was also consumed (shield intercept), stop;
+                    // otherwise it genuinely passes through (own grid / EMP bypass) so keep scanning.
+                    if (projectileComp.ProjectileSpent || TerminatingOrDeleted(uid) || EntityManager.IsQueuedForDeletion(uid))
+                        break;
+                    continue;
+                }
+
+                // Real collision: snap to the hit point so the normal collision pipeline resolves it.
+                var tpPos = lastPosition + rayDirection * hit.Distance;
+                _transformSystem.SetWorldPosition(uid, tpPos);
                 if (projectileComp.RaycastResetVelocity)
                     _physics.SetLinearVelocity(uid, rayDirection * MinRaycastVelocity * 0.99f);
-
-                continue;
+                break;
             }
         }
+    }
+
+    /// <summary>
+    /// HardLight: mirror the engine's PreventCollide handshake so the anti-tunnel raycast ignores
+    /// entities the projectile would phase through (own grid, shields, shooter). Returns true to ignore.
+    /// </summary>
+    private bool RaycastHitPrevented(EntityUid uid, PhysicsComponent body, Fixture projFix, EntityUid hitEnt)
+    {
+        if (!_physQuery.TryComp(hitEnt, out var otherBody) || !_fixQuery.TryComp(hitEnt, out var otherFixtures))
+            return true;
+
+        Fixture? hitFix = null;
+        foreach (var kv in otherFixtures.Fixtures)
+        {
+            if (kv.Value.Hard)
+            {
+                hitFix = kv.Value;
+                break;
+            }
+        }
+
+        if (hitFix == null)
+            return true; // nothing hard to actually collide with
+
+        var ourEv = new PreventCollideEvent(uid, hitEnt, body, otherBody, projFix, hitFix);
+        RaiseLocalEvent(uid, ref ourEv);
+        if (ourEv.Cancelled)
+            return true;
+
+        var otherEv = new PreventCollideEvent(hitEnt, uid, otherBody, body, hitFix, projFix);
+        RaiseLocalEvent(hitEnt, ref otherEv);
+        return otherEv.Cancelled;
     }
 }
