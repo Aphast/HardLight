@@ -1,5 +1,10 @@
 ﻿name: "Labels: Untriaged"
 
+concurrency:
+  group: labels
+  cancel-in-progress: false
+  queue: max
+
 on:
   issues:
     types: [opened]

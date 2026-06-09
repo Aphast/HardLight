@@ -1,5 +1,10 @@
 ﻿name: "Labels: Review"
 
+concurrency:
+  group: labels
+  cancel-in-progress: false
+  queue: max
+
 on:
   pull_request_target:
     types: [review_requested]

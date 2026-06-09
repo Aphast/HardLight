@@ -19,7 +19,7 @@ namespace Content.Client.Changelog
         [Dependency] private readonly IConfigurationManager _configManager = default!;
 
         private const string SawmillName = "changelog";
-        public const string MainChangelogName = "Changelog";
+        public const string MainChangelogName = "HardlightChangelog";
 
         private ISawmill _sawmill = default!;
 
@@ -117,6 +117,7 @@ namespace Content.Client.Changelog
                 }
 
                 changelogs.Sort((a, b) => a.Order.CompareTo(b.Order));
+                changelogs = changelogs.OrderBy(x => x.Name != MainChangelogName).ToList(); // HL: Allow setting the first tab
                 return changelogs;
             });
         }

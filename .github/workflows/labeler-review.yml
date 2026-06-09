@@ -1,4 +1,10 @@
 name: "Labels: Approved"
+
+concurrency:
+  group: labels
+  cancel-in-progress: false
+  queue: max
+
 on:
   pull_request_review:
     types: [submitted]
