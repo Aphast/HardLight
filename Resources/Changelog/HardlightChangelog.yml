@@ -4612,3 +4612,9 @@ Entries:
   changes: []
   id: 490
   time: '2026-06-09T20:13:06.0000000+00:00'
+- author: Fardoche0
+  changes:
+    - type: Fix
+      message: 'Breaching Hammer can now be used to pry. '
+  id: 491
+  time: '2026-06-09T20:19:53.0000000+00:00'
