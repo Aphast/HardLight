@@ -486,9 +486,15 @@ public abstract partial class SharedGunSystem : EntitySystem
         // Remove ammo
         var ev = new TakeAmmoEvent(shots, new List<(EntityUid? Entity, IShootable Shootable)>(), fromCoordinates, user, true); // Frontier: add intent to fire
 
+        // Debug: log ammo request
+        //Log.Info($"SharedGun AttemptShoot: gun={gunUid} user={user} shots={shots} from={fromCoordinates} to={toCoordinates} SelectedMode={gun.SelectedMode} ShotCounter={gun.ShotCounter}");
+
         // Listen it just makes the other code around it easier if shots == 0 to do this.
         if (shots > 0)
             RaiseLocalEvent(gunUid, ev);
+
+        // Debug: report ammo provided
+        //Log.Info($"SharedGun AttemptShoot: gun={gunUid} ammoProvided={ev.Ammo.Count}");
 
         DebugTools.Assert(ev.Ammo.Count <= shots);
         DebugTools.Assert(shots >= 0);
