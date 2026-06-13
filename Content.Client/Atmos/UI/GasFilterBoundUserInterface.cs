@@ -1,19 +1,3 @@
-// SPDX-FileCopyrightText: 2021 ike709
-// SPDX-FileCopyrightText: 2022 Leon Friedrich
-// SPDX-FileCopyrightText: 2022 Pieter-Jan Briers
-// SPDX-FileCopyrightText: 2022 Vordenburg
-// SPDX-FileCopyrightText: 2022 mirrorcult
-// SPDX-FileCopyrightText: 2023 TemporalOroboros
-// SPDX-FileCopyrightText: 2023 Tom Leys
-// SPDX-FileCopyrightText: 2023 deltanedas
-// SPDX-FileCopyrightText: 2023 metalgearsloth
-// SPDX-FileCopyrightText: 2024 Kot
-// SPDX-FileCopyrightText: 2024 Nemanja
-// SPDX-FileCopyrightText: 2025 Steve
-// SPDX-FileCopyrightText: 2025 bitcrushing
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 using Content.Client.Atmos.EntitySystems;
 using Content.Shared.Atmos;
 using Content.Shared.Atmos.Piping.Trinary.Components;
@@ -27,7 +11,7 @@ namespace Content.Client.Atmos.UI
     public sealed class GasFilterBoundUserInterface : BoundUserInterface
     {
         [ViewVariables]
-        private float _maxTransferRate = Atmospherics.MaxTransferRate;
+        private const float MaxTransferRate = Atmospherics.MaxTransferRate;
 
         [ViewVariables]
         private GasFilterWindow? _window;
@@ -60,9 +44,6 @@ namespace Content.Client.Atmos.UI
         private void OnFilterTransferRatePressed(string value)
         {
             var rate = UserInputParser.TryFloat(value, out var parsed) ? parsed : 0f;
-            if (rate > _maxTransferRate)
-                rate = _maxTransferRate;
-
             SendMessage(new GasFilterChangeRateMessage(rate));
         }
 
@@ -82,7 +63,6 @@ namespace Content.Client.Atmos.UI
             _window.SetTransferRate(cast.TransferRate);
             _window.SetFilteredGases(cast.FilterGases ?? new HashSet<Gas>());
             // Funky Station - UI updated using hashset of gases
-            _maxTransferRate = cast.HighFlow ? cast.MaxTransferRate * 5f : cast.MaxTransferRate;
         }
 
         protected override void Dispose(bool disposing)

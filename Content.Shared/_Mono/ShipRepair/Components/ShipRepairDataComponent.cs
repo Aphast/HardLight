@@ -64,5 +64,6 @@ public sealed partial class ShipRepairEntitySpecifier
     /// <summary>
     /// Original entity this was snapshotted from.
     /// </summary>
+    [DataField]
     public NetEntity? OriginalEntity;
 }

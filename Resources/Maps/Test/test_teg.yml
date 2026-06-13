@@ -15,9 +15,7 @@ entities:
     - type: MetaData
     - type: Transform
     - type: Map
-
     - type: GridTree
-
     - type: Broadphase
     - type: OccluderTree
     - type: LoadedMap

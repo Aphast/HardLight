@@ -1,5 +1,4 @@
 using Content.Shared.Humanoid.Prototypes;
-using Content.Shared.Roles;
 using Content.Shared.Whitelist;
 using Robust.Shared.Prototypes;
 
@@ -9,7 +8,7 @@ namespace Content.Shared.Traits;
 /// Describes a trait.
 /// </summary>
 [Prototype]
-public sealed partial class TraitPrototype : IPrototype, IComparable<TraitPrototype>
+public sealed partial class TraitPrototype : IPrototype
 {
     [ViewVariables]
     [IdDataField]
@@ -43,7 +42,7 @@ public sealed partial class TraitPrototype : IPrototype, IComparable<TraitProtot
     /// The components that get added to the player, when they pick this trait.
     /// </summary>
     [DataField]
-    public ComponentRegistry Components { get; private set; } = new();
+    public ComponentRegistry Components { get; private set; } = default!;
 
     /// <summary>
     /// Gear that is given to the player, when they pick this trait.
@@ -63,7 +62,19 @@ public sealed partial class TraitPrototype : IPrototype, IComparable<TraitProtot
     [DataField]
     public ProtoId<TraitCategoryPrototype>? Category;
 
-    // Starlight start
+        /// <summary>
+        ///     List of traits that ca't be taken together with this one.
+        /// </summary>
+        [DataField]
+        public HashSet<ProtoId<TraitPrototype>> MutuallyExclusiveTraits { get; private set; } = new();
+
+        /// <summary>
+        ///     List of species that can't have this trait.
+        /// </summary>
+        [DataField]
+        public HashSet<ProtoId<SpeciesPrototype>> SpeciesBlacklist { get; private set; } = new();
+
+    // Einstein Engines - Language begin (remove this if trait system refactor)
     /// <summary>
     ///     The list of all Spoken Languages that this trait adds.
     /// </summary>
@@ -87,45 +98,5 @@ public sealed partial class TraitPrototype : IPrototype, IComparable<TraitProtot
     /// </summary>
     [DataField]
     public List<string>? RemoveLanguagesUnderstood { get; private set; } = default!;
-    // Starlight end
-
-    /// <summary>
-    ///     List of traits that ca't be taken together with this one.
-    /// </summary>
-    [DataField]
-    public HashSet<ProtoId<TraitPrototype>> MutuallyExclusiveTraits { get; private set; } = new();
-
-    /// <summary>
-    ///     List of species that can't have this trait.
-    /// </summary>
-    [DataField]
-    public HashSet<ProtoId<SpeciesPrototype>> SpeciesBlacklist { get; private set; } = new();
-
-    /// <summary>
-    ///     Requirements for this trait to be selectable.
-    /// </summary>
-    [DataField]
-    public List<JobRequirement> Requirements { get; private set; } = new();
-
-    /// <summary>
-    ///     If this trait should replace the added components. Hardlight change.
-    /// </summary>
-    [DataField]
-    public bool ReplaceComponents = false;
-
-    /// <summary>
-    ///     HardLight: If non-empty, this trait is visible and selectable only by players whose SS14
-    ///     login name appears in this list. Hidden entirely from all other players to prevent UI cluttering.
-    /// </summary>
-    [DataField]
-    public List<string> Logins { get; private set; } = new();
-
-    /// <summary>
-    ///     Comparison for sorting traits by cost.
-    /// </summary>
-    public int CompareTo(TraitPrototype? other)
-    {
-        if (other == null) return 1;
-        return Cost.CompareTo(other.Cost);
-    }
+    // Einstein Engines - Language end
 }

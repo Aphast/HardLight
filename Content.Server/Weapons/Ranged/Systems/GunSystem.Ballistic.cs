@@ -1,48 +1,41 @@
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
 using Robust.Shared.Map;
-using Robust.Shared.Prototypes;
 
 namespace Content.Server.Weapons.Ranged.Systems;
 
 public sealed partial class GunSystem
 {
+    /// <summary>
+    /// Adds an ammo entity to a BallisticAmmoProvider (Mono - entire method)
+    /// </summary>
+    public void AddBallisticAmmo(Entity<BallisticAmmoProviderComponent?> ent, EntityUid ammoEntity)
+    {
+        if (!Resolve(ent, ref ent.Comp))
+            return;
+        ent.Comp.Entities.Add(ammoEntity);
+        DirtyField(ent, ent.Comp, nameof(BallisticAmmoProviderComponent.Entities));
+    }
+
     protected override void Cycle(EntityUid uid, BallisticAmmoProviderComponent component, MapCoordinates coordinates)
     {
         EntityUid? ent = null;
 
         // TODO: Combine with TakeAmmo
-        while (component.Entities.Count > 0)
+        if (component.Entities.Count > 0)
         {
             var existing = component.Entities[^1];
             component.Entities.RemoveAt(component.Entities.Count - 1);
-            Dirty(uid, component);
+            DirtyField(uid, component, nameof(BallisticAmmoProviderComponent.Entities));
 
-            if (!Exists(existing))
-                continue;
-
-            if (TryComp(existing, out TransformComponent? _))
-                Containers.Remove(existing, component.Container);
-
+            Containers.Remove(existing, component.Container);
+			ent = existing; //Mono: Sound bugfix
             EnsureShootable(existing);
-            break;
         }
-
-        if (component.Entities.Count == 0 && ent == null && component.UnspawnedCount > 0)
+        else if (component.UnspawnedCount > 0 && !component.InfiniteUnspawned) // Mono - no ammo generator
         {
             component.UnspawnedCount--;
-            Dirty(uid, component);
-
-            if (component.Proto is { } proto &&
-                ProtoManager.TryIndex<EntityPrototype>(proto, out var entityProto) &&
-                entityProto.Components.TryGetValue(_factory.GetComponentName(typeof(CartridgeAmmoComponent)), out var cartridgeComp) &&
-                cartridgeComp.Component is CartridgeAmmoComponent { DeleteOnSpawn: true })
-            {
-                var caselessCycledEvent = new GunCycledEvent();
-                RaiseLocalEvent(uid, ref caselessCycledEvent);
-                return;
-            }
-
+            DirtyField(uid, component, nameof(BallisticAmmoProviderComponent.UnspawnedCount));
             ent = Spawn(component.Proto, coordinates);
             EnsureShootable(ent.Value);
         }

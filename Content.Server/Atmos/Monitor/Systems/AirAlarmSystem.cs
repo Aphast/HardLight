@@ -34,17 +34,17 @@ namespace Content.Server.Atmos.Monitor.Systems;
 // data key. In response, a packet will be transmitted
 // with the response type as its command, and the
 // response data in its data key.
-public sealed class AirAlarmSystem : EntitySystem
+public sealed partial class AirAlarmSystem : EntitySystem
 {
-    [Dependency] private readonly AccessReaderSystem _access = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly AtmosAlarmableSystem _atmosAlarmable = default!;
-    [Dependency] private readonly AtmosDeviceNetworkSystem _atmosDevNet = default!;
-    [Dependency] private readonly DeviceNetworkSystem _deviceNet = default!;
-    [Dependency] private readonly DeviceLinkSystem _deviceLink = default!;
-    [Dependency] private readonly DeviceListSystem _deviceList = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly UserInterfaceSystem _ui = default!;
+    [Dependency] private AccessReaderSystem _access = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private AtmosAlarmableSystem _atmosAlarmable = default!;
+    [Dependency] private AtmosDeviceNetworkSystem _atmosDevNet = default!;
+    [Dependency] private DeviceNetworkSystem _deviceNet = default!;
+    [Dependency] private DeviceLinkSystem _deviceLink = default!;
+    [Dependency] private DeviceListSystem _deviceList = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private UserInterfaceSystem _ui = default!;
 
     #region Device Network API
 
@@ -624,30 +624,15 @@ public sealed class AirAlarmSystem : EntitySystem
     {
         percentage = 0f;
 
-        // Single-pass replacement for the previous Select+SelectMany+Where+Count+Sum+Average chain
-        // which iterated alarm.SensorData.Values up to four times per gas per UI refresh
-        // (UpdateUI calls this for every gas; each pass also allocates LINQ enumerators).
-        var matchCount = 0;
-        var matchedSum = 0f;
-        var totalMolesSum = 0f;
+        var data = alarm.SensorData.Values.SelectMany(v => v.Gases.Where(g => g.Key == gas));
 
-        foreach (var data in alarm.SensorData.Values)
-        {
-            totalMolesSum += data.TotalMoles;
-            if (!data.Gases.TryGetValue(gas, out var moles))
-                continue;
-
-            matchCount++;
-            matchedSum += moles;
-        }
-
-        if (matchCount == 0)
+        if (data.Count() == 0)
             return 0f;
 
-        if (totalMolesSum > 0f)
-            percentage = matchedSum / totalMolesSum;
+        var averageMol = data.Select(kvp => kvp.Value).Average();
+        percentage = data.Select(kvp => kvp.Value).Sum() / alarm.SensorData.Values.Select(v => v.TotalMoles).Sum();
 
-        return matchedSum / matchCount;
+        return averageMol;
     }
 
     public void UpdateUI(EntityUid uid, AirAlarmComponent? alarm = null, DeviceNetworkComponent? devNet = null, AtmosAlarmableComponent? alarmable = null)

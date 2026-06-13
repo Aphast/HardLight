@@ -3,26 +3,10 @@
   parent: ThrusterSecurity
   suffix: Rogue
   components:
-  # VRS: NF's `ThrusterSecurity` parent uses state `base_sec`/`thrust_burn_sec`,
-  # but the rogue rsi shipped from Mono only has `base`/`thrust`/`thrust_burn_unshaded`.
-  # Override the layers so they resolve against the new sprite.
   - type: Sprite
     sprite: _Mono/Structures/Shuttles/thrusterrogue.rsi
-    layers:
-    - state: base
-      map: ["enum.ThrusterVisualLayers.Base"]
-    - state: thrust
-      map: ["enum.ThrusterVisualLayers.ThrustOn"]
-      shader: unshaded
-      visible: false
-    - state: thrust_burn_unshaded
-      map: ["enum.ThrusterVisualLayers.ThrustingUnshaded"]
-      shader: unshaded
-      visible: false
-      offset: 0, 1
   - type: Machine
-    # VRS: ThrusterRogueMachineCircuitboard not yet ported; substitute base ThrusterMachineCircuitboard
-    board: ThrusterMachineCircuitboard
+    board: ThrusterRogueMachineCircuitboard
 
 - type: entity
   id: DebugThrusterRogue
@@ -31,21 +15,8 @@
   components:
   - type: Sprite
     sprite: _Mono/Structures/Shuttles/thrusterrogue.rsi
-    layers:
-    - state: base
-      map: ["enum.ThrusterVisualLayers.Base"]
-    - state: thrust
-      map: ["enum.ThrusterVisualLayers.ThrustOn"]
-      shader: unshaded
-      visible: false
-    - state: thrust_burn_unshaded
-      map: ["enum.ThrusterVisualLayers.ThrustingUnshaded"]
-      shader: unshaded
-      visible: false
-      offset: 0, 1
   - type: Machine
-    # VRS: ThrusterRogueMachineCircuitboard not yet ported; substitute base ThrusterMachineCircuitboard
-    board: ThrusterMachineCircuitboard
+    board: ThrusterRogueMachineCircuitboard
 
 - type: entity
   id: ThrusterLargeRogue

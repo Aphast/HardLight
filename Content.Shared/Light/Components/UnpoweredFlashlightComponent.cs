@@ -2,7 +2,6 @@ using Content.Shared.Decals;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Serialization;
 
 namespace Content.Shared.Light.Components;
 
@@ -10,20 +9,19 @@ namespace Content.Shared.Light.Components;
 /// This is simplified version of <see cref="HandheldLightComponent"/>.
 /// It doesn't consume any power and can be toggle only by verb.
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class UnpoweredFlashlightComponent : Component
 {
     [DataField("toggleFlashlightSound")]
     public SoundSpecifier ToggleSound = new SoundPathSpecifier("/Audio/Items/flashlight_pda.ogg");
 
-    [DataField]
+    [DataField, AutoNetworkedField]
     public bool LightOn;
 
     [DataField]
     public EntProtoId ToggleAction = "ActionToggleLight";
 
-    // HardLight: persist across save/load. See ToggleableClothingComponent.ActionEntity.
-    [DataField]
+    [DataField, AutoNetworkedField]
     public EntityUid? ToggleActionEntity;
 
     /// <summary>
@@ -32,17 +30,4 @@ public sealed partial class UnpoweredFlashlightComponent : Component
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
     public ProtoId<ColorPalettePrototype> EmaggedColorsPrototype = "Emagged";
-}
-
-[Serializable, NetSerializable]
-public sealed class UnpoweredFlashlightComponentState : ComponentState
-{
-    public readonly bool LightOn;
-    public readonly NetEntity? ToggleActionEntity;
-
-    public UnpoweredFlashlightComponentState(bool lightOn, NetEntity? toggleActionEntity)
-    {
-        LightOn = lightOn;
-        ToggleActionEntity = toggleActionEntity;
-    }
 }

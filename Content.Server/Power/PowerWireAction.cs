@@ -83,6 +83,11 @@ public sealed partial class PowerWireAction : BaseWireAction
                 return;
             }
 
+            if (EntityManager.HasComponent<EmpDisabledComponent>(owner)) // Frontier: Upstream - #28984
+            {
+                return;
+            }
+
             receiverSys.SetPowerDisabled(owner, false, power);
         }
     }

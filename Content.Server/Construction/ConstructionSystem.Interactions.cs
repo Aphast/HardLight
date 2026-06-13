@@ -12,6 +12,7 @@ using Content.Shared.Prying.Systems;
 using Content.Shared.Radio.EntitySystems;
 using Content.Shared.Temperature;
 using Content.Shared.Tools.Systems;
+using Content.Shared._Mono.NoDeconstruct;
 using Robust.Shared.Containers;
 using Robust.Shared.Utility;
 #if EXCEPTION_TOLERANCE
@@ -23,9 +24,9 @@ namespace Content.Server.Construction
 {
     public sealed partial class ConstructionSystem
     {
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
 #if EXCEPTION_TOLERANCE
-        [Dependency] private readonly IRuntimeLog _runtimeLog = default!;
+        [Dependency] private IRuntimeLog _runtimeLog = default!;
 #endif
 
         private readonly Queue<EntityUid> _constructionUpdateQueue = new();
@@ -52,8 +53,7 @@ namespace Content.Server.Construction
         /// <returns>The result of this interaction with the entity.</returns>
         private HandleResult HandleEvent(EntityUid uid, object ev, bool validation, ConstructionComponent? construction = null)
         {
-            // VRS: NoDeconstructComponent prevents deconstruction on protected POI infrastructure.
-            if (HasComp<Content.Shared._Mono.NoDeconstruct.NoDeconstructComponent>(uid))
+            if (HasComp<NoDeconstructComponent>(uid))
                 return HandleResult.False;
 
             if (!Resolve(uid, ref construction))
@@ -275,7 +275,7 @@ namespace Content.Server.Construction
 
                     // Since many things inherit this step, we delegate the "is this entity valid?" logic to them.
                     // While this is very OOP and I find it icky, I must admit that it simplifies the code here a lot.
-                    if(!insertStep.EntityValid(insert, EntityManager, _factory))
+                    if(!insertStep.EntityValid(insert, EntityManager, Factory))
                         return HandleResult.False;
 
                     // If we're only testing whether this step would be handled by the given event, then we're done.

@@ -22,7 +22,7 @@ public sealed partial class TargetSeekingComponent : Component
     /// How quickly the projectile can change direction in degrees per second.
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
-    public Angle? TurnRate = 100f;
+    public Angle? TurnRate = 60f;
 
     /// <summary>
     /// The current target entity being tracked.
@@ -67,17 +67,6 @@ public sealed partial class TargetSeekingComponent : Component
     public bool Launched = false;
 
     /// <summary>
-    /// Map-frame launch velocity inherited from the firing platform.
-    /// Guidance adjusts speed relative to this base vector.
-    /// </summary>
-    public System.Numerics.Vector2 InheritedVelocity;
-
-    /// <summary>
-    /// Whether <see cref="InheritedVelocity"/> has been initialized.
-    /// </summary>
-    public bool InheritedVelocityInitialized;
-
-    /// <summary>
     /// The amount of time in seconds left the missile starts searching for targets. // Mono
     /// </summary>
     [DataField]
@@ -93,13 +82,6 @@ public sealed partial class TargetSeekingComponent : Component
     /// Whether seeking has been disabled (e.g., after entering an enemy grid).
     /// </summary>
     public bool SeekingDisabled;
-
-    /// <summary>
-    /// Throttle: only attempt target acquisition after this game time to avoid a full
-    /// ShuttleConsoleComponent world-scan every tick when no target is held.
-    /// Not serialized; runtime-only.
-    /// </summary>
-    public TimeSpan NextAcquireAttempt;
 }
 
 /// <summary>

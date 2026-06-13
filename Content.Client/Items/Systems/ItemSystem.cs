@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Content.Shared.Hands;
-using Content.Shared.Hands.Components; // Frontier
 using Content.Shared.Inventory.Events;
 using Content.Shared.Item;
 using Robust.Client.GameObjects;
@@ -11,10 +10,9 @@ using Robust.Shared.Serialization.TypeSerializers.Implementations;
 
 namespace Content.Client.Items.Systems;
 
-public sealed class ItemSystem : SharedItemSystem
+public sealed partial class ItemSystem : SharedItemSystem
 {
-    [Dependency] private readonly IResourceCache _resCache = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IResourceCache _resCache = default!;
 
     public override void Initialize()
     {
@@ -29,12 +27,12 @@ public sealed class ItemSystem : SharedItemSystem
 
     private void OnUnequipped(EntityUid uid, SpriteComponent component, GotUnequippedEvent args)
     {
-        _sprite.SetVisible((uid, component), true);
+        component.Visible = true;
     }
 
     private void OnEquipped(EntityUid uid, SpriteComponent component, GotEquippedEvent args)
     {
-        _sprite.SetVisible((uid, component), false);
+        component.Visible = false;
     }
 
     #region InhandVisuals
@@ -60,7 +58,7 @@ public sealed class ItemSystem : SharedItemSystem
         if (!item.InhandVisuals.TryGetValue(args.Location, out var layers))
         {
             // get defaults
-            if (!TryGetDefaultVisuals(uid, item, defaultKey, out layers))
+            if (!TryGetDefaultVisuals(uid, item, defaultKey,  out layers))
                 return;
         }
 
@@ -113,16 +111,5 @@ public sealed class ItemSystem : SharedItemSystem
         result = new() { layer };
         return true;
     }
-
-    // Frontier: settable inhand visuals
-    /// <summary>
-    /// Sets an item's inhand visuals and send out an update.
-    /// </summary>
-    public void SetVisuals(EntityUid uid, ItemComponent item, Dictionary<HandLocation, List<PrototypeLayerData>> visuals)
-    {
-        item.InhandVisuals = visuals;
-        VisualsChanged(uid);
-    }
-    // End Frontier
     #endregion
 }

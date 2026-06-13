@@ -2,30 +2,28 @@ using Content.Server.Popups;
 using Content.Server._DV.Weapons.Ranged.Components;
 using Content.Shared.Database;
 using Content.Shared.Examine;
-// using Content.Shared.Interaction; // Frontier
+using Content.Shared.Interaction;
 using Content.Shared.Verbs;
 using Content.Shared.Item;
 using Content.Shared._DV.Weapons.Ranged;
 using Content.Shared.Weapons.Ranged.Components;
 using Robust.Shared.Prototypes;
 using System.Linq;
-using Content.Shared.Interaction.Events; // Frontier
-using Content.Shared.Weapons.Ranged.Systems; // Frontier
 
 namespace Content.Server._DV.Weapons.Ranged.Systems;
 
-public sealed class EnergyGunSystem : EntitySystem
+public sealed partial class EnergyGunSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedItemSystem _item = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedItemSystem _item = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<EnergyGunComponent, UseInHandEvent>(OnInteractHandEvent, after: [typeof(SharedGunSystem)]); // Frontier: add after, swap to UseInHandEvent
+        SubscribeLocalEvent<EnergyGunComponent, ActivateInWorldEvent>(OnInteractHandEvent);
         SubscribeLocalEvent<EnergyGunComponent, GetVerbsEvent<Verb>>(OnGetVerb);
         SubscribeLocalEvent<EnergyGunComponent, ExaminedEvent>(OnExamined);
     }
@@ -84,11 +82,8 @@ public sealed class EnergyGunSystem : EntitySystem
         }
     }
 
-    private void OnInteractHandEvent(EntityUid uid, EnergyGunComponent component, UseInHandEvent args) // Frontier: swap args to UseInHandEvent
+    private void OnInteractHandEvent(EntityUid uid, EnergyGunComponent component, ActivateInWorldEvent args)
     {
-        if (args.Handled) // Frontier
-            return; // Frontier
-
         if (component.FireModes == null || component.FireModes.Count < 2)
             return;
 

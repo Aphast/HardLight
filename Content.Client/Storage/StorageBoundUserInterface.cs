@@ -51,7 +51,6 @@ public sealed class StorageBoundUserInterface : BoundUserInterface
         _window = null;
     }
 
-    [Obsolete]
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);

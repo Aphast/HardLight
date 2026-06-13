@@ -6,7 +6,7 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Silicons.StationAi;
 
-public sealed class StationAiVisionSystem : EntitySystem
+public sealed partial class StationAiVisionSystem : EntitySystem
 {
     /*
      * This class handles 2 things:
@@ -14,22 +14,13 @@ public sealed class StationAiVisionSystem : EntitySystem
      * 2. It does single-tile lookups to tell if they're visible or not with support for a faster range-only path.
      */
 
-    [Dependency] private readonly IParallelManager _parallel = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly SharedMapSystem _maps = default!;
-    [Dependency] private readonly SharedTransformSystem _xforms = default!;
+    [Dependency] private IParallelManager _parallel = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private SharedMapSystem _maps = default!;
+    [Dependency] private SharedTransformSystem _xforms = default!;
 
     private SeedJob _seedJob;
     private ViewJob _job;
-
-    // The system reuses a lot of mutable scratch state (`_seeds`, `_opaque`, `_viewportTiles`,
-    // `_singleTiles`, the shared `_job` struct and its per-index lists, etc.) across calls to
-    // IsAccessible/GetView, and dispatches the heavy work onto worker threads via IParallelManager.
-    // Concurrent callers (e.g. BoundUserInterfaceCheckRangeEvent fired from a parallel job and
-    // InRangeOverrideEvent on the main thread) would otherwise race on these collections and
-    // produce "Operations that change non-concurrent collections must have exclusive access"
-    // exceptions deep inside the parallel ViewJob. Serialize entry points to prevent that.
-    private readonly object _stateLock = new();
 
     private readonly HashSet<Entity<OccluderComponent>> _occluders = new();
     private readonly HashSet<Entity<StationAiVisionComponent>> _seeds = new();
@@ -73,14 +64,6 @@ public sealed class StationAiVisionSystem : EntitySystem
     /// Returns whether a tile is accessible based on vision.
     /// </summary>
     public bool IsAccessible(Entity<BroadphaseComponent, MapGridComponent> grid, Vector2i tile, float expansionSize = 8.5f, bool fastPath = false)
-    {
-        lock (_stateLock)
-        {
-            return IsAccessibleCore(grid, tile, expansionSize, fastPath);
-        }
-    }
-
-    private bool IsAccessibleCore(Entity<BroadphaseComponent, MapGridComponent> grid, Vector2i tile, float expansionSize, bool fastPath)
     {
         _viewportTiles.Clear();
         _opaque.Clear();
@@ -161,14 +144,6 @@ public sealed class StationAiVisionSystem : EntitySystem
     /// </summary>
     /// <param name="expansionSize">How much to expand the bounds before to find vision intersecting it. Makes this the largest vision size + 1 tile.</param>
     public void GetView(Entity<BroadphaseComponent, MapGridComponent> grid, Box2Rotated worldBounds, HashSet<Vector2i> visibleTiles, float expansionSize = 8.5f)
-    {
-        lock (_stateLock)
-        {
-            GetViewCore(grid, worldBounds, visibleTiles, expansionSize);
-        }
-    }
-
-    private void GetViewCore(Entity<BroadphaseComponent, MapGridComponent> grid, Box2Rotated worldBounds, HashSet<Vector2i> visibleTiles, float expansionSize)
     {
         _viewportTiles.Clear();
         _opaque.Clear();

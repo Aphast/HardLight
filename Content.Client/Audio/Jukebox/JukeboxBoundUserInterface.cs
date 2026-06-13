@@ -6,9 +6,9 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Client.Audio.Jukebox;
 
-public sealed class JukeboxBoundUserInterface : BoundUserInterface
+public sealed partial class JukeboxBoundUserInterface : BoundUserInterface
 {
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
 
     [ViewVariables]
     private JukeboxMenu? _menu;
@@ -42,13 +42,6 @@ public sealed class JukeboxBoundUserInterface : BoundUserInterface
         };
 
         _menu.OnSongSelected += SelectSong;
-
-        // Frontier: Shuffle & Repeat
-        _menu.OnModeChanged += playbackMode =>
-        {
-            SendMessage(new JukeboxSetPlaybackModeMessage(playbackMode));
-        };
-        // End Frontier: Shuffle & Repeat
 
         _menu.SetTime += SetTime;
         PopulateMusic();
@@ -104,13 +97,5 @@ public sealed class JukeboxBoundUserInterface : BoundUserInterface
 
         SendMessage(new JukeboxSetTimeMessage(sentTime));
     }
-
-    // Frontier: Shuffle & Repeat
-    protected override void UpdateState(BoundUserInterfaceState state)
-    {
-        base.UpdateState(state);
-        _menu?.UpdateState(state);
-    }
-    // End Frontier
 }
 

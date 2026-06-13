@@ -1,13 +1,12 @@
-﻿name: "Labels: Review"
-
-concurrency:
-  group: labels
-  cancel-in-progress: false
-  queue: max
+name: "Labels: Review"
 
 on:
   pull_request_target:
     types: [review_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   add_label:

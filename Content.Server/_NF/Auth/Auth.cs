@@ -1,3 +1,4 @@
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
@@ -5,18 +6,15 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Content.Shared.CCVar;
 using Robust.Shared.Configuration;
-using Robust.Shared.Log;
 using JetBrains.Annotations;
 
 namespace Content.Server._NF.Auth;
 
-public sealed class MiniAuthManager
+public sealed partial class MiniAuthManager
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly ILogManager _logManager = default!; // VRS: log auth failures instead of swallowing them
+    [Dependency] private IConfigurationManager _cfg = default!;
 
     private readonly HttpClient _http = new();
-    private ISawmill? _sawmill; // VRS
 
     /// <summary>
     /// Frontier function to ping a server and check to see if the given player is currently connected to the given server.
@@ -30,8 +28,9 @@ public sealed class MiniAuthManager
         var connected = false;
         var statusAddress = "http://" + address + "/admin/info";
 
-        // VRS: dispose the linked CTS and drop the pointless extra CancellationToken wrap.
-        using var linkedToken = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var cancel = new CancellationToken();
+        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        linkedToken.CancelAfter(TimeSpan.FromSeconds(10));
 
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("SS14Token", _cfg.GetCVar(CCVars.AdminApiToken));
 
@@ -51,9 +50,8 @@ public sealed class MiniAuthManager
                 }
             }
         }
-        catch (Exception e) // VRS: log instead of silently swallowing
+        catch (Exception e)
         {
-            (_sawmill ??= _logManager.GetSawmill("auth.mini")).Warning($"IsPlayerConnected({address}, {player}) failed: {e.Message}");
         }
         return connected;
     }

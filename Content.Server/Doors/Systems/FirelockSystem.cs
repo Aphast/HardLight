@@ -14,13 +14,13 @@ using Robust.Shared.Map.Components;
 
 namespace Content.Server.Doors.Systems
 {
-    public sealed class FirelockSystem : SharedFirelockSystem
+    public sealed partial class FirelockSystem : SharedFirelockSystem
     {
-        [Dependency] private readonly SharedDoorSystem _doorSystem = default!;
-        [Dependency] private readonly AtmosphereSystem _atmosSystem = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-        [Dependency] private readonly SharedMapSystem _mapping = default!;
-        [Dependency] private readonly PointLightSystem _pointLight = default!;
+        [Dependency] private SharedDoorSystem _doorSystem = default!;
+        [Dependency] private AtmosphereSystem _atmosSystem = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
+        [Dependency] private SharedMapSystem _mapping = default!;
+        [Dependency] private PointLightSystem _pointLight = default!;
 
         private const int UpdateInterval = 30;
         private int _accumulatedTicks;
@@ -73,8 +73,6 @@ namespace Content.Server.Doors.Systems
                     _appearance.SetData(uid, DoorVisuals.ClosedLights, fire || pressure, appearance);
                     firelock.Temperature = fire;
                     firelock.Pressure = pressure;
-                    _appearance.SetData(uid, FirelockVisuals.PressureWarning, pressure, appearance);
-                    _appearance.SetData(uid, FirelockVisuals.TemperatureWarning, fire, appearance);
                     Dirty(uid, firelock);
 
                     if (pointLightQuery.TryComp(uid, out var pointLight))
@@ -128,12 +126,10 @@ namespace Content.Server.Doors.Systems
                 return (false, false);
             }
 
-            if (!HasComp<GridAtmosphereComponent>(xform.ParentUid)
-                || xform.MapUid == null
-                || !HasComp<MapAtmosphereComponent>(xform.MapUid.Value)
-                || !TryComp<MapGridComponent>(xform.ParentUid, out var grid))
+            if (!HasComp<GridAtmosphereComponent>(xform.ParentUid))
                 return (false, false);
 
+            var grid = Comp<MapGridComponent>(xform.ParentUid);
             var pos = _mapping.CoordinatesToTile(xform.ParentUid, grid, xform.Coordinates);
             var minPressure = float.MaxValue;
             var maxPressure = float.MinValue;

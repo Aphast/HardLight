@@ -13,13 +13,5 @@ namespace Content.Server.Radio.Components;
 public sealed partial class IntrinsicRadioTransmitterComponent : Component
 {
     [DataField("channels", customTypeSerializer: typeof(PrototypeIdHashSetSerializer<RadioChannelPrototype>))]
-    public HashSet<string> Channels = new();
-
-
-    /// <summary>
-    ///     The channels that this radio will always be able to talk to.
-    /// </summay>
-    [DataField("intrinsicChannels", customTypeSerializer: typeof(PrototypeIdHashSetSerializer<RadioChannelPrototype>))]
-    public HashSet<string> IntrinsicChannels = new();
-
+    public HashSet<string> Channels = new() { SharedChatSystem.CommonChannel };
 }

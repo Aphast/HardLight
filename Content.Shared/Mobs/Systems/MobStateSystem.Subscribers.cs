@@ -1,7 +1,6 @@
 ﻿using Content.Shared.Bed.Sleep;
 using Content.Shared.Buckle.Components;
 using Content.Shared.CombatMode.Pacification;
-using Content.Shared.Damage;
 using Content.Shared.Damage.ForceSay;
 using Content.Shared.Emoting;
 using Content.Shared.Hands;
@@ -18,6 +17,9 @@ using Content.Shared.Standing;
 using Content.Shared.Strip.Components;
 using Content.Shared.Throwing;
 using Robust.Shared.Physics.Components;
+
+// Mono
+using Content.Shared._White.Standing;
 
 namespace Content.Shared.Mobs.Systems;
 
@@ -45,7 +47,6 @@ public partial class MobStateSystem
         SubscribeLocalEvent<MobStateComponent, TryingToSleepEvent>(OnSleepAttempt);
         SubscribeLocalEvent<MobStateComponent, CombatModeShouldHandInteractEvent>(OnCombatModeShouldHandInteract);
         SubscribeLocalEvent<MobStateComponent, AttemptPacifiedAttackEvent>(OnAttemptPacifiedAttack);
-        SubscribeLocalEvent<MobStateComponent, DamageModifyEvent>(OnDamageModify);
 
         SubscribeLocalEvent<MobStateComponent, UnbuckleAttemptEvent>(OnUnbuckleAttempt);
     }
@@ -102,7 +103,7 @@ public partial class MobStateSystem
         switch (state)
         {
             case MobState.Alive:
-                _standing.Stand(target);
+                _standing.Stand(target, force: !HasComp<LayingDownComponent>(target)); // Mono - force stand up if we can't lay down at will
                 _appearance.SetData(target, MobStateVisuals.State, MobState.Alive);
                 break;
             case MobState.Critical:
@@ -186,11 +187,6 @@ public partial class MobStateSystem
     private void OnAttemptPacifiedAttack(Entity<MobStateComponent> ent, ref AttemptPacifiedAttackEvent args)
     {
         args.Cancelled = true;
-    }
-
-    private void OnDamageModify(Entity<MobStateComponent> ent, ref DamageModifyEvent args)
-    {
-        args.Damage *= _damageable.UniversalMobDamageModifier;
     }
 
     #endregion

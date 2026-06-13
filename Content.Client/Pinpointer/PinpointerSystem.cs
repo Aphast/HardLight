@@ -4,10 +4,10 @@ using Robust.Client.Graphics;
 
 namespace Content.Client.Pinpointer;
 
-public sealed class PinpointerSystem : SharedPinpointerSystem
+public sealed partial class PinpointerSystem : SharedPinpointerSystem
 {
-    [Dependency] private readonly IEyeManager _eyeManager = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IEyeManager _eyeManager = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
 
     public override void Update(float frameTime)
     {
@@ -21,14 +21,8 @@ public sealed class PinpointerSystem : SharedPinpointerSystem
         var query = EntityQueryEnumerator<PinpointerComponent, SpriteComponent>();
         while (query.MoveNext(out var uid, out var pinpointer, out var sprite))
         {
-            // Frontier: ensure question mark is aligned with the screen
             if (!pinpointer.HasTarget)
-            {
-                sprite.LayerSetRotation(PinpointerLayers.Screen, Angle.Zero);
                 continue;
-            }
-            // End Frontier: ensure question mark is aligned with the screen
-
             var eye = _eyeManager.CurrentEye;
             var angle = pinpointer.ArrowAngle + eye.Rotation;
 

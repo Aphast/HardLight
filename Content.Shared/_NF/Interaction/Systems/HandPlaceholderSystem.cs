@@ -4,7 +4,6 @@ using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Item;
-using Content.Shared.Prototypes;
 using Content.Shared.Whitelist;
 using Robust.Shared.Containers;
 using Robust.Shared.Map;
@@ -18,12 +17,13 @@ namespace Content.Shared._NF.Interaction.Systems;
 /// </summary>
 public sealed partial class HandPlaceholderSystem : EntitySystem
 {
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedInteractionSystem _interaction = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
 
     public readonly EntProtoId<HandPlaceholderComponent> Placeholder = "HandPlaceholder";
 
@@ -39,26 +39,22 @@ public sealed partial class HandPlaceholderSystem : EntitySystem
     /// Spawns a new placeholder and ties it to an item.
     /// When dropped the item will replace itself with the placeholder in its container.
     /// </summary>
-    public EntityUid SpawnPlaceholder(BaseContainer container, EntityUid item, EntProtoId id, EntityWhitelist whitelist, EntityWhitelist? blacklist)
+    public void SpawnPlaceholder(BaseContainer container, EntityUid item, EntProtoId id, EntityWhitelist whitelist)
     {
         var placeholder = Spawn(Placeholder);
-        var proto = _proto.Index(id);
         var comp = Comp<HandPlaceholderComponent>(placeholder);
         comp.Prototype = id;
         comp.Whitelist = whitelist;
-        comp.Blacklist = blacklist;
         comp.Source = container.Owner;
         comp.ContainerId = container.ID;
-        comp.AllowNonItems = !proto.HasComponent<ItemComponent>();
         Dirty(placeholder, comp);
 
-        var name = proto.Name;
+        var name = _proto.Index(id).Name;
         _metadata.SetEntityName(placeholder, name);
         SetPlaceholder(item, placeholder);
 
         var succeeded = _container.Insert(placeholder, container, force: true);
         DebugTools.Assert(succeeded, $"Failed to insert placeholder {ToPrettyString(placeholder)} into {ToPrettyString(comp.Source)}");
-        return placeholder;
     }
 
     /// <summary>
@@ -66,9 +62,6 @@ public sealed partial class HandPlaceholderSystem : EntitySystem
     /// </summary>
     public void SetPlaceholder(EntityUid item, EntityUid placeholder)
     {
-        if (!item.Valid)
-            return;
-
         var comp = EnsureComp<HandPlaceholderRemoveableComponent>(item);
         comp.Placeholder = placeholder;
         Dirty(item, comp);
@@ -92,7 +85,7 @@ public sealed partial class HandPlaceholderSystem : EntitySystem
     {
         // trying to insert when deleted is an error, and only handle when it is being actually dropped
         var owner = container.Owner;
-        if (!ent.Comp.Enabled || TerminatingOrDeleted(owner) || Transform(owner).MapID == MapId.Nullspace)
+        if (!ent.Comp.Enabled || TerminatingOrDeleted(owner))
             return;
 
         var placeholder = ent.Comp.Placeholder;
@@ -133,7 +126,7 @@ public sealed partial class HandPlaceholderSystem : EntitySystem
     private void TryToPickUpTarget(Entity<HandPlaceholderComponent> ent, EntityUid target, EntityUid user)
     {
         // require items regardless of the whitelist
-        if (!ent.Comp.AllowNonItems && !HasComp<ItemComponent>(target) || _whitelist.IsWhitelistFail(ent.Comp.Whitelist, target) || _whitelist.IsBlacklistPass(ent.Comp.Blacklist, target))
+        if (!HasComp<ItemComponent>(target) || _whitelist.IsWhitelistFail(ent.Comp.Whitelist, target))
             return;
 
         if (!TryComp<HandsComponent>(user, out var hands))
@@ -142,6 +135,8 @@ public sealed partial class HandPlaceholderSystem : EntitySystem
         // Can't get the hand we're holding this with? Something's wrong, abort.  No empty hands.
         if (!_hands.IsHolding(user, ent, out var hand, hands))
             return;
+
+        SetPlaceholder(target, ent);
 
         SetEnabled(ent, false); // allow inserting into the source container
 
@@ -157,9 +152,7 @@ public sealed partial class HandPlaceholderSystem : EntitySystem
         }
 
         _hands.DoPickup(user, hand, target, hands); // Force pickup - empty hands are not okay
-        _interaction.DoContactInteraction(user, target); // allow for forensics and other systems to work (why does hands system not do this???)
-
-        SetPlaceholder(target, ent);
         SetEnabled(target, true);
+        _interaction.DoContactInteraction(user, target); // allow for forensics and other systems to work (why does hands system not do this???)
     }
 }

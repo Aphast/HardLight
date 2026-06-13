@@ -1,19 +1,18 @@
 - type: entity
   id: BaseCartridge9x19mm
   name: cartridge (9x19mm FMJ)
-  parent: [ BaseCartridge, BaseC1Contraband ] # Frontier: BaseSecurityContraband<BaseC1Contraband
+  parent: BaseCartridge
+  description: Generic pistol round. Easy to handle, with a decent effect on unarmored flesh.
   abstract: true
   components:
   - type: Tag
     tags:
       - Cartridge
-      - Cartridge9x19mm
       - Cartridge9x19mmFMJ
   - type: CartridgeAmmo
     proto: Bullet9x19mmFMJ
-    deleteOnSpawn: true
   - type: Sprite
-    sprite: Objects/Weapons/Guns/Ammunition/Casings/ammo_casing.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Casings/pistol_ammo_casing.rsi
     layers:
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
@@ -42,6 +41,7 @@
        - state: base
          map: [ "enum.AmmoVisualLayers.Base" ]
        - state: tip
+         map: [ "enum.AmmoVisualLayers.Tip" ]
          color: "#dbdbdb"
 
 - type: entity
@@ -56,6 +56,7 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#ff6e52"
 
 - type: entity
@@ -70,6 +71,7 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#65fe08"
 
 # Upstream
@@ -85,6 +87,7 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#43c4f7"
 
 # Frontier
@@ -100,27 +103,51 @@
     energyConsumption: 2700000
     disableDuration: 10
 
-# Hardlight - Improvised
+# Mono AP syst
+#anti-flesh:
 - type: entity
-  id: Cartridge9x19mmImprovised
-  name: improvised cartridge (9x19mm)
-  description: A handmade pistol bullet, uses phosphorus as a propellent instead of gunpowder which makes it much less effective.
-  parent: [BaseCartridge9x19mm, BaseC1Contraband]
+  id: Cartridge9x19mmHP
+  name: cartridge (9x19mm hollow-point)
+  parent: BaseCartridge9x19mm
   components:
   - type: CartridgeAmmo
-    proto: Bullet9x19mmImprovised
+    proto: Bullet9x19mmHP
   - type: Sprite
-    sprite: _Starlight/Objects/Weapons/Guns/Ammunition/Casings/improvised_casing.rsi
     layers:
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
-        color: "#717171"
-  - type: Tag
-    tags:
-      - Cartridge
-      - Cartridge9x19mm
-      - Cartridge9x19mmImprovised
-  - type: Construction
-    graph: Improvised9x19mmBulletGraph
-    node: shell
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#90EE90"
+
+- type: entity
+  id: Cartridge9x19mmRIP
+  name: cartridge (9x19mm RIP)
+  parent: BaseCartridge9x19mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet9x19mmRIP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#C04000"
+
+#armor-piercing:
+
+- type: entity
+  id: Cartridge9x19mmPlasteelAP
+  name: cartridge (9x19mm AP)
+  parent: BaseCartridge9x19mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet9x19mmPlasteelAP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#888888"

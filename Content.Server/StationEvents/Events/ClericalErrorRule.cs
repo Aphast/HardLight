@@ -8,9 +8,9 @@ using Robust.Shared.Random;
 
 namespace Content.Server.StationEvents.Events;
 
-public sealed class ClericalErrorRule : StationEventSystem<ClericalErrorRuleComponent>
+public sealed partial class ClericalErrorRule : StationEventSystem<ClericalErrorRuleComponent>
 {
-    [Dependency] private readonly StationRecordsSystem _stationRecords = default!;
+    [Dependency] private StationRecordsSystem _stationRecords = default!;
 
     protected override void Started(EntityUid uid, ClericalErrorRuleComponent component, GameRuleComponent gameRule, GameRuleStartedEvent args)
     {
@@ -19,18 +19,10 @@ public sealed class ClericalErrorRule : StationEventSystem<ClericalErrorRuleComp
         if (!TryGetRandomStation(out var chosenStation))
             return;
 
-        if (!_stationRecords.TryGetAuthoritativeRecords(out var station, out _)) // HardLight: Editted
+        if (!TryComp<StationRecordsComponent>(chosenStation, out var stationRecords))
             return;
 
-        // HardLight start
-        var allIds = new List<uint>();
-        foreach (var (id, _) in _stationRecords.GetRecordsOfType<GeneralStationRecord>(station))
-        {
-            allIds.Add(id);
-        }
-
-        var recordCount = allIds.Count;
-        // HardLight end
+        var recordCount = stationRecords.Records.Keys.Count;
 
         if (recordCount == 0)
             return;
@@ -41,13 +33,13 @@ public sealed class ClericalErrorRule : StationEventSystem<ClericalErrorRuleComp
         var keys = new List<uint>();
         for (var i = 0; i < toRemove; i++)
         {
-            keys.Add(RobustRandom.Pick(allIds)); // HardLight: stationRecords.Records.Keys<allIds
+            keys.Add(RobustRandom.Pick(stationRecords.Records.Keys));
         }
 
         foreach (var id in keys)
         {
-            var key = new StationRecordKey(id, station); // HardLight: chosenStation.Value<stationRecords
-            _stationRecords.RemoveRecord(key); // HardLight: Removed stationRecords
+            var key = new StationRecordKey(id, chosenStation.Value);
+            _stationRecords.RemoveRecord(key, stationRecords);
         }
     }
 }

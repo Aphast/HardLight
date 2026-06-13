@@ -11,7 +11,7 @@ namespace Content.Shared._Mono.Teleportation;
 public sealed partial class ScrammerComponent : Component
 {
     [DataField]
-    public TeleportSpecifier Specifier = new();
+    public TeleportSpecifier Specifier;
 
     [DataField]
     public EntityUid? ActionUid = null;

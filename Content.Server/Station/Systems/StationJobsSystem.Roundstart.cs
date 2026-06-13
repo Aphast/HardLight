@@ -1,13 +1,11 @@
 using System.Linq;
 using Content.Server.Administration.Managers;
-using Content.Server.Antag;
 using Content.Server.Players.PlayTimeTracking;
 using Content.Server.Station.Components;
 using Content.Server.Station.Events;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Preferences;
 using Content.Shared.Roles;
-using Content.Server._NF.Roles.Systems;
 using Robust.Server.Player;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
@@ -19,11 +17,9 @@ namespace Content.Server.Station.Systems;
 // Contains code for round-start spawning.
 public sealed partial class StationJobsSystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IBanManager _banManager = default!;
-    [Dependency] private readonly AntagSelectionSystem _antag = default!;
-    [Dependency] private readonly PlayTimeTrackingSystem _playTime = default!; // Frontier
-    [Dependency] private readonly JobTrackingSystem _jobTracking = default!; // Frontier
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IBanManager _banManager = default!;
+    [Dependency] private PlayTimeTrackingSystem _playTime = default!; // Frontier
 
     private Dictionary<int, HashSet<string>> _jobsByWeight = default!;
     private List<int> _orderedWeights = default!;
@@ -85,11 +81,6 @@ public sealed partial class StationJobsSystem
             {
                 stationJobs.Add(station, GetJobs(station).ToDictionary(x => x.Key, x => x.Value));
             }
-        }
-
-        if (useRoundStartJobs)
-        {
-            ApplyActiveRoleCountsToRoundStartJobs(stationJobs);
         }
 
 
@@ -277,74 +268,6 @@ public sealed partial class StationJobsSystem
         return assigned;
     }
 
-    private Dictionary<ProtoId<JobPrototype>, int> GetActiveRoleCounts(IEnumerable<ProtoId<JobPrototype>> jobs)
-    {
-        var counts = new Dictionary<ProtoId<JobPrototype>, int>();
-
-        foreach (var job in jobs.Distinct())
-        {
-            var count = _jobTracking.GetNumberOfActiveRoles(job, includeAfk: true, includeOutsideDefaultMap: true); // HardLight: Added includeOutsideDefaultMap: true
-            if (count > 0)
-                counts[job] = count;
-        }
-
-        return counts;
-    }
-
-    private void ApplyActiveRoleCountsToRoundStartJobs(Dictionary<EntityUid, Dictionary<ProtoId<JobPrototype>, int?>> stationJobs)
-    {
-        if (stationJobs.Count == 0)
-            return;
-
-        var jobs = stationJobs.Values.SelectMany(x => x.Keys).ToHashSet();
-        if (jobs.Count == 0)
-            return;
-
-        var activeCounts = GetActiveRoleCounts(jobs);
-        if (activeCounts.Count == 0)
-            return;
-
-        foreach (var (job, count) in activeCounts)
-        {
-            var remaining = count;
-            foreach (var station in stationJobs.Keys)
-            {
-                if (remaining <= 0)
-                    break;
-
-                if (!stationJobs[station].TryGetValue(job, out var slots))
-                    continue;
-
-                if (slots is null || slots <= 0)
-                    continue;
-
-                var remove = Math.Min(slots.Value, remaining);
-                stationJobs[station][job] = slots.Value - remove;
-                remaining -= remove;
-            }
-        }
-    }
-
-    private void ApplyActiveRoleCountsToJobList(StationJobsComponent stationJobs)
-    {
-        if (stationJobs.JobList.Count == 0)
-            return;
-
-        var activeCounts = GetActiveRoleCounts(stationJobs.JobList.Keys);
-        if (activeCounts.Count == 0)
-            return;
-
-        foreach (var (job, count) in activeCounts)
-        {
-            if (!stationJobs.JobList.TryGetValue(job, out var slots) || slots is null)
-                continue;
-
-            stationJobs.JobList[job] = Math.Max(slots.Value - count, 0);
-        }
-
-        stationJobs.TotalJobs = stationJobs.JobList.Values.Select(x => x ?? 0).Sum();
-    }
-
     /// <summary>
     /// Attempts to assign overflow jobs to any player in allPlayersToAssign that is not in assignedJobs.
     /// </summary>
@@ -449,7 +372,6 @@ public sealed partial class StationJobsSystem
         foreach (var (player, profile) in profiles)
         {
             var roleBans = _banManager.GetJobBans(player);
-            var antagBlocked = _antag.GetPreSelectedAntagSessions();
             var profileJobs = profile.JobPriorities.Keys.Select(k => new ProtoId<JobPrototype>(k)).ToList();
             var ev = new StationJobsGetCandidatesEvent(player, profileJobs);
             RaiseLocalEvent(ref ev);
@@ -464,9 +386,6 @@ public sealed partial class StationJobsSystem
                     continue;
 
                 if (!_prototypeManager.TryIndex(jobId, out var job))
-                    continue;
-
-                if (!job.CanBeAntag && (!_player.TryGetSessionById(player, out var session) || antagBlocked.Contains(session)))
                     continue;
 
                 if (weight is not null && job.Weight != weight.Value)

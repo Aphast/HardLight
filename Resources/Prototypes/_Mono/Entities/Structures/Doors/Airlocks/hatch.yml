@@ -24,3 +24,22 @@
   - type: ContainerFill
     containers:
       board: [ DoorElectronicsUSSPCommand ]
+
+- type: entity
+  parent: AirlockHatchSyndicate
+  id: AirlockHatchGrandVizierLocked
+  suffix: Grand Vizier, Locked
+  components:
+  - type: ContainerFill
+    containers:
+      board: [ DoorElectronicsGrandVizier ]
+
+- type: entity
+  parent: AirlockHatchSyndicate
+  id: AirlockHatchPDVCommandLocked
+  suffix: PDV Command, Locked
+  components:
+  - type: ContainerFill
+    containers:
+      board: [ DoorElectronicsPdvCommand ]
+

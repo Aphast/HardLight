@@ -20,28 +20,43 @@ namespace Content.Shared.Input
         public static readonly BoundKeyFunction FocusOOC = "FocusOOCWindow";
         public static readonly BoundKeyFunction FocusAdminChat = "FocusAdminChatWindow";
         public static readonly BoundKeyFunction FocusDeadChat = "FocusDeadChatWindow";
+        public static readonly BoundKeyFunction FocusCollectiveMindChat = "FocusCollectiveMindChatWindow"; // Goobstation - Starlight collective mind port
         public static readonly BoundKeyFunction FocusConsoleChat = "FocusConsoleChatWindow";
         public static readonly BoundKeyFunction CycleChatChannelForward = "CycleChatChannelForward";
         public static readonly BoundKeyFunction CycleChatChannelBackward = "CycleChatChannelBackward";
         public static readonly BoundKeyFunction EscapeContext = "EscapeContext";
-        // DeltaV - Begin NanoChat keybinds
-        public static readonly BoundKeyFunction NanoChatNavigateUp = "NanoChatNavigateUp";
-        public static readonly BoundKeyFunction NanoChatNavigateDown = "NanoChatNavigateDown";
-        public static readonly BoundKeyFunction NanoChatNavigateUpUnread = "NanoChatNavigateUpUnread";
-        public static readonly BoundKeyFunction NanoChatNavigateDownUnread = "NanoChatNavigateDownUnread";
-        // DeltaV - End NanoChat keybinds
         public static readonly BoundKeyFunction OpenCharacterMenu = "OpenCharacterMenu";
         public static readonly BoundKeyFunction OpenEmotesMenu = "OpenEmotesMenu";
         public static readonly BoundKeyFunction OpenCraftingMenu = "OpenCraftingMenu";
-        public static readonly BoundKeyFunction OpenLanguageMenu = "OpenLanguageMenu"; // Starlight
+        public static readonly BoundKeyFunction OpenLanguageMenu = "OpenLanguageMenu"; // Einstein Engines - Language
         public static readonly BoundKeyFunction OpenGuidebook = "OpenGuidebook";
         public static readonly BoundKeyFunction OpenInventoryMenu = "OpenInventoryMenu";
         public static readonly BoundKeyFunction SmartEquipBackpack = "SmartEquipBackpack";
         public static readonly BoundKeyFunction SmartEquipBelt = "SmartEquipBelt";
+        public static readonly BoundKeyFunction SmartEquipPocket1 = "SmartEquipPocket1";
+        public static readonly BoundKeyFunction SmartEquipPocket2 = "SmartEquipPocket2";
+        public static readonly BoundKeyFunction SmartEquipSuitStorage = "SmartEquipSuitStorage";
         public static readonly BoundKeyFunction SmartEquipWallet = "SmartEquipWallet"; // Frontier
-        public static readonly BoundKeyFunction SmartEquipSuitStorage = "SmartEquipSuitStorage"; // Hardlight
+        // Mono Edit
+        public static readonly BoundKeyFunction SmartEquipID = "SmartEquipID"; // Mono - Smart equip to PDA slot
+        public static readonly BoundKeyFunction SmartEquipShoes = "SmartEquipShoes";
+        public static readonly BoundKeyFunction SmartEquipOuterClothing = "SmartEquipOuterClothing";
+        public static readonly BoundKeyFunction EquipBackpack = "EquipBackpack";
+        public static readonly BoundKeyFunction EquipBelt = "EquipBelt";
+        public static readonly BoundKeyFunction EquipPocket1 = "EquipPocket1";
+        public static readonly BoundKeyFunction EquipPocket2 = "EquipPocket2";
+        public static readonly BoundKeyFunction EquipSuitStorage = "EquipSuitStorage";
+        public static readonly BoundKeyFunction EquipWallet = "EquipWallet";
+        public static readonly BoundKeyFunction EquipID = "EquipID";
+        // Mono End
         public static readonly BoundKeyFunction OpenBackpack = "OpenBackpack";
         public static readonly BoundKeyFunction OpenBelt = "OpenBelt";
+        // Mono Edit
+        public static readonly BoundKeyFunction OpenPocket1 = "OpenPocket1";
+        public static readonly BoundKeyFunction OpenPocket2 = "OpenPocket2";
+        public static readonly BoundKeyFunction OpenSuitStorage = "OpenSuitStorage";
+        public static readonly BoundKeyFunction OpenOuterClothing = "OpenOuterClothing";
+        // Mono End
         public static readonly BoundKeyFunction OpenWallet = "OpenWallet"; // Frontier
         public static readonly BoundKeyFunction OpenAHelp = "OpenAHelp";
         public static readonly BoundKeyFunction SwapHands = "SwapHands";
@@ -58,7 +73,6 @@ namespace Content.Shared.Input
         public static readonly BoundKeyFunction RotateObjectCounterclockwise = "RotateObjectCounterclockwise";
         public static readonly BoundKeyFunction FlipObject = "FlipObject";
         public static readonly BoundKeyFunction ToggleRoundEndSummaryWindow = "ToggleRoundEndSummaryWindow";
-        public static readonly BoundKeyFunction OpenConsentWindow = "OpenConsentWindow"; // Floofstation
         public static readonly BoundKeyFunction OpenEntitySpawnWindow = "OpenEntitySpawnWindow";
         public static readonly BoundKeyFunction OpenSandboxWindow = "OpenSandboxWindow";
         public static readonly BoundKeyFunction OpenTileSpawnWindow = "OpenTileSpawnWindow";
@@ -71,10 +85,8 @@ namespace Content.Shared.Input
         public static readonly BoundKeyFunction ZoomOut = "ZoomOut";
         public static readonly BoundKeyFunction ZoomIn = "ZoomIn";
         public static readonly BoundKeyFunction ResetZoom = "ResetZoom";
-        public static readonly BoundKeyFunction ToggleStanding = "ToggleStanding"; // EE
-        public static readonly BoundKeyFunction ToggleCrawlingUnder = "ToggleCrawlingUnder"; // EE
-        public static readonly BoundKeyFunction LookUp = "LookUp"; // EE
-        public static readonly BoundKeyFunction OfferItem = "OfferItem"; // EE
+        public static readonly BoundKeyFunction ToggleStanding = "ToggleStanding"; // WD EDIT
+        public static readonly BoundKeyFunction ToggleFocus = "ToggleFocus"; // Mono
 
         // Shitmed Change Start
         public static readonly BoundKeyFunction TargetHead = "TargetHead";
@@ -105,7 +117,6 @@ namespace Content.Shared.Input
         public static readonly BoundKeyFunction ShuttleRotateLeft = "ShuttleRotateLeft";
         public static readonly BoundKeyFunction ShuttleRotateRight = "ShuttleRotateRight";
         public static readonly BoundKeyFunction ShuttleBrake = "ShuttleBrake";
-        public static readonly BoundKeyFunction ShuttleWEP = "ShuttleWEP";
 
         public static readonly BoundKeyFunction Hotbar0 = "Hotbar0";
         public static readonly BoundKeyFunction Hotbar1 = "Hotbar1";
@@ -117,22 +128,11 @@ namespace Content.Shared.Input
         public static readonly BoundKeyFunction Hotbar7 = "Hotbar7";
         public static readonly BoundKeyFunction Hotbar8 = "Hotbar8";
         public static readonly BoundKeyFunction Hotbar9 = "Hotbar9";
-        public static readonly BoundKeyFunction HotbarShift0 = "HotbarShift0";
-        public static readonly BoundKeyFunction HotbarShift1 = "HotbarShift1";
-        public static readonly BoundKeyFunction HotbarShift2 = "HotbarShift2";
-        public static readonly BoundKeyFunction HotbarShift3 = "HotbarShift3";
-        public static readonly BoundKeyFunction HotbarShift4 = "HotbarShift4";
-        public static readonly BoundKeyFunction HotbarShift5 = "HotbarShift5";
-        public static readonly BoundKeyFunction HotbarShift6 = "HotbarShift6";
-        public static readonly BoundKeyFunction HotbarShift7 = "HotbarShift7";
-        public static readonly BoundKeyFunction HotbarShift8 = "HotbarShift8";
-        public static readonly BoundKeyFunction HotbarShift9 = "HotbarShift9";
 
         public static BoundKeyFunction[] GetHotbarBoundKeys() =>
             new[]
             {
-                Hotbar1, Hotbar2, Hotbar3, Hotbar4, Hotbar5, Hotbar6, Hotbar7, Hotbar8, Hotbar9, Hotbar0,
-                HotbarShift1, HotbarShift2, HotbarShift3, HotbarShift4, HotbarShift5, HotbarShift6, HotbarShift7, HotbarShift8, HotbarShift9, HotbarShift0
+                Hotbar1, Hotbar2, Hotbar3, Hotbar4, Hotbar5, Hotbar6, Hotbar7, Hotbar8, Hotbar9, Hotbar0
             };
 
         public static readonly BoundKeyFunction Vote0 = "Vote0";

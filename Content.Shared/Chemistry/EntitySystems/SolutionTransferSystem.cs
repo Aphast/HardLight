@@ -8,7 +8,6 @@ using Content.Shared.Popups;
 using Content.Shared.Verbs;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
-using Content.Shared.Nutrition.Components; // HardLight
 
 namespace Content.Shared.Chemistry.EntitySystems;
 
@@ -16,13 +15,12 @@ namespace Content.Shared.Chemistry.EntitySystems;
 /// Allows an entity to transfer solutions with a customizable amount per click.
 /// Also provides <see cref="Transfer"/> API for other systems.
 /// </summary>
-public sealed class SolutionTransferSystem : EntitySystem
+public sealed partial class SolutionTransferSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly INetManager _net = default!; // HardLight
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solution = default!;
-    [Dependency] private readonly SharedUserInterfaceSystem _ui = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedSolutionContainerSystem _solution = default!;
+    [Dependency] private SharedUserInterfaceSystem _ui = default!;
 
     /// <summary>
     ///     Default transfer amounts for the set-transfer verb.
@@ -58,13 +56,6 @@ public sealed class SolutionTransferSystem : EntitySystem
         if (!args.CanAccess || !args.CanInteract || !comp.CanChangeTransferAmount || args.Hands == null)
             return;
 
-        // HardLight: Make sure the solution exists and has volume.
-        if (TryComp<DrinkComponent>(uid, out var drink) &&
-            (!_solution.TryGetSolution(uid, drink.Solution, out _, out var drinkSolution) || drinkSolution.Volume <= 0))
-        {
-            return;
-        }
-
         // Custom transfer verb
         var @event = args;
 
@@ -75,11 +66,6 @@ public sealed class SolutionTransferSystem : EntitySystem
             // TODO: remove server check when bui prediction is a thing
             Act = () =>
             {
-                // HardLight: This is a temporary check to prevent clients from opening the UI, which they can't use anyway.
-                // Once bui prediction is a thing this should be removed so clients can open the UI and set the transfer amount without delay.
-                if (!_net.IsServer)
-                    return;
-
                 _ui.OpenUi(uid, TransferAmountUiKey.Key, @event.User);
             },
             Priority = 1

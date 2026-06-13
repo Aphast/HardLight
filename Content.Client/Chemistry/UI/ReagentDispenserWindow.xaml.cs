@@ -16,11 +16,10 @@ namespace Content.Client.Chemistry.UI
     [GenerateTypedNameReferences]
     public sealed partial class ReagentDispenserWindow : FancyWindow
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
         public event Action<string>? OnDispenseReagentButtonPressed;
         public event Action<string>? OnEjectJugButtonPressed;
-        public event Action? OnToggleValveButtonPressed; // Starlight-edit: Plumbing valve
 
         /// <summary>
         /// Create and initialize the dispenser UI client-side. Creates the basic layout,
@@ -30,7 +29,6 @@ namespace Content.Client.Chemistry.UI
         {
             RobustXamlLoader.Load(this);
             IoCManager.InjectDependencies(this);
-            ValveButton.OnPressed += _ => OnToggleValveButtonPressed?.Invoke(); // Starlight-edit: Plumbing valve
         }
 
         /// <summary>
@@ -72,11 +70,6 @@ namespace Content.Client.Chemistry.UI
             ClearButton.Disabled = castState.OutputContainer is null;
             EjectButton.Disabled = castState.OutputContainer is null;
 
-            // Starlight start: update valve button
-            ValveButton.Text = Loc.GetString(castState.ValveOpen
-                ? "reagent-dispenser-window-valve-open"
-                : "reagent-dispenser-window-valve-closed");
-            // Starlight-end
             AmountGrid.Selected = ((int)castState.SelectedDispenseAmount).ToString();
         }
 

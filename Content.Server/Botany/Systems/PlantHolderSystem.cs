@@ -2,7 +2,6 @@ using Content.Server.Atmos.EntitySystems;
 using Content.Server.Botany.Components;
 using Content.Server.Kitchen.Components;
 using Content.Server.Popups;
-using Content.Server.Stack;
 using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Atmos;
 using Content.Shared.Botany;
@@ -16,7 +15,6 @@ using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction;
 using Content.Shared.Popups;
 using Content.Shared.Random;
-using Content.Shared.Stacks;
 using Content.Shared.Tag;
 using Robust.Server.GameObjects;
 using Robust.Shared.Audio.Systems;
@@ -24,37 +22,26 @@ using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
-using Content.Shared.Administration.Logs;
+using Content.Server.Labels.Components;
 using Content.Shared.Containers.ItemSlots;
-using Content.Shared.Database;
-using Content.Shared.Labels.Components;
-using Content.Shared._NF.BindToStation; // Frontier
-using Content.Server.Station.Systems; // Frontier
-using Robust.Shared.Configuration;
-using Robust.Shared;
 
 namespace Content.Server.Botany.Systems;
 
-public sealed class PlantHolderSystem : EntitySystem
+public sealed partial class PlantHolderSystem : EntitySystem
 {
-    [Dependency] private readonly AtmosphereSystem _atmosphere = default!;
-    [Dependency] private readonly BotanySystem _botany = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly MutationSystem _mutation = default!;
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly TagSystem _tagSystem = default!;
-    [Dependency] private readonly RandomHelperSystem _randomHelper = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ItemSlotsSystem _itemSlots = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly StationSystem _station = default!; // Frontier
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly StackSystem _stack = default!;
+    [Dependency] private AtmosphereSystem _atmosphere = default!;
+    [Dependency] private BotanySystem _botany = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private MutationSystem _mutation = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
+    [Dependency] private RandomHelperSystem _randomHelper = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private ItemSlotsSystem _itemSlots = default!;
 
 
     public const float HydroponicsSpeedMultiplier = 1f;
@@ -81,30 +68,10 @@ public sealed class PlantHolderSystem : EntitySystem
         {
             if (plantHolder.NextUpdate > _gameTiming.CurTime)
                 continue;
-
-            if (!HasPlayerInRange(uid))
-            {
-                plantHolder.NextUpdate = _gameTiming.CurTime + plantHolder.UpdateDelay;
-                continue;
-            }
-
             plantHolder.NextUpdate = _gameTiming.CurTime + plantHolder.UpdateDelay;
 
             Update(uid, plantHolder);
         }
-    }
-
-    private bool HasPlayerInRange(EntityUid uid)
-    {
-        var range = _cfg.GetCVar(CVars.NetMaxUpdateRange);
-        var coords = Transform(uid).Coordinates;
-
-        foreach (var _ in _lookup.GetEntitiesInRange<ActorComponent>(coords, range))
-        {
-            return true;
-        }
-
-        return false;
     }
 
     private int GetCurrentGrowthStage(Entity<PlantHolderComponent> entity)
@@ -147,20 +114,6 @@ public sealed class PlantHolderSystem : EntitySystem
                                 ? "plant-holder-component-plant-old-adjective"
                                 : "plant-holder-component-plant-unhealthy-adjective"))));
                 }
-
-                // For future reference, mutations should only appear on examine if they apply to a plant, not to produce.
-
-                if (component.Seed.Ligneous)
-                    args.PushMarkup(Loc.GetString("mutation-plant-ligneous"));
-
-                if (component.Seed.TurnIntoKudzu)
-                    args.PushMarkup(Loc.GetString("mutation-plant-kudzu"));
-
-                if (component.Seed.CanScream)
-                    args.PushMarkup(Loc.GetString("mutation-plant-scream"));
-
-                if (component.Seed.Viable == false)
-                    args.PushMarkup(Loc.GetString("mutation-plant-unviable"));
             }
             else
             {
@@ -206,30 +159,6 @@ public sealed class PlantHolderSystem : EntitySystem
         {
             if (component.Seed == null)
             {
-                // Check if this seed was extracted and if so, verify ownership
-                if (TryComp(args.Used, out ExtractedSeedOwnerComponent? ownerComp))
-                {
-                    // Compare the player's NetUserId from their ActorComponent with the stored owner
-                    if (!TryComp<Robust.Shared.Player.ActorComponent>(args.User, out var actor) || ownerComp.OwnerId != actor.PlayerSession.UserId)
-                    {
-                        _popup.PopupCursor(Loc.GetString("plant-holder-component-seed-not-yours"),
-                            args.User, PopupType.MediumCaution);
-                        return;
-                    }
-                }
-
-                // Frontier
-                if (TryComp<BindToStationComponent>(entity.Owner, out var bindToStation)
-                    && bindToStation.Enabled
-                    && bindToStation.BoundStation != null
-                    && _station.GetOwningStation(entity.Owner) != bindToStation.BoundStation)
-                {
-                    _popup.PopupCursor(Loc.GetString("plant-holder-component-bound-to-station"),
-                        args.User, PopupType.Medium);
-                    return;
-                }
-                // End Frontier
-
                 if (!_botany.TryGetSeed(seeds, out var seed))
                     return;
 
@@ -253,25 +182,14 @@ public sealed class PlantHolderSystem : EntitySystem
                 }
                 component.LastCycle = _gameTiming.CurTime;
 
-                if (TryComp<StackComponent>(args.Used, out var stack) && stack.Count > 1)
+                if (TryComp<PaperLabelComponent>(args.Used, out var paperLabel))
                 {
-                    _stack.SetCount(args.Used, stack.Count - 1, stack);
+                    _itemSlots.TryEjectToHands(args.Used, paperLabel.LabelSlot, args.User);
                 }
-                else
-                {
-                    if (TryComp<PaperLabelComponent>(args.Used, out var paperLabel))
-                    {
-                        _itemSlots.TryEjectToHands(args.Used, paperLabel.LabelSlot, args.User);
-                    }
-
-                    QueueDel(args.Used);
-                }
+                QueueDel(args.Used);
 
                 CheckLevelSanity(uid, component);
                 UpdateSprite(uid, component);
-
-                if (seed.PlantLogImpact != null)
-                    _adminLogger.Add(LogType.Botany, seed.PlantLogImpact.Value, $"{ToPrettyString(args.User):player} planted  {Loc.GetString(seed.Name):seed} at Pos:{Transform(uid).Coordinates}.");
 
                 return;
             }
@@ -290,7 +208,7 @@ public sealed class PlantHolderSystem : EntitySystem
                 _popup.PopupCursor(Loc.GetString("plant-holder-component-remove-weeds-message",
                     ("name", Comp<MetaDataComponent>(uid).EntityName)), args.User, PopupType.Medium);
                 _popup.PopupEntity(Loc.GetString("plant-holder-component-remove-weeds-others-message",
-                    ("otherName", Comp<MetaDataComponent>(args.User).EntityName)), uid, Robust.Shared.Player.Filter.PvsExcept(args.User), true);
+                    ("otherName", Comp<MetaDataComponent>(args.User).EntityName)), uid, Filter.PvsExcept(args.User), true);
                 component.WeedLevel = 0;
                 UpdateSprite(uid, component);
             }
@@ -310,7 +228,7 @@ public sealed class PlantHolderSystem : EntitySystem
                 _popup.PopupCursor(Loc.GetString("plant-holder-component-remove-plant-message",
                     ("name", Comp<MetaDataComponent>(uid).EntityName)), args.User, PopupType.Medium);
                 _popup.PopupEntity(Loc.GetString("plant-holder-component-remove-plant-others-message",
-                    ("name", Comp<MetaDataComponent>(args.User).EntityName)), uid, Robust.Shared.Player.Filter.PvsExcept(args.User), true);
+                    ("name", Comp<MetaDataComponent>(args.User).EntityName)), uid, Filter.PvsExcept(args.User), true);
                 RemovePlant(uid, component);
             }
             else
@@ -368,7 +286,6 @@ public sealed class PlantHolderSystem : EntitySystem
             {
                 healthOverride = component.Health;
             }
-            component.Seed.Unique = false;
             var packetSeed = component.Seed;
             var seed = _botany.SpawnSeedPacket(packetSeed, Transform(args.User).Coordinates, args.User, healthOverride);
             _randomHelper.RandomOffset(seed, 0.25f);
@@ -404,24 +321,15 @@ public sealed class PlantHolderSystem : EntitySystem
             _popup.PopupEntity(Loc.GetString("plant-holder-component-compost-others-message",
                 ("user", Identity.Entity(args.User, EntityManager)),
                 ("usingItem", args.Used),
-                ("owner", uid)), uid, Robust.Shared.Player.Filter.PvsExcept(args.User), true);
+                ("owner", uid)), uid, Filter.PvsExcept(args.User), true);
 
-            // If this is a stack with multiple items, split one item off and use that as the source
-            // for solution transfer so that per-item solutions are preserved on the remaining stack.
-            EntityUid sourceForTransfer = args.Used;
-            EntityUid? splitEntity = null;
-            if (TryComp<StackComponent>(args.Used, out var usedStack) && usedStack.Count > 1)
-            {
-                splitEntity = _stack.Split(args.Used, 1, Transform(args.Used).Coordinates, usedStack);
-                if (splitEntity != null)
-                    sourceForTransfer = splitEntity.Value;
-            }
-
-            if (_solutionContainerSystem.TryGetSolution(sourceForTransfer, produce.SolutionName, out var soln2, out var solution2))
+            if (_solutionContainerSystem.TryGetSolution(args.Used, produce.SolutionName, out var soln2, out var solution2))
             {
                 if (_solutionContainerSystem.ResolveSolution(uid, component.SoilSolutionName, ref component.SoilSolution, out var solution1))
                 {
-                    // Transfer as much solution as the tray can accept from the single-item source.
+                    // We try to fit as much of the composted plant's contained solution into the hydroponics tray as we can,
+                    // since the plant will be consumed anyway.
+
                     var fillAmount = FixedPoint2.Min(solution2.Volume, solution1.AvailableVolume);
                     _solutionContainerSystem.TryAddSolution(component.SoilSolution.Value, _solutionContainerSystem.SplitSolution(soln2.Value, fillAmount));
 
@@ -434,26 +342,7 @@ public sealed class PlantHolderSystem : EntitySystem
                 var nutrientBonus = seed.Potency / 2.5f;
                 AdjustNutrient(uid, nutrientBonus, component);
             }
-
-            // If we split off a single-item entity earlier, delete it now. Otherwise delete (or eject label) the used entity.
-            if (splitEntity != null)
-            {
-                if (TryComp<PaperLabelComponent>(splitEntity.Value, out var paperLabel))
-                {
-                    _itemSlots.TryEjectToHands(splitEntity.Value, paperLabel.LabelSlot, args.User);
-                }
-
-                QueueDel(splitEntity.Value);
-            }
-            else
-            {
-                if (TryComp<PaperLabelComponent>(args.Used, out var paperLabel))
-                {
-                    _itemSlots.TryEjectToHands(args.Used, paperLabel.LabelSlot, args.User);
-                }
-
-                QueueDel(args.Used);
-            }
+            QueueDel(args.Used);
         }
     }
 

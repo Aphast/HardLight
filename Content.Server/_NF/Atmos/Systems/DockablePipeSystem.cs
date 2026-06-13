@@ -1,4 +1,5 @@
 using Content.Server._NF.Atmos.Components;
+using Content.Server.NodeContainer;
 using Content.Server.NodeContainer.EntitySystems;
 using Content.Server.NodeContainer.Nodes;
 using Content.Server.Shuttles.Events;
@@ -8,11 +9,11 @@ using Robust.Server.GameObjects;
 
 namespace Content.Server._NF.Atmos.Systems;
 
-public sealed class DockablePipeSystem : EntitySystem
+public sealed partial class DockablePipeSystem : EntitySystem
 {
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly NodeContainerSystem _nodeContainer = default!;
-    [Dependency] private readonly NodeGroupSystem _nodeGroup = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private NodeContainerSystem _nodeContainer = default!;
+    [Dependency] private NodeGroupSystem _nodeGroup = default!;
 
     public override void Initialize()
     {

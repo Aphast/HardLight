@@ -1,4 +1,4 @@
-﻿using Robust.Shared.Configuration;
+using Robust.Shared.Configuration;
 
 namespace Content.Shared.CCVar;
 
@@ -32,13 +32,13 @@ public sealed partial class CCVars
     ///     See vote.enabled, but specific to preset votes
     /// </summary>
     public static readonly CVarDef<bool> VotePresetEnabled =
-        CVarDef.Create("vote.preset_enabled", true, CVar.SERVERONLY); // Frontier: false
+        CVarDef.Create("vote.preset_enabled", true, CVar.SERVERONLY); // Mono: true
 
     /// <summary>
     ///     See vote.enabled, but specific to map votes
     /// </summary>
     public static readonly CVarDef<bool> VoteMapEnabled =
-        CVarDef.Create("vote.map_enabled", true, CVar.SERVERONLY);
+        CVarDef.Create("vote.map_enabled", false, CVar.SERVERONLY);
 
     /// <summary>
     ///     The required ratio of the server that must agree for a restart round vote to go through.
@@ -62,7 +62,7 @@ public sealed partial class CCVars
     ///     Sets the duration of the map vote timer.
     /// </summary>
     public static readonly CVarDef<int>
-        VoteTimerMap = CVarDef.Create("vote.timermap", 90, CVar.SERVERONLY);
+        VoteTimerMap = CVarDef.Create("vote.timermap", 150, CVar.SERVERONLY); // Mono - 30 seconds below lobby duration (180), although I don't see this being used.
 
     /// <summary>
     ///     Sets the duration of the restart vote timer.
@@ -74,7 +74,7 @@ public sealed partial class CCVars
     ///     Sets the duration of the gamemode/preset vote timer.
     /// </summary>
     public static readonly CVarDef<int>
-        VoteTimerPreset = CVarDef.Create("vote.timerpreset", 30, CVar.SERVERONLY);
+        VoteTimerPreset = CVarDef.Create("vote.timerpreset", 150, CVar.SERVERONLY); // Mono - 30 seconds below lobby duration (180)
 
     /// <summary>
     ///     Sets the duration of the map vote timer when ALONE.
@@ -146,13 +146,13 @@ public sealed partial class CCVars
     ///     The delay for which two votekicks are allowed to be made by separate people, in seconds.
     /// </summary>
     public static readonly CVarDef<float> VotekickTimeout =
-        CVarDef.Create("votekick.timeout", 60f, CVar.SERVERONLY);
+        CVarDef.Create("votekick.timeout", 120f, CVar.SERVERONLY);
 
     /// <summary>
     ///     Sets the duration of the votekick vote timer.
     /// </summary>
     public static readonly CVarDef<int>
-        VotekickTimer = CVarDef.Create("votekick.timer", 45, CVar.SERVERONLY);
+        VotekickTimer = CVarDef.Create("votekick.timer", 60, CVar.SERVERONLY);
 
     /// <summary>
     ///     Config for how many hours playtime a player must have to get protection from the Raider votekick type when playing as an antag.

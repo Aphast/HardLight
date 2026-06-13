@@ -6,9 +6,9 @@ using Robust.Shared.Serialization;
 
 namespace Content.Shared.Access.Systems
 {
-    public abstract class SharedAccessSystem : EntitySystem
+    public abstract partial class SharedAccessSystem : EntitySystem
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
 
         public override void Initialize()
         {
@@ -53,7 +53,7 @@ namespace Content.Shared.Access.Systems
         /// <param name="access">The new access tags</param>
         public bool TrySetTags(EntityUid uid, IEnumerable<ProtoId<AccessLevelPrototype>> newTags, AccessComponent? access = null)
         {
-            if (!Resolve(uid, ref access, logMissing: false))
+            if (!Resolve(uid, ref access))
                 return false;
 
             access.Tags.Clear();
@@ -69,12 +69,12 @@ namespace Content.Shared.Access.Systems
         /// <param name="access">The new access tags</param>
         public IEnumerable<ProtoId<AccessLevelPrototype>>? TryGetTags(EntityUid uid, AccessComponent? access = null)
         {
-            return !Resolve(uid, ref access, logMissing: false) ? null : access.Tags;
+            return !Resolve(uid, ref access) ? null : access.Tags;
         }
 
         public bool TryAddGroups(EntityUid uid, IEnumerable<ProtoId<AccessGroupPrototype>> newGroups, AccessComponent? access = null)
         {
-            if (!Resolve(uid, ref access, logMissing: false))
+            if (!Resolve(uid, ref access))
                 return false;
 
             foreach (var group in newGroups)
@@ -102,7 +102,7 @@ namespace Content.Shared.Access.Systems
             bool extended,
             AccessComponent? access = null)
         {
-            if (!Resolve(uid, ref access, logMissing: false))
+            if (!Resolve(uid, ref access))
                 return;
 
             access.Tags.Clear();

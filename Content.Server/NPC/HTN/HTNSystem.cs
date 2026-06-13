@@ -7,12 +7,10 @@ using Robust.Shared.CPUJob.JobQueues;
 using Robust.Shared.CPUJob.JobQueues.Queues;
 using Content.Server.NPC.HTN.PrimitiveTasks;
 using Content.Server.NPC.Systems;
-using Content.Shared.CCVar;
 using Content.Shared.Administration;
 using Content.Shared.Mobs;
 using Content.Shared.NPC;
 using JetBrains.Annotations;
-using Robust.Shared.Configuration;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Map; // Mono
@@ -21,35 +19,21 @@ using Content.Server.Worldgen; // Frontier
 using Content.Server.Worldgen.Components; // Frontier
 using Content.Server.Worldgen.Systems; // Frontier
 using Robust.Server.GameObjects; // Frontier
-using Robust.Shared;
 
 namespace Content.Server.NPC.HTN;
 
-public sealed class HTNSystem : EntitySystem
+public sealed partial class HTNSystem : EntitySystem
 {
-    [Dependency] private readonly IAdminManager _admin = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly NPCSystem _npc = default!;
-    [Dependency] private readonly NPCUtilitySystem _utility = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
+    [Dependency] private IAdminManager _admin = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private NPCSystem _npc = default!;
+    [Dependency] private NPCUtilitySystem _utility = default!;
     // Frontier
-    [Dependency] private readonly WorldControllerSystem _world = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
+    [Dependency] private WorldControllerSystem _world = default!;
+    [Dependency] private TransformSystem _transform = default!;
     private EntityQuery<WorldControllerComponent> _mapQuery;
     private EntityQuery<LoadedChunkComponent> _loadedQuery;
-    private EntityQuery<ActorComponent> _actorQuery;
     // Frontier
-
-    private float _netMaxUpdateRange;
-    private float _netMaxUpdateRangeSquared;
-
-    // HardLight perf: per-tick cache of actor world positions, populated at the start of
-    // UpdateNPC and consumed by HasPlayerInRange. Replaces the previous per-NPC
-    // EntityLookupSystem.GetEntitiesInRange<ActorComponent>() spatial query which scaled
-    // O(NPCs * lookup_cost) per tick. With this cache the per-NPC check is O(actors_on_map),
-    // and actors << NPCs in late-round expedition/debris-heavy scenarios.
-    private readonly Dictionary<MapId, List<Vector2>> _actorPositionsByMap = new();
 
     private readonly JobQueue _planQueue = new(0.004);
 
@@ -61,12 +45,6 @@ public sealed class HTNSystem : EntitySystem
         base.Initialize();
         _mapQuery = GetEntityQuery<WorldControllerComponent>(); // Frontier
         _loadedQuery = GetEntityQuery<LoadedChunkComponent>(); // Frontier
-        _actorQuery = GetEntityQuery<ActorComponent>();
-        _cfg.OnValueChanged(CVars.NetMaxUpdateRange, value =>
-        {
-            _netMaxUpdateRange = value;
-            _netMaxUpdateRangeSquared = value * value;
-        }, true);
         SubscribeLocalEvent<HTNComponent, MobStateChangedEvent>(_npc.OnMobStateChange);
         SubscribeLocalEvent<HTNComponent, MapInitEvent>(_npc.OnNPCMapInit);
         SubscribeLocalEvent<HTNComponent, PlayerAttachedEvent>(_npc.OnPlayerNPCAttach);
@@ -170,39 +148,6 @@ public sealed class HTNSystem : EntitySystem
     }
 
     /// <summary>
-    /// Enable / disable the hierarchical task network of an entity
-    /// </summary>
-    /// <param name="ent">The entity and its <see cref="HTNComponent"/></param>
-    /// <param name="state">Set 'true' to enable, or 'false' to disable, the HTN</param>
-    /// <param name="planCooldown">Specifies a time in seconds before the entity can start planning a new action (only takes effect when the HTN is enabled)</param>
-    // ReSharper disable once InconsistentNaming
-    [PublicAPI]
-    public void SetHTNEnabled(Entity<HTNComponent> ent, bool state, float planCooldown = 0f)
-    {
-        if (ent.Comp.Enabled == state)
-            return;
-
-        ent.Comp.Enabled = state;
-        ent.Comp.PlanAccumulator = planCooldown;
-
-        ent.Comp.PlanningToken?.Cancel();
-        ent.Comp.PlanningToken = null;
-
-        if (ent.Comp.Plan != null)
-        {
-            var currentOperator = ent.Comp.Plan.CurrentOperator;
-
-            ShutdownTask(currentOperator, ent.Comp.Blackboard, HTNOperatorStatus.Failed);
-            ShutdownPlan(ent.Comp);
-
-            ent.Comp.Plan = null;
-        }
-
-        if (ent.Comp.Enabled && ent.Comp.PlanAccumulator <= 0)
-            RequestPlan(ent.Comp);
-    }
-
-    /// <summary>
     /// Forces the NPC to replan.
     /// </summary>
     [PublicAPI]
@@ -214,11 +159,6 @@ public sealed class HTNSystem : EntitySystem
     public void UpdateNPC(ref int count, int maxUpdates, float frameTime)
     {
         _planQueue.Process();
-
-        // HardLight perf: refresh actor-position cache once per tick. HasPlayerInRange below
-        // reads from this map instead of issuing a per-NPC broadphase lookup.
-        RefreshActorPositionCache();
-
         var query = EntityQueryEnumerator<ActiveNPCComponent, HTNComponent>();
 
         // Move ahead "count" entries in the query.
@@ -239,12 +179,6 @@ public sealed class HTNSystem : EntitySystem
                 // Intentional return. We don't want to go to the end logic and reset count.
                 return;
             }
-
-            if (!comp.Enabled)
-                continue;
-
-            if (!IsNPCActive(uid))  // Frontier
-                continue; // Frontier
 
             if (comp.PlanningJob != null)
             {
@@ -337,80 +271,6 @@ public sealed class HTNSystem : EntitySystem
         // only reset our counter back to 0 if we finish iterating.
         // otherwise it lets us know where we left off.
         count = 0;
-    }
-
-    private bool IsNPCActive(EntityUid entity) // Frontier
-    {
-        var transform = Transform(entity);
-
-        if (!_mapQuery.TryGetComponent(transform.MapUid, out var worldComponent))
-            return true;
-
-        if (!HasPlayerInRange(entity))
-            return false;
-
-        var chunk = _world.GetOrCreateChunk(WorldGen.WorldToChunkCoords(_transform.GetWorldPosition(transform)).Floored(), transform.MapUid.Value, worldComponent);
-
-        if (!_loadedQuery.TryGetComponent(chunk, out var loaded) || loaded.Loaders is null)
-            return false;
-
-        foreach (var loader in loaded.Loaders)
-        {
-            if (_actorQuery.HasComponent(loader))
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool HasPlayerInRange(EntityUid uid)
-    {
-        var xform = Transform(uid);
-        if (xform.MapID == MapId.Nullspace)
-            return false;
-
-        if (!_actorPositionsByMap.TryGetValue(xform.MapID, out var positions) || positions.Count == 0)
-            return false;
-
-        var npcPos = _transform.GetWorldPosition(xform);
-        var rangeSq = _netMaxUpdateRangeSquared;
-
-        // Linear scan; expected O(actors_on_map) which is in the low tens even on populated rounds,
-        // far cheaper than an EntityLookup AABB query per NPC per tick.
-        for (var i = 0; i < positions.Count; i++)
-        {
-            if ((positions[i] - npcPos).LengthSquared() <= rangeSq)
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// HardLight perf: snapshot every attached actor's world position grouped by map.
-    /// Called once per <see cref="UpdateNPC"/>; lists are reused tick-to-tick to avoid
-    /// per-tick allocation.
-    /// </summary>
-    private void RefreshActorPositionCache()
-    {
-        foreach (var list in _actorPositionsByMap.Values)
-            list.Clear();
-
-        var actorQuery = EntityQueryEnumerator<ActorComponent, TransformComponent>();
-        while (actorQuery.MoveNext(out _, out var xform))
-        {
-            var mapId = xform.MapID;
-            if (mapId == MapId.Nullspace)
-                continue;
-
-            if (!_actorPositionsByMap.TryGetValue(mapId, out var list))
-            {
-                list = new List<Vector2>(8);
-                _actorPositionsByMap[mapId] = list;
-            }
-
-            list.Add(_transform.GetWorldPosition(xform));
-        }
     }
 
     private void AppendDebugText(HTNTask task, StringBuilder text, List<int> planBtr, List<int> btr, ref int level)

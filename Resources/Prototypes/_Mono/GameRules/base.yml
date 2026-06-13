@@ -1,24 +1,3 @@
-# VRS: Ported from Triad_Sector — base rules + faction-rolling schedulers
-# for hostile shuttle station events. The Triad_Sector copy of this file kept
-# the schedulers commented out; we enable them here so VRS NFAdventure rounds
-# actually get the damaged-AI / Chimera / Asakim ship encounters.
-#
-# Round-restart schedulers (Hour4 / Hour1 portstrike timings) intentionally
-# excluded — VRS does not force round restarts, those live in timings.yml.
-
-- type: entity
-  abstract: true
-  parent: BaseGameRule
-  id: BaseRandomShuttleRule
-  components:
-  - type: StationEvent
-    weight: 10
-    reoccurrenceDelay: 30
-    duration: 1
-    maxOccurrences: 2 # should be the same as [copies] in ship_spawns.yml
-  - type: RuleGrids
-  - type: LoadMapRule
-
 - type: entity
   id: MonoAISTCShuttleSpawnerScheduler
   parent: BaseGameRule
@@ -63,6 +42,31 @@
     scheduledGameRules: !type:NestedSelector
       tableId: ChimeraShipsTable
     minimumTimeUntilFirstEvent: 3600 # 1 hour
-    minMaxEventTiming: # 2-4 events
+    minMaxEventTiming: #2-4
       min: 2400 # 40 minutes between events
       max: 4800 # 80 minutes between events
+
+- type: entity
+  abstract: true
+  parent: BaseGameRule
+  id: BaseRandomShuttleRule
+  components:
+  - type: StationEvent
+    weight: 10
+    reoccurrenceDelay: 30
+    duration: 1
+    maxOccurrences: 2 # should be the same as [copies] in ship_spawns.yml
+  - type: RuleGrids
+  - type: LoadMapRule
+
+- type: entity
+  id: MonoMonolithicEventsScheduler
+  parent: BaseGameRule
+  components:
+  - type: BasicStationEventScheduler
+    scheduledGameRules: !type:NestedSelector
+      tableId: MonoMonolithicEventsTable
+    minimumTimeUntilFirstEvent: 600 # 10 minutes
+    minMaxEventTiming:
+      min: 420 # 7 minutes between events
+      max: 1200 # 20 minutes between events

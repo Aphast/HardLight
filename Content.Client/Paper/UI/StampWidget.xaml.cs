@@ -13,7 +13,6 @@ namespace Content.Client.Paper.UI;
 public sealed partial class StampWidget : PanelContainer
 {
     private StyleBoxTexture _borderTexture;
-    private static readonly ProtoId<ShaderPrototype> PaperStampShaderId = "PaperStamp";
     private ShaderInstance? _stampShader;
 
     public float Orientation
@@ -44,7 +43,7 @@ public sealed partial class StampWidget : PanelContainer
         PanelOverride = _borderTexture;
 
         var prototypes = IoCManager.Resolve<IPrototypeManager>();
-        _stampShader = prototypes.Index(PaperStampShaderId).InstanceUnique();
+        _stampShader = prototypes.Index<ShaderPrototype>("PaperStamp").InstanceUnique();
     }
 
     protected override void Draw(DrawingHandleScreen handle)

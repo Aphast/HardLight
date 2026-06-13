@@ -1,6 +1,5 @@
 using Content.Client.Gameplay;
 using Content.Client.Hands.Systems;
-using Content.Client._NF.Interaction.Systems;
 using Content.Client.UserInterface.Controls;
 using Content.Client.UserInterface.Systems.Hands.Controls;
 using Content.Client.UserInterface.Systems.Hotbar.Widgets;
@@ -18,10 +17,10 @@ using Content.Shared._NF.Interaction.Components;
 
 namespace Content.Client.UserInterface.Systems.Hands;
 
-public sealed class HandsUIController : UIController, IOnStateEntered<GameplayState>, IOnSystemChanged<HandsSystem>
+public sealed partial class HandsUIController : UIController, IOnStateEntered<GameplayState>, IOnSystemChanged<HandsSystem>
 {
-    [Dependency] private readonly IEntityManager _entities = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
+    [Dependency] private IEntityManager _entities = default!;
+    [Dependency] private IPlayerManager _player = default!;
 
     [UISystemDependency] private readonly HandsSystem _handsSystem = default!;
     [UISystemDependency] private readonly UseDelaySystem _useDelay = default!;
@@ -40,7 +39,7 @@ public sealed class HandsUIController : UIController, IOnStateEntered<GameplaySt
     private HandButton? _statusHandLeft;
     private HandButton? _statusHandRight;
 
-    private int _backupSuffix = 0; // This is used when autogenerating container names if they don't have names
+    private int _backupSuffix = 0; //this is used when autogenerating container names if they don't have names
 
     private HotbarGui? HandsGui => UIManager.GetActiveUIWidgetOrNull<HotbarGui>();
 
@@ -140,16 +139,13 @@ public sealed class HandsUIController : UIController, IOnStateEntered<GameplaySt
                 handButton.SetEntity(virt.BlockingEntity);
                 handButton.Blocked = true;
             }
-            // Frontier start: Borg hand placeholders
+            // Frontier - borg hand placeholder
             else if (_entities.TryGetComponent(hand.HeldEntity, out HandPlaceholderVisualsComponent? placeholder))
             {
-                // HardLight #1236: dummy may not be spawned yet if the placeholder's
-                // state event hasn't fired by the time we load the hands; spawn it now.
-                handButton.SetEntity(_entities.System<HandPlaceholderVisualsSystem>()
-                    .EnsureDummy((hand.HeldEntity.Value, placeholder, null)));
+                handButton.SetEntity(placeholder.Dummy);
                 handButton.Blocked = true;
             }
-            // Frontier end
+            // End Frontier - borg hand placeholder
             else
             {
                 handButton.SetEntity(hand.HeldEntity);
@@ -201,19 +197,13 @@ public sealed class HandsUIController : UIController, IOnStateEntered<GameplaySt
             hand.SetEntity(virt.BlockingEntity);
             hand.Blocked = true;
         }
-        // Frontier start: Borg hand placeholders
+        // Frontier: borg hand placeholders
         else if (_entities.TryGetComponent(entity, out HandPlaceholderVisualsComponent? placeholder))
         {
-            // HardLight #1236: depending on net-state ordering, the placeholder's
-            // OnAfterAutoHandleState may fire after the item lands in the player's
-            // hand. Spawn the dummy now if it isn't ready so the empty-hand icon
-            // shows on the first open of a borg module instead of staying blank
-            // until the module is closed and reopened.
-            hand.SetEntity(_entities.System<HandPlaceholderVisualsSystem>()
-                .EnsureDummy((entity, placeholder, null)));
+            hand.SetEntity(placeholder.Dummy);
             hand.Blocked = true;
         }
-        // Frontier end
+        // End Frontier: borg hand placeholders
         else
         {
             hand.SetEntity(entity);
@@ -257,7 +247,7 @@ public sealed class HandsUIController : UIController, IOnStateEntered<GameplaySt
         return true;
     }
 
-    // Propagate hand activation to the hand system.
+    //propagate hand activation to the hand system.
     private void StorageActivate(GUIBoundKeyEventArgs args, SlotControl handControl)
     {
         _handsSystem.UIHandActivate(handControl.SlotName);

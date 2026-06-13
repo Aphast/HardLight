@@ -1,8 +1,3 @@
-// SPDX-FileCopyrightText: 2025 BombasterDS <deniskaporoshok@gmail.com>
-// SPDX-FileCopyrightText: 2025 GoobBot <uristmchands@proton.me>
-// SPDX-FileCopyrightText: 2025 Plykiya <58439124+Plykiya@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2025 pheenty <fedorlukin2006@gmail.com>
-
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using Content.Shared.ActionBlocker;
@@ -21,7 +16,6 @@ using Content.Shared.Item;
 using Content.Shared.Mech.Components; // Delta-V: Felinids in duffelbags can't shoot.
 using Content.Shared.Popups;
 using Content.Shared.Projectiles;
-using Content.Shared.Stacks;
 using Content.Shared.Tag;
 using Content.Shared.Throwing;
 using Content.Shared.Timing;
@@ -32,7 +26,6 @@ using Content.Shared.Weapons.Melee.Events;
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Whitelist;
-using Content.Shared._CM14.Weapons.Ranged;
 using Content.Shared._RMC14.Weapons.Ranged.Prediction;
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
@@ -47,51 +40,50 @@ using Robust.Shared.Random;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
-using Content.Goobstation.Common.Weapons.Multishot;
-using Content.Shared.Weapons.Ranged.Events;
+using Robust.Shared.Spawners; // Mono
 
 namespace Content.Shared.Weapons.Ranged.Systems;
 
 public abstract partial class SharedGunSystem : EntitySystem
 {
-    [Dependency] private   readonly ActionBlockerSystem _actionBlockerSystem = default!;
-    [Dependency] protected readonly IGameTiming Timing = default!;
-    [Dependency] protected readonly IMapManager MapManager = default!;
-    [Dependency] private   readonly INetManager _netManager = default!;
-    [Dependency] protected readonly IPrototypeManager ProtoManager = default!;
-    [Dependency] protected readonly IRobustRandom Random = default!;
-    [Dependency] protected readonly ISharedAdminLogManager Logs = default!;
-    [Dependency] protected readonly DamageableSystem Damageable = default!;
-    [Dependency] protected readonly ExamineSystemShared Examine = default!;
-    [Dependency] private   readonly ItemSlotsSystem _slots = default!;
-    [Dependency] private   readonly RechargeBasicEntityAmmoSystem _recharge = default!;
-    [Dependency] protected readonly SharedActionsSystem Actions = default!;
-    [Dependency] protected readonly SharedAppearanceSystem Appearance = default!;
-    [Dependency] protected readonly SharedAudioSystem Audio = default!;
-    [Dependency] private   readonly SharedCombatModeSystem _combatMode = default!;
-    [Dependency] protected readonly SharedContainerSystem Containers = default!;
-    [Dependency] private   readonly SharedGravitySystem _gravity = default!;
-    [Dependency] protected readonly SharedPointLightSystem Lights = default!;
-    [Dependency] protected readonly SharedPopupSystem PopupSystem = default!;
-    [Dependency] protected readonly SharedPhysicsSystem Physics = default!;
-    [Dependency] protected readonly SharedProjectileSystem Projectiles = default!;
-    [Dependency] protected readonly SharedStackSystem StackSystem = default!;
-    [Dependency] protected readonly SharedTransformSystem TransformSystem = default!;
-    [Dependency] protected readonly TagSystem TagSystem = default!;
-    [Dependency] protected readonly ThrowingSystem ThrowingSystem = default!;
-    [Dependency] private   readonly UseDelaySystem _useDelay = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] protected readonly SharedGunPredictionSystem? _gunPrediction = default!;
+    [Dependency] private   ActionBlockerSystem _actionBlockerSystem = default!;
+    [Dependency] protected IGameTiming Timing = default!;
+    [Dependency] protected IMapManager MapManager = default!;
+    [Dependency] private   INetManager _netManager = default!;
+    [Dependency] protected IPrototypeManager ProtoManager = default!;
+    [Dependency] protected IRobustRandom Random = default!;
+    [Dependency] protected ISharedAdminLogManager Logs = default!;
+    [Dependency] protected DamageableSystem Damageable = default!;
+    [Dependency] protected ExamineSystemShared Examine = default!;
+    [Dependency] private   ItemSlotsSystem _slots = default!;
+    [Dependency] private   RechargeBasicEntityAmmoSystem _recharge = default!;
+    [Dependency] protected SharedActionsSystem Actions = default!;
+    [Dependency] protected SharedAppearanceSystem Appearance = default!;
+    [Dependency] protected SharedAudioSystem Audio = default!;
+    [Dependency] private   SharedCombatModeSystem _combatMode = default!;
+    [Dependency] protected SharedContainerSystem Containers = default!;
+    [Dependency] private   SharedGravitySystem _gravity = default!;
+    [Dependency] protected SharedPointLightSystem Lights = default!;
+    [Dependency] protected SharedPopupSystem PopupSystem = default!;
+    [Dependency] protected SharedPhysicsSystem Physics = default!;
+    [Dependency] protected SharedProjectileSystem Projectiles = default!;
+    [Dependency] protected SharedTransformSystem TransformSystem = default!;
+    [Dependency] protected TagSystem TagSystem = default!;
+    [Dependency] protected ThrowingSystem ThrowingSystem = default!;
+    [Dependency] private   UseDelaySystem _useDelay = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] protected SharedGunPredictionSystem? _gunPrediction = default!;
 
     protected EntityQuery<PhysicsComponent> _physQuery; // Mono
     protected EntityQuery<ProjectileComponent> _projQuery; // Mono
+    private EntityQuery<AutoShootGunComponent> _autoShootGunQuery; // Mono
 
     private const float InteractNextFire = 0.3f;
     private const double SafetyNextFire = 0.5;
     private const float EjectOffset = 0.4f;
     protected const string AmmoExamineColor = "yellow";
     protected const string AmmoExamineSpecialColor = "orange"; // Mono
-    public const string FireRateExamineColor = "yellow";
+    protected const string FireRateExamineColor = "yellow";
     public const string ModeExamineColor = "cyan";
 
     private float _lastFrameTime = 0.05f;
@@ -121,10 +113,12 @@ public abstract partial class SharedGunSystem : EntitySystem
         SubscribeLocalEvent<GunComponent, CycleModeEvent>(OnCycleMode);
         SubscribeLocalEvent<GunComponent, HandSelectedEvent>(OnGunSelected);
         SubscribeLocalEvent<GunComponent, MapInitEvent>(OnMapInit);
-        SubscribeLocalEvent<GunDamageModifierComponent, AmmoShotEvent>(OnGunDamageModifierAmmoShot);
+
+        InitializeHolders(); // DeltaV
 
         _physQuery = GetEntityQuery<PhysicsComponent>(); // Mono
         _projQuery = GetEntityQuery<ProjectileComponent>(); // Mono
+        _autoShootGunQuery = GetEntityQuery<AutoShootGunComponent>();
     }
 
     private void OnMapInit(Entity<GunComponent> gun, ref MapInitEvent args)
@@ -151,25 +145,8 @@ public abstract partial class SharedGunSystem : EntitySystem
         }
     }
 
-    private void OnGunDamageModifierAmmoShot(Entity<GunDamageModifierComponent> ent, ref AmmoShotEvent args)
-    {
-        foreach (var projectile in args.FiredProjectiles)
-        {
-            if (!_projQuery.TryGetComponent(projectile, out var comp))
-                continue;
-
-            comp.Damage *= ent.Comp.Multiplier;
-        }
-    }
-
     private void OnShootRequest(RequestShootEvent msg, EntitySessionEventArgs args)
     {
-        // Goobstation start: Multishot; Ensures that guns shoot at same time. // HardLight: Fixed typo
-        var gunUid = GetEntity(msg.Gun);
-
-        if (HasComp<MultishotComponent>(gunUid))
-            return;
-        // Goobstation end
         var user = args.SenderSession.AttachedEntity;
 
         if (user == null || !_combatMode.IsInCombatMode(user))
@@ -186,11 +163,11 @@ public abstract partial class SharedGunSystem : EntitySystem
             return;
 
         gun.ShootCoordinates = GetCoordinates(msg.Coordinates);
-        // Goob start
+        // Goob edit start
         var potentialTarget = GetEntity(msg.Target);
         if (gun.Target == null || !gun.BurstActivated || !gun.LockOnTargetBurst)
             gun.Target = potentialTarget;
-        // Goob end
+        // Goob edit end
         AttemptShoot(user.Value, ent, gun);
     }
 
@@ -320,13 +297,6 @@ public abstract partial class SharedGunSystem : EntitySystem
         if (!gun.LockOnTargetBurst || !gun.BurstActivated) // Goob edit
             gun.Target = null;
         Dirty(uid, gun);
-
-        // If running on the server, notify clients to stop any lingering muzzle-flash animations/lights
-        if (_netManager.IsServer)
-        {
-            var stopEv = new StopMuzzleFlashEvent(GetNetEntity(uid));
-            RaiseNetworkEvent(stopEv, Filter.Pvs(uid, entityManager: EntityManager));
-        }
     }
 
     /// <summary>
@@ -374,12 +344,14 @@ public abstract partial class SharedGunSystem : EntitySystem
     public void AttemptShots(EntityUid user, EntityUid gunUid, GunComponent gun, EntityCoordinates toCoordinates, TimeSpan duration)
     {
         gun.ShootCoordinates = toCoordinates;
-        AttemptShoot(user, gunUid, gun);
+        var autoShoot = EnsureComp<AutoShootGunComponent>(gunUid);
+        if (autoShoot.RemainingTime < duration)
+            autoShoot.RemainingTime = duration;
     }
 
     protected void AttemptShoot(EntityUid user, EntityUid gunUid, GunComponent gun)
     {
-        if (TryComp<AutoShootGunComponent>(gunUid, out var auto) && !auto.CanFire) // Frontier // Mono
+        if (_autoShootGunQuery.TryComp(gunUid, out var auto) && !auto.CanFire && auto.RemainingTime <= TimeSpan.Zero) // Frontier // Mono
             return; // Frontier
 
         if (gun.FireRateModified <= 0f ||
@@ -392,11 +364,6 @@ public abstract partial class SharedGunSystem : EntitySystem
 
         if (toCoordinates == null)
             return;
-
-        // Freeze the requested aim point in map space so burst/auto fire does not pivot with the shooter
-        // after recoil or other movement changes the gun's local transform.
-        toCoordinates = TransformSystem.ToCoordinates(TransformSystem.ToMapCoordinates(toCoordinates.Value));
-        gun.ShootCoordinates = toCoordinates;
 
         var curTime = Timing.CurTime;
 
@@ -423,6 +390,11 @@ public abstract partial class SharedGunSystem : EntitySystem
 
         if (gun.SelectedMode == SelectiveFire.Burst || gun.BurstActivated)
             fireRate = TimeSpan.FromSeconds(1f / gun.BurstFireRate);
+
+        // Mono
+        var rateMulEv = new QueryFireRateMultiplierEvent(1f);
+        RaiseLocalEvent(gunUid, ref rateMulEv);
+        fireRate *= rateMulEv.ReloadTimeMul;
 
         // First shot
         // Previously we checked shotcounter but in some cases all the bullets got dumped at once
@@ -479,22 +451,13 @@ public abstract partial class SharedGunSystem : EntitySystem
             return;
         }
 
-        // Use the weapon's transform as the authoritative muzzle origin.
-        // For mounted ship guns, callers may pass a controlling entity as `user`; using that
-        // transform can produce center-origin shots on moving grids (HL #1631).
-        var fromCoordinates = Transform(gunUid).Coordinates;
+        var fromCoordinates = Transform(user).Coordinates;
         // Remove ammo
         var ev = new TakeAmmoEvent(shots, new List<(EntityUid? Entity, IShootable Shootable)>(), fromCoordinates, user, true); // Frontier: add intent to fire
-
-        // Debug: log ammo request
-        //Log.Info($"SharedGun AttemptShoot: gun={gunUid} user={user} shots={shots} from={fromCoordinates} to={toCoordinates} SelectedMode={gun.SelectedMode} ShotCounter={gun.ShotCounter}");
 
         // Listen it just makes the other code around it easier if shots == 0 to do this.
         if (shots > 0)
             RaiseLocalEvent(gunUid, ev);
-
-        // Debug: report ammo provided
-        //Log.Info($"SharedGun AttemptShoot: gun={gunUid} ammoProvided={ev.Ammo.Count}");
 
         DebugTools.Assert(ev.Ammo.Count <= shots);
         DebugTools.Assert(shots >= 0);
@@ -558,12 +521,10 @@ public abstract partial class SharedGunSystem : EntitySystem
 
         // Shoot confirmed - sounds also played here in case it's invalid (e.g. cartridge already spent).
         Shoot(gunUid, gun, ev.Ammo, fromCoordinates, toCoordinates.Value, out var userImpulse, user, throwItems: attemptEv.ThrowItems);
-        var shotEv = new GunShotEvent(user, gunUid, ev.Ammo, fromCoordinates, toCoordinates.Value); // Mono - pass coordinates
-        RaiseLocalEvent(gunUid, ref shotEv, broadcast: true);
+        var shotEv = new GunShotEvent(user, ev.Ammo, toCoordinates.Value); // Mono - pass coordinates
+        RaiseLocalEvent(gunUid, ref shotEv);
 
         CauseImpulse(toCoordinates.Value, (gunUid, gun), ev.Ammo.Count);
-
-        UpdateAmmoCount(gunUid); // GoobStation: Multishot
     }
 
     public void Shoot(
@@ -596,13 +557,6 @@ public abstract partial class SharedGunSystem : EntitySystem
         var physics = _physQuery.CompOrNull(uid) ?? EnsureComp<PhysicsComponent>(uid);
         Physics.SetBodyStatus(uid, physics, BodyStatus.InAir);
 
-        // HardLight: inherit the firing platform's map-frame velocity so projectiles
-        // travel at `speed` *relative to the shooter*, not relative to the world.
-        // Without this, a ship moving at near-projectile speed sees its own shells
-        // fall back to mid-grid (looking like they spawned at the ship's center)
-        // and lose almost all forward range. Adding `gunVelocity` (the shooter's
-        // map-linear velocity, supplied by the caller) restores Galilean-correct
-        // ballistics for both ship guns and handheld weapons fired while moving.
         var targetVelocity = gunVelocity + direction.Normalized() * speed;
         Physics.SetLinearVelocity(uid, targetVelocity, body: physics);
         // Mono
@@ -645,15 +599,7 @@ public abstract partial class SharedGunSystem : EntitySystem
         return cartridge;
     }
 
-    protected EntityUid? ExtractSingleAmmoForInsert(EntityUid uid, EntityCoordinates coordinates, StackComponent? stack = null)
-    {
-        if (!Resolve(uid, ref stack, false) || stack.Count <= 1)
-            return uid;
-
-        return StackSystem.Split(uid, 1, coordinates, stack);
-    }
-
-    // VRS (Triad #3732)
+    // Mono
     public DamageSpecifier GetNextDamage(Entity<GunComponent?> gun)
     {
         if (!TryNextShootPrototype(gun, out var shoot))
@@ -662,7 +608,7 @@ public abstract partial class SharedGunSystem : EntitySystem
         return GetBulletDamage(shoot);
     }
 
-    // VRS (Triad #3732)
+    // Mono
     public DamageSpecifier GetBulletDamage(EntityPrototype bullet)
     {
         var shoot = GetBulletPrototype(bullet);
@@ -696,6 +642,10 @@ public abstract partial class SharedGunSystem : EntitySystem
         if (cartridge.DeleteOnSpawn) // Mono - No need to update appearance if cartridge is getting deleted anyways
             return;
 
+        if (cartridge.AutoTimedDespawn != 0)
+            EnsureComp<TimedDespawnComponent>(uid).Lifetime = cartridge.AutoTimedDespawn;
+        // End mono
+
         Appearance.SetData(uid, AmmoVisuals.Spent, spent);
     }
 
@@ -707,11 +657,9 @@ public abstract partial class SharedGunSystem : EntitySystem
         Angle? angle = null,
         bool playSound = true)
     {
-        if (!TryComp(entity, out TransformComponent? xform))
-            return;
-
         // TODO: Sound limit version.
         var offsetPos = Random.NextVector2(EjectOffset);
+        var xform = Transform(entity);
 
         var coordinates = xform.Coordinates;
         coordinates = coordinates.Offset(offsetPos);
@@ -732,10 +680,13 @@ public abstract partial class SharedGunSystem : EntitySystem
         }
     }
 
-    public IShootable EnsureShootable(EntityUid uid) // Goobstation: protected<public
+    protected IShootable EnsureShootable(EntityUid uid)
     {
         if (TryComp<CartridgeAmmoComponent>(uid, out var cartridge))
             return cartridge;
+
+        if (TryComp<HitscanAmmoComponent>(uid, out var hitscanAmmo))
+            return hitscanAmmo;
 
         return EnsureComp<AmmoComponent>(uid);
     }
@@ -786,10 +737,11 @@ public abstract partial class SharedGunSystem : EntitySystem
         dirVec.Normalize();
 
         var pos = impulseCoord.Position;
+        pos = (pos - toBody.LocalCenter) * ent.Comp.RecoilRotation + toBody.LocalCenter;
         Physics.ApplyLinearImpulse(toEnt, -dirVec * totalImpulse, pos);
     }
 
-    public void RefreshModifiers(Entity<GunComponent?> gun, EntityUid? User = null) // GoobStation: User for NoWieldNeeded
+    public void RefreshModifiers(Entity<GunComponent?> gun, EntityUid? User = null) // GoobStation change - User for NoWieldNeeded
     {
         if (!Resolve(gun, ref gun.Comp))
             return;
@@ -806,14 +758,14 @@ public abstract partial class SharedGunSystem : EntitySystem
             comp.ShotsPerBurst,
             comp.FireRate,
             comp.ProjectileSpeed,
-            User // Goobstation: User for NoWieldNeeded
+            User // GoobStation change - User for NoWieldNeeded
         );
 
         // Begin DeltaV additions
         // Raise an event at the user of the gun so they have a chance to modify the gun's details.
-        if (User != null)
+        if (gun.Comp.Holder != null)
         {
-            RaiseLocalEvent(User.Value, ref ev);
+            RaiseLocalEvent(gun.Comp.Holder.Value, ref ev);
         }
         // End DeltaV additions
 
@@ -874,6 +826,21 @@ public abstract partial class SharedGunSystem : EntitySystem
         }
     }
 
+    public void SetFireRate(GunComponent component, float fireRate) // Goobstation
+    {
+        component.FireRate = fireRate;
+    }
+
+    public void SetUseKey(GunComponent component, bool useKey) // Goobstation
+    {
+        component.UseKey = useKey;
+    }
+
+    public void SetSoundGunshot(GunComponent component, SoundSpecifier? sound) // Goobstation
+    {
+        component.SoundGunshot = sound;
+    }
+
     protected abstract void CreateEffect(EntityUid gunUid, MuzzleFlashEvent message, EntityUid? user = null);
 
     public bool GunPrediction => _gunPrediction?.GunPrediction ?? false;
@@ -891,6 +858,11 @@ public abstract partial class SharedGunSystem : EntitySystem
 }
 
 /// <summary>
+/// Raised when a chamber-mag gun's bolt is opened or closed.
+/// </summary>
+public record struct BoltStateChangedEvent(EntityUid User, bool Closed); //Mono
+
+/// <summary>
 ///     Raised directed on the gun before firing to see if the shot should go through.
 /// </summary>
 /// <remarks>
@@ -906,9 +878,8 @@ public record struct AttemptShootEvent(EntityUid User, string? Message, bool Can
 ///     Raised directed on the gun after firing.
 /// </summary>
 /// <param name="User">The user that fired this gun.</param>
-/// <param name="Gun">The gun that fired.</param>
 [ByRefEvent]
-public record struct GunShotEvent(EntityUid User, EntityUid Gun, List<(EntityUid? Uid, IShootable Shootable)> Ammo, EntityCoordinates FromCoordinates, EntityCoordinates ToCoordinates); // Mono - pass coordinates
+public record struct GunShotEvent(EntityUid User, List<(EntityUid? Uid, IShootable Shootable)> Ammo, EntityCoordinates ToCoordinates); // Mono - pass coordinates
 
 public enum EffectLayers : byte
 {

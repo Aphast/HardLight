@@ -19,22 +19,20 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using Robust.Shared.Enums;
 using Robust.Shared.Player;
-using Robust.Server.Player; // Frontier
 
 namespace Content.Server.Morgue;
 
-public sealed class CrematoriumSystem : EntitySystem
+public sealed partial class CrematoriumSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly GhostSystem _ghostSystem = default!;
-    [Dependency] private readonly EntityStorageSystem _entityStorage = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly StandingStateSystem _standing = default!;
-    [Dependency] private readonly SharedMindSystem _minds = default!;
-    [Dependency] private readonly SharedContainerSystem _containers = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!; // Frontier
-    [Dependency] private readonly IPlayerManager _player = default!; // Frontier
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private GhostSystem _ghostSystem = default!;
+    [Dependency] private EntityStorageSystem _entityStorage = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private StandingStateSystem _standing = default!;
+    [Dependency] private SharedMindSystem _minds = default!;
+    [Dependency] private SharedContainerSystem _containers = default!;
+    [Dependency] private MobStateSystem _mobState = default!; // Frontier
 
     public override void Initialize()
     {
@@ -93,7 +91,7 @@ public sealed class CrematoriumSystem : EntitySystem
             Text = Loc.GetString("cremate-verb-get-data-text"),
             // TODO VERB ICON add flame/burn symbol?
             Act = () => TryCremate(uid, component, storage),
-            Impact = LogImpact.High // could be a body? or evidence? I dunno.
+            Impact = LogImpact.Medium // could be a body? or evidence? I dunno.
         };
         args.Verbs.Add(verb);
     }
@@ -122,16 +120,6 @@ public sealed class CrematoriumSystem : EntitySystem
 
         if (storage.Open || storage.Contents.ContainedEntities.Count < 1)
             return false;
-
-        // Frontier - refuse to accept alive mobs and dead-but-connected players
-        var entity = storage.Contents.ContainedEntities[0];
-        if (entity is not { Valid: true })
-            return false;
-        if (TryComp<MobStateComponent>(entity, out var comp) && !_mobState.IsDead(entity, comp))
-            return false;
-        if (_player.TryGetSessionByEntity(entity, out var session) && session.State.Status == SessionStatus.InGame)
-            return false;
-        // End Frontier
 
         return Cremate(uid, component, storage);
     }

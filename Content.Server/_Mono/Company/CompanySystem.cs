@@ -1,7 +1,10 @@
 using Content.Shared._Mono.Company;
-using Content.Shared.Examine;
+using Content.Shared.Access.Components;
+using Content.Shared.Access.Systems;
 using Content.Shared.GameTicking;
-using Content.Shared.Roles.Jobs;
+using Content.Shared.Inventory;
+using Content.Shared.PDA;
+using Content.Shared.Roles;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 
@@ -9,51 +12,18 @@ namespace Content.Server._Mono.Company;
 
 /// <summary>
 /// This system handles assigning a company to players when they join.
+/// TODO: remove hardcoded slop.
+/// whoever hardcoded ts is getting slimed out no joke.
 /// </summary>
-public sealed class CompanySystem : EntitySystem
+public sealed partial class CompanySystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private SharedIdCardSystem _idCardSystem = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
+    [Dependency] private CompanyManager _manager = default!;
 
     // Dictionary to store original company preferences for players
     private readonly Dictionary<string, string> _playerOriginalCompanies = new();
-// Hardlight start
-    private readonly HashSet<string> _commandJobs = new()
-    {
-        "StationCaptain",
-        "HeadOfPersonnel",
-        "StationTrafficController",
-        "ResearchDirector",
-        "ChiefMedicalOfficer", 
-        "ChiefEngineer",   
-        "Quartermaster"
-       
-    };
-    private readonly HashSet<string> _colsecJobs = new()
-    {
-        "HeadOfSecurity",
-        "Warden",
-        "SecurityOfficer",
-        "SecurityQuadBorg",
-        "Detective",
-        "Warden",
-        "BrigMedic",
-        "SecurityCadet"
-    };
-// Hardlight end
-    private readonly HashSet<string> _rogueJobs = new()
-    {
-        "PirateCaptain",
-        "PirateFirstMate"
-    };
-
-    private readonly HashSet<string> _usspJobs = new()
-    {
-        "USSPCommissar",
-        "USSPSergeant",
-        "USSPCorporal",
-        "USSPMedic",
-        "USSPRifleman"
-    };
 
     public override void Initialize()
     {
@@ -61,9 +31,6 @@ public sealed class CompanySystem : EntitySystem
 
         // Subscribe to player spawn event to add the company component
         SubscribeLocalEvent<PlayerSpawnCompleteEvent>(OnPlayerSpawnComplete);
-
-        // Subscribe to examination to show the company on examine
-        SubscribeLocalEvent<Shared._Mono.Company.CompanyComponent, ExaminedEvent>(OnExamined);
 
         // Subscribe to player detached event to clean up stored preferences
         SubscribeLocalEvent<PlayerDetachedEvent>(OnPlayerDetached);
@@ -78,7 +45,7 @@ public sealed class CompanySystem : EntitySystem
     private void OnPlayerSpawnComplete(PlayerSpawnCompleteEvent args)
     {
         // Add the company component with the player's saved company
-        var companyComp = EnsureComp<Shared._Mono.Company.CompanyComponent>(args.Mob);
+        var companyComp = EnsureComp<CompanyComponent>(args.Mob);
 
         var playerId = args.Player.UserId.ToString();
         var profileCompany = args.Profile.Company;
@@ -88,33 +55,15 @@ public sealed class CompanySystem : EntitySystem
         {
             _playerOriginalCompanies[playerId] = profileCompany;
         }
-        // Hardlight Start
-        // Check if player's job is a command member, 
-        if (args.JobId != null && _commandJobs.Contains(args.JobId))
+
+        var assigned = false;
+        if (args.JobId != null)
         {
-            // Assign Station Command company
-            companyComp.CompanyName = "StationCommand";
+            var job = _prototypeManager.Index<JobPrototype>(args.JobId);
+            companyComp.CompanyName = job.AssignedCompany;
+            assigned = companyComp.CompanyName != "None";
         }
-         // Check if player's job is a ColSec job, 
-        else if (args.JobId != null && _colsecJobs.Contains(args.JobId))
-        {
-            // Assign ColSec company
-            companyComp.CompanyName = "ColSec";
-        }
-        // Hardlight End
-        // Check if player's job is one of the Rogue jobs
-        else if (args.JobId != null && _rogueJobs.Contains(args.JobId))
-        {
-            // Assign Rogue company
-            companyComp.CompanyName = "Rogue";
-        }
-        // Check if player's job is one of the USSP jobs
-        else if (args.JobId != null && _usspJobs.Contains(args.JobId))
-        {
-            // Assign USSP company
-            companyComp.CompanyName = "USSP";
-        }
-        else
+        if (!assigned)
         {
             // Only consider whitelist if the player has NO specific company preference
             bool loginFound = false;
@@ -123,10 +72,9 @@ public sealed class CompanySystem : EntitySystem
             // or if their preference is "None"
             if (string.IsNullOrEmpty(profileCompany))
             {
-                // Check for company login whitelists
                 foreach (var companyProto in _prototypeManager.EnumeratePrototypes<CompanyPrototype>())
                 {
-                    if (companyProto.Logins.Contains(args.Player.Name))
+                    if (_manager.IsAllowed(args.Player, companyProto))
                     {
                         companyComp.CompanyName = companyProto.ID;
                         loginFound = true;
@@ -149,27 +97,30 @@ public sealed class CompanySystem : EntitySystem
 
         // Ensure the component is networked to clients
         Dirty(args.Mob, companyComp);
+
+        // Update the player's ID card with the company information
+        UpdateIdCardCompany(args.Mob, companyComp.CompanyName);
     }
 
-    private void OnExamined(EntityUid uid, Shared._Mono.Company.CompanyComponent component, ExaminedEvent args)
+    /// <summary>
+    /// Updates the player's ID card with their company information
+    /// </summary>
+    private void UpdateIdCardCompany(EntityUid playerEntity, string companyName)
     {
-        // Try to get the prototype for the company
-        if (_prototypeManager.TryIndex<CompanyPrototype>(component.CompanyName, out var prototype) && component.CompanyName != "None")
+        // Try to get the player's ID card
+        if (!_inventorySystem.TryGetSlotEntity(playerEntity, "id", out var idUid))
+            return;
+
+        var cardId = idUid.Value;
+
+        // Check if it's a PDA with an ID card inside
+        if (TryComp<PdaComponent>(idUid, out var pdaComponent) && pdaComponent.ContainedId != null)
+            cardId = pdaComponent.ContainedId.Value;
+
+        // Update the ID card with company information
+        if (TryComp<IdCardComponent>(cardId, out var idCard))
         {
-            // Use the color from the prototype with gender-appropriate pronoun
-            args.PushMarkup(Loc.GetString("examine-company",
-                ("entity", uid),
-                ("company", $"[color={prototype.Color.ToHex()}]{prototype.Name}[/color]")),
-                priority: 100); // Much higher priority (100) will ensure it's at the top
+            _idCardSystem.TryChangeCompanyName(cardId, companyName, idCard);
         }
-        else if (component.CompanyName != "None")
-        {
-            // Fallback for companies without prototypes
-            args.PushMarkup(Loc.GetString("examine-company",
-                ("entity", uid),
-                ("company", $"[color=yellow]{component.CompanyName}[/color]")),
-                priority: 100);
-        }
-        // Don't show anything for "None" company
     }
 }

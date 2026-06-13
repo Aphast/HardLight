@@ -15,17 +15,12 @@ public sealed class FireControlConsoleBoundInterfaceState : BoundUserInterfaceSt
     public bool Connected;
     public FireControllableEntry[] FireControllables;
     public NavInterfaceState NavState;
-    /// <summary>
-    /// Shield health as 0–100 %. Null when no shield emitter is present on the grid.
-    /// </summary>
-    public float? ShieldHealthPercent;
 
-    public FireControlConsoleBoundInterfaceState(bool connected, FireControllableEntry[] fireControllables, NavInterfaceState navState, float? shieldHealthPercent = null)
+    public FireControlConsoleBoundInterfaceState(bool connected, FireControllableEntry[] fireControllables, NavInterfaceState navState)
     {
         Connected = connected;
         FireControllables = fireControllables;
         NavState = navState;
-        ShieldHealthPercent = shieldHealthPercent;
     }
 }
 
@@ -94,10 +89,22 @@ public struct FireControllableEntry
     /// </summary>
     public string Name;
 
-    public FireControllableEntry(NetEntity entity, NetCoordinates coordinates, string name)
+    /// <summary>
+    /// Current ammunition count.
+    /// </summary>
+    public int? AmmoCount;
+
+    /// <summary>
+    /// Whether this weapon has manual reload.
+    /// </summary>
+    public bool HasManualReload;
+
+    public FireControllableEntry(NetEntity entity, NetCoordinates coordinates, string name, int? ammoCount = null, bool hasManualReload = false)
     {
         NetEntity = entity;
         Coordinates = coordinates;
         Name = name;
+        AmmoCount = ammoCount;
+        HasManualReload = hasManualReload;
     }
 }

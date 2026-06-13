@@ -10,7 +10,7 @@ public sealed partial class HTNComponent : NPCComponent
     /// The base task to use for planning
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite),
-    DataField("rootTask", required: true)]
+     DataField("rootTask", required: true)]
     public HTNCompoundTask RootTask = default!;
 
     /// <summary>
@@ -52,8 +52,14 @@ public sealed partial class HTNComponent : NPCComponent
     [ViewVariables] public bool Planning => PlanningJob != null;
 
     /// <summary>
-    /// Determines whether plans should be made / updated for this entity
+    /// Monolith - If not null, sleep us when no players are in this range, ignoring the similar CVar.
     /// </summary>
     [DataField]
-    public bool Enabled = true;
+    public float? SleepPlayerCheckRangeOverride = null;
+
+    /// <summary>
+    /// Monolith - If not null, do not sleep if the grid we're on is moving at least this fast.
+    /// </summary>
+    [DataField]
+    public float? SleepMaxGridSpeed = null;
 }

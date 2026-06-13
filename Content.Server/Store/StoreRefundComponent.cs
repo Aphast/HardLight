@@ -15,11 +15,13 @@ public sealed partial class StoreRefundComponent : Component
     /// <summary>
     ///     The store this entity was bought from
     /// </summary>
+    [DataField]
     public EntityUid? StoreEntity;
 
     /// <summary>
     ///     The time this entity was bought
     /// </summary>
+    [DataField]
     public TimeSpan? BoughtTime;
 
     /// <summary>

@@ -1,5 +1,6 @@
 using System.Linq;
 using Content.Client.Gameplay;
+using Content.Shared._White.Blink;
 using Content.Shared.CombatMode;
 using Content.Shared.Effects;
 using Content.Shared.Hands.Components;
@@ -23,15 +24,15 @@ namespace Content.Client.Weapons.Melee;
 
 public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
 {
-    [Dependency] private readonly IEyeManager _eyeManager = default!;
-    [Dependency] private readonly IInputManager _inputManager = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IStateManager _stateManager = default!;
-    [Dependency] private readonly AnimationPlayerSystem _animation = default!;
-    [Dependency] private readonly InputSystem _inputSystem = default!;
-    [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
-    [Dependency] private readonly MapSystem _map = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IEyeManager _eyeManager = default!;
+    [Dependency] private IInputManager _inputManager = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IStateManager _stateManager = default!;
+    [Dependency] private AnimationPlayerSystem _animation = default!;
+    [Dependency] private InputSystem _inputSystem = default!;
+    [Dependency] private SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private MapSystem _map = default!;
+    [Dependency] private TransformSystem _transform = default!; // Goobstation
 
     private EntityQuery<TransformComponent> _xformQuery;
 
@@ -65,10 +66,11 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
 
         var entity = entityNull.Value;
 
-        if (!TryGetWeapon(entity, out var weaponUid, out var weapon))
+        // Mono - add user override
+        if (!TryGetWeapon(entity, out var weaponUid, out var weapon, out var userOverride))
             return;
 
-        if (!CombatMode.IsInCombatMode(entity) || !Blocker.CanAttack(entity, weapon: (weaponUid, weapon)))
+        if (!CombatMode.IsInCombatMode(entity) || !Blocker.CanAttack(userOverride, weapon: (weaponUid, weapon)))
         {
             weapon.Attacking = false;
             return;
@@ -119,15 +121,15 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
             switch(altFireComponent.AttackType)
             {
                 case AltFireAttackType.Light:
-                    ClientLightAttack(entity, mousePos, coordinates, weaponUid, weapon);
+                    ClientLightAttack(userOverride, mousePos, coordinates, weaponUid, weapon);
                     break;
 
                 case AltFireAttackType.Heavy:
-                    ClientHeavyAttack(entity, coordinates, weaponUid, weapon);
+                    ClientHeavyAttack(userOverride, coordinates, weaponUid, weapon);
                     break;
 
                 case AltFireAttackType.Disarm:
-                    ClientDisarm(entity, mousePos, coordinates);
+                    ClientDisarm(userOverride, mousePos, coordinates);
                     break;
             }
 
@@ -138,20 +140,46 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
         if (altDown == BoundKeyState.Down)
         {
             // If it's an unarmed attack then do a disarm
-            if (weapon.AltDisarm && weaponUid == entity)
+            if (weapon.AltDisarm && weaponUid == userOverride)
             {
-                ClientDisarm(entity, mousePos, coordinates);
+                EntityUid? target = null;
+
+                if (_stateManager.CurrentState is GameplayStateBase screen)
+                {
+                    target = screen.GetDamageableClickedEntity(mousePos); // Goob edit
+                }
+
+                EntityManager.RaisePredictiveEvent(new DisarmAttackEvent(GetNetEntity(target), GetNetCoordinates(coordinates)));
                 return;
             }
 
-            ClientHeavyAttack(entity, coordinates, weaponUid, weapon);
+            // WD EDIT START
+            if (TryComp(weaponUid, out BlinkComponent? blink) && blink.IsActive)
+            {
+                if (!_xformQuery.TryGetComponent(userOverride, out var userXform))
+                    return;
+
+                var targetMap = _transform.ToMapCoordinates(coordinates);
+
+                if (targetMap.MapId != userXform.MapID)
+                    return;
+
+                var userPos = TransformSystem.GetWorldPosition(userXform);
+                var direction = targetMap.Position - userPos;
+
+                RaisePredictiveEvent(new BlinkEvent(GetNetEntity(weaponUid), direction));
+                return;
+            }
+            // WD EDIT END
+
+            ClientHeavyAttack(userOverride, coordinates, weaponUid, weapon);
             return;
         }
 
         // Light attack
         if (useDown == BoundKeyState.Down)
         {
-            var attackerPos = TransformSystem.GetMapCoordinates(entity);
+            var attackerPos = TransformSystem.GetMapCoordinates(userOverride);
 
             if (mousePos.MapId != attackerPos.MapId ||
                 (attackerPos.Position - mousePos.Position).Length() > weapon.Range)
@@ -163,18 +191,18 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
 
             if (_stateManager.CurrentState is GameplayStateBase screen)
             {
-                target = screen.GetClickedEntity(mousePos);
+                target = screen.GetDamageableClickedEntity(mousePos); // Goob edit
             }
 
-            // Don't light-attack if interaction will be handling this instead
-            if (Interaction.CombatModeCanHandInteract(entity, target))
+            // Don't light-attack if interaction will be handling this instead // Mono - add hands check (why is this duplicated?)
+            if (HasComp<HandsComponent>(userOverride) && Interaction.CombatModeCanHandInteract(userOverride, target))
                 return;
 
             RaisePredictiveEvent(new LightAttackEvent(GetNetEntity(target), GetNetEntity(weaponUid), GetNetCoordinates(coordinates)));
         }
 
         if (useDown == BoundKeyState.Down)
-            ClientLightAttack(entity, mousePos, coordinates, weaponUid, weapon);
+            ClientLightAttack(userOverride, mousePos, coordinates, weaponUid, weapon);
     }
 
     protected override bool InRange(EntityUid user, EntityUid target, float range, ICommonSession? session)
@@ -190,6 +218,35 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
     {
         // Server never sends the event to us for predictiveeevent.
         _color.RaiseEffect(Color.Red, targets, Filter.Local());
+    }
+
+    protected override bool DoDisarm(EntityUid user, DisarmAttackEvent ev, EntityUid meleeUid, MeleeWeaponComponent component, ICommonSession? session)
+    {
+        if (!base.DoDisarm(user, ev, meleeUid, component, session))
+            return false;
+
+        if (!TryComp<CombatModeComponent>(user, out var combatMode) ||
+            combatMode.CanDisarm != true)
+        {
+            return false;
+        }
+
+        var target = GetEntity(ev.Target);
+
+        // They need to either have hands...
+        if (!HasComp<HandsComponent>(target!.Value))
+        {
+            // or just be able to be shoved over.
+            if (TryComp<StatusEffectsComponent>(target, out var status) && status.AllowedEffects.Contains("KnockedDown"))
+                return true;
+
+            if (Timing.IsFirstTimePredicted && HasComp<MobStateComponent>(target.Value))
+                PopupSystem.PopupEntity(Loc.GetString("disarm-action-disarmable", ("targetName", target.Value)), target.Value);
+
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -216,16 +273,7 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
 
         // This should really be improved. GetEntitiesInArc uses pos instead of bounding boxes.
         // Server will validate it with InRangeUnobstructed.
-        // If we're piloting a mech, ignore both the mech and the pilot so the raycast
-        // can reach targets in front of the mech instead of being blocked by the mech's colliders.
-        var ignores = new List<EntityUid> { user };
-        if (TryComp(user, out Content.Shared.Mech.Components.MechPilotComponent? mp) && mp.Mech != default)
-        {
-            // Put mech first so physics raycast skips mech colliders.
-            ignores.Insert(0, mp.Mech);
-        }
-
-        var entities = GetNetEntityList(ArcRayCast(userPos, direction.ToWorldAngle(), component.Angle, distance, userXform.MapID, user, ignores.ToArray()).ToList());
+        var entities = GetNetEntityList(ArcRayCast(userPos, direction.ToWorldAngle(), component.Angle, distance, userXform.MapID, user).ToList());
         RaisePredictiveEvent(new HeavyAttackEvent(GetNetEntity(meleeUid), entities.GetRange(0, Math.Min(MaxTargets, entities.Count)), GetNetCoordinates(coordinates)));
     }
 
@@ -251,8 +299,8 @@ public sealed partial class MeleeWeaponSystem : SharedMeleeWeaponSystem
         if (_stateManager.CurrentState is GameplayStateBase screen)
             target = screen.GetClickedEntity(mousePos);
 
-        // Don't light-attack if interaction will be handling this instead
-        if (Interaction.CombatModeCanHandInteract(attacker, target))
+        // Don't light-attack if interaction will be handling this instead // Mono - only if attacker has hands
+        if (HasComp<HandsComponent>(attacker) && Interaction.CombatModeCanHandInteract(attacker, target))
             return;
 
         RaisePredictiveEvent(new LightAttackEvent(GetNetEntity(target), GetNetEntity(weaponUid), GetNetCoordinates(coordinates)));

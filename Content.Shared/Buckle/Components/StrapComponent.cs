@@ -1,5 +1,6 @@
 using System.Numerics;
 using Content.Shared.Alert;
+using Content.Shared.Vehicle;
 using Content.Shared.Whitelist;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
@@ -9,13 +10,13 @@ using Robust.Shared.Serialization;
 namespace Content.Shared.Buckle.Components;
 
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
-[Access(typeof(SharedBuckleSystem))]
+[Access(typeof(SharedBuckleSystem), typeof(SharedVehicleSystem))]
 public sealed partial class StrapComponent : Component
 {
     /// <summary>
     /// The entities that are currently buckled to this strap.
     /// </summary>
-    [ViewVariables, AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public HashSet<EntityUid> BuckledEntities = new();
 
     /// <summary>
@@ -80,24 +81,24 @@ public sealed partial class StrapComponent : Component
     public ProtoId<AlertPrototype> BuckledAlertType = "Buckled";
 
     /// <summary>
-    /// Whether InteractHand will buckle the user to the strap.
-    /// </summary>
-    [DataField]
-    public bool BuckleOnInteractHand = true;
-
-    /// <summary>
     /// How long it takes to buckle someone else into a chair
     /// </summary>
     [DataField]
     public float BuckleDoafterTime = 2f;
 
-    // Hardlight
     /// <summary>
-    /// How long it takes to buckle yourself to this chair
+    /// Whether InteractHand will buckle the user to the strap.
     /// </summary>
     [DataField]
-    public float BuckleSelfDoafterTime = 0f;
-    // Hardlight End
+    public bool BuckleOnInteractHand = true;
+
+    // Frontier: fix vehicles unbuckling
+    /// <summary>
+    /// Amount of tolerable distance before unbuckling a user
+    /// </summary>
+    [DataField, Access(typeof(SharedBuckleSystem))]
+    public double UnbuckleDistanceSquared = 1e-5;
+    // End Frontier: fix vehicles unbuckling
 }
 
 public enum StrapPosition

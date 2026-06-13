@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Content.Server.Administration.Logs;
 using Content.Server.DeviceLinking.Systems;
 using Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
@@ -7,32 +6,20 @@ using Content.Shared.Database;
 using Content.Shared.DeviceLinking;
 using Content.Shared.DeviceLinking.Events;
 using Robust.Server.GameObjects;
-using Robust.Shared.Timing;
 
 namespace Content.Server._FarHorizons.Power.Generation.FissionGenerator;
 
 public sealed partial class GasTurbineMonitorSystem : EntitySystem
 {
-    [Dependency] private readonly EntityManager _entityManager = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly TurbineSystem _turbineSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly DeviceLinkSystem _signal = default!;
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = null!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
+    [Dependency] private EntityManager _entityManager = default!;
+    [Dependency] private IAdminLogManager _adminLog = default!;
+    [Dependency] private TurbineSystem _turbineSystem = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private DeviceLinkSystem _signal = default!;
+    [Dependency] private UserInterfaceSystem _uiSystem = null!;
 
     private readonly float _threshold = 0.5f;
     private float _accumulator = 0f;
-
-    private sealed class LogData
-    {
-        public TimeSpan CreationTime;
-        public NetEntity Turbine;
-        public float? SetFlowRate;
-        public float? SetStatorLoad;
-    }
-
-    private readonly Dictionary<KeyValuePair<EntityUid, EntityUid>, LogData> _logQueue = [];
 
     public override void Initialize()
     {
@@ -103,30 +90,7 @@ public sealed partial class GasTurbineMonitorSystem : EntitySystem
         if (_accumulator > _threshold)
         {
             AccUpdate();
-            UpdateLogs();
             _accumulator = 0;
-        }
-
-        return;
-
-        void UpdateLogs()
-        {
-            var toRemove = new List<KeyValuePair<EntityUid, EntityUid>>();
-            foreach (var log in _logQueue.Where(log => !((_gameTiming.RealTime - log.Value.CreationTime).TotalSeconds < 2)))
-            {
-                toRemove.Add(log.Key);
-
-                if (log.Value.SetFlowRate != null)
-                    _adminLogger.Add(LogType.AtmosVolumeChanged, LogImpact.Medium,
-                        $"{ToPrettyString(log.Key.Key):player} set the flow rate on {ToPrettyString(log.Value.Turbine):device} to {log.Value.SetFlowRate} through {ToPrettyString(log.Key.Value):monitor}");
-
-                if (log.Value.SetStatorLoad != null)
-                    _adminLogger.Add(LogType.AtmosDeviceSetting, LogImpact.Medium,
-                        $"{ToPrettyString(log.Key.Key):player} set the stator load on {ToPrettyString(log.Value.Turbine):device} to {log.Value.SetStatorLoad} through {ToPrettyString(log.Key.Value):monitor}");
-            }
-
-            foreach (var kvp in toRemove)
-                _logQueue.Remove(kvp);
         }
     }
 
@@ -146,74 +110,26 @@ public sealed partial class GasTurbineMonitorSystem : EntitySystem
 
     private void OnTurbineFlowRateChanged(EntityUid uid, GasTurbineMonitorComponent comp, TurbineChangeFlowRateMessage args)
     {
-        if (!TryGetTurbineComp(comp, out var turbine))
+        if (!TryGetTurbineComp(comp, out var turbine) || !_entityManager.TryGetEntity(comp.turbine, out var turbineUid))
             return;
 
-        if(TrySetFlowRate())
-        {
-            // Data is sent to a log queue to avoid spamming the admin log when adjusting values rapidly
-            var key = new KeyValuePair<EntityUid, EntityUid>(args.Actor, uid);
-            if(!_logQueue.TryGetValue(key, out var value))
-                _logQueue.Add(key, new LogData
-                {
-                    CreationTime = _gameTiming.RealTime,
-                    Turbine = comp.turbine!.Value,
-                    SetFlowRate = turbine.FlowRate
-                });
-            else
-                value.SetFlowRate = turbine.FlowRate;
-        }
-            
+        turbine.FlowRate = Math.Clamp(args.FlowRate, 0f, turbine.FlowRateMax);
+        Dirty(turbineUid.Value, turbine);
         _turbineSystem.UpdateUI(uid, turbine);
-
-        return;
-
-        bool TrySetFlowRate()
-        {
-            var newSet = Math.Clamp(args.FlowRate, 0f, turbine.FlowRateMax);
-            if (turbine.FlowRate != newSet)
-            {
-                turbine.FlowRate = newSet;
-                return true;
-            }
-            return false; 
-        }
+        _adminLog.Add(LogType.AtmosVolumeChanged, LogImpact.Medium,
+            $"{ToPrettyString(args.Actor):player} set the flow rate on {ToPrettyString(uid):device} to {args.FlowRate} through {ToPrettyString(uid):monitor}");
     }
 
     private void OnTurbineStatorLoadChanged(EntityUid uid, GasTurbineMonitorComponent comp, TurbineChangeStatorLoadMessage args)
     {
-        if (!TryGetTurbineComp(comp, out var turbine))
+        if (!TryGetTurbineComp(comp, out var turbine) || !_entityManager.TryGetEntity(comp.turbine, out var turbineUid))
             return;
-        
-        if (TrySetStatorLoad())
-        {
-            // Data is sent to a log queue to avoid spamming the admin log when adjusting values rapidly
-            var key = new KeyValuePair<EntityUid, EntityUid>(args.Actor, uid);
-            if (!_logQueue.TryGetValue(key, out var value))
-                _logQueue.Add(key, new LogData
-                {
-                    CreationTime = _gameTiming.RealTime,
-                    Turbine = comp.turbine!.Value,
-                    SetStatorLoad = turbine.StatorLoad
-                });
-            else
-                value.SetStatorLoad = turbine.StatorLoad;
-        }
 
+        turbine.StatorLoad = Math.Clamp(args.StatorLoad, 1000f, turbine.StatorLoadMax);
+        Dirty(turbineUid.Value, turbine);
         _turbineSystem.UpdateUI(uid, turbine);
-
-        return;
-
-        bool TrySetStatorLoad()
-        {
-            var newSet = Math.Max(args.StatorLoad, 1000f);
-            if (turbine.StatorLoad != newSet)
-            {
-                turbine.StatorLoad = newSet;
-                return true;
-            }
-            return false; 
-        }
+        _adminLog.Add(LogType.AtmosDeviceSetting, LogImpact.Medium,
+            $"{ToPrettyString(args.Actor):player} set the stator load on {ToPrettyString(uid):device} to {args.StatorLoad} through {ToPrettyString(uid):monitor}");
     }
     #endregion
 

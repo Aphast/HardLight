@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using Robust.Shared.Prototypes;
+﻿using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Research.Prototypes;
@@ -23,13 +22,14 @@ public sealed partial class TechnologyPrototype : IPrototype
 
     /// <summary>
     /// An icon used to visually represent the technology in UI.
+    /// Frontier: If not specified and EntityIcon is provided, will use the entity's sprite automatically.
     /// </summary>
-    [DataField(required: true)]
-    public SpriteSpecifier Icon = default!;
+    [DataField] // Frontier: Not required
+    public SpriteSpecifier? Icon = null; // Frontier: Not required
 
     /// <summary>
-    /// Goobstation R&amp;D console rework: an entity prototype whose sprite may be used as the technology icon.
-    /// Optional; falls back to <see cref="Icon"/> when not provided.
+    /// Frontier: An entity prototype whose sprite will be used as the technology icon.
+    /// If specified, this takes precedence over Icon when Icon is not provided.
     /// </summary>
     [DataField]
     public EntProtoId? EntityIcon = null;
@@ -78,13 +78,11 @@ public sealed partial class TechnologyPrototype : IPrototype
     [DataField]
     public IReadOnlyList<GenericUnlock> GenericUnlocks = new List<GenericUnlock>();
 
-    // Goobstation R&D console rework (ported via Triad #1903) ----------------
-
     /// <summary>
-    /// Goobstation R&amp;D console rework: position of this tech in the Fancy console menu.
-    /// Defaults to <c>(0, 0)</c> for techs that have not been laid out; such techs will overlap at the origin.
+    /// Goobstation R&D console rework field
+    /// Position of this tech in console menu
     /// </summary>
-    [DataField]
+    [DataField(required: true)]
     public Vector2i Position { get; private set; }
 
     /// <summary>
@@ -123,24 +121,6 @@ public sealed partial class TechnologyPrototype : IPrototype
     }
 }
 
-/// <summary>
-/// Goobstation R&amp;D console rework: defines the visual style of prerequisite connection lines.
-/// </summary>
-public enum PrerequisiteLineType : byte
-{
-    /// <summary>Clean L-shaped connections (default).</summary>
-    LShape = 0,
-
-    /// <summary>Direct diagonal lines.</summary>
-    Diagonal = 1,
-
-    /// <summary>Tree-like branching connections with structured hierarchy.</summary>
-    Tree = 2,
-
-    /// <summary>Spread connections that fan out to multiple prerequisites.</summary>
-    Spread = 3,
-}
-
 [DataDefinition]
 public partial record struct GenericUnlock()
 {
@@ -158,3 +138,31 @@ public partial record struct GenericUnlock()
     [DataField]
     public string UnlockDescription = string.Empty;
 }
+
+// Frontier: This is used to define how the prerequisite lines are drawn in the R&D console UI.
+/// <summary>
+/// Defines the visual style of prerequisite connection lines
+/// </summary>
+public enum PrerequisiteLineType : byte
+{
+    /// <summary>
+    /// Clean L-shaped connections (default)
+    /// </summary>
+    LShape = 0,
+
+    /// <summary>
+    /// Direct diagonal lines
+    /// </summary>
+    Diagonal = 1,
+
+    /// <summary>
+    /// Tree-like branching connections with structured hierarchy
+    /// </summary>
+    Tree = 2,
+
+    /// <summary>
+    /// Spread connections that avoid overlaps by using offset routing paths
+    /// </summary>
+    Spread = 3
+}
+// End Frontier

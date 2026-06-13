@@ -8,9 +8,9 @@ using Content.Shared.DeviceNetwork.Components;
 
 namespace Content.Server.DeviceLinking.Systems;
 
-public sealed class DeviceLinkSystem : SharedDeviceLinkSystem
+public sealed partial class DeviceLinkSystem : SharedDeviceLinkSystem
 {
-    [Dependency] private readonly DeviceNetworkSystem _deviceNetworkSystem = default!;
+    [Dependency] private DeviceNetworkSystem _deviceNetworkSystem = default!;
 
     public override void Initialize()
     {
@@ -18,23 +18,6 @@ public sealed class DeviceLinkSystem : SharedDeviceLinkSystem
 
         SubscribeLocalEvent<DeviceLinkSinkComponent, DeviceNetworkPacketEvent>(OnPacketReceived);
         SubscribeLocalEvent<DeviceLinkSourceComponent, NewLinkEvent>(OnNewLink);
-    }
-
-    public override void Update(float frameTime)
-    {
-        var query = EntityQueryEnumerator<DeviceLinkSinkComponent>();
-
-        while (query.MoveNext(out var component))
-        {
-            if (component.InvokeLimit < 1)
-            {
-                component.InvokeCounter = 0;
-                continue;
-            }
-
-            if(component.InvokeCounter > 0)
-                component.InvokeCounter--;
-        }
     }
 
     #region Sending & Receiving
@@ -67,16 +50,17 @@ public sealed class DeviceLinkSystem : SharedDeviceLinkSystem
         if (!Resolve(sink, ref sink.Comp))
             return;
 
-        if (sink.Comp.InvokeCounter > sink.Comp.InvokeLimit)
+        var invokeCounter = GetEffectiveInvokeCounter(sink.Comp);
+        if (invokeCounter > sink.Comp.InvokeLimit)
         {
-            sink.Comp.InvokeCounter = 0;
+            SetInvokeCounter(sink.Comp, 0);
             var args = new DeviceLinkOverloadedEvent();
             RaiseLocalEvent(sink, ref args);
             RemoveAllFromSink(sink, sink.Comp);
             return;
         }
 
-        sink.Comp.InvokeCounter++;
+        SetInvokeCounter(sink.Comp, invokeCounter + 1);
 
         //Just skip using device networking if the source or the sink doesn't support it
         if (!HasComp<DeviceNetworkComponent>(source) || !TryComp<DeviceNetworkComponent>(sink, out var sinkNetwork))
@@ -104,6 +88,23 @@ public sealed class DeviceLinkSystem : SharedDeviceLinkSystem
         // force using wireless network so things like atmos devices are able to send signals
         var network = (int) DeviceNetworkComponent.DeviceNetIdDefaults.Wireless;
         _deviceNetworkSystem.QueuePacket(source, sinkNetwork.Address, payload, sinkNetwork.ReceiveFrequency, network);
+    }
+
+    /// <summary>
+    /// Helper function that invokes a port with a high/low binary logic signal.
+    /// </summary>
+    public void SendSignal(EntityUid uid, string port, bool signal, DeviceLinkSourceComponent? comp = null)
+    {
+        if (!Resolve(uid, ref comp))
+            return;
+
+        var data = new NetworkPayload
+        {
+            [DeviceNetworkConstants.LogicState] = signal ? SignalState.High : SignalState.Low
+        };
+        InvokePort(uid, port, data, comp);
+
+        comp.LastSignals[port] = signal;
     }
 
     /// <summary>
@@ -138,6 +139,10 @@ public sealed class DeviceLinkSystem : SharedDeviceLinkSystem
     private void OnNewLink(Entity<DeviceLinkSourceComponent> ent, ref NewLinkEvent args)
     {
         if (args.Source != ent.Owner)
+            return;
+
+        // Don't automatically send signals if the source has NoSignalOnLinkComponent
+        if (HasComp<NoSignalOnLinkComponent>(ent))
             return;
 
         // only do anything if a signal is being sent from a port

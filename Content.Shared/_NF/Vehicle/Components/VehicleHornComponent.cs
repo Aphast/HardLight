@@ -1,7 +1,7 @@
-using Content.Shared._NF.Vehicle.EntitySystems;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
+using Content.Shared.Vehicle;
 
 namespace Content.Shared._NF.Vehicle.Components;
 
@@ -9,7 +9,7 @@ namespace Content.Shared._NF.Vehicle.Components;
 /// 
 /// </summary>
 [RegisterComponent, NetworkedComponent]
-[Access(typeof(VehicleHornSystem))]
+[Access(typeof(SharedVehicleSystem))]
 public sealed partial class VehicleHornComponent : Component
 {
     /// <summary>
@@ -26,11 +26,12 @@ public sealed partial class VehicleHornComponent : Component
     public EntityUid? HonkPlayingStream;
 
     [DataField]
-    public EntProtoId? Action = "ActionHorn";
+    public EntProtoId? Action = "ActionVehicleHorn";
 
     /// <summary>
     /// The action for the horn (if any)
     /// </summary>
+    [DataField]
     [ViewVariables(VVAccess.ReadWrite)]
     public EntityUid? ActionEntity;
 }

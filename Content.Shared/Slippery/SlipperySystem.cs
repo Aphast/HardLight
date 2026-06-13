@@ -20,15 +20,15 @@ using Robust.Shared.Utility;
 namespace Content.Shared.Slippery;
 
 [UsedImplicitly]
-public sealed class SlipperySystem : EntitySystem
+public sealed partial class SlipperySystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedStunSystem _stun = default!;
-    [Dependency] private readonly StatusEffectsSystem _statusEffects = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SpeedModifierContactsSystem _speedModifier = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedStunSystem _stun = default!;
+    [Dependency] private StatusEffectsSystem _statusEffects = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SpeedModifierContactsSystem _speedModifier = default!;
 
     public override void Initialize()
     {
@@ -39,6 +39,7 @@ public sealed class SlipperySystem : EntitySystem
         SubscribeLocalEvent<NoSlipComponent, SlipAttemptEvent>(OnNoSlipAttempt);
         SubscribeLocalEvent<SlowedOverSlipperyComponent, SlipAttemptEvent>(OnSlowedOverSlipAttempt);
         SubscribeLocalEvent<ThrownItemComponent, SlipCausingAttemptEvent>(OnThrownSlipAttempt);
+        // as long as slip-resistant mice are never added, this should be fine (otherwise a mouse-hat will transfer it's power to the wearer).
         SubscribeLocalEvent<NoSlipComponent, InventoryRelayedEvent<SlipAttemptEvent>>((e, c, ev) => OnNoSlipAttempt(e, c, ev.Args));
         SubscribeLocalEvent<SlowedOverSlipperyComponent, InventoryRelayedEvent<SlipAttemptEvent>>((e, c, ev) => OnSlowedOverSlipAttempt(e, c, ev.Args));
         SubscribeLocalEvent<SlowedOverSlipperyComponent, InventoryRelayedEvent<GetSlowedOverSlipperyModifierEvent>>(OnGetSlowedOverSlipperyModifier);
@@ -126,7 +127,8 @@ public sealed class SlipperySystem : EntitySystem
 
         var playSound = !_statusEffects.HasStatusEffect(other, "KnockedDown");
 
-        _stun.TryParalyze(other, component.SlipData.ParalyzeTime, true);
+        // goob edit - stunmeta
+        _stun.TryKnockdown(other, component.SlipData.ParalyzeTime, true);
 
         // Preventing from playing the slip sound when you are already knocked down.
         if (playSound)

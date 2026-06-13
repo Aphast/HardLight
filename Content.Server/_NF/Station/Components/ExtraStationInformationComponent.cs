@@ -6,7 +6,7 @@ namespace Content.Server._NF.Station.Components;
 public sealed partial class ExtraStationInformationComponent : Component
 {
     [DataField]
-    public ResPath? IconPath;
+    public SpriteSpecifier? Icon;
 
     [DataField]
     public LocId? StationSubtext;
@@ -24,7 +24,4 @@ public sealed partial class ExtraStationInformationComponent : Component
      */
     [DataField]
     public int LobbySortOrder;
-
-    [DataField]
-    public bool HiddenWithoutOpenJobs;
 }

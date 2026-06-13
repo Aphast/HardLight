@@ -12,3 +12,5 @@ public sealed partial class TenacityComponent : Component
     [DataField]
     public int CritIncrease = 5;
 }
+
+

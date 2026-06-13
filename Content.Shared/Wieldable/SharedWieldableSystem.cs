@@ -1,9 +1,4 @@
-// SPDX-FileCopyrightText: 2025 August Eymann <august.eymann@gmail.com>
-// SPDX-FileCopyrightText: 2025 GoobBot <uristmchands@proton.me>
-// SPDX-FileCopyrightText: 2025 pheenty <fedorlukin2006@gmail.com>
-
 using System.Linq;
-using Content.Goobstation.Common.Weapons.NoWieldNeeded;
 using Content.Shared.Camera;
 using Content.Shared.Examine;
 using Content.Shared.Hands;
@@ -29,27 +24,29 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.Collections;
 using Robust.Shared.Network;
 using Robust.Shared.Timing;
+using Content.Shared._Goobstation.Weapons.Ranged; // GoobStation - NoWieldNeeded
 
 namespace Content.Shared.Wieldable;
 
-public abstract class SharedWieldableSystem : EntitySystem
+public abstract partial class SharedWieldableSystem : EntitySystem
 {
-    [Dependency] private readonly MovementSpeedModifierSystem _movementSpeedModifier = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedGunSystem _gun = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedItemSystem _item = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly SharedVirtualItemSystem _virtualItem = default!;
-    [Dependency] private readonly UseDelaySystem _delay = default!;
+    [Dependency] private MovementSpeedModifierSystem _movementSpeedModifier = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private INetManager _netManager = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedGunSystem _gun = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedItemSystem _item = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedVirtualItemSystem _virtualItem = default!;
+    [Dependency] private UseDelaySystem _delay = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<WieldableComponent, UseInHandEvent>(OnUseInHand, before: [typeof(SharedGunSystem), typeof(BatteryWeaponFireModesSystem)]); // Frontier: add BatteryWeaponFireModesSystem
+        SubscribeLocalEvent<WieldableComponent, UseInHandEvent>(OnUseInHand, before: [typeof(SharedGunSystem)]);
         SubscribeLocalEvent<WieldableComponent, ItemUnwieldedEvent>(OnItemUnwielded);
         SubscribeLocalEvent<WieldableComponent, GotUnequippedHandEvent>(OnItemLeaveHand);
         SubscribeLocalEvent<WieldableComponent, VirtualItemDeletedEvent>(OnVirtualItemDeleted);
@@ -66,6 +63,7 @@ public abstract class SharedWieldableSystem : EntitySystem
         SubscribeLocalEvent<SpeedModifiedOnWieldComponent, ItemWieldedEvent>(OnSpeedModifierWielded);
         SubscribeLocalEvent<SpeedModifiedOnWieldComponent, ItemUnwieldedEvent>(OnSpeedModifierUnwielded);
         SubscribeLocalEvent<SpeedModifiedOnWieldComponent, HeldRelayedEvent<RefreshMovementSpeedModifiersEvent>>(OnRefreshSpeedWielded);
+        SubscribeLocalEvent<GunWieldBonusComponent, GotEquippedHandEvent>(OnItemInHand); // GoobStation change - OnItemInHand for NoWieldNeeded
 
         SubscribeLocalEvent<IncreaseDamageOnWieldComponent, GetMeleeDamageEvent>(OnGetMeleeDamage);
     }
@@ -82,10 +80,14 @@ public abstract class SharedWieldableSystem : EntitySystem
 
     private void OnShootAttempt(EntityUid uid, GunRequiresWieldComponent component, ref ShotAttemptedEvent args)
     {
+        if (TryComp<NoWieldNeededComponent>(args.User, out var noWieldNeeded) && noWieldNeeded.GetBonus) { // GoobStation change - check for NoWieldNeeded
+            _gun.RefreshModifiers(uid, args.User);
+        }
+
         if (TryComp<WieldableComponent>(uid, out var wieldable) &&
             !wieldable.Wielded &&
-            !HasComp<NoWieldNeededComponent>(args.User) // Goobstation
-            )
+            noWieldNeeded is null
+           )
         {
             args.Cancel();
 
@@ -101,9 +103,14 @@ public abstract class SharedWieldableSystem : EntitySystem
         }
     }
 
-    private void OnGunUnwielded(EntityUid uid, GunWieldBonusComponent component, ItemUnwieldedEvent args)
+    private void OnItemInHand(EntityUid uid, GunWieldBonusComponent component, GotEquippedHandEvent args)  // GoobStation change - OnItemInHand for NoWieldNeeded
     {
         _gun.RefreshModifiers(uid, args.User);
+    }
+
+    private void OnGunUnwielded(EntityUid uid, GunWieldBonusComponent component, ItemUnwieldedEvent args)
+    {
+        _gun.RefreshModifiers(uid);
     }
 
     private void OnGunWielded(EntityUid uid, GunWieldBonusComponent component, ref ItemWieldedEvent args)
@@ -122,8 +129,10 @@ public abstract class SharedWieldableSystem : EntitySystem
     private void OnGunRefreshModifiers(Entity<GunWieldBonusComponent> bonus, ref GunRefreshModifiersEvent args)
     {
         if (TryComp(bonus, out WieldableComponent? wield) &&
-            (wield.Wielded)
-            )
+            (wield.Wielded) ||
+            (args.User != null && TryComp<NoWieldNeededComponent>(args.User.Value, out var noWieldNeeded) &&  // GoobStation change - Check for NoWieldNeeded and GetBonus
+             noWieldNeeded.GetBonus)
+           )
         {
             args.MinAngle += bonus.Comp.MinAngle;
             args.MaxAngle += bonus.Comp.MaxAngle;
@@ -236,7 +245,7 @@ public abstract class SharedWieldableSystem : EntitySystem
     }
 
     /// <summary>
-    /// Attempts to wield an item, starting a UseDelay after.
+    ///     Attempts to wield an item, starting a UseDelay after.
     /// </summary>
     /// <returns>True if the attempt wasn't blocked.</returns>
     public bool TryWield(EntityUid used, WieldableComponent component, EntityUid user)
@@ -267,7 +276,7 @@ public abstract class SharedWieldableSystem : EntitySystem
         if (component.WieldSound != null)
             _audio.PlayPredicted(component.WieldSound, used, user);
 
-        // This section handles spawning the virtual item(s) to occupy the required additional hand(s).
+        //This section handles spawning the virtual item(s) to occupy the required additional hand(s).
         var virtuals = new ValueList<EntityUid>();
         for (var i = 0; i < component.FreeHandsRequired; i++)
         {
@@ -289,20 +298,21 @@ public abstract class SharedWieldableSystem : EntitySystem
         var othersMessage = Loc.GetString("wieldable-component-successful-wield-other", ("user", Identity.Entity(user, EntityManager)), ("item", used));
         _popup.PopupPredicted(selfMessage, othersMessage, user, user);
 
-        var ev = new ItemWieldedEvent(user);
-        RaiseLocalEvent(used, ref ev);
+        var targEv = new ItemWieldedEvent(user); // Goob edit
+        RaiseLocalEvent(used, ref targEv);
 
+        Dirty(used, component);
         return true;
     }
 
     /// <summary>
-    /// Attempts to unwield an item, with no use delay.
+    ///     Attempts to unwield an item, with no use delay.
     /// </summary>
     /// <returns>True if the attempt wasn't blocked.</returns>
     public bool TryUnwield(EntityUid used, WieldableComponent component, EntityUid user, bool force = false)
     {
         if (!component.Wielded)
-            return false; // Already unwielded
+            return false; // already unwielded
 
         if (!force)
         {
@@ -337,7 +347,7 @@ public abstract class SharedWieldableSystem : EntitySystem
         var user = args.User;
         _virtualItem.DeleteInHandsMatching(user, uid);
 
-        if (!args.Force) // Don't play sound/popup if this was a forced unwield
+        if (!args.Force) // don't play sound/popup if this was a forced unwield
         {
             if (component.UnwieldSound != null)
                 _audio.PlayPredicted(component.UnwieldSound, uid, user);

@@ -22,9 +22,7 @@ entities:
     - type: MetaData
     - type: Transform
     - type: Map
-
     - type: GridTree
-
     - type: Broadphase
     - type: OccluderTree
     - type: MapLight
@@ -129,6 +127,41 @@ entities:
           decals:
             35: 3,4
             36: 4,3
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign1
+          decals:
+            0: -4,-1
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign2
+          decals:
+            1: -3,-1
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign3
+          decals:
+            4: -2,-1
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign4
+          decals:
+            5: -1,-1
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign5
+          decals:
+            6: 0,-1
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign6
+          decals:
+            2: 1,-1
+        - node:
+            color: '#FFFFFFFF'
+            id: SpaceStationSign7
+          decals:
+            3: 2,-1
         - node:
             color: '#DE3A3A96'
             id: ThreeQuarterTileOverlayGreyscale

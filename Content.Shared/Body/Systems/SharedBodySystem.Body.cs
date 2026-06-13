@@ -30,6 +30,9 @@ using Content.Shared.Rejuvenate;
 using Content.Shared.Standing;
 using Robust.Shared.Timing;
 
+// Mono
+using Content.Shared._White.Standing;
+
 namespace Content.Shared.Body.Systems;
 
 public partial class SharedBodySystem
@@ -41,11 +44,10 @@ public partial class SharedBodySystem
      * - Each "connection" is a body part (e.g. arm, hand, etc.) and each part can also contain organs.
      */
 
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly GibbingSystem _gibbingSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-    [Dependency] private readonly ItemSlotsSystem _slots = default!; // Shitmed Change
-    [Dependency] private readonly IGameTiming _gameTiming = default!; // Shitmed Change
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private GibbingSystem _gibbingSystem = default!;
+    [Dependency] private SharedAudioSystem _audioSystem = default!;
+    [Dependency] private ItemSlotsSystem _slots = default!; // Shitmed Change
 
     private const float GibletLaunchImpulse = 8;
     private const float GibletLaunchImpulseVariance = 3;
@@ -59,7 +61,7 @@ public partial class SharedBodySystem
         SubscribeLocalEvent<BodyComponent, ComponentInit>(OnBodyInit);
         SubscribeLocalEvent<BodyComponent, MapInitEvent>(OnBodyMapInit);
         SubscribeLocalEvent<BodyComponent, CanDragEvent>(OnBodyCanDrag);
-        SubscribeLocalEvent<BodyComponent, StandAttemptEvent>(OnStandAttempt); // Shitmed Change
+                SubscribeLocalEvent<BodyComponent, StandAttemptEvent>(OnStandAttempt); // Shitmed Change
         SubscribeLocalEvent<BodyComponent, ProfileLoadFinishedEvent>(OnProfileLoadFinished); // Shitmed change
         SubscribeLocalEvent<BodyComponent, IsEquippingAttemptEvent>(OnBeingEquippedAttempt); // Shitmed Change
 
@@ -188,7 +190,7 @@ public partial class SharedBodySystem
                 cameFromEntities[connection] = childPart;
 
                 var childPartComponent = Comp<BodyPartComponent>(childPart);
-                var partSlot = CreatePartSlot(parentEntity, connection, childPartComponent.PartType, parentPartComponent);
+                TryCreatePartSlot(parentEntity, connection, childPartComponent.PartType, out var partSlot, parentPartComponent);
                 // Shitmed Change Start
                 childPartComponent.ParentSlot = partSlot;
                 Dirty(childPart, childPartComponent);
@@ -215,7 +217,7 @@ public partial class SharedBodySystem
     {
         foreach (var (organSlotId, organProto) in organs)
         {
-            var slot = CreateOrganSlot((ent, ent), organSlotId);
+            TryCreateOrganSlot(ent, organSlotId, out var slot); // Shitmed Change
             SpawnInContainerOrDrop(organProto, ent, GetOrganContainerId(organSlotId));
 
             if (slot is null)
@@ -233,18 +235,16 @@ public partial class SharedBodySystem
         BodyComponent? body = null,
         BodyPartComponent? rootPart = null)
     {
-        if (!Resolve(id, ref body, logMissing: false))
+        if (!Resolve(id, ref body, logMissing: false)
+            || body.RootContainer.ContainedEntity is null
+            || !Resolve(body.RootContainer.ContainedEntity.Value, ref rootPart))
         {
             yield break;
         }
 
-        var root = GetRootPartOrNull(id, body);
-        if (root == null)
-            yield break;
-
         yield return body.RootContainer;
 
-        foreach (var childContainer in GetPartContainers(root.Value.Entity, root.Value.BodyPart))
+        foreach (var childContainer in GetPartContainers(body.RootContainer.ContainedEntity.Value, rootPart))
         {
             yield return childContainer;
         }
@@ -259,16 +259,16 @@ public partial class SharedBodySystem
         BodyPartComponent? rootPart = null)
     {
         if (id is null
-            || !Resolve(id.Value, ref body, logMissing: false))
+            || !Resolve(id.Value, ref body, logMissing: false)
+            || body.RootContainer.ContainedEntity is null
+            || body is null // Shitmed Change
+            || body.RootContainer == default // Shitmed Change
+            || !Resolve(body.RootContainer.ContainedEntity.Value, ref rootPart))
         {
             yield break;
         }
 
-        var root = GetRootPartOrNull(id.Value, body);
-        if (root == null)
-            yield break;
-
-        foreach (var child in GetBodyPartChildren(root.Value.Entity, root.Value.BodyPart))
+        foreach (var child in GetBodyPartChildren(body.RootContainer.ContainedEntity.Value, rootPart))
         {
             yield return child;
         }
@@ -300,16 +300,13 @@ public partial class SharedBodySystem
         EntityUid bodyId,
         BodyComponent? body = null)
     {
-        if (!Resolve(bodyId, ref body, logMissing: false))
+        if (!Resolve(bodyId, ref body, logMissing: false)
+            || body.RootContainer.ContainedEntity is null)
         {
             yield break;
         }
 
-        var root = GetRootPartOrNull(bodyId, body);
-        if (root == null)
-            yield break;
-
-        foreach (var slot in GetAllBodyPartSlots(root.Value.Entity, root.Value.BodyPart))
+        foreach (var slot in GetAllBodyPartSlots(body.RootContainer.ContainedEntity.Value))
         {
             yield return slot;
         }
@@ -461,15 +458,14 @@ public partial class SharedBodySystem
             || !Initialized(uid)) // We do this last one for urists on test envs.
             return;
 
-        Logger.Debug($"{ToPrettyString(uid)}: ProfileLoadFinished with {HasComp<HumanoidAppearanceComponent>(uid)} and {component}");
         foreach (var part in GetBodyChildren(uid, component))
             EnsureComp<BodyPartAppearanceComponent>(part.Id);
     }
 
     private void OnStandAttempt(Entity<BodyComponent> ent, ref StandAttemptEvent args)
     {
-        //if (ent.Comp.LegEntities.Count == 0)
-        //    args.Cancel();
+        if (ent.Comp.LegEntities.Count == 0 && ent.Comp.RequiredLegs > 0) // Mono - fix
+            args.Cancel();
     }
 
     private void OnBeingEquippedAttempt(Entity<BodyComponent> ent, ref IsEquippingAttemptEvent args)

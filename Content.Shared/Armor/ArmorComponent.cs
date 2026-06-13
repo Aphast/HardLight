@@ -1,6 +1,7 @@
 using Content.Shared.Damage;
 using Content.Shared.Inventory;
 using Robust.Shared.GameStates;
+using Robust.Shared.Serialization;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Armor;
@@ -8,27 +9,21 @@ namespace Content.Shared.Armor;
 /// <summary>
 /// Used for clothing that reduces damage when worn.
 /// </summary>
-[RegisterComponent, NetworkedComponent, Access(typeof(SharedArmorSystem))]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState] // goob edit - remove access restrictions
 public sealed partial class ArmorComponent : Component
 {
     /// <summary>
     /// The damage reduction
     /// </summary>
-    [DataField(required: true)]
+    [DataField(required: true), AutoNetworkedField]
     public DamageModifierSet Modifiers = default!;
 
     /// <summary>
     /// A multiplier applied to the calculated point value
     /// to determine the monetary value of the armor
     /// </summary>
-    [DataField]
+    [DataField, AutoNetworkedField]
     public float PriceMultiplier = 1;
-
-    /// <summary>
-    /// If true, you can examine the armor to see the protection. If false, the verb won't appear.
-    /// </summary>
-    [DataField]
-    public bool ShowArmorOnExamine = true;
 }
 
 /// <summary>
@@ -53,13 +48,8 @@ public sealed class CoefficientQueryEvent : EntityEventArgs, IInventoryRelayEven
     /// </summary>
     public DamageModifierSet DamageModifiers { get; set; } = new DamageModifierSet();
 
-    // Far Horizons-Start - Protogen Armor Bypass
-    public bool IgnoreUnremovable = false;
-
-    public CoefficientQueryEvent(SlotFlags slots, bool ignoreUnremovable = false)
+    public CoefficientQueryEvent(SlotFlags slots)
     {
         TargetSlots = slots;
-        IgnoreUnremovable = ignoreUnremovable;
     }
-    // Far Horizons-End
 }

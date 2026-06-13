@@ -17,7 +17,7 @@ public sealed partial class SelectableBorgModuleComponent : Component
     /// <summary>
     /// The sidebar action for swapping to this module.
     /// </summary>
-    public EntityUid? ModuleSwapActionEntity;
+    [DataField("moduleSwapActionEntity")] public EntityUid? ModuleSwapActionEntity;
 }
 
 public sealed partial class BorgModuleActionSelectedEvent : InstantActionEvent

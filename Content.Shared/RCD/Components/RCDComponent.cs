@@ -1,5 +1,4 @@
 using Content.Shared.RCD.Systems;
-using Content.Shared.Atmos.Components; // Starlight-edit: RPLD/RPD layered placement support
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Physics;
@@ -35,12 +34,24 @@ public sealed partial class RCDComponent : Component
     public ProtoId<RCDPrototype> ProtoId { get; set; } = "Invalid";
 
     /// <summary>
+    /// A cached copy of currently selected RCD prototype
+    /// </summary>
+    /// <remarks>
+    /// If the ProtoId is changed, make sure to update the CachedPrototype as well
+    /// </remarks>
+    [ViewVariables(VVAccess.ReadOnly)]
+    public RCDPrototype CachedPrototype { get; set; } = default!;
+
+    /// <summary>
     /// The direction constructed entities will face upon spawning
     /// </summary>
     [DataField, AutoNetworkedField]
     public Direction ConstructionDirection
     {
-        get => _constructionDirection;
+        get
+        {
+            return _constructionDirection;
+        }
         set
         {
             _constructionDirection = value;
@@ -57,35 +68,11 @@ public sealed partial class RCDComponent : Component
     /// Contains no position data
     /// </remarks>
     [ViewVariables(VVAccess.ReadOnly)]
-    public Transform ConstructionTransform { get; private set; }
+    public Transform ConstructionTransform { get; private set; } = default!;
 
-    // Frontier: ship-based RCDs
     /// <summary>
-    /// Frontier - Shipyard RCD
-    /// A flag that limits RCD to the authorized ships.
+    /// Mono - delay multiplier for the RCD
     /// </summary>
     [DataField, AutoNetworkedField]
-    public bool IsShipyardRCD;
-
-    /// <summary>
-    /// Frontier - Shipyard RCD
-    /// The uid to which this RCD is limited to be used on.
-    /// </summary>
-    public EntityUid? LinkedShuttleUid = null;
-    // End Frontier: ship-based RCDs
-
-    // Starlight: RPLD
-    /// <summary>
-    /// Indicates whether this is an RPLD (plumbing)
-    /// </summary>
-    [DataField("isRPLD"), AutoNetworkedField]
-    public bool IsRPLD { get; set; } = false;
-
-    // Starlight: RPLD
-    /// <summary>
-    /// Last free-mode layer selected on the client.
-    /// Used by the server as the authoritative layer when placing layered pipes in Free mode.
-    /// </summary>
-    [DataField]
-    public AtmosPipeLayer? LastSelectedLayer { get; set; } = null;
+    public float DelayMultiplier = 1f;
 }

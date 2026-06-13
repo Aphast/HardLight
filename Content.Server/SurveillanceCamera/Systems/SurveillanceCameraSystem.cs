@@ -1,12 +1,13 @@
 using Content.Server.DeviceNetwork.Systems;
-//using Content.Server.Emp; // Frontier: Upstream - #28984
-using Content.Server.Power.Components; // Frontier
 using Content.Shared.ActionBlocker;
+using Content.Shared.Chat; // Einstein Engines - Languages
 using Content.Shared.DeviceNetwork;
 using Content.Shared.DeviceNetwork.Events;
 using Content.Shared.Power;
+using Content.Shared.Silicons.StationAi;
+using Content.Shared.StationAi;
 using Content.Shared.SurveillanceCamera;
-using Content.Shared.Verbs;
+using Content.Shared.SurveillanceCamera.Components;
 using Robust.Server.GameObjects;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
@@ -14,15 +15,15 @@ using Content.Shared.DeviceNetwork.Components;
 
 namespace Content.Server.SurveillanceCamera;
 
-public sealed class SurveillanceCameraSystem : EntitySystem
+public sealed partial class SurveillanceCameraSystem : SharedSurveillanceCameraSystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly ViewSubscriberSystem _viewSubscriberSystem = default!;
-    [Dependency] private readonly DeviceNetworkSystem _deviceNetworkSystem = default!;
-    [Dependency] private readonly UserInterfaceSystem _userInterface = default!;
-    [Dependency] private readonly SurveillanceCameraMapSystem _cameraMapSystem = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private ViewSubscriberSystem _viewSubscriberSystem = default!;
+    [Dependency] private DeviceNetworkSystem _deviceNetworkSystem = default!;
+    [Dependency] private UserInterfaceSystem _userInterface = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedStationAiSystem _stationAi = default!;
 
     // Pings a surveillance camera subnet. All cameras will always respond
     // with a data message if they are on the same subnet.
@@ -55,15 +56,13 @@ public sealed class SurveillanceCameraSystem : EntitySystem
 
     public override void Initialize()
     {
+        base.Initialize();
+
         SubscribeLocalEvent<SurveillanceCameraComponent, ComponentShutdown>(OnShutdown);
         SubscribeLocalEvent<SurveillanceCameraComponent, PowerChangedEvent>(OnPowerChanged);
         SubscribeLocalEvent<SurveillanceCameraComponent, DeviceNetworkPacketEvent>(OnPacketReceived);
         SubscribeLocalEvent<SurveillanceCameraComponent, SurveillanceCameraSetupSetName>(OnSetName);
         SubscribeLocalEvent<SurveillanceCameraComponent, SurveillanceCameraSetupSetNetwork>(OnSetNetwork);
-        SubscribeLocalEvent<SurveillanceCameraComponent, GetVerbsEvent<AlternativeVerb>>(AddVerbs);
-
-        //SubscribeLocalEvent<SurveillanceCameraComponent, EmpPulseEvent>(OnEmpPulse); // Frontier: Upstream - #28984
-        //SubscribeLocalEvent<SurveillanceCameraComponent, EmpDisabledRemoved>(OnEmpDisabledRemoved); // Frontier: Upstream - #28984
     }
 
     private void OnPacketReceived(EntityUid uid, SurveillanceCameraComponent component, DeviceNetworkPacketEvent args)
@@ -129,29 +128,6 @@ public sealed class SurveillanceCameraSystem : EntitySystem
         }
     }
 
-    private void AddVerbs(EntityUid uid, SurveillanceCameraComponent component, GetVerbsEvent<AlternativeVerb> verbs)
-    {
-        var ev = new SurveillanceCameraAlternativeVerbsEvent(verbs);
-        RaiseLocalEvent(uid, ev);
-
-        if (!_actionBlocker.CanInteract(verbs.User, uid))
-        {
-            return;
-        }
-
-        if (component.NameSet && component.NetworkSet)
-        {
-            return;
-        }
-
-        AlternativeVerb verb = new();
-        verb.Text = Loc.GetString("surveillance-camera-setup");
-        verb.Act = () => OpenSetupInterface(uid, verbs.User, component);
-        verbs.Verbs.Add(verb);
-    }
-
-
-
     private void OnPowerChanged(EntityUid camera, SurveillanceCameraComponent component, ref PowerChangedEvent args)
     {
         SetActive(camera, args.Powered, component);
@@ -174,6 +150,7 @@ public sealed class SurveillanceCameraSystem : EntitySystem
 
         component.CameraId = args.Name;
         component.NameSet = true;
+        Dirty(uid, component);
         UpdateSetupInterface(uid, component);
     }
 
@@ -198,10 +175,11 @@ public sealed class SurveillanceCameraSystem : EntitySystem
 
         _deviceNetworkSystem.SetReceiveFrequency(uid, frequency.Frequency);
         component.NetworkSet = true;
+        Dirty(uid, component);
         UpdateSetupInterface(uid, component);
     }
 
-    private void OpenSetupInterface(EntityUid uid, EntityUid player, SurveillanceCameraComponent? camera = null)
+    protected override void OpenSetupInterface(EntityUid uid, EntityUid player, SurveillanceCameraComponent? camera = null)
     {
         if (!Resolve(uid, ref camera))
             return;
@@ -257,6 +235,12 @@ public sealed class SurveillanceCameraSystem : EntitySystem
         RemoveActiveViewers(camera, new(component.ActiveViewers), null, component);
         component.Active = false;
 
+        // Disable AI vision when camera is deactivated
+        if (TryComp<StationAiVisionComponent>(camera, out var visionComp))
+        {
+            _stationAi.SetVisionEnabled((camera, visionComp), false);
+        }
+
         // Send a targetted event to all monitors.
         foreach (var monitor in component.ActiveMonitors)
         {
@@ -271,7 +255,7 @@ public sealed class SurveillanceCameraSystem : EntitySystem
         UpdateVisuals(camera, component);
     }
 
-    public void SetActive(EntityUid camera, bool setting, SurveillanceCameraComponent? component = null)
+    public override void SetActive(EntityUid camera, bool setting, SurveillanceCameraComponent? component = null)
     {
         if (!Resolve(camera, ref component))
         {
@@ -285,6 +269,12 @@ public sealed class SurveillanceCameraSystem : EntitySystem
             if (attemptEv.Cancelled)
                 return;
             component.Active = setting;
+
+            // Enable AI vision when camera is activated
+            if (TryComp<StationAiVisionComponent>(camera, out var visionComp))
+            {
+                _stationAi.SetVisionEnabled((camera, visionComp), true);
+            }
         }
         else
         {
@@ -292,8 +282,6 @@ public sealed class SurveillanceCameraSystem : EntitySystem
         }
 
         UpdateVisuals(camera, component);
-
-        _cameraMapSystem.UpdateCameraMarker((camera, component));
     }
 
     public void AddActiveViewer(EntityUid camera, EntityUid player, EntityUid? monitor = null, SurveillanceCameraComponent? component = null, ActorComponent? actor = null)
@@ -420,26 +408,6 @@ public sealed class SurveillanceCameraSystem : EntitySystem
 
         _appearance.SetData(uid, SurveillanceCameraVisualsKey.Key, key, appearance);
     }
-
-    //private void OnEmpPulse(EntityUid uid, SurveillanceCameraComponent component, ref EmpPulseEvent args) // Frontier: Upstream - #28984
-    //{
-    //    if (component.Active)
-    //    {
-    //        args.Affected = true;
-    //        args.Disabled = true;
-    //        SetActive(uid, false);
-    //    }
-    //}
-
-    //private void OnEmpDisabledRemoved(EntityUid uid, SurveillanceCameraComponent component, ref EmpDisabledRemoved args)
-    //{
-    //    SetActive(uid, true);
-    //}
-}
-
-public sealed class SurveillanceCameraAlternativeVerbsEvent(GetVerbsEvent<AlternativeVerb> args) : EntityEventArgs
-{
-    public GetVerbsEvent<AlternativeVerb> Args { get; } = args;
 }
 
 public sealed class OnSurveillanceCameraViewerAddEvent : EntityEventArgs

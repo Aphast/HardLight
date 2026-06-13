@@ -22,21 +22,16 @@ using Content.Shared.NodeContainer;
 
 namespace Content.Server.Atmos.Consoles;
 
-public sealed class AtmosMonitoringConsoleSystem : SharedAtmosMonitoringConsoleSystem
+public sealed partial class AtmosMonitoringConsoleSystem : SharedAtmosMonitoringConsoleSystem
 {
-    [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-    [Dependency] private readonly SharedMapSystem _sharedMapSystem = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
+    [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+    [Dependency] private SharedMapSystem _sharedMapSystem = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
 
     // Private variables
     // Note: this data does not need to be saved
     private Dictionary<EntityUid, Dictionary<Vector2i, AtmosPipeChunk>> _gridAtmosPipeChunks = new();
     private float _updateTimer = 1.0f;
-
-    // Per-Update() scratch: cached pipe-sensor entries grouped by grid so that multiple consoles
-    // on the same grid (capital ships) don't each re-scan the world for GasPipeSensorComponent.
-    // Cleared at the end of every Update() pass; never read across passes.
-    private readonly Dictionary<EntityUid, List<AtmosMonitoringConsoleEntry>> _perGridSensorEntries = new();
 
     // Constants
     private const float UpdateTime = 1.0f;
@@ -144,17 +139,8 @@ public sealed class AtmosMonitoringConsoleSystem : SharedAtmosMonitoringConsoleS
                 if (entXform?.GridUid == null)
                     continue;
 
-                // Skip the entire UpdateUIState path (which builds a sensor list and serializes
-                // a UI message) when nobody is looking. Previously this was the first check inside
-                // UpdateUIState; doing it here also avoids the GridUid lookup on closed consoles.
-                if (!_userInterfaceSystem.IsUiOpen(ent, AtmosMonitoringConsoleUiKey.Key))
-                    continue;
-
                 UpdateUIState(ent, entConsole, entXform);
             }
-
-            // Drop the per-tick per-grid sensor cache so we re-scan next pass.
-            _perGridSensorEntries.Clear();
         }
     }
 
@@ -174,29 +160,25 @@ public sealed class AtmosMonitoringConsoleSystem : SharedAtmosMonitoringConsoleS
         if (!TryComp<GridAtmosphereComponent>(gridUid, out var atmosphere))
             return;
 
-        // Cache pipe-sensor entries per grid for the duration of this Update() pass so multiple
-        // consoles on the same grid (e.g. a capital ship with several atmos consoles) don't each
-        // re-walk every GasPipeSensorComponent in the world.
-        if (!_perGridSensorEntries.TryGetValue(gridUid, out var atmosNetworks))
+        // The grid must have a NavMapComponent to visualize the map in the UI
+        EnsureComp<NavMapComponent>(gridUid);
+
+        // Gathering data to be send to the client
+        var atmosNetworks = new List<AtmosMonitoringConsoleEntry>();
+        var query = AllEntityQuery<GasPipeSensorComponent, TransformComponent>();
+
+        while (query.MoveNext(out var ent, out var entSensor, out var entXform))
         {
-            atmosNetworks = new List<AtmosMonitoringConsoleEntry>();
-            var query = AllEntityQuery<GasPipeSensorComponent, TransformComponent>();
+            if (entXform?.GridUid != xform.GridUid)
+                continue;
 
-            while (query.MoveNext(out var ent, out var entSensor, out var entXform))
-            {
-                if (entXform?.GridUid != gridUid)
-                    continue;
+            if (!entXform.Anchored)
+                continue;
 
-                if (!entXform.Anchored)
-                    continue;
+            var entry = CreateAtmosMonitoringConsoleEntry(ent, entXform);
 
-                var entry = CreateAtmosMonitoringConsoleEntry(ent, entXform);
-
-                if (entry != null)
-                    atmosNetworks.Add(entry.Value);
-            }
-
-            _perGridSensorEntries[gridUid] = atmosNetworks;
+            if (entry != null)
+                atmosNetworks.Add(entry.Value);
         }
 
         // Set the UI state
@@ -487,10 +469,6 @@ public sealed class AtmosMonitoringConsoleSystem : SharedAtmosMonitoringConsoleS
 
         if (!TryComp<MapGridComponent>(grid, out var map))
             return;
-
-        // The grid must have a NavMapComponent to visualize the map in the UI. Ensure here at
-        // console init / parent-change so the per-tick UpdateUIState path doesn't have to.
-        EnsureComp<NavMapComponent>(grid);
 
         component.AtmosDevices = GetAllAtmosDeviceNavMapData(grid);
 

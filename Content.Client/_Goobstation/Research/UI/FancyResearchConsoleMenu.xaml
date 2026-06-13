@@ -6,9 +6,27 @@
                       Title="{Loc 'research-console-menu-title'}"
                       SetSize="1260 850"
                       MinSize="600 400"> <!-- Frontier: add MinSize-->
-    <BoxContainer Orientation="Horizontal"
+    <BoxContainer Orientation="Vertical"
                   HorizontalExpand="True"
                   VerticalExpand="True">
+        <BoxContainer Orientation="Horizontal"
+                      HorizontalExpand="True"
+                      VerticalExpand="False"
+                      MinHeight="60"
+                      Margin="10">
+            <BoxContainer Orientation="Vertical" VerticalExpand="True" HorizontalExpand="True">
+                <RichTextLabel Name="ResearchAmountLabel"/>
+                <Control VerticalExpand="True"/>
+                <BoxContainer Name="TierDisplayContainer" Orientation="Horizontal" HorizontalExpand="True" VerticalAlignment="Bottom"/>
+                <!-- This is where we put all of the little graphics that display discipline tiers!-->
+            </BoxContainer>
+            <BoxContainer Orientation="Vertical" VerticalExpand="True" HorizontalAlignment="Right">
+                <Button Name="ServerButton" Text="{Loc 'research-console-menu-server-selection-button'}" MinHeight="40"/>
+            </BoxContainer>
+        </BoxContainer>
+        <BoxContainer Orientation="Horizontal"
+                      HorizontalExpand="True"
+                      VerticalExpand="True">
             <BoxContainer Orientation="Vertical"
                           VerticalExpand="True"
                           HorizontalExpand="True"
@@ -39,26 +57,6 @@
                     HorizontalExpand="True"
                     SizeFlagsStretchRatio="1"
                     Margin="0">
-                    <BoxContainer Orientation="Horizontal"
-                                  HorizontalExpand="True"
-                                  VerticalExpand="False"
-                                  MinHeight="40"
-                                  Margin="8 8 8 4">
-                        <BoxContainer Orientation="Vertical"
-                                      VerticalExpand="True"
-                                      HorizontalExpand="True">
-                            <RichTextLabel Name="ResearchAmountLabel"/>
-                            <BoxContainer Name="TierDisplayContainer"
-                                          Orientation="Horizontal"
-                                          HorizontalExpand="True"
-                                          VerticalAlignment="Top"/>
-                            <!-- This is where we put all of the little graphics that display discipline tiers!-->
-                        </BoxContainer>
-                        <Button Name="ServerButton"
-                                Text="{Loc 'research-console-menu-server-selection-button'}"
-                                MinHeight="32"
-                                HorizontalAlignment="Right"/>
-                    </BoxContainer>
                     <!-- Frontier: add a placeholder so the scrollable interface doesn't immediately shrink, matches InfoPanel size -->
                     <Control
                         Margin="5"
@@ -67,5 +65,6 @@
                         HorizontalExpand="True"/>
                 </BoxContainer>
             </PanelContainer>
+        </BoxContainer>
     </BoxContainer>
 </controls:FancyWindow>

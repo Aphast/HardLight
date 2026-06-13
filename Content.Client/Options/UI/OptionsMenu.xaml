@@ -10,6 +10,6 @@
         <tabs:AudioTab Name="AudioTab" />
         <tabs:AccessibilityTab Name="AccessibilityTab" />
         <tabs:AdminOptionsTab Name="AdminOptionsTab" />
-        <!-- Extra Delta-V tab removed; settings merged into Accessibility -->
+        <dtabs:DeltaTab Name="ExtraTab" /> <!-- Delta-V -->
     </TabContainer>
 </DefaultWindow>

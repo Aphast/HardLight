@@ -1,4 +1,3 @@
-using Content.Client._Common.Consent; // Consent system
 using Content.Client.Administration.Managers;
 using Content.Client.Changelog;
 using Content.Client.Chat.Managers;
@@ -25,8 +24,8 @@ using Content.Shared.Administration.Managers;
 using Content.Shared.Chat;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Players.RateLimiting;
-using Content.Client._FS.DiscordAuth; // Floofstation
-using Content.Client.Shuttles.Save;
+using Content.Client._Mono.Company; // Mono
+using Content.Client._Mono.MonoCoins; // Mono
 
 namespace Content.Client.IoC
 {
@@ -37,8 +36,8 @@ namespace Content.Client.IoC
             var collection = IoCManager.Instance!;
 
             collection.Register<IParallaxManager, ParallaxManager>();
+            collection.Register<GeneratedParallaxCache>();
             collection.Register<IChatManager, ChatManager>();
-            collection.Register<IClientConsentManager, ClientConsentManager>(); // Consent system
             collection.Register<ISharedChatManager, ChatManager>();
             collection.Register<IClientPreferencesManager, ClientPreferencesManager>();
             collection.Register<IStylesheetManager, StylesheetManager>();
@@ -63,8 +62,8 @@ namespace Content.Client.IoC
             collection.Register<PlayerRateLimitManager>();
             collection.Register<SharedPlayerRateLimitManager, PlayerRateLimitManager>();
             collection.Register<TitleWindowManager>();
-            IoCManager.Register<DiscordAuthManager>(); // Floofstation
-            collection.Register<ShipFileManagementSystem>();
+            collection.Register<CompanyManager>(); // Mono
+            collection.Register<MonoCoinsManager>(); // Mono
         }
     }
 }

@@ -1,9 +1,4 @@
-﻿name: "Labels: Untriaged"
-
-concurrency:
-  group: labels
-  cancel-in-progress: false
-  queue: max
+name: "Labels: Untriaged"
 
 on:
   issues:
@@ -11,10 +6,9 @@ on:
   pull_request_target:
     types: [opened]
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   add_label:
@@ -24,4 +18,3 @@ jobs:
       if: join(github.event.issue.labels) == ''
       with:
         labels: "S: Untriaged"
-        github_token: "${{ secrets.GITHUB_TOKEN }}"

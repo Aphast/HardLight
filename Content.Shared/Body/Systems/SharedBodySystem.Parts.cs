@@ -15,17 +15,17 @@ using Content.Shared.Humanoid;
 using Content.Shared._Shitmed.Body.Events;
 using Content.Shared._Shitmed.Body.Part;
 using Content.Shared._Shitmed.BodyEffects;
-using Content.Shared._Shitmed.Targeting.Events;
 using Content.Shared.Inventory;
 using Content.Shared.Random;
-using Robust.Shared.Prototypes;
+
+// Mono
+using Content.Shared._White.Standing;
 
 namespace Content.Shared.Body.Systems;
 
 public partial class SharedBodySystem
 {
-    [Dependency] private readonly RandomHelperSystem _randomHelper = default!; // Shitmed Change
-    private static readonly ProtoId<DamageTypePrototype> BloodlossDamageId = "Bloodloss";
+    [Dependency] private RandomHelperSystem _randomHelper = default!; // Shitmed Change
 
     private void InitializeParts()
     {
@@ -59,6 +59,11 @@ public partial class SharedBodySystem
         foreach (var connection in ent.Comp.Children.Keys)
         {
             Containers.EnsureContainer<ContainerSlot>(ent, GetPartSlotContainerId(connection));
+        }
+
+        foreach (var organ in ent.Comp.Organs.Keys)
+        {
+            Containers.EnsureContainer<ContainerSlot>(ent, GetOrganContainerId(organ));
         }
     }
 
@@ -195,38 +200,17 @@ public partial class SharedBodySystem
 
     protected virtual void DropPart(Entity<BodyPartComponent> partEnt)
     {
-        var body = partEnt.Comp.Body;
-
-        if (TerminatingOrDeleted(partEnt)
-            || EntityManager.IsQueuedForDeletion(partEnt)
-            || body is { Valid: true } && (TerminatingOrDeleted(body.Value) || EntityManager.IsQueuedForDeletion(body.Value)))
-        {
-            return;
-        }
-
         DropSlotContents(partEnt);
         // I don't know if this can cause issues, since any part that's being detached HAS to have a Body.
         // though I really just want the compiler to shut the fuck up.
-        var bodyUid = body.GetValueOrDefault();
-        if (TryComp(partEnt, out TransformComponent? transform) && _gameTiming.IsFirstTimePredicted)
+        var body = partEnt.Comp.Body.GetValueOrDefault();
+        if (TryComp(partEnt, out TransformComponent? transform) && _timing.IsFirstTimePredicted)
         {
             var enableEvent = new BodyPartEnableChangedEvent(false);
             RaiseLocalEvent(partEnt, ref enableEvent);
             var droppedEvent = new BodyPartDroppedEvent(partEnt);
-            RaiseLocalEvent(bodyUid, ref droppedEvent);
-
-            if (bodyUid != EntityUid.Invalid)
-            {
-                var bodyTransform = Transform(bodyUid);
-                if (bodyTransform.MapUid != null)
-                    SharedTransform.DropNextTo((partEnt.Owner, transform), (bodyUid, bodyTransform));
-            }
-
-            if (transform.MapUid != null)
-            {
-                SharedTransform.AttachToGridOrMap(partEnt, transform);
-            }
-
+            RaiseLocalEvent(body, ref droppedEvent);
+            SharedTransform.AttachToGridOrMap(partEnt, transform);
             _randomHelper.RandomOffset(partEnt, 0.5f);
         }
 
@@ -388,6 +372,8 @@ public partial class SharedBodySystem
             bodyEnt.Comp.LegEntities.Add(legEnt);
             UpdateMovementSpeed(bodyEnt);
             Dirty(bodyEnt, bodyEnt.Comp);
+            // Mono
+            Standing.Stand(bodyEnt, force: !HasComp<LayingDownComponent>(bodyEnt));
         }
     }
 
@@ -401,7 +387,8 @@ public partial class SharedBodySystem
             bodyEnt.Comp.LegEntities.Remove(legEnt);
             UpdateMovementSpeed(bodyEnt);
             Dirty(bodyEnt, bodyEnt.Comp);
-            Standing.Down(bodyEnt); // Shitmed Change
+            if (bodyEnt.Comp.LegEntities.Count == 0 && bodyEnt.Comp.RequiredLegs > 0) // Mono
+                Standing.Down(bodyEnt); // Shitmed Change
         }
     }
 
@@ -415,7 +402,7 @@ public partial class SharedBodySystem
             && !GetBodyChildrenOfType(bodyEnt, partEnt.Comp.PartType, bodyEnt.Comp).Any()
         )
         {
-            var damage = new DamageSpecifier(Prototypes.Index<DamageTypePrototype>(BloodlossDamageId), partEnt.Comp.VitalDamage); // Shitmed Change
+            var damage = new DamageSpecifier(Prototypes.Index<DamageTypePrototype>("Bloodloss"), partEnt.Comp.VitalDamage); // Shitmed Change
             Damageable.TryChangeDamage(bodyEnt, damage, partMultiplier: 0f); // Shitmed Change
         }
     }
@@ -497,6 +484,10 @@ public partial class SharedBodySystem
             return null;
 
         Containers.EnsureContainer<ContainerSlot>(partUid, GetPartSlotContainerId(slotId));
+        // Shitmed Change: Don't throw if the slot already exists
+        if (part.Children.TryGetValue(slotId, out var existing))
+            return existing;
+
         var partSlot = new BodyPartSlot(slotId, partType);
         part.Children.Add(slotId, partSlot);
         Dirty(partUid, part);
@@ -585,18 +576,13 @@ public partial class SharedBodySystem
     public (EntityUid Entity, BodyPartComponent BodyPart)? GetRootPartOrNull(EntityUid bodyId, BodyComponent? body = null)
     {
         if (!Resolve(bodyId, ref body)
-            || body.RootContainer == default
             || body.RootContainer.ContainedEntity is null)
         {
             return null;
         }
 
-        var rootEntity = body.RootContainer.ContainedEntity.Value;
-
-        if (!TryComp(rootEntity, out BodyPartComponent? rootPart))
-            return null;
-
-        return (rootEntity, rootPart);
+        return (body.RootContainer.ContainedEntity.Value,
+            Comp<BodyPartComponent>(body.RootContainer.ContainedEntity.Value));
     }
 
     /// <summary>
@@ -627,33 +613,9 @@ public partial class SharedBodySystem
         return Resolve(partId, ref part, logMissing: false)
             && Resolve(parentId, ref parentPart, logMissing: false)
             && parentPart.Children.TryGetValue(slotId, out var parentSlotData)
-            && AssignMissingPartTypeAndSymmetry(partId, part, parentSlotData, slotId)
             && part.PartType == parentSlotData.Type
             && Containers.TryGetContainer(parentId, GetPartSlotContainerId(slotId), out var container)
             && Containers.CanInsert(partId, container);
-    }
-
-    /// <summary>
-    /// Assigns the part type and symmetry to this part based on the parent slot if it's not already set.
-    /// </summary>
-    private bool AssignMissingPartTypeAndSymmetry(EntityUid partId, BodyPartComponent? part, BodyPartSlot parentSlotData, string slotId)
-    {
-        if (part == null)
-            return false;
-
-        if (part.PartType != BodyPartType.Other)
-            return true;
-
-        part.PartType = parentSlotData.Type;
-
-        // Infer symmetry from slot id, might be a cooked implementation but leshrug
-        if (slotId.Contains("left", StringComparison.OrdinalIgnoreCase))
-            part.Symmetry = BodyPartSymmetry.Left;
-        else if (slotId.Contains("right", StringComparison.OrdinalIgnoreCase))
-            part.Symmetry = BodyPartSymmetry.Right;
-
-        Dirty(partId, part);
-        return true;
     }
 
     /// <summary>
@@ -933,10 +895,11 @@ public partial class SharedBodySystem
         BodyComponent? body = null,
         BodyPartComponent? part = null)
     {
-        var root = GetRootPartOrNull(bodyId, body);
-        return root != null
+        return Resolve(bodyId, ref body, logMissing: false)
+            && body.RootContainer.ContainedEntity is not null
             && Resolve(partId, ref part, logMissing: false)
-            && PartHasChild(root.Value.Entity, partId, root.Value.BodyPart, part);
+            && TryComp(body.RootContainer.ContainedEntity, out BodyPartComponent? rootPart)
+            && PartHasChild(body.RootContainer.ContainedEntity.Value, partId, rootPart, part);
     }
 
     public IEnumerable<(EntityUid Id, BodyPartComponent Component)> GetBodyChildrenOfType(

@@ -4,22 +4,22 @@ using Content.Shared.SubFloor;
 using Robust.Client.Animations;
 using Robust.Client.GameObjects;
 using Robust.Client.Player;
+using Robust.Shared.Map;
 using Robust.Shared.Timing;
 
 namespace Content.Client.SubFloor;
 
-public sealed class TrayScannerSystem : SharedTrayScannerSystem
+public sealed partial class TrayScannerSystem : SharedTrayScannerSystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly AnimationPlayerSystem _animation = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
-    [Dependency] private readonly TrayScanRevealSystem _trayScanReveal = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private AnimationPlayerSystem _animation = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private TrayScanRevealSystem _trayScanReveal = default!;
 
     private const string TRayAnimationKey = "trays";
     private const double AnimationLength = 0.3;
@@ -102,7 +102,7 @@ public sealed class TrayScannerSystem : SharedTrayScannerSystem
                 if ((!_appearance.TryGetData(uid, SubFloorVisuals.ScannerRevealed, out bool value) || !value) &&
                     sprite.Color.A > SubfloorRevealAlpha)
                 {
-                    _sprite.SetColor((uid, sprite), sprite.Color.WithAlpha(0f));
+                    sprite.Color = sprite.Color.WithAlpha(0f);
                 }
 
                 SetRevealed(uid, true);
@@ -136,7 +136,7 @@ public sealed class TrayScannerSystem : SharedTrayScannerSystem
                 {
                     SetRevealed(uid, false);
                     RemCompDeferred<TrayRevealedComponent>(uid);
-                    _sprite.SetColor((uid, sprite), sprite.Color.WithAlpha(1f));
+                    sprite.Color = sprite.Color.WithAlpha(1f);
                     continue;
                 }
 

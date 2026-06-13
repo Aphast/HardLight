@@ -4,13 +4,13 @@ using Robust.Shared.Audio;
 namespace Content.Server._Mono.TargetSeekingAlert;
 
 /// <summary>
-///     Component for things that alert whether their grid is being tracked by something with a <see cref="TargetSeekingComponent"/>.
+///     Component for things that alert whether their grid is being tracked by something with a <see cref="TargetSeekingComponent"/>. 
 /// </summary>
 [RegisterComponent]
 public sealed partial class TargetSeekerAlertComponent : Component
 {
     /// <summary>
-    ///     Sound played when a target initially starts tracking this entity.
+    ///     Sound played when a target initially starts tracking this entity. 
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
     public SoundSpecifier? TargetGainSound = null;
@@ -23,12 +23,12 @@ public sealed partial class TargetSeekerAlertComponent : Component
     public List<TargetSeekerAlertSetting> DistanceAlertSettings = new();
 
     /// <summary>
-    ///     The audio entity playing from <see cref="DistanceAlertSettings"/>.
+    ///     The audio entity playing from <see cref="DistanceAlertSettings"/>. 
     /// </summary>
     public EntityUid? Audio = null;
 
     /// <summary>
-    ///     The key of the sound specified in <see cref="DistanceAlertSounds"/> currently playing.
+    ///     The key of the sound specified in <see cref="DistanceAlertSounds"/> currently playing. 
     /// </summary>
     // This isn't the most amazing solution but it's necessary to prevent spamming the sound. GetHashCode is a bit overkill and it might(?) not always work either.
     [DataField, ViewVariables(VVAccess.ReadOnly)]
@@ -68,7 +68,7 @@ public sealed partial class TargetSeekerAlertGridComponent : Component
     /// </summary>
     // what is meant by 'using' instead of 'with': an entity can have the comp, but not actually be doing anything with it (e.g. depowered). But that may not be implemented right now so this is just future-proofed.
     // this isn't a hashset because we can actually guarantee uniqueness via logic here
-    [ViewVariables(VVAccess.ReadOnly)]
+    [DataField, ViewVariables(VVAccess.ReadOnly)]
     public List<EntityUid> Alerters = new();
 
     /// <summary>

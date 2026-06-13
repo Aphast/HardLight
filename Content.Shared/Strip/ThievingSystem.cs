@@ -20,11 +20,5 @@ public sealed class ThievingSystem : EntitySystem
         args.Stealth |= component.Stealthy;
         args.Additive -= component.StripTimeReduction;
         args.Multiplier *= component.TimeMultiplier; // Mono
-
-        var thievingTime = TimeSpan.FromSeconds(Math.Round(Math.Max(args.InitialTime.TotalSeconds * component.TimeMultiplier - component.StripTimeReduction.TotalSeconds, 0.5f), 3, MidpointRounding.ToZero));
-        if (args.BestTimeOverride == null || thievingTime < args.BestTimeOverride.Value)
-        {
-            args.BestTimeOverride = thievingTime;
-        }
     }
 }

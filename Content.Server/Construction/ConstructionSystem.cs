@@ -4,6 +4,7 @@ using Content.Shared.Construction;
 using Content.Shared.DoAfter;
 using JetBrains.Annotations;
 using Robust.Server.Containers;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using SharedToolSystem = Content.Shared.Tools.Systems.SharedToolSystem;
 
@@ -15,11 +16,11 @@ namespace Content.Server.Construction
     [UsedImplicitly]
     public sealed partial class ConstructionSystem : SharedConstructionSystem
     {
-        [Dependency] private readonly IRobustRandom _robustRandom = default!;
-        [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-        [Dependency] private readonly ContainerSystem _container = default!;
-        [Dependency] private readonly StackSystem _stackSystem = default!;
-        [Dependency] private readonly SharedToolSystem _toolSystem = default!;
+        [Dependency] private IRobustRandom _robustRandom = default!;
+        [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+        [Dependency] private ContainerSystem _container = default!;
+        [Dependency] private StackSystem _stackSystem = default!;
+        [Dependency] private SharedToolSystem _toolSystem = default!;
 
         public override void Initialize()
         {

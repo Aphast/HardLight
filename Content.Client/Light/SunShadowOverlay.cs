@@ -10,15 +10,16 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Client.Light;
 
-public sealed class SunShadowOverlay : Overlay
+public sealed partial class SunShadowOverlay : Overlay
 {
+    private static readonly ProtoId<ShaderPrototype> MixShader = "Mix";
+
     public override OverlaySpace Space => OverlaySpace.BeforeLighting;
 
-    [Dependency] private readonly IClyde _clyde = default!;
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
-    private static readonly ProtoId<ShaderPrototype> MixShaderId = "Mix";
+    [Dependency] private IClyde _clyde = default!;
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
     private readonly EntityLookupSystem _lookup;
     private readonly SharedTransformSystem _xformSys;
 
@@ -153,7 +154,7 @@ public sealed class SunShadowOverlay : Overlay
                         viewport.LightRenderTarget.GetWorldToLocalMatrix(eye, scale);
                     worldHandle.SetTransform(invMatrix);
 
-                    var maskShader = _protoManager.Index(MixShaderId).Instance();
+                    var maskShader = _protoManager.Index(MixShader).Instance();
                     worldHandle.UseShader(maskShader);
 
                     worldHandle.DrawTextureRect(res.Target.Texture, worldBounds, Color.Black.WithAlpha(alpha));

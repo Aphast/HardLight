@@ -1,4 +1,5 @@
 using Content.Server.NPC.Systems;
+using Content.Shared.Physics;
 using Robust.Shared.Audio;
 
 namespace Content.Server.NPC.Components;
@@ -41,13 +42,6 @@ public sealed partial class NPCRangedCombatComponent : Component
     public bool TargetInLOS = false;
 
     /// <summary>
-    /// If true, only opaque objects will block line of sight.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    // ReSharper disable once InconsistentNaming
-    public bool UseOpaqueForLOSChecks = false;
-
-    /// <summary>
     /// Delay after target is in LOS before we start shooting.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
@@ -57,22 +51,27 @@ public sealed partial class NPCRangedCombatComponent : Component
     public float ShootAccumulator;
 
     /// <summary>
+    /// Mono - accept having to fire for up to this many seconds to destroy an obstacle.
+    /// </summary>
+    public float ShotsThreshold = 2;
+
+    /// <summary>
     /// Sound to play if the target enters line of sight.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
     public SoundSpecifier? SoundTargetInLOS;
 
-    // Frontier
+    // Mono
     /// <summary>
-    /// The chance that a shot will miss the projected path.
+    /// Use this collision group to check if target is in line of sight.
     /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float MissChance = 0.25f;
-    // End Frontier
+    [ViewVariables]
+    public CollisionGroup ObstructedMask;
 
-    // VRS (Triad #3732)
+    // Mono
     /// <summary>
-    /// Number of shots required to destroy an obstacle before the NPC will consider shooting through it.
+    /// Ignore entities that don't collide with this mask for LOS check purposes.
     /// </summary>
-    public float ShotsThreshold = 2;
+    [ViewVariables]
+    public CollisionGroup BulletMask;
 }

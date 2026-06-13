@@ -17,8 +17,8 @@ public sealed partial class DamageOnHighSpeedImpactComponent : Component
     [DataField("speedDamageFactor"), ViewVariables(VVAccess.ReadWrite)]
     public float SpeedDamageFactor = 0.5f;
 
-    [DataField("soundHit"), ViewVariables(VVAccess.ReadWrite)]
-    public SoundSpecifier? SoundHit;
+    [DataField("soundHit", required: true), ViewVariables(VVAccess.ReadWrite)]
+    public SoundSpecifier SoundHit = default!;
 
     [DataField("stunChance"), ViewVariables(VVAccess.ReadWrite)]
     public float StunChance = 0.25f;

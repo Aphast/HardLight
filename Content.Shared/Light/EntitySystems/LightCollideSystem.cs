@@ -1,14 +1,13 @@
 using Content.Shared.Light.Components;
-using Robust.Shared.Physics;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
 
 namespace Content.Shared.Light.EntitySystems;
 
-public sealed class LightCollideSystem : EntitySystem
+public sealed partial class LightCollideSystem : EntitySystem
 {
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SlimPoweredLightSystem _lights = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SlimPoweredLightSystem _lights = default!;
 
     private EntityQuery<LightOnCollideComponent> _lightQuery;
 
@@ -29,9 +28,6 @@ public sealed class LightCollideSystem : EntitySystem
     {
         // TODO: Check this on the event.
         if (TerminatingOrDeleted(ent.Owner))
-            return;
-
-        if (!HasComp<FixturesComponent>(ent.Owner))
             return;
 
         // Regenerate contacts for everything we were colliding with.

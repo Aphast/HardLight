@@ -17,13 +17,13 @@ namespace Content.Server.StationEvents.Events;
 ///     Greytide Virus event
 ///     This will open and bolt airlocks and unlock lockers from randomly selected access groups.
 /// </summary>
-public sealed class GreytideVirusRule : StationEventSystem<GreytideVirusRuleComponent>
+public sealed partial class GreytideVirusRule : StationEventSystem<GreytideVirusRuleComponent>
 {
-    [Dependency] private readonly AccessReaderSystem _access = default!;
-    [Dependency] private readonly SharedDoorSystem _door = default!;
-    [Dependency] private readonly LockSystem _lock = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private AccessReaderSystem _access = default!;
+    [Dependency] private SharedDoorSystem _door = default!;
+    [Dependency] private LockSystem _lock = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private IRobustRandom _random = default!;
 
     protected override void Added(EntityUid uid, GreytideVirusRuleComponent virusComp, GameRuleComponent gameRule, GameRuleAddedEvent args)
     {
@@ -67,7 +67,7 @@ public sealed class GreytideVirusRule : StationEventSystem<GreytideVirusRuleComp
             if (!accessQuery.TryComp(lockUid, out var accessComp))
                 continue;
 
-            // make sure not to hit ColCom or other maps
+            // make sure not to hit CentCom or other maps
             if (CompOrNull<StationMemberComponent>(xform.GridUid)?.Station != chosenStation)
                 continue;
 
@@ -89,7 +89,7 @@ public sealed class GreytideVirusRule : StationEventSystem<GreytideVirusRuleComp
             if (firelockQuery.HasComp(airlockUid))
                 continue;
 
-            // make sure not to hit ColCom or other maps
+            // make sure not to hit CentCom or other maps
             if (CompOrNull<StationMemberComponent>(xform.GridUid)?.Station != chosenStation)
                 continue;
 

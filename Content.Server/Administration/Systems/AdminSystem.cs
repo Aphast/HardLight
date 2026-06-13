@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using Content.Server.Administration.Managers;
 using Content.Server.Chat.Managers;
@@ -34,37 +33,33 @@ using Robust.Shared.Enums;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Timing;
 using Content.Shared._NF.Bank.Events; // Frontier
 using Content.Server._NF.Bank; // Frontier
 
 namespace Content.Server.Administration.Systems;
 
-public sealed class AdminSystem : EntitySystem
+public sealed partial class AdminSystem : EntitySystem
 {
-    [Dependency] private readonly IAdminManager _adminManager = default!;
-    [Dependency] private readonly IChatManager _chat = default!;
-    [Dependency] private readonly IConfigurationManager _config = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly HandsSystem _hands = default!;
-    [Dependency] private readonly SharedJobSystem _jobs = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly MindSystem _minds = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly PhysicsSystem _physics = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTime = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly SharedRoleSystem _role = default!;
-    [Dependency] private readonly GameTicker _gameTicker = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly StationRecordsSystem _stationRecords = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly BankSystem _bank = default!; // Frontier
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private IAdminManager _adminManager = default!;
+    [Dependency] private IChatManager _chat = default!;
+    [Dependency] private IConfigurationManager _config = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private HandsSystem _hands = default!;
+    [Dependency] private SharedJobSystem _jobs = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private MindSystem _minds = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private PhysicsSystem _physics = default!;
+    [Dependency] private PlayTimeTrackingManager _playTime = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private SharedRoleSystem _role = default!;
+    [Dependency] private GameTicker _gameTicker = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private StationRecordsSystem _stationRecords = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private BankSystem _bank = default!; // Frontier
 
     private readonly Dictionary<NetUserId, PlayerInfo> _playerList = new();
-    private readonly Dictionary<NetUserId, TimeSpan> _disconnectedSince = new();
-    private static readonly TimeSpan DisconnectedCacheTtl = TimeSpan.FromHours(12);
 
     /// <summary>
     ///     Set of players that have participated in this round.
@@ -106,36 +101,23 @@ public sealed class AdminSystem : EntitySystem
     {
         _roundActivePlayers.Clear();
 
-        // Round-scoped activity is reset, but player cache is retained for admin workflow.
-        PruneDisconnectedCache();
+        foreach (var (id, data) in _playerList)
+        {
+            if (!data.ActiveThisRound)
+                continue;
+
+            if (!_playerManager.TryGetPlayerData(id, out var playerData))
+                return;
+
+            _playerManager.TryGetSessionById(id, out var session);
+            _playerList[id] = GetPlayerInfo(playerData, session);
+        }
 
         var updateEv = new FullPlayerListEvent() { PlayersInfo = _playerList.Values.ToList() };
 
         foreach (var admin in _adminManager.ActiveAdmins)
         {
             RaiseNetworkEvent(updateEv, admin.Channel);
-        }
-    }
-
-    private void PruneDisconnectedCache()
-    {
-        var now = _timing.CurTime;
-
-        foreach (var (userId, disconnectedAt) in _disconnectedSince.ToArray())
-        {
-            if (now - disconnectedAt <= DisconnectedCacheTtl)
-                continue;
-
-            if (_playerManager.TryGetSessionById(userId, out var session) &&
-                session.Status is SessionStatus.Connected or SessionStatus.InGame)
-            {
-                _disconnectedSince.Remove(userId);
-                continue;
-            }
-
-            _disconnectedSince.Remove(userId);
-            _playerList.Remove(userId);
-            _roundActivePlayers.Remove(userId);
         }
     }
 
@@ -159,23 +141,6 @@ public sealed class AdminSystem : EntitySystem
         }
     }
 
-    /// <summary>
-    /// HardLight: Rebuilds cached entries for connected players and sends a single full-list update to all active admins.
-    /// Useful for batch state changes where many players are updated at once.
-    /// </summary>
-    public void RefreshAndBroadcastPlayerList()
-    {
-        foreach (var session in _playerManager.Sessions)
-        {
-            _playerList[session.UserId] = GetPlayerInfo(session.Data, session);
-        }
-
-        foreach (var admin in _adminManager.ActiveAdmins)
-        {
-            SendFullPlayerList(admin);
-        }
-    }
-
     public PlayerInfo? GetCachedPlayerInfo(NetUserId? netUserId)
     {
         if (netUserId == null)
@@ -192,7 +157,7 @@ public sealed class AdminSystem : EntitySystem
 
     private void OnRoleEvent(RoleEvent ev)
     {
-        if (!_playerManager.TryGetSessionById(ev.Mind.UserId, out var session))
+        if (!ev.RoleTypeUpdate || !_playerManager.TryGetSessionById(ev.Mind.UserId, out var session))
             return;
 
         UpdatePlayerList(session);
@@ -226,7 +191,6 @@ public sealed class AdminSystem : EntitySystem
         if (ev.Player.Status == SessionStatus.Disconnected)
             return;
 
-        _disconnectedSince.Remove(ev.Player.UserId);
         _roundActivePlayers.Add(ev.Player.UserId);
         UpdatePlayerList(ev.Player);
     }
@@ -248,19 +212,12 @@ public sealed class AdminSystem : EntitySystem
 
     private void OnPlayerStatusChanged(object? sender, SessionStatusEventArgs e)
     {
-        if (e.NewStatus is SessionStatus.Disconnected or SessionStatus.Zombie)
-            _disconnectedSince[e.Session.UserId] = _timing.CurTime;
-        else
-            _disconnectedSince.Remove(e.Session.UserId);
-
-        PruneDisconnectedCache();
         UpdatePlayerList(e.Session);
         UpdatePanicBunker();
     }
 
     private void SendFullPlayerList(ICommonSession playerSession)
     {
-        PruneDisconnectedCache();
         var ev = new FullPlayerListEvent();
 
         ev.PlayersInfo = _playerList.Values.ToList();
@@ -273,10 +230,9 @@ public sealed class AdminSystem : EntitySystem
         var name = data.UserName;
         var entityName = string.Empty;
         var identityName = string.Empty;
-        var sortWeight = 0;
         int balance = int.MinValue; // Frontier
+        var sortWeight = 0;
 
-        // Visible (identity) name can be different from real name
         if (session?.AttachedEntity != null)
         {
             entityName = EntityManager.GetComponent<MetaDataComponent>(session.AttachedEntity.Value).EntityName;
@@ -290,8 +246,7 @@ public sealed class AdminSystem : EntitySystem
 
         var antag = false;
 
-        // Starting role, antagonist status and role type
-        RoleTypePrototype? roleType = null;
+        RoleTypePrototype roleType = new();
         var startingRole = string.Empty;
         LocId? subtype = null;
         if (_minds.TryGetMind(session, out var mindId, out var mindComp) && mindComp is not null)
@@ -304,19 +259,14 @@ public sealed class AdminSystem : EntitySystem
                 subtype = mindComp.Subtype;
             }
             else
-                Log.Error($"{ToPrettyString(mindId)} has invalid Role Type '{mindComp.RoleType}'. Displaying '{Loc.GetString(RoleTypePrototype.FallbackName)}' instead");
+                Log.Error($"{ToPrettyString(mindId)} has invalid Role Type '{mindComp.RoleType}'. Displaying '{Loc.GetString(roleType.Name)}' instead");
 
             antag = _role.MindIsAntagonist(mindId);
             startingRole = _jobs.MindTryGetJobName(mindId);
         }
 
-        // Connection status and playtime
         var connected = session != null && session.Status is SessionStatus.Connected or SessionStatus.InGame;
-
-        // Start with the last available playtime data
-        var cachedInfo = GetCachedPlayerInfo(data.UserId);
-        var overallPlaytime = cachedInfo?.OverallPlaytime;
-        // Overwrite with current playtime data, unless it's null (such as if the player just disconnected)
+        TimeSpan? overallPlaytime = null;
         if (session != null &&
             _playTime.TryGetTrackerTimes(session, out var playTimes) &&
             playTimes.TryGetValue(PlayTimeTrackingShared.TrackerOverall, out var playTime))
@@ -330,7 +280,7 @@ public sealed class AdminSystem : EntitySystem
             identityName,
             startingRole,
             antag,
-            roleType?.ID,
+            roleType,
             subtype,
             sortWeight,
             GetNetEntity(session?.AttachedEntity),
@@ -456,7 +406,7 @@ public sealed class AdminSystem : EntitySystem
                 _popup.PopupCoordinates(Loc.GetString("admin-erase-popup", ("user", name)), coordinates, PopupType.LargeCaution);
                 var filter = Filter.Pvs(coordinates, 1, EntityManager, _playerManager);
                 var audioParams = new AudioParams().WithVolume(3);
-                _audio.PlayStatic("/Audio/Effects/pop_high.ogg", filter, coordinates, true, audioParams);
+                _audio.PlayStatic("/Audio/_EinsteinEngines/Misc/reducedtoatmos.ogg", filter, coordinates, true, audioParams); // Mono sound edit
             }
 
             foreach (var item in _inventory.GetHandOrInventoryEntities(entity))

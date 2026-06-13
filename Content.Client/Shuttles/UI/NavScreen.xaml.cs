@@ -9,23 +9,18 @@ using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Timing;
 
 namespace Content.Client.Shuttles.UI;
 
 [GenerateTypedNameReferences]
 public sealed partial class NavScreen : BoxContainer
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!; // HL
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
     private SharedTransformSystem _xformSystem;
 
     private EntityUid? _consoleEntity; // Entity of controlling console
     private EntityUid? _shuttleEntity;
-
-    public event Action? ActivateExpeditionDisk;
-    public event Action? EndExpedition;
-    public event Action? ActivateWEP; // HL
 
     public NavScreen()
     {
@@ -42,10 +37,6 @@ public sealed partial class NavScreen : BoxContainer
         DockToggle.OnToggled += OnDockTogglePressed;
         DockToggle.Pressed = NavRadar.ShowDocks;
 
-        ExpeditionDiskActivate.OnPressed += _ => ActivateExpeditionDisk?.Invoke();
-        ExpeditionEnd.OnPressed += _ => EndExpedition?.Invoke();
-        WEPButton.OnPressed += _ => ActivateWEP?.Invoke(); // HL
-
         NfInitialize(); // Frontier Initialization for the NavScreen
     }
 
@@ -56,35 +47,35 @@ public sealed partial class NavScreen : BoxContainer
 
         NavRadar.IFFFilter = text.Length == 0
             ? null // If empty, do not filter
-            : (entity, grid, iff) => // Otherwise use simple search criteria
+            : (entity, grid, iff, hideLabel, name) => // Otherwise use simple search criteria
             {
                 // Check entity name
-                if (_entManager.TryGetComponent<MetaDataComponent>(entity, out var metadata) && 
-                    metadata.EntityName.Contains(text, StringComparison.OrdinalIgnoreCase))
+                if (name.Contains(text, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
-                
+                if (hideLabel)
+                    return false;
+
                 // Check company name
                 if (_entManager.TryGetComponent<CompanyComponent>(entity, out var companyComp) &&
                     !string.IsNullOrEmpty(companyComp.CompanyName))
                 {
                     // Try to match the company ID directly
-                    if (companyComp.CompanyName.Contains(text, StringComparison.OrdinalIgnoreCase))
+                    if (companyComp.CompanyName.Id.Contains(text, StringComparison.OrdinalIgnoreCase))
                     {
                         return true;
                     }
-                    
+
                     // Try to match company name from prototype
-                    var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
-                    if (prototypeManager.TryIndex<CompanyPrototype>(
-                        companyComp.CompanyName, out var prototype) && 
+                    if (_prototypeManager.TryIndex(
+                        companyComp.CompanyName, out var prototype) &&
                         prototype.Name.Contains(text, StringComparison.OrdinalIgnoreCase))
                     {
                         return true;
                     }
                 }
-                
+
                 return false;
             };
     }
@@ -120,65 +111,50 @@ public sealed partial class NavScreen : BoxContainer
         args.Button.Pressed = NavRadar.ShowDocks;
     }
 
-    public void UpdateState(NavInterfaceState scc, ExpeditionDiskInterfaceState expeditionDiskState,
-        bool wepActive = false, TimeSpan wepCooldownExpiry = default) // HL
+    public void UpdateState(NavInterfaceState scc)
     {
         NavRadar.UpdateState(scc);
-        UpdateExpeditionDisk(expeditionDiskState);
-        UpdateWEPButton(wepActive, wepCooldownExpiry); // HL
+
+        // Update port names if custom names are available
+        UpdateNetworkPortButtonNames(scc.NetworkPortNames);
+
         NfUpdateState(); // Frontier Update State
     }
 
-    // HL
-    private void UpdateWEPButton(bool wepActive, TimeSpan wepCooldownExpiry)
+    /// <summary>
+    /// Updates the text on the network port buttons based on the custom port names.
+    /// </summary>
+    /// <param name="portNames">Dictionary of port IDs to display names</param>
+    private void UpdateNetworkPortButtonNames(Dictionary<string, string> portNames)
     {
-        var now = _gameTiming.CurTime;
-
-        if (wepActive)
+        // Map of button names to their corresponding port IDs in the component
+        var buttonToPortIdMap = new Dictionary<Button, string>
         {
-            WEPButton.Disabled = true;
-            WEPButton.Text = Loc.GetString("shuttle-console-wep-active");
-        }
-        else if (wepCooldownExpiry > now)
-        {
-            WEPButton.Disabled = true;
-            WEPButton.Text = Loc.GetString("shuttle-console-wep-cooldown");
-        }
-        else
-        {
-            WEPButton.Disabled = false;
-            WEPButton.Text = Loc.GetString("shuttle-console-wep-activate");
-        }
-    }
-    // End HL
+            { DeviceButton1, "device-button-1" },
+            { DeviceButton2, "device-button-2" },
+            { DeviceButton3, "device-button-3" },
+            { DeviceButton4, "device-button-4" },
+            { DeviceButton5, "device-button-5" },
+            { DeviceButton6, "device-button-6" },
+            { DeviceButton7, "device-button-7" },
+            { DeviceButton8, "device-button-8" }
+        };
 
-    private void UpdateExpeditionDisk(ExpeditionDiskInterfaceState state)
-    {
-        if (!state.HasDisk)
+        // For each button, check if there's a custom name and update accordingly
+        foreach (var (button, portId) in buttonToPortIdMap)
         {
-            ExpeditionDiskDetails.Text = Loc.GetString("shuttle-console-expedition-disk-none");
-            ExpeditionDiskActivate.Disabled = true;
-            ExpeditionEnd.Disabled = !state.CanEndExpedition;
-            ExpeditionEnd.Visible = state.InExpedition;
-            return;
+            if (portNames.TryGetValue(portId, out var customName))
+            {
+                // Use the custom name if available
+                button.Text = customName;
+            }
+            else
+            {
+                // Otherwise use the default localized name
+                var locKey = $"shuttle-console-{portId}";
+                button.Text = Loc.GetString(locKey);
+            }
         }
-
-        var details = Loc.GetString("shuttle-console-expedition-disk-details",
-            ("planet", state.PlanetType),
-            ("difficulty", state.Difficulty),
-            ("objective", state.Objective));
-
-        if (state.OnCooldown)
-        {
-            var cooldown = Loc.GetString("shuttle-console-expedition-disk-cooldown",
-                ("time", state.CooldownRemaining.ToString("hh\\:mm\\:ss")));
-            details = $"{details}\n{cooldown}";
-        }
-
-        ExpeditionDiskDetails.Text = details;
-        ExpeditionDiskActivate.Disabled = !state.CanActivate;
-        ExpeditionEnd.Disabled = !state.CanEndExpedition;
-        ExpeditionEnd.Visible = state.InExpedition;
     }
 
     public void SetMatrix(EntityCoordinates? coordinates, Angle? angle)

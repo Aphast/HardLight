@@ -6,18 +6,16 @@ using Content.Shared.Silicons.Borgs.Components;
 using Content.Shared.DeviceNetwork.Components;
 using Content.Shared.DeviceNetwork.Events;
 using Content.Shared.Emag.Systems;
-using Content.Server.DeviceNetwork;
-using Content.Server.DeviceNetwork.Components;
-using Content.Server.DeviceNetwork.Systems;
-using Content.Server.Explosion.Components;
+using Robust.Shared.Player;
 using Robust.Shared.Utility;
+using Content.Shared._CorvaxNext.Silicons.Borgs.Components; // Corvax-Next-AiRemoteControl
 
 namespace Content.Server.Silicons.Borgs;
 
 /// <inheritdoc/>
 public sealed partial class BorgSystem
 {
-    [Dependency] private readonly EmagSystem _emag = default!;
+    [Dependency] private EmagSystem _emag = default!;
 
     private void InitializeTransponder()
     {
@@ -51,7 +49,8 @@ public sealed partial class BorgSystem
                 charge,
                 chassis.ModuleCount,
                 hasBrain,
-                canDisable);
+                canDisable,
+                HasComp<AiRemoteControllerComponent>(uid)); // Corvax-Next-AiRemoteControl
 
             var payload = new NetworkPayload()
             {
@@ -91,7 +90,7 @@ public sealed partial class BorgSystem
         if (command == RoboticsConsoleConstants.NET_DISABLE_COMMAND)
             Disable(ent);
         else if (command == RoboticsConsoleConstants.NET_DESTROY_COMMAND)
-            Destroy(ent.Owner);
+            Destroy(ent);
     }
 
     private void Disable(Entity<BorgTransponderComponent, BorgChassisComponent?> ent)
@@ -111,15 +110,8 @@ public sealed partial class BorgSystem
         ent.Comp1.NextDisable = _timing.CurTime + ent.Comp1.DisableDelay;
     }
 
-    /// <summary>
-    /// Makes a borg with <see cref="BorgTransponderComponent"/> explode
-    /// </summary>
-    /// <param name="ent">the entity of the borg</param>
-    public void Destroy(Entity<BorgTransponderComponent?> ent)
+    private void Destroy(Entity<BorgTransponderComponent> ent)
     {
-        if (!Resolve(ent, ref ent.Comp))
-            return;
-
         // this is stealthy until someone realises you havent exploded
         if (CheckEmagged(ent, "destroyed"))
         {

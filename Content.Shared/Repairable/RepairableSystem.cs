@@ -4,6 +4,7 @@ using Content.Shared.Database;
 using Content.Shared.DoAfter;
 using Content.Shared.Interaction;
 using Content.Shared.Popups;
+using Content.Shared.Tools.Components; // Mono
 using Content.Shared.Tools.Systems;
 using Robust.Shared.Serialization;
 
@@ -11,10 +12,10 @@ namespace Content.Shared.Repairable;
 
 public sealed partial class RepairableSystem : EntitySystem
 {
-    [Dependency] private readonly SharedToolSystem _toolSystem = default!;
-    [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedToolSystem _toolSystem = default!;
+    [Dependency] private DamageableSystem _damageableSystem = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
 
     public override void Initialize()
     {
@@ -71,7 +72,16 @@ public sealed partial class RepairableSystem : EntitySystem
         }
 
         // Run the repairing doafter
-        args.Handled = _toolSystem.UseTool(args.Used, args.User, ent.Owner, delay, ent.Comp.QualityNeeded, new RepairFinishedEvent(), ent.Comp.FuelCost);
+        // Mono - change to support multiple qualities being usable
+
+        if (!TryComp<ToolComponent>(args.Used, out var tool))
+            return;
+
+        foreach (var quality in ent.Comp.Qualities)
+        {
+            if (_toolSystem.HasQuality(args.Used, quality, tool))
+                args.Handled = _toolSystem.UseTool(args.Used, args.User, ent.Owner, delay, quality, new RepairFinishedEvent(), ent.Comp.FuelCost);
+        }
     }
 }
 

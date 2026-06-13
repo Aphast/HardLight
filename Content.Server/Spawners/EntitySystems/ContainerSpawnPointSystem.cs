@@ -2,6 +2,7 @@ using Content.Server.GameTicking;
 using Content.Server.Spawners.Components;
 using Content.Server.Station.Systems;
 using Content.Shared.Preferences;
+using Content.Shared.Roles;
 using Robust.Server.Containers;
 using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
@@ -9,14 +10,14 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Spawners.EntitySystems;
 
-public sealed class ContainerSpawnPointSystem : EntitySystem
+public sealed partial class ContainerSpawnPointSystem : EntitySystem
 {
-    [Dependency] private readonly ContainerSystem _container = default!;
-    [Dependency] private readonly GameTicker _gameTicker = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly StationSystem _station = default!;
-    [Dependency] private readonly StationSpawningSystem _stationSpawning = default!;
+    [Dependency] private ContainerSystem _container = default!;
+    [Dependency] private GameTicker _gameTicker = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private StationSystem _station = default!;
+    [Dependency] private StationSpawningSystem _stationSpawning = default!;
 
     public override void Initialize()
     {
@@ -29,15 +30,13 @@ public sealed class ContainerSpawnPointSystem : EntitySystem
         if (args.SpawnResult != null)
             return;
 
-        // Observer spawns should never claim job or cryo containers.
-        if (args.DesiredSpawnPointType == SpawnPointType.Observer)
+        // DeltaV - Ignore these two desired spawn types
+        if (args.DesiredSpawnPointType is SpawnPointType.Observer or SpawnPointType.LateJoin)
             return;
-
-        var hasCustomJobEntity = _proto.TryIndex(args.Job, out var jobProto) && jobProto.JobEntity != null;
 
         // If it's just a spawn pref check if it's for cryo (silly).
         if (args.HumanoidCharacterProfile?.SpawnPriority != SpawnPriorityPreference.Cryosleep &&
-            !hasCustomJobEntity)
+            (!_proto.TryIndex(args.Job, out var jobProto) || jobProto.JobEntity == null))
         {
             return;
         }
@@ -48,9 +47,6 @@ public sealed class ContainerSpawnPointSystem : EntitySystem
         while (query.MoveNext(out var uid, out var spawnPoint, out var container, out var xform))
         {
             if (args.Station != null && _station.GetOwningStation(uid, xform) != args.Station)
-                continue;
-
-            if (hasCustomJobEntity && (spawnPoint.Job == null || spawnPoint.Job != args.Job))
                 continue;
 
             // If it's unset, then we allow it to be used for both roundstart and midround joins
@@ -77,31 +73,8 @@ public sealed class ContainerSpawnPointSystem : EntitySystem
 
         if (possibleContainers.Count == 0)
             return;
-
-        // HardLight start
-        _random.Shuffle(possibleContainers);
-
-        Entity<ContainerSpawnPointComponent, ContainerManagerComponent, TransformComponent>? selectedContainer = null;
-        BaseContainer? targetContainer = null;
-        foreach (var containerCandidate in possibleContainers)
-        {
-            if (!_container.TryGetContainer(containerCandidate.Owner, containerCandidate.Comp1.ContainerId, out var resolvedContainer, containerCandidate.Comp2))
-                continue;
-
-            // Avoid spawning and charging paid loadouts unless a cryo slot is actually available.
-            if (resolvedContainer.ContainedEntities.Count != 0)
-                continue;
-
-            selectedContainer = containerCandidate;
-            targetContainer = resolvedContainer;
-            break;
-        }
-
-        if (selectedContainer == null || targetContainer == null)
-            return;
-
-        var baseCoords = selectedContainer.Value.Comp3.Coordinates;
-        // HardLight end
+        // we just need some default coords so we can spawn the player entity.
+        var baseCoords = possibleContainers[0].Comp3.Coordinates;
 
         args.SpawnResult = _stationSpawning.SpawnPlayerMob(
             baseCoords,
@@ -110,10 +83,15 @@ public sealed class ContainerSpawnPointSystem : EntitySystem
             args.Station,
             session: args.Session); // Frontier
 
-        if (_container.Insert(args.SpawnResult.Value, targetContainer, containerXform: selectedContainer.Value.Comp3)) // HardLight
+        _random.Shuffle(possibleContainers);
+        foreach (var (uid, spawnPoint, manager, xform) in possibleContainers)
         {
-            var ev = new ContainerSpawnEvent(args.SpawnResult.Value);
-            RaiseLocalEvent(selectedContainer.Value.Owner, ref ev); // HardLight: uid<selectedContainer.Value.Owner
+            if (!_container.TryGetContainer(uid, spawnPoint.ContainerId, out var container, manager))
+                continue;
+
+            if (!_container.Insert(args.SpawnResult.Value, container, containerXform: xform))
+                continue;
+
             return;
         }
 
@@ -121,9 +99,3 @@ public sealed class ContainerSpawnPointSystem : EntitySystem
         args.SpawnResult = null;
     }
 }
-
-/// <summary>
-/// Raised on a container when a player is spawned into it.
-/// </summary>
-[ByRefEvent]
-public record struct ContainerSpawnEvent(EntityUid Player);

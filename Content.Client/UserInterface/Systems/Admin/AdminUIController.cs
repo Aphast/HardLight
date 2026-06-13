@@ -23,16 +23,16 @@ using static Robust.Client.UserInterface.Controls.BaseButton;
 namespace Content.Client.UserInterface.Systems.Admin;
 
 [UsedImplicitly]
-public sealed class AdminUIController : UIController,
+public sealed partial class AdminUIController : UIController,
     IOnStateEntered<GameplayState>,
     IOnStateEntered<LobbyState>,
     IOnSystemChanged<AdminSystem>
 {
-    [Dependency] private readonly IClientAdminManager _admin = default!;
-    [Dependency] private readonly IClientConGroupController _conGroups = default!;
-    [Dependency] private readonly IClientConsoleHost _conHost = default!;
-    [Dependency] private readonly IInputManager _input = default!;
-    [Dependency] private readonly VerbMenuUIController _verb = default!;
+    [Dependency] private IClientAdminManager _admin = default!;
+    [Dependency] private IClientConGroupController _conGroups = default!;
+    [Dependency] private IClientConsoleHost _conHost = default!;
+    [Dependency] private IInputManager _input = default!;
+    [Dependency] private VerbMenuUIController _verb = default!;
 
     private AdminMenuWindow? _window;
     private MenuButton? AdminButton => UIManager.GetActiveUIWidgetOrNull<MenuBar.Widgets.GameTopMenuBar>()?.AdminButton;
@@ -48,7 +48,7 @@ public sealed class AdminUIController : UIController,
     {
         var showDialog = _panicBunker == null && msg.Status.Enabled;
         _panicBunker = msg.Status;
-        _window?.AdminToolsControl.PanicBunkerControl.UpdateStatus(msg.Status);
+        _window?.PanicBunkerControl.UpdateStatus(msg.Status);
 
         if (showDialog)
         {
@@ -58,16 +58,20 @@ public sealed class AdminUIController : UIController,
 
     public void OnStateEntered(GameplayState state)
     {
+        EnsureWindow();
         AdminStatusUpdated();
     }
 
     public void OnStateEntered(LobbyState state)
     {
+        EnsureWindow();
         AdminStatusUpdated();
     }
 
     public void OnSystemLoaded(AdminSystem system)
     {
+        EnsureWindow();
+
         _admin.AdminStatusUpdated += AdminStatusUpdated;
         _input.SetInputCommand(ContentKeyFunctions.OpenAdminMenu,
             InputCmdHandler.FromDelegate(_ => Toggle()));
@@ -95,7 +99,7 @@ public sealed class AdminUIController : UIController,
         LayoutContainer.SetAnchorPreset(_window, LayoutContainer.LayoutPreset.Center);
 
         if (_panicBunker != null)
-            _window.AdminToolsControl.PanicBunkerControl.UpdateStatus(_panicBunker);
+            _window.PanicBunkerControl.UpdateStatus(_panicBunker);
 
         _window.PlayerTabControl.OnEntryKeyBindDown += PlayerTabEntryKeyBindDown;
         _window.ObjectsTabControl.OnEntryKeyBindDown += ObjectsTabEntryKeyBindDown;
@@ -169,7 +173,6 @@ public sealed class AdminUIController : UIController,
         }
         else if (_conGroups.CanAdminMenu())
         {
-            EnsureWindow();
             _window?.Open();
         }
     }

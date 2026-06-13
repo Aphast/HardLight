@@ -12,16 +12,6 @@ namespace Content.Shared.Chemistry
         public const string OutputSlotName = "beakerSlot";
     }
 
-    // Starlight-start: Plumbing valve toggle
-    /// <summary>
-    ///     Message sent by the user interface to toggle the plumbing valve.
-    /// </summary>
-    [Serializable, NetSerializable]
-    public sealed class ReagentDispenserToggleValveMessage : BoundUserInterfaceMessage
-    {
-    }
-    // Starlight-end
-
     [Serializable, NetSerializable]
     public sealed class ReagentDispenserSetDispenseAmountMessage : BoundUserInterfaceMessage
     {
@@ -55,17 +45,17 @@ namespace Content.Shared.Chemistry
                 case "20":
                     ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U20;
                     break;
+                case "25":
+                    ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U25;
+                    break;
                 case "30":
                     ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U30;
                     break;
-                case "40":
-                    ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U40;
+                case "50":
+                    ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U50;
                     break;
-                case "60":
-                    ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U60;
-                    break;
-                case "120":
-                    ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U120;
+                case "100":
+                    ReagentDispenserDispenseAmount = ReagentDispenserDispenseAmount.U100;
                     break;
                 default:
                     throw new Exception($"Cannot convert the string `{s}` into a valid ReagentDispenser DispenseAmount");
@@ -97,10 +87,10 @@ namespace Content.Shared.Chemistry
         U10 = 10,
         U15 = 15,
         U20 = 20,
+        U25 = 25,
         U30 = 30,
-        U40 = 40,
-        U60 = 60,
-        U120 = 120,
+        U50 = 50,
+        U100 = 100,
     }
 
     [Serializable, NetSerializable]
@@ -126,15 +116,12 @@ namespace Content.Shared.Chemistry
 
         public readonly ReagentDispenserDispenseAmount SelectedDispenseAmount;
 
-        public readonly bool ValveOpen; // Starlight-edit: Plumbing valve
-
-        public ReagentDispenserBoundUserInterfaceState(ContainerInfo? outputContainer, NetEntity? outputContainerEntity, List<ReagentInventoryItem> inventory, ReagentDispenserDispenseAmount selectedDispenseAmount, bool valveOpen) // Starlight
+        public ReagentDispenserBoundUserInterfaceState(ContainerInfo? outputContainer, NetEntity? outputContainerEntity, List<ReagentInventoryItem> inventory, ReagentDispenserDispenseAmount selectedDispenseAmount)
         {
             OutputContainer = outputContainer;
             OutputContainerEntity = outputContainerEntity;
             Inventory = inventory;
             SelectedDispenseAmount = selectedDispenseAmount;
-            ValveOpen = valveOpen; // Starlight
         }
     }
 

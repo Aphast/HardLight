@@ -15,15 +15,15 @@ using Robust.Shared.Physics.Events;
 
 namespace Content.Server.Singularity.EntitySystems;
 
-public sealed class ContainmentFieldGeneratorSystem : EntitySystem
+public sealed partial class ContainmentFieldGeneratorSystem : EntitySystem
 {
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly AppearanceSystem _visualizer = default!;
-    [Dependency] private readonly PhysicsSystem _physics = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedPointLightSystem _light = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly TagSystem _tags = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private AppearanceSystem _visualizer = default!;
+    [Dependency] private PhysicsSystem _physics = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedPointLightSystem _light = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private TagSystem _tags = default!;
 
     public override void Initialize()
     {
@@ -66,9 +66,6 @@ public sealed class ContainmentFieldGeneratorSystem : EntitySystem
     {
         if (generator.Comp.Enabled)
             ChangeFieldVisualizer(generator);
-
-        // HardLight: Synchronize dynamic light state in case saved/loaded pointlight state is stale.
-        UpdateConnectionLights(generator);
     }
 
     /// <summary>
@@ -166,7 +163,6 @@ public sealed class ContainmentFieldGeneratorSystem : EntitySystem
                 QueueDel(field);
             }
             value.Item1.Comp.Connections.Remove(direction.GetOpposite());
-            UpdateConnectionLights(value.Item1); // HardLight
 
             if (value.Item1.Comp.Connections.Count == 0) //Change isconnected only if there's no more connections
             {
@@ -182,7 +178,6 @@ public sealed class ContainmentFieldGeneratorSystem : EntitySystem
         component.IsConnected = false;
         ChangeOnLightVisualizer(generator);
         ChangeFieldVisualizer(generator);
-        UpdateConnectionLights(generator); // HardLight
         _adminLogger.Add(LogType.FieldGeneration, LogImpact.Medium, $"{ToPrettyString(uid)} lost field connections"); // Ideally LogImpact would depend on if there is a singulo nearby
     }
 
@@ -299,7 +294,6 @@ public sealed class ContainmentFieldGeneratorSystem : EntitySystem
 
         ChangeFieldVisualizer(generator);
         UpdateConnectionLights(generator);
-        UpdateConnectionLights(otherFieldGenerator); // HardLight
         _popupSystem.PopupEntity(Loc.GetString("comp-containment-connected"), generator);
         return true;
     }

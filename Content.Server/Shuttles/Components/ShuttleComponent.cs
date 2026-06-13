@@ -1,5 +1,4 @@
 using System.Numerics;
-using Robust.Shared.Timing;
 
 namespace Content.Server.Shuttles.Components
 {
@@ -18,10 +17,10 @@ namespace Content.Server.Shuttles.Components
         public const float BrakeCoefficient = 1.5f;
 
         /// <summary>
-        /// Maximum velocity assuming TWR is BaseMaxVelocityTWR.
+        /// Mono - velocity that 2x slowdown will be applied at. (4x at 2x this, 8x at 3x this, etc.)
         /// </summary>
         [ViewVariables(VVAccess.ReadWrite)]
-        public float BaseMaxLinearVelocity = 50f; // Mono
+        public float BaseMaxLinearVelocity = 50f;
 
         public const float MaxAngularVelocity = 4f;
 
@@ -57,20 +56,6 @@ namespace Content.Server.Shuttles.Components
         [ViewVariables]
         public float AngularThrust = 0f;
 
-        // <Mono>
-        /// <summary>
-        /// Multiplier to angular thrust. Set depending on pilot via <c>GetShuttleInputsEvent</c>.
-        /// </summary>
-        [ViewVariables]
-        public float AngularMultiplier = 1f;
-
-        /// <summary>
-        /// Multiplier to linear thrust. Set depending on pilot via <c>GetShuttleInputsEvent</c>.
-        /// </summary>
-        [ViewVariables]
-        public float AccelerationMultiplier = 1f;
-        // </Mono>
-
         /// <summary>
         /// A bitmask of all the directions we are considered thrusting.
         /// </summary>
@@ -90,106 +75,24 @@ namespace Content.Server.Shuttles.Components
         [DataField]
         public float DampingModifier;
 
-        /// <summary>
-        /// Optional override for the FTL cooldown for this shuttle.
-        /// If not null, then the value will be used instead of the shuttle.cooldown CCVar.
-        /// </summary>
-        [DataField]
-        public TimeSpan? FTLCooldownOverride = null;
-
-        // <HL>
-        /// <summary>
-        /// Whether the WEP (War Emergency Power) boost is currently active.
-        /// </summary>
-        [ViewVariables]
-        public bool WepBoostActive = false;
-
-        /// <summary>
-        /// When the WEP boost expires.
-        /// </summary>
-        [ViewVariables]
-        public TimeSpan WepBoostExpiry = TimeSpan.Zero;
-
-        /// <summary>
-        /// The WEP max velocity for this ship (computed from grid size on activation).
-        /// </summary>
-        [ViewVariables]
-        public float WepBoostMaxVelocity = 100f;
-
-        public const float WepBoostDuration = 5f;
-        public const float WepBleedDuration = 1f;
-        public const float WepCooldownDuration = 30f;
-
-        // Reference grid size for WEP scaling (250 tiles → 100 m/s base).
-        public const float WepBaseGridSize = 250f;
-        public const float WepBaseVelocity = 100f;
-        public const float WepUpperVelocity = 125f;
-        public const float WepLowerVelocity = 50f; // server's default speed
-
-        /// <summary>
-        /// When the post-WEP velocity bleed-down finishes.
-        /// </summary>
-        [ViewVariables]
-        public TimeSpan WepBleedExpiry = TimeSpan.Zero;
-
-        /// <summary>
-        /// When the WEP cooldown expires (WEP cannot be activated before this time).
-        /// </summary>
-        [ViewVariables]
-        public TimeSpan WepCooldownExpiry = TimeSpan.Zero;
-
-        /// <summary>
-        /// Entity of the looping wep_buzz audio stream, if active.
-        /// </summary>
-        public EntityUid? WepAudioStream;
-
-        /// <summary>
-        /// Pre-computed thrust multiplier: WepBoostMaxVelocity / WepLowerVelocity. Reset to 1 on expiry.
-        /// </summary>
-        [ViewVariables]
-        public float WepThrustMultiplier = 1f;
-
-        /// <summary>
-        /// Whether WEP recharge draw is active.
-        /// </summary>
-        public bool WepPowerApplied = false;
-
-        /// <summary>
-        /// The load (W) currently applied to the console(s) from WEP recharging.
-        /// </summary>
-        public float WepCurrentLoad = 0f;
-
-        /// <summary>
-        /// Last time the ramp step ran (updated every second during recharge).
-        /// </summary>
-        public TimeSpan WepLastLoadUpdateTime = TimeSpan.Zero;
-
-        // </HL>
-
         // <Mono>
         /// <summary>
-        /// Limit to max velocity set by a shuttle console.
-        /// </summary>
+        /// Thrust acceleration vector last update.
+        /// </summar>
         [DataField]
-        public float SetMaxVelocity = 125f;
+        public Vector2 LastThrust = Vector2.Zero;
 
         /// <summary>
-        /// At what Thrust-Weight-Ratio should this ship have the base max velocity as its maximum velocity.
-        /// </summary>
-        [DataField]
-        public float BaseMaxVelocityTWR = 8f;
+        /// Multiplier to angular thrust. Set depending on pilot.
+        /// </summary
+        [ViewVariables]
+        public float AngularMultiplier = 1f;
 
         /// <summary>
-        /// How much should TWR affect max velocity.
-        /// </summary>
-        [DataField]
-        public float MaxVelocityScalingExponent = 0.25f; // 16x thrust = 2x max speed
-
-        /// <summary>
-        /// Don't allow max velocity to go beyond this value.
-        /// </summary>
-        [DataField]
-        public float UpperMaxVelocity = 140f; // we ball
+        /// Multiplier to linear thrust. Set depending on pilot.
+        /// </summary
+        [ViewVariables]
+        public float AccelerationMultiplier = 1f;
         // </Mono>
     }
 }

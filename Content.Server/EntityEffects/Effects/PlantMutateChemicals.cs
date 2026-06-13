@@ -12,7 +12,6 @@ namespace Content.Server.EntityEffects.Effects;
 /// </summary>
 public sealed partial class PlantMutateChemicals : EntityEffect
 {
-    private static readonly ProtoId<WeightedRandomFillSolutionPrototype> RandomPickBotanyReagentId = "RandomPickBotanyReagent";
     public override void Effect(EntityEffectBaseArgs args)
     {
         var plantholder = args.EntityManager.GetComponent<PlantHolderComponent>(args.TargetEntity);
@@ -23,7 +22,7 @@ public sealed partial class PlantMutateChemicals : EntityEffect
         var random = IoCManager.Resolve<IRobustRandom>();
         var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
         var chemicals = plantholder.Seed.Chemicals;
-        var randomChems = prototypeManager.Index(RandomPickBotanyReagentId).Fills;
+        var randomChems = prototypeManager.Index<WeightedRandomFillSolutionPrototype>("RandomPickBotanyReagent").Fills;
 
         // Add a random amount of a random chemical to this set of chemicals
         if (randomChems != null)

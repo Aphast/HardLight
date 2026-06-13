@@ -10,13 +10,13 @@ using Robust.Shared.Prototypes;
 namespace Content.Client.Alerts;
 
 [UsedImplicitly]
-public sealed class ClientAlertsSystem : AlertsSystem
+public sealed partial class ClientAlertsSystem : AlertsSystem
 {
     public AlertOrderPrototype? AlertOrder { get; set; }
 
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IUserInterfaceManager _ui = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IUserInterfaceManager _ui = default!;
 
     public event EventHandler? ClearAlerts;
     public event EventHandler<IReadOnlyDictionary<AlertKey, AlertState>>? SyncAlerts;
@@ -60,7 +60,7 @@ public sealed class ClientAlertsSystem : AlertsSystem
         if (args.Current is not AlertComponentState cast)
             return;
 
-        alerts.Comp.Alerts = new(cast.Alerts);
+        alerts.Comp.Alerts = cast.Alerts;
 
         UpdateHud(alerts);
     }

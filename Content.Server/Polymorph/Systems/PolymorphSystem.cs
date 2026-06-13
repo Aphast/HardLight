@@ -1,12 +1,11 @@
 using Content.Server.Actions;
 using Content.Server.Humanoid;
 using Content.Server.Inventory;
-using Content.Server.Mobs.Components;
+using Content.Server.Mind.Commands;
+using Content.Shared.Nutrition;
 using Content.Server.Polymorph.Components;
-using Content.Shared.Actions; // HardLight
+using Content.Shared.Actions;
 using Content.Shared.Buckle;
-using Content.Shared.Buckle.Components;
-using Content.Shared.Coordinates;
 using Content.Shared.Damage;
 using Content.Shared.Destructible;
 using Content.Shared.Hands.EntitySystems;
@@ -22,33 +21,33 @@ using Robust.Server.Containers;
 using Robust.Server.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Serialization.Manager;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
-using Robust.Shared.Serialization.Manager; // Starlight
 
 namespace Content.Server.Polymorph.Systems;
 
 public sealed partial class PolymorphSystem : EntitySystem
 {
-    [Dependency] private readonly IComponentFactory _compFact = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly ActionsSystem _actions = default!;
-    [Dependency] private readonly AudioSystem _audio = default!;
-    [Dependency] private readonly SharedBuckleSystem _buckle = default!;
-    [Dependency] private readonly ContainerSystem _container = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly HumanoidAppearanceSystem _humanoid = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly MobThresholdSystem _mobThreshold = default!;
-    [Dependency] private readonly ServerInventorySystem _inventory = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly SharedMindSystem _mindSystem = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly ISerializationManager _serialization = default!; // Starlight
+    [Dependency] private ISerializationManager _serialization = default!; // Goobstation
+    [Dependency] private IComponentFactory _compFact = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private ActionsSystem _actions = default!;
+    [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private SharedBuckleSystem _buckle = default!;
+    [Dependency] private ContainerSystem _container = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private HumanoidAppearanceSystem _humanoid = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private MobThresholdSystem _mobThreshold = default!;
+    [Dependency] private ServerInventorySystem _inventory = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private SharedMindSystem _mindSystem = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
 
     private const string RevertPolymorphId = "ActionRevertPolymorph";
 
@@ -64,8 +63,8 @@ public sealed partial class PolymorphSystem : EntitySystem
         SubscribeLocalEvent<PolymorphedEntityComponent, BeforeFullySlicedEvent>(OnBeforeFullySliced);
         SubscribeLocalEvent<PolymorphedEntityComponent, DestructionEventArgs>(OnDestruction);
 
+        InitializeCollide();
         InitializeMap();
-        InitializeTrigger();
     }
 
     public override void Update(float frameTime)
@@ -93,7 +92,7 @@ public sealed partial class PolymorphSystem : EntitySystem
             }
         }
 
-        UpdateTrigger();
+        UpdateCollide();
     }
 
     private void OnComponentStartup(Entity<PolymorphableComponent> ent, ref ComponentStartup args)
@@ -198,9 +197,18 @@ public sealed partial class PolymorphSystem : EntitySystem
             _gameTiming.CurTime < polymorphableComponent.LastPolymorphEnd + configuration.Cooldown)
             return null;
 
+        if (!TryComp<MobStateComponent>(uid, out var mob))
+            return null;
+        // Mono Begin - If polymorph only works in a certain life state, check that state.
+
+        if ((configuration.PolymorphTheLiving && _mobState.IsAlive(uid, mob) ||
+            configuration.PolymorphTheCritical && _mobState.IsIncapacitated(uid, mob) ||
+            configuration.PolymorphTheDead && _mobState.IsDead(uid, mob)) == false)
+            return null;
+        // Mono End
+
         // mostly just for vehicles
-        if (TryComp<BuckleComponent>(uid, out var buckle) && buckle.Buckled)
-            _buckle.TryUnbuckle(uid, uid, buckle, true);
+        _buckle.TryUnbuckle(uid, uid, true);
 
         var targetTransformComp = Transform(uid);
 
@@ -209,15 +217,9 @@ public sealed partial class PolymorphSystem : EntitySystem
 
         var child = Spawn(configuration.Entity, _transform.GetMapCoordinates(uid, targetTransformComp), rotation: _transform.GetWorldRotation(uid));
 
-        if (configuration.PolymorphPopup != null)
-            _popup.PopupEntity(Loc.GetString(configuration.PolymorphPopup,
-                ("parent", Identity.Entity(uid, EntityManager)),
-                ("child", Identity.Entity(child, EntityManager))),
-                child);
+        MakeSentientCommand.MakeSentient(child, EntityManager);
 
-        _mindSystem.MakeSentient(child);
-
-        // Starlight start
+        // Einstein Engines - Language begin
         // Copy specified components over
         foreach (var compName in configuration.CopiedComponents)
         {
@@ -229,21 +231,11 @@ public sealed partial class PolymorphSystem : EntitySystem
             copy.Owner = child;
             AddComp(child, copy, true);
         }
-        // Startlight end
+        // Einstein Engines - Language end
 
-        var polymorphedComp = _compFact.GetComponent<PolymorphedEntityComponent>();
+        var polymorphedComp = Factory.GetComponent<PolymorphedEntityComponent>();
         polymorphedComp.Parent = uid;
         polymorphedComp.Configuration = configuration;
-		// //#region Starlight
-        // if (HasComp<UncryoableComponent>(uid))
-        // {
-            // polymorphedComp.HadUncryoable = true;
-        // }
-        // else
-        // {
-            // EnsureComp<UncryoableComponent>(uid);
-        // }
-        // //#endregion Starlight
         AddComp(child, polymorphedComp);
 
         var childXform = Transform(child);
@@ -305,10 +297,6 @@ public sealed partial class PolymorphSystem : EntitySystem
         // Raise an event to inform anything that wants to know about the entity swap
         var ev = new PolymorphedEvent(uid, child, false);
         RaiseLocalEvent(uid, ref ev);
-
-        // visual effect spawn
-        if (configuration.EffectProto != null)
-            SpawnAttachedTo(configuration.EffectProto, child.ToCoordinates());
 
         return child;
     }
@@ -376,13 +364,6 @@ public sealed partial class PolymorphSystem : EntitySystem
         if (_mindSystem.TryGetMind(uid, out var mindId, out var mind))
             _mindSystem.TransferTo(mindId, parent, mind: mind);
 
-        // //#region Starlight
-        // if (!component.HadUncryoable)
-        // {
-            // RemComp<UncryoableComponent>(parent);
-        // }
-        // //#endregion Starlight
-
         if (TryComp<PolymorphableComponent>(parent, out var polymorphableComponent))
             polymorphableComponent.LastPolymorphEnd = _gameTiming.CurTime;
 
@@ -393,15 +374,10 @@ public sealed partial class PolymorphSystem : EntitySystem
         var ev = new PolymorphedEvent(uid, parent, true);
         RaiseLocalEvent(uid, ref ev);
 
-        // visual effect spawn
-        if (component.Configuration.EffectProto != null)
-            SpawnAttachedTo(component.Configuration.EffectProto, parent.ToCoordinates());
-
-        if (component.Configuration.ExitPolymorphPopup != null)
-            _popup.PopupEntity(Loc.GetString(component.Configuration.ExitPolymorphPopup,
+        _popup.PopupEntity(Loc.GetString("polymorph-revert-popup-generic",
                 ("parent", Identity.Entity(uid, EntityManager)),
                 ("child", Identity.Entity(parent, EntityManager))),
-                parent);
+            parent);
         QueueDel(uid);
 
         return parent;

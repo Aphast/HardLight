@@ -25,7 +25,7 @@ public sealed partial class PlantMutateExudeGasses : EntityEffect
         if (plantholder.Seed == null)
             return;
 
-        // Frontier: List of gasses
+        // Frontier, Funky: List of gasses
         Gas[] gasList =
         {
           Gas.Oxygen,
@@ -35,10 +35,14 @@ public sealed partial class PlantMutateExudeGasses : EntityEffect
           Gas.Ammonia,
           Gas.Plasma,
           Gas.WaterVapor,
-          Gas.Tritium,
-          Gas.Frezon,
+          //Gas.Tritium,
+          //Gas.Frezon,
+          //Gas.BZ,
+          //Gas.Healium,
+          //Gas.Nitrium,
+		  //Gas.Pluoxium,
         };
-        // End Frontier: List of gasses
+        // End Frontier, Funky: List of gasses
 
         var random = IoCManager.Resolve<IRobustRandom>();
         var gasses = plantholder.Seed.ExudeGasses;
@@ -50,11 +54,6 @@ public sealed partial class PlantMutateExudeGasses : EntityEffect
         if (gasses.ContainsKey(gas))
         {
             gasses[gas] += amount;
-            if ((gas==Gas.Tritium) || (gas==Gas.Frezon))
-            {
-                 if (gasses[gas]>MaxValue)
-                    {gasses[gas]=MaxValue;}
-            }
         }
         else
         {
@@ -95,8 +94,12 @@ public sealed partial class PlantMutateConsumeGasses : EntityEffect
           Gas.Ammonia,
           Gas.Plasma,
           Gas.WaterVapor,
-          Gas.Tritium,
-          Gas.Frezon,
+          //Gas.Tritium,
+          //Gas.Frezon,
+          //Gas.BZ,
+          //Gas.Healium,
+          //Gas.Nitrium,
+		  //Gas.Pluoxium,
         };
         // End Frontier: List of gasses
 
@@ -110,11 +113,6 @@ public sealed partial class PlantMutateConsumeGasses : EntityEffect
         if (gasses.ContainsKey(gas))
         {
             gasses[gas] += amount;
-            if ((gas==Gas.Tritium) || (gas==Gas.Frezon))
-            {
-                 if (gasses[gas]>MaxValue)
-                    {gasses[gas]=MaxValue;}
-            }
         }
         else
         {

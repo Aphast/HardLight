@@ -7,8 +7,6 @@ using Content.Shared.Popups;
 using Content.Shared.Stacks;
 using Content.Shared.Verbs;
 using Content.Shared.Whitelist;
-using Content.Shared.Administration.Logs;
-using Content.Shared.Database;
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
@@ -24,18 +22,18 @@ namespace Content.Shared.Salvage.Fulton;
 /// </summary>
 public abstract partial class SharedFultonSystem : EntitySystem
 {
-    [Dependency] protected readonly IGameTiming Timing = default!;
-    [Dependency] private   readonly MetaDataSystem _metadata = default!;
-    [Dependency] protected readonly SharedAudioSystem Audio = default!;
-    [Dependency] private   readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private   readonly FoldableSystem _foldable = default!;
-    [Dependency] protected readonly SharedContainerSystem Container = default!;
-    [Dependency] private   readonly SharedPopupSystem _popup = default!;
-    [Dependency] private   readonly SharedStackSystem _stack = default!;
-    [Dependency] protected readonly SharedTransformSystem TransformSystem = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] protected readonly ISharedAdminLogManager _adminLogger = default!;
-    public static readonly EntProtoId EffectProto = "FultonEffect";
+    [Dependency] protected IGameTiming Timing = default!;
+    [Dependency] private   MetaDataSystem _metadata = default!;
+    [Dependency] protected SharedAudioSystem Audio = default!;
+    [Dependency] private   SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private   FoldableSystem _foldable = default!;
+    [Dependency] protected SharedContainerSystem Container = default!;
+    [Dependency] private   SharedPopupSystem _popup = default!;
+    [Dependency] private   SharedStackSystem _stack = default!;
+    [Dependency] protected SharedTransformSystem TransformSystem = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+
+    [ValidatePrototypeId<EntityPrototype>] public const string EffectProto = "FultonEffect";
     protected static readonly Vector2 EffectOffset = Vector2.Zero;
 
     public override void Initialize()
@@ -48,34 +46,9 @@ public abstract partial class SharedFultonSystem : EntitySystem
         SubscribeLocalEvent<FultonedComponent, ExaminedEvent>(OnFultonedExamine);
         SubscribeLocalEvent<FultonedComponent, EntGotInsertedIntoContainerMessage>(OnFultonContainerInserted);
 
-        SubscribeLocalEvent<FultonComponent, MapInitEvent>(OnFultonMapInit);
         SubscribeLocalEvent<FultonComponent, AfterInteractEvent>(OnFultonInteract);
-        SubscribeLocalEvent<FultonBeaconComponent, ComponentShutdown>(OnBeaconShutdown);
 
         SubscribeLocalEvent<FultonComponent, StackSplitEvent>(OnFultonSplit);
-    }
-
-    private void OnFultonMapInit(Entity<FultonComponent> ent, ref MapInitEvent args)
-    {
-        if (ent.Comp.Beacon == null || Exists(ent.Comp.Beacon.Value))
-            return;
-
-        ent.Comp.Beacon = null;
-        Dirty(ent);
-    }
-
-    private void OnBeaconShutdown(EntityUid uid, FultonBeaconComponent component, ComponentShutdown args)
-    {
-        var query = EntityQueryEnumerator<FultonComponent>();
-
-        while (query.MoveNext(out var fultonUid, out var fulton))
-        {
-            if (fulton.Beacon != uid)
-                continue;
-
-            fulton.Beacon = null;
-            Dirty(fultonUid, fulton);
-        }
     }
 
     private void OnFultonContainerInserted(EntityUid uid, FultonedComponent component, EntGotInsertedIntoContainerMessage args)
@@ -102,7 +75,6 @@ public abstract partial class SharedFultonSystem : EntitySystem
             Act = () =>
             {
                 Unfulton(uid);
-                _adminLogger.Add(LogType.Unfulton, LogImpact.High, $"{ToPrettyString(args.User):player} unfultoned {ToPrettyString(uid):target}");
             }
         });
     }
@@ -145,14 +117,12 @@ public abstract partial class SharedFultonSystem : EntitySystem
             if (!_foldable.IsFolded(args.Target.Value))
             {
                 component.Beacon = args.Target.Value;
-                Dirty(uid, component);
                 Audio.PlayPredicted(beacon.LinkSound, uid, args.User);
                 _popup.PopupClient(Loc.GetString("fulton-linked"), uid, args.User);
             }
             else
             {
-                component.Beacon = null;
-                Dirty(uid, component);
+                component.Beacon = EntityUid.Invalid;
                 _popup.PopupClient(Loc.GetString("fulton-folded"), uid, args.User);
             }
 
@@ -161,8 +131,6 @@ public abstract partial class SharedFultonSystem : EntitySystem
 
         if (Deleted(component.Beacon))
         {
-            component.Beacon = null;
-            Dirty(uid, component);
             _popup.PopupClient(Loc.GetString("fulton-not-found"), uid, args.User);
             return;
         }
@@ -217,8 +185,7 @@ public abstract partial class SharedFultonSystem : EntitySystem
 
     protected bool CanFulton(EntityUid uid)
     {
-        if (!TryComp(uid, out TransformComponent? xform))
-            return false;
+        var xform = Transform(uid);
 
         if (xform.Anchored)
             return false;

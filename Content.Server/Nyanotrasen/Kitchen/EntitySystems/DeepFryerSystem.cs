@@ -55,34 +55,32 @@ using Robust.Shared.Random;
 using Robust.Shared.Timing;
 using Content.Shared._NF.Kitchen.Components; // Frontier
 using Content.Server._NF.Kitchen.Components; // Frontier
-using Content.Shared.NameModifier.EntitySystems; // Frontier
 
 namespace Content.Server.Nyanotrasen.Kitchen.EntitySystems;
 
 public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
 {
-    [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-    [Dependency] private readonly DoAfterSystem _doAfterSystem = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogManager = default!;
-    [Dependency] private readonly IGameTiming _gameTimingSystem = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly PowerReceiverSystem _powerReceiverSystem = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearanceSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-    [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly SolutionTransferSystem _solutionTransferSystem = default!;
-    [Dependency] private readonly PuddleSystem _puddleSystem = default!;
-    [Dependency] private readonly TemperatureSystem _temperature = default!;
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly AmbientSoundSystem _ambientSoundSystem = default!;
-    [Dependency] private readonly MetaDataSystem _metaDataSystem = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly NameModifierSystem _nameModifier = default!; // Frontier
+    [Dependency] private DamageableSystem _damageableSystem = default!;
+    [Dependency] private DoAfterSystem _doAfterSystem = default!;
+    [Dependency] private IAdminLogManager _adminLogManager = default!;
+    [Dependency] private IGameTiming _gameTimingSystem = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private PowerReceiverSystem _powerReceiverSystem = default!;
+    [Dependency] private SharedAppearanceSystem _appearanceSystem = default!;
+    [Dependency] private SharedAudioSystem _audioSystem = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private MobStateSystem _mobStateSystem = default!;
+    [Dependency] private SolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private SolutionTransferSystem _solutionTransferSystem = default!;
+    [Dependency] private PuddleSystem _puddleSystem = default!;
+    [Dependency] private TemperatureSystem _temperature = default!;
+    [Dependency] private UserInterfaceSystem _uiSystem = default!;
+    [Dependency] private AmbientSoundSystem _ambientSoundSystem = default!;
+    [Dependency] private MetaDataSystem _metaDataSystem = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
     private static readonly string CookingDamageType = "Heat";
     private static readonly float CookingDamageAmount = 10.0f;
@@ -104,7 +102,6 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
         _sawmill = Logger.GetSawmill("deepfryer");
 
         SubscribeLocalEvent<DeepFryerComponent, ComponentInit>(OnInitDeepFryer);
-        SubscribeLocalEvent<DeepFryerComponent, MapInitEvent>(OnMapInitDeepFryer);
         SubscribeLocalEvent<DeepFryerComponent, PowerChangedEvent>(OnPowerChange);
         SubscribeLocalEvent<DeepFryerComponent, RefreshPartsEvent>(OnRefreshParts);
         SubscribeLocalEvent<DeepFryerComponent, MachineDeconstructedEvent>(OnDeconstruct);
@@ -220,7 +217,7 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
         {
             foreach (var (_, solution) in solutions.Solutions)
             {
-                if (_solutionContainerSystem.TryGetSolution(item, solution.Name, out var solutionRef))
+                if(_solutionContainerSystem.TryGetSolution(item, solution.Name, out var solutionRef))
                     _solutionContainerSystem.SetTemperature(solutionRef!.Value, component.PoweredTemperature);
             }
         }
@@ -435,8 +432,8 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
             _sawmill.Warning(
                 $"{ToPrettyString(uid)} did not have a {component.StorageName} container. It has been created.");
 
-        if (_solutionContainerSystem.EnsureSolution(uid, component.SolutionName, out var solutionExisted, out var solution))
-            component.Solution = solution;
+        component.Solution =
+            _solutionContainerSystem.EnsureSolution(uid, component.SolutionName, out var solutionExisted);
 
         if (!solutionExisted)
             _sawmill.Warning(
@@ -461,19 +458,6 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
                 effect.Effect(effectsArgs);
             }
         }
-    }
-
-    /// <summary>
-    /// After map init, the SolutionContainerManager has migrated any prototype
-    /// solutions loaded from a save into live solution entities. The cached
-    /// reference grabbed during ComponentInit may now point at a discarded
-    /// prototype Solution, so re-resolve it here. Fixes the deep fryer
-    /// reporting empty oil after being loaded from a saved ship (issue #1364).
-    /// </summary>
-    private void OnMapInitDeepFryer(EntityUid uid, DeepFryerComponent component, MapInitEvent args)
-    {
-        if (_solutionContainerSystem.TryGetSolution(uid, component.SolutionName, out _, out var solution))
-            component.Solution = solution;
     }
 
     /// <summary>
@@ -517,7 +501,7 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
         var ratingStorage = args.PartRatings[component.MachinePartStorageMax];
 
         component.StorageMaxEntities = component.BaseStorageMaxEntities +
-                                       (int)(component.StoragePerPartRating * (ratingStorage - 1));
+                                       (int) (component.StoragePerPartRating * (ratingStorage - 1));
     }
 
     /// <summary>
@@ -574,9 +558,6 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
 
     private void OnSolutionChange(EntityUid uid, DeepFryerComponent component, SolutionChangedEvent args)
     {
-        if (args.Solution.Comp.Solution.Name == component.SolutionName)
-            component.Solution = args.Solution.Comp.Solution;
-
         UpdateUserInterface(uid, component);
         UpdateAmbientSound(uid, component);
     }
@@ -620,7 +601,7 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
 
             _audioSystem.PlayPvs(component.SoundRemoveItem, uid, AudioParamsInsertRemove);
 
-            UpdateUserInterface(uid, component);
+            UpdateUserInterface(component.Owner, component);
         }
     }
 
@@ -666,11 +647,12 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
     {
         var user = args.Actor;
 
-        if (!TryGetActiveHandSolutionContainer(uid, user, out var heldItem, out var heldSolution,
+        if (user == null ||
+            !TryGetActiveHandSolutionContainer(uid, user, out var heldItem, out var heldSolution,
                 out var transferAmount))
             return;
 
-        if (!_solutionContainerSystem.TryGetSolution(uid, component.Solution.Name, out var solution))
+        if (!_solutionContainerSystem.TryGetSolution(component.Owner, component.Solution.Name, out var solution))
             return;
 
         _solutionTransferSystem.Transfer(user,
@@ -702,7 +684,7 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
             return;
         }
 
-        var delay = TimeSpan.FromSeconds(Math.Clamp((float)wasteVolume * 0.1f, 1f, 5f));
+        var delay = TimeSpan.FromSeconds(Math.Clamp((float) wasteVolume * 0.1f, 1f, 5f));
 
         var ev = new ClearSlagDoAfterEvent(heldSolution.Value.Comp.Solution, transferAmount);
 
@@ -718,6 +700,7 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
         _doAfterSystem.TryStartDoAfter(doAfterArgs);
     }
 
+    [Obsolete("Obsolete")]
     private void OnRemoveAllItems(EntityUid uid, DeepFryerComponent component, DeepFryerRemoveAllItemsMessage args)
     {
         if (component.Storage.ContainedEntities.Count == 0)
@@ -732,7 +715,7 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
 
         _audioSystem.PlayPvs(component.SoundRemoveItem, uid, AudioParamsInsertRemove);
 
-        UpdateUserInterface(uid, component);
+        UpdateUserInterface(component.Owner, component);
     }
 
     private void OnClearSlag(EntityUid uid, DeepFryerComponent component, ClearSlagDoAfterEvent args)
@@ -762,7 +745,8 @@ public sealed partial class DeepFryerSystem : SharedDeepfryerSystem
 
     private void OnInitDeepFried(EntityUid uid, DeepFriedComponent component, ComponentInit args)
     {
-        component.OriginalName = _nameModifier.GetBaseName(uid); // Frontier: prevent reapplying name modifiers
+        var meta = MetaData(uid);
+        component.OriginalName = meta.EntityName;
         UpdateDeepFriedName(uid, component);
     }
 

@@ -13,7 +13,7 @@ namespace Content.Client.UserInterface.Controls
     [Virtual]
     public partial class FancyWindow : BaseWindow
     {
-        [Dependency] private readonly IEntitySystemManager _sysMan = default!;
+        [Dependency] private IEntitySystemManager _sysMan = default!;
         private GuidebookSystem? _guidebookSystem;
         private const int DRAG_MARGIN_SIZE = 7;
         public const string StyleClassWindowHelpButton = "windowHelpButton";
@@ -81,6 +81,10 @@ namespace Content.Client.UserInterface.Controls
             return mode;
         }
     }
+
+    /// <summary>
+    /// Helper functions for working with <see cref="FancyWindow"/>.
+    /// </summary>
     public static class FancyWindowExt
     {
         /// <summary>

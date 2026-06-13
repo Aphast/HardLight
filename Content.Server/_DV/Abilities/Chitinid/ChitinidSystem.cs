@@ -15,14 +15,14 @@ namespace Content.Server.Abilities.Chitinid;
 
 public sealed partial class ChitinidSystem : EntitySystem
 {
-    [Dependency] private readonly SharedActionsSystem _actions = default!;
-    [Dependency] private readonly Content.Shared.Charges.Systems.SharedChargesSystem _charges = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
 
     public override void Initialize()
     {
@@ -47,12 +47,10 @@ public sealed partial class ChitinidSystem : EntitySystem
             if (_damageable.TryChangeDamage(uid, chitinid.Healing, damageable: damageable) is {} delta)
             {
                 chitinid.AmountAbsorbed += -delta.GetTotal().Float();
-                if (!string.IsNullOrEmpty(chitinid.ChitziteActionId) && chitinid.AmountAbsorbed >= chitinid.MaximumAbsorbed)
+                if (chitinid.ChitziteAction != null && chitinid.AmountAbsorbed >= chitinid.MaximumAbsorbed)
                 {
-                    if (chitinid.ChitziteAction is { } action)
-                    {
-                        _charges.SetCharges(action, 1); // You get the charge back and that's it. Tough.
-                    }
+                    _actions.SetCharges(chitinid.ChitziteAction, 1); // You get the charge back and that's it. Tough.
+                    _actions.SetEnabled(chitinid.ChitziteAction, true);
                 }
             }
         }

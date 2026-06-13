@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Numerics;
 using Content.Client.UserInterface.Controls;
 using Content.Shared.VendingMachines;
@@ -21,20 +20,13 @@ namespace Content.Client.VendingMachines.UI
     [GenerateTypedNameReferences]
     public sealed partial class VendingMachineMenu : FancyWindow
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly IComponentFactory _componentFactory = default!; // Frontier
-
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
         private readonly Dictionary<EntProtoId, EntityUid> _dummies = [];
-        private readonly Dictionary<EntProtoId, (ListContainerButton Button, VendingMachineItem Item)> _listItems = new();
-        private readonly Dictionary<EntProtoId, uint> _amounts = new();
-
-        /// <summary>
-        /// Whether the vending machine is able to be interacted with or not.
-        /// </summary>
-        private bool _enabled;
 
         public event Action<GUIBoundKeyEventArgs, ListData>? OnItemSelected;
+
+        private readonly StyleBoxFlat _styleBox = new() { BackgroundColor = new Color(70, 73, 102) };
 
         public VendingMachineMenu()
         {
@@ -77,26 +69,21 @@ namespace Content.Client.VendingMachines.UI
 
         private void GenerateButton(ListData data, ListContainerButton button)
         {
-            if (data is not VendorItemsListData { ItemProtoId: var protoID, ItemText: var text })
+            if (data is not VendorItemsListData { ItemProtoID: var protoID, ItemText: var text })
                 return;
 
-            var item = new VendingMachineItem(protoID, text);
-            _listItems[protoID] = (button, item);
-            button.AddChild(item);
-            button.AddStyleClass("ButtonSquare");
-            button.Disabled = !_enabled || _amounts[protoID] == 0;
+            button.AddChild(new VendingMachineItem(protoID, text));
+
+            button.ToolTip = text;
+            button.StyleBoxOverride = _styleBox;
         }
 
         /// <summary>
         /// Populates the list of available items on the vending machine interface
         /// and sets icons based on their prototypes
         /// </summary>
-        public void Populate(List<VendingMachineInventoryEntry> inventory, bool enabled, float priceModifier, int balance, int? cashSlotBalance) // Frontier: add priceModifier, balance, cashSlotBalance
+        public void Populate(List<VendingMachineInventoryEntry> inventory, float priceModifier, int balance, int? cashSlotBalance, bool requiresCash) // Frontier: add balance, cashSlotBalance
         {
-            _enabled = enabled;
-            _listItems.Clear();
-            _amounts.Clear();
-
             UpdateBalance(balance); // Frontier
             UpdateCashSlotBalance(cashSlotBalance); // Frontier
 
@@ -129,10 +116,7 @@ namespace Content.Client.VendingMachines.UI
                 var entry = inventory[i];
 
                 if (!_prototypeManager.TryIndex(entry.ID, out var prototype))
-                {
-                    _amounts[entry.ID] = 0;
                     continue;
-                }
 
                 if (!_dummies.TryGetValue(entry.ID, out var dummy))
                 {
@@ -140,31 +124,111 @@ namespace Content.Client.VendingMachines.UI
                     _dummies.Add(entry.ID, dummy);
                 }
 
-                var cost = GetPrototypePrice(prototype, priceModifier); // Frontier: item pricing
-
                 var itemName = Identity.Name(dummy, _entityManager);
+                var cost = 0; // mono
+                if (requiresCash) // frontier
+                    cost = GetPrice(entry, prototype, priceModifier);
+
+                string itemText;
 
                 // Frontier: unlimited vending
-                string itemText;
                 if (entry.Amount != uint.MaxValue)
                     itemText = $"[{BankSystemExtensions.ToSpesoString(cost)}] {itemName} [{entry.Amount}]";
                 else
                     itemText = $"[{BankSystemExtensions.ToSpesoString(cost)}] {itemName}";
                 // End Frontier: unlimited vending
-                _amounts[entry.ID] = entry.Amount;
 
                 if (itemText.Length > longestEntry.Length)
                     longestEntry = itemText;
 
-                listData.Add(new VendorItemsListData(prototype!.ID, i) // Frontier: prototype<prototype!
-                {
-                    ItemText = itemText,
-                });
+                listData.Add(new VendorItemsListData(prototype!.ID, itemText, i)); // Frontier: prototype<prototype!
             }
 
             VendingContents.PopulateList(listData);
 
             SetSizeAfterUpdate(longestEntry.Length, inventory.Count);
+        }
+
+        // Mono: Moved out frontier pricing logic to the separate method
+        private int GetPrice(VendingMachineInventoryEntry entry, EntityPrototype? prototype, float priceModifier){
+            // Frontier: item pricing
+            // ok so we dont really have access to the pricing system so we are doing a quick price check
+            // based on prototype info since the items inside a vending machine dont actually exist as entities
+            // until they are spawned. So this little alg does the following:
+            // first, checks for a staticprice component, and if it has one, checks to make sure its not 0 since
+            // stacks and other items have 0 cost.
+            // If the price is 0, then we check for both a stack price and a stack component, since if it has one
+            // it should have the other too, and then calculates the price based on that.
+            // If the price is still 0 or non-existant (this is the case for food and containers since their value is
+            // determined dynamically by their contents/inventory), it then falls back to the default mystery
+            // hardcoded value of 20xMarketModifier.
+            var cost = 20;
+            if (prototype != null && prototype.TryGetComponent<StaticPriceComponent>(out var priceComponent, _entityManager.ComponentFactory))
+            {
+                if (priceComponent.Price != 0)
+                {
+                    var price = (float)priceComponent.Price;
+                    cost = (int)(price * priceModifier);
+                }
+                else
+                {
+                    if (prototype.TryGetComponent<StackPriceComponent>(out var stackPrice, _entityManager.ComponentFactory)
+                        && prototype.TryGetComponent<StackComponent>(out var stack, _entityManager.ComponentFactory))
+                    {
+                        var price = stackPrice.Price * stack.Count;
+                        cost = (int)(price * priceModifier);
+                    }
+                    else
+                        cost = (int)(cost * priceModifier);
+                }
+            }
+            else
+                cost = (int)(cost * priceModifier);
+
+            if (prototype != null && prototype.TryGetComponent<SolutionContainerManagerComponent>(out var priceSolutions, _entityManager.ComponentFactory))
+            {
+                if (priceSolutions.Solutions != null)
+                {
+                    foreach (var solution in priceSolutions.Solutions.Values)
+                    {
+                        foreach (var (reagent, quantity) in solution.Contents)
+                        {
+                            if (!_prototypeManager.TryIndex<ReagentPrototype>(reagent.Prototype,
+                                out var reagentProto))
+                                continue;
+
+                            // TODO check ReagentData for price information?
+                            var costReagent = quantity.Float() * reagentProto.PricePerUnit;
+                            cost += (int)(costReagent * priceModifier);
+                        }
+                    }
+                }
+            }
+            // End Frontier: item pricing
+
+            // Frontier: calculate vending price (this duplicates Content.Server.PricingSystem.GetVendPrice - this should be moved to Content.Shared if possible)
+            if (prototype != null)
+            {
+                var price = 0.0;
+
+                if (prototype.TryGetComponent<StaticPriceComponent>(out var staticComp, _entityManager.ComponentFactory) && staticComp.VendPrice > 0.0)
+                {
+                    price += staticComp.VendPrice;
+                }
+                else if (prototype.TryGetComponent<StackPriceComponent>(out var stackComp, _entityManager.ComponentFactory) && stackComp.VendPrice > 0.0)
+                {
+                    price += stackComp.VendPrice;
+                }
+
+                // If there is anything that explicitly sets vending price - higher OR lower, override the base.
+                if (price > 0.0)
+                {
+                    cost = (int)price;
+                }
+            }
+
+            return cost;
+            // End Frontier
         }
 
         // Frontier
@@ -181,123 +245,12 @@ namespace Content.Client.VendingMachines.UI
         }
         // End Frontier
 
-        /// <summary>
-        /// Updates text entries for vending data in place without modifying the list controls.
-        /// </summary>
-        public void UpdateAmounts(List<VendingMachineInventoryEntry> cachedInventory, float priceModifier, bool enabled) // Frontier: add priceModifier
-        {
-            _enabled = enabled;
-
-            foreach (var proto in _dummies.Keys)
-            {
-                if (!_listItems.TryGetValue(proto, out var button))
-                    continue;
-
-                var dummy = _dummies[proto];
-                var amount = cachedInventory.First(o => o.ID == proto).Amount;
-                // Could be better? Problem is all inventory entries get squashed.
-                var text = GetItemText(dummy, amount, priceModifier);
-
-                button.Item.SetText(text);
-                button.Button.Disabled = !enabled || amount == 0;
-            }
-        }
-
-        private string GetItemText(EntityUid dummy, uint amount, float priceModifier) // Frontier: add priceModifier
-        {
-            // Frontier: lookup price from entity, finite output
-            var cost = (int)(20 * priceModifier);
-            if (_entityManager.TryGetComponent(dummy, out MetaDataComponent? component) && component.EntityPrototype != null)
-            {
-                cost = GetPrototypePrice(component.EntityPrototype, priceModifier);
-            }
-
-            var itemName = Identity.Name(dummy, _entityManager);
-            if (amount != uint.MaxValue)
-                return $"[{BankSystemExtensions.ToSpesoString(cost)}] {itemName} [{amount}]";
-            else
-                return $"[{BankSystemExtensions.ToSpesoString(cost)}] {itemName}";
-            // End Frontier
-        }
-
         private void SetSizeAfterUpdate(int longestEntryLength, int contentCount)
         {
             SetSize = new Vector2(Math.Clamp((longestEntryLength + 2) * 12, 250, 400),
                 Math.Clamp(contentCount * 50, 150, 350));
         }
-
-        // Frontier: get item price
-        private int GetPrototypePrice(EntityPrototype prototype, float priceModifier)
-        {
-            // Check for vending price - if anything sets it explicitly, use that number as-is.
-            double vendPrice = 0;
-            if (prototype.TryGetComponent<StaticPriceComponent>(out var staticComp, _componentFactory) && staticComp.VendPrice > 0.0)
-            {
-                vendPrice += staticComp.VendPrice;
-            }
-            else if (prototype.TryGetComponent<StackPriceComponent>(out var stackComp, _componentFactory) && stackComp.VendPrice > 0.0)
-            {
-                vendPrice += stackComp.VendPrice;
-            }
-
-            if (vendPrice > 0.0)
-                return (int)vendPrice;
-
-            // ok so we dont really have access to the pricing system so we are doing a quick price check
-            // based on prototype info since the items inside a vending machine dont actually exist as entities
-            // until they are spawned. So this little alg does the following:
-            // first, checks for a staticprice component, and if it has one, checks to make sure its not 0 since
-            // stacks and other items have 0 cost.
-            // If the price is 0, then we check for both a stack price and a stack component, since if it has one
-            // it should have the other too, and then calculates the price based on that.
-            // If the price is still 0 or non-existant (this is the case for food and containers since their value is
-            // determined dynamically by their contents/inventory), it then falls back to the default mystery
-            // hardcoded value of 20xMarketModifier.
-            double cost = 20;
-            if (prototype.TryGetComponent<StaticPriceComponent>(out var priceComponent, _componentFactory))
-            {
-                if (priceComponent.Price != 0)
-                {
-                    cost = priceComponent.Price;
-                }
-                else
-                {
-                    if (prototype.TryGetComponent<StackPriceComponent>(out var stackPrice, _componentFactory)
-                        && prototype.TryGetComponent<StackComponent>(out var stack, _componentFactory))
-                    {
-                        cost = stackPrice.Price * stack.Count;
-                    }
-                }
-            }
-            cost *= priceModifier;
-
-            if (prototype.TryGetComponent<SolutionContainerManagerComponent>(out var priceSolutions, _componentFactory))
-            {
-                if (priceSolutions.Solutions != null)
-                {
-                    foreach (var solution in priceSolutions.Solutions.Values)
-                    {
-                        foreach (var (reagent, quantity) in solution.Contents)
-                        {
-                            if (!_prototypeManager.TryIndex<ReagentPrototype>(reagent.Prototype,
-                                    out var reagentProto))
-                                continue;
-
-                            // TODO check ReagentData for price information?
-                            var costReagent = quantity.Float() * reagentProto.PricePerUnit;
-                            cost += costReagent * priceModifier;
-                        }
-                    }
-                }
-            }
-
-            return (int)cost;
-        }
-    }
-    // End Frontier
-
-    public record VendorItemsListData(EntProtoId ItemProtoId, int ItemIndex) : ListData
-    {
-        public string ItemText = string.Empty;
     }
 }
+
+public record VendorItemsListData(EntProtoId ItemProtoID, string ItemText, int ItemIndex) : ListData;

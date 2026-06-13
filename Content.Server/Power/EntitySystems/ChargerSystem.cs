@@ -1,8 +1,9 @@
 using Content.Server.Power.Components;
-using Content.Server.Emp;
-using Content.Server.PowerCell;
 using Content.Shared.Examine;
+using Content.Server.PowerCell;
 using Content.Shared.Power;
+using Content.Shared.Power.Components;
+using Content.Shared.Power.EntitySystems;
 using Content.Shared.PowerCell.Components;
 using Content.Shared.Emp;
 using JetBrains.Annotations;
@@ -11,21 +12,26 @@ using System.Diagnostics.CodeAnalysis;
 using Content.Shared.Storage.Components;
 using Robust.Server.Containers;
 using Content.Shared.Whitelist;
+using Content.Shared.Inventory;
+using Content.Shared._Goobstation.Clothing.Systems;
 using Content.Server._NF.Power.Components; // Frontier
 
 namespace Content.Server.Power.EntitySystems;
 
 [UsedImplicitly]
-internal sealed class ChargerSystem : EntitySystem
+public sealed partial class ChargerSystem : SharedChargerSystem
 {
-    [Dependency] private readonly ContainerSystem _container = default!;
-    [Dependency] private readonly PowerCellSystem _powerCell = default!;
-    [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private ContainerSystem _container = default!;
+    [Dependency] private PowerCellSystem _powerCell = default!;
+    [Dependency] private BatterySystem _battery = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
 
     public override void Initialize()
     {
+        base.Initialize();
+
         SubscribeLocalEvent<ChargerComponent, ComponentStartup>(OnStartup);
         SubscribeLocalEvent<ChargerComponent, PowerChangedEvent>(OnPowerChanged);
         SubscribeLocalEvent<ChargerComponent, EntInsertedIntoContainerMessage>(OnInserted);
@@ -33,11 +39,6 @@ internal sealed class ChargerSystem : EntitySystem
         SubscribeLocalEvent<ChargerComponent, ContainerIsInsertingAttemptEvent>(OnInsertAttempt);
         SubscribeLocalEvent<ChargerComponent, InsertIntoEntityStorageAttemptEvent>(OnEntityStorageInsertAttempt);
         SubscribeLocalEvent<ChargerComponent, ExaminedEvent>(OnChargerExamine);
-
-        SubscribeLocalEvent<ChargerComponent, ChargerUpdateStatusEvent>(OnUpdateStatus); // Frontier: Upstream - #28984
-
-        SubscribeLocalEvent<ChargerComponent, EmpPulseEvent>(OnEmpPulse);
-        SubscribeLocalEvent<ChargerComponent, EmpDisabledRemoved>(OnEmpDisabledRemoved); // Frontier: Upstream - #28984
     }
 
     private void OnStartup(EntityUid uid, ChargerComponent component, ComponentStartup args)
@@ -50,7 +51,7 @@ internal sealed class ChargerSystem : EntitySystem
         using (args.PushGroup(nameof(ChargerComponent)))
         {
             // rate at which the charger charges
-            args.PushMarkup(Loc.GetString("charger-examine", ("color", "yellow"), ("chargeRate", (int) component.ChargeRate)));
+            args.PushMarkup(Loc.GetString("charger-examine", ("color", "yellow"), ("chargeRate", (int)component.ChargeRate)));
 
             // try to get contents of the charger
             if (!_container.TryGetContainer(uid, component.SlotId, out var container))
@@ -74,7 +75,7 @@ internal sealed class ChargerSystem : EntitySystem
                         continue;
 
                     var chargePercentage = (battery.CurrentCharge / battery.MaxCharge) * 100;
-                    args.PushMarkup(Loc.GetString("charger-content", ("chargePercentage", (int) chargePercentage)));
+                    args.PushMarkup(Loc.GetString("charger-content", ("chargePercentage", (int)chargePercentage)));
                 }
             }
         }
@@ -140,11 +141,11 @@ internal sealed class ChargerSystem : EntitySystem
             // Frontier: we already have the battery separated (it is what charges)
             //           so we will charge the battery ourselves, instead of finding it
             //           again through TransferPower
-            _battery.SetCharge(uid, battery.CurrentCharge + charger.ChargeRate * frameTime, battery); // Frontier: Upstream - #28984
+            _battery.TrySetCharge(uid, battery.CurrentCharge + charger.ChargeRate * frameTime, battery); // Frontier: Upstream - #28984
             // Just so the sprite won't be set to 99.99999% visibility
             if (battery.MaxCharge - battery.CurrentCharge < 0.01)
             {
-                _battery.SetCharge(uid, battery.MaxCharge, battery); // Frontier: Upstream - #28984
+                _battery.TrySetCharge(uid, battery.MaxCharge, battery); // Frontier: Upstream - #28984
             }
 
             UpdateStatus(uid, charger);
@@ -245,11 +246,11 @@ internal sealed class ChargerSystem : EntitySystem
         switch (component.Status)
         {
             case CellChargerStatus.Off:
-                receiver.Load = 1;
+                receiver.Load = 0;
                 _appearance.SetData(uid, CellVisual.Light, CellChargerStatus.Off, appearance);
                 break;
             case CellChargerStatus.Empty:
-                receiver.Load = 1;
+                receiver.Load = 0;
                 _appearance.SetData(uid, CellVisual.Light, CellChargerStatus.Empty, appearance);
                 break;
             case CellChargerStatus.Charging:
@@ -257,7 +258,7 @@ internal sealed class ChargerSystem : EntitySystem
                 _appearance.SetData(uid, CellVisual.Light, CellChargerStatus.Charging, appearance);
                 break;
             case CellChargerStatus.Charged:
-                receiver.Load = 1;
+                receiver.Load = 0;
                 _appearance.SetData(uid, CellVisual.Light, CellChargerStatus.Charged, appearance);
                 break;
             default:
@@ -265,45 +266,7 @@ internal sealed class ChargerSystem : EntitySystem
         }
     }
 
-    private void OnEmpPulse(EntityUid uid, ChargerComponent component, ref EmpPulseEvent args) // Frontier: Upstream - #28984
-    {
-        //args.Affected = true;
-        //args.Disabled = true;
-        // we don't care if we haven't been disabled
-        if (!args.Disabled)
-            return;
-
-        // if the recharger is hit by an emp pulse,
-        // stop recharging contained batteries to save resources
-        if (!_container.TryGetContainer(uid, component.SlotId, out var container))
-            return;
-
-        foreach (var containedEntity in container.ContainedEntities)
-        {
-            if (!SearchForBattery(containedEntity, out var batteryEntity, out _))
-                continue;
-
-            StopChargingBattery(uid, component, batteryEntity.Value);
-        }
-    }
-
-    private void OnEmpDisabledRemoved(EntityUid uid, ChargerComponent component, ref EmpDisabledRemoved args) // Frontier: Upstream - #28984
-    {
-        // if an emp disable subsides,
-        // attempt to start charging all batteries
-        if (!_container.TryGetContainer(uid, component.SlotId, out var container))
-            return;
-
-        foreach (var containedEntity in container.ContainedEntities)
-        {
-            if (!SearchForBattery(containedEntity, out var batteryEntity, out _))
-                continue;
-
-            StartChargingBattery(uid, component, batteryEntity.Value);
-        }
-    }
-
-    private CellChargerStatus GetStatus(EntityUid uid, ChargerComponent component) // Frontier: Upstream - #28984
+    private CellChargerStatus GetStatus(EntityUid uid, ChargerComponent component)
     {
         if (!component.Portable)
         {
@@ -361,21 +324,57 @@ internal sealed class ChargerSystem : EntitySystem
         if (!SearchForBattery(targetEntity, out var batteryUid, out var heldBattery))
             return;
 
-        _battery.SetCharge(batteryUid.Value, heldBattery.CurrentCharge + component.ChargeRate * frameTime, heldBattery);
+        _battery.TrySetCharge(batteryUid.Value, heldBattery.CurrentCharge + component.ChargeRate * frameTime, heldBattery); // Frontier: Upstream - #28984
+        // Just so the sprite won't be set to 99.99999% visibility
+        if (heldBattery.MaxCharge - heldBattery.CurrentCharge < 0.01)
+        {
+            _battery.TrySetCharge(batteryUid.Value, heldBattery.MaxCharge, heldBattery); // Frontier: Upstream - #28984
+        }
+
         UpdateStatus(uid, component);
     }
 
+    // Goobstation - Modsuits - Changed charger logic to work with suits in cyborg charger
     private bool SearchForBattery(EntityUid uid, [NotNullWhen(true)] out EntityUid? batteryUid, [NotNullWhen(true)] out BatteryComponent? component)
     {
+        batteryUid = null;
+        component = null;
+
         // try get a battery directly on the inserted entity
-        if (!TryComp(uid, out component))
+        if (TryComp(uid, out component))
         {
-            // or by checking for a power cell slot on the inserted entity
-            return _powerCell.TryGetBatteryFromSlot(uid, out batteryUid, out component);
+            batteryUid = uid;
+            return true;
         }
-        batteryUid = uid;
-        return true;
+
+        // try get battery by checking for a power cell slot on the inserted entity
+        if (_powerCell.TryGetBatteryFromSlot(uid, out batteryUid, out component))
+            return true;
+
+        if (TryComp<InventoryComponent>(uid, out var inventory))
+        {
+            var relayEv = new FindInventoryBatteryEvent();
+            _inventorySystem.RelayEvent((uid, inventory), ref relayEv);
+
+            if (relayEv.FoundBattery != null)
+            {
+                batteryUid = relayEv.FoundBattery.Value.Owner;
+                component = relayEv.FoundBattery.Value.Comp;
+                return true;
+            }
+        }
+
+        return false;
     }
+}
+
+// Goobstation - Modsuits stuff
+[ByRefEvent]
+public record struct FindInventoryBatteryEvent() : IInventoryRelayEvent
+{
+    public SlotFlags TargetSlots { get; } = SlotFlags.WITHOUT_POCKET;
+
+    public Entity<BatteryComponent>? FoundBattery { get; set; }
 }
 
 [ByRefEvent] // Frontier: Upstream - #28984

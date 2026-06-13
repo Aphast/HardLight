@@ -5,15 +5,15 @@ using Content.Shared.Mobs.Systems;
 using Robust.Server.Player;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Timing;
+using System.Numerics;
 
 namespace Content.Server._Mono.StationEvents;
 
-// VRS: Ported from Triad_Sector — monitors player proximity to event entities and extends duration if players are present.
-public sealed class AutoExtendRuleSystem : EntitySystem
+public sealed partial class AutoExtendRuleSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
 
     public override void Update(float frameTime)
     {
@@ -21,6 +21,7 @@ public sealed class AutoExtendRuleSystem : EntitySystem
         var query = EntityQueryEnumerator<AutoExtendRuleComponent, StationEventComponent>();
         while (query.MoveNext(out var ruleUid, out var extendRule, out var stationEv))
         {
+            // if we're ended remove AutoExtendRuleComponent from us
             if (HasComp<EndedGameRuleComponent>(ruleUid))
             {
                 unExtendQueue.Add(ruleUid);
@@ -30,6 +31,7 @@ public sealed class AutoExtendRuleSystem : EntitySystem
             if (stationEv.EndTime == null)
                 continue;
 
+            // if we're too early to check then don't
             if (_timing.CurTime < stationEv.EndTime.Value - extendRule.ExtendAfterTime)
                 continue;
 
@@ -41,13 +43,15 @@ public sealed class AutoExtendRuleSystem : EntitySystem
             var hasNearbyPlayer = false;
             foreach (var entUid in extendRule.Entities)
             {
+                // this is copypasted and modified from NPCSystem
                 var xform = Transform(entUid);
                 var ourCoords = xform.Coordinates;
+                // extend our check radius if we're a grid
                 var checkRadius = extendRule.PlayerCheckRadius;
                 if (TryComp<MapGridComponent>(entUid, out var gridComp))
                 {
                     var gridAABB = gridComp.LocalAABB;
-                    checkRadius += MathF.Sqrt(gridAABB.Width * gridAABB.Width + gridAABB.Height * gridAABB.Height);
+                    checkRadius += MathF.Sqrt(gridAABB.Width*gridAABB.Width + gridAABB.Height*gridAABB.Height);
                 }
 
                 var allPlayerData = _player.GetAllPlayerData();

@@ -8,21 +8,16 @@ using Robust.Shared.Map.Components;
 namespace Content.Server._Mono.TargetSeekingAlert;
 
 /// <summary>
-///     Handles logic for things that make alerts for entities with <see cref="TargetSeekingComponent"/>.
+///     Handles logic for things that make alerts for entities with <see cref="TargetSeekingComponent"/>. 
 /// </summary>
 
 // I really wonder what might unexpectedly happen when you put a target-seeker-alerter on a planetmap, since those count as grids.
-public sealed class TargetSeekerAlertSystem : EntitySystem
+public sealed partial class TargetSeekerAlertSystem : EntitySystem
 {
-    [Dependency] private readonly AudioSystem _audioSystem = default!;
-    [Dependency] private readonly PowerReceiverSystem _powerReceiverSystem = default!;
+    [Dependency] private AudioSystem _audioSystem = default!;
+    [Dependency] private PowerReceiverSystem _powerReceiverSystem = default!;
 
     private EntityQuery<TargetSeekerAlertComponent> _alertQuery = new();
-
-    // Throttle the alert scan: distance bands aren't gameplay-sensitive at sub-200ms resolution
-    // and the inner cost is grids * seekers * alerters * (Transform + TryDistance).
-    private const float UpdateInterval = 0.2f;
-    private float _updateAccumulator;
 
     public override void Initialize()
     {
@@ -31,7 +26,6 @@ public sealed class TargetSeekerAlertSystem : EntitySystem
         _alertQuery = GetEntityQuery<TargetSeekerAlertComponent>();
 
         // I didn't make a subscription for ComponentStartup because i assume EntParentChanged gets raised on entities upon spawn.
-        SubscribeLocalEvent<TargetSeekerAlertComponent, ComponentStartup>(OnAlerterStartup);
         SubscribeLocalEvent<TargetSeekerAlertComponent, EntParentChangedMessage>(OnAlerterParentChanged);
         SubscribeLocalEvent<TargetSeekerAlertComponent, ComponentShutdown>(OnAlerterShutdown);
         SubscribeLocalEvent<TargetSeekerAlertComponent, PowerChangedEvent>(OnAlerterPowerChanged);
@@ -47,18 +41,9 @@ public sealed class TargetSeekerAlertSystem : EntitySystem
     {
         base.Update(frameTime);
 
-        _updateAccumulator += frameTime;
-        if (_updateAccumulator < UpdateInterval)
-            return;
-        _updateAccumulator = 0f;
-
         var alertGridEqe = EntityQueryEnumerator<TargetSeekerAlertGridComponent>();
         while (alertGridEqe.MoveNext(out var gridUid, out var alertGridComponent))
         {
-            // Nothing tracking this grid; skip the inner work entirely.
-            if (alertGridComponent.CurrentSeekers.Count == 0 || alertGridComponent.ActiveAlerters.Count == 0)
-                continue;
-
             var gridTransform = Transform(gridUid);
             var closestSeekerDistance = float.MaxValue;
 
@@ -75,17 +60,6 @@ public sealed class TargetSeekerAlertSystem : EntitySystem
             foreach (var alertEntity in alertGridComponent.ActiveAlerters)
                 UpdateActiveAlerter(alertEntity, closestSeekerDistance);
         }
-    }
-
-    private void OnAlerterStartup(Entity<TargetSeekerAlertComponent> alertEntity, ref ComponentStartup args)
-    {
-        if (!_powerReceiverSystem.IsPowered(alertEntity.Owner))
-            return;
-
-        if (Transform(alertEntity).GridUid is not { } alertGridUid)
-            return;
-
-        AddAlerterToGrid(alertGridUid, alertEntity);
     }
 
     private void OnAlerterPowerChanged(Entity<TargetSeekerAlertComponent> alertEntity, ref PowerChangedEvent args)
@@ -190,16 +164,6 @@ public sealed class TargetSeekerAlertSystem : EntitySystem
 
     private void OnAlerterParentChanged(Entity<TargetSeekerAlertComponent> alertEntity, ref EntParentChangedMessage args)
     {
-        // Always detach from the old grid (if any) before attaching to the new one,
-        // otherwise stale alerter membership lingers when an alerter changes grids and
-        // the prior code accidentally removed from the new grid instead of the old one.
-        if (args.OldParent is { } oldParent &&
-            TryComp<MapGridComponent>(oldParent, out _) &&
-            TryComp<TargetSeekerAlertGridComponent>(oldParent, out var oldGridComponent))
-        {
-            RemoveAlerterFromGrid((oldParent, oldGridComponent), alertEntity);
-        }
-
         if (!_powerReceiverSystem.IsPowered(alertEntity.Owner))
             return;
 
@@ -208,6 +172,11 @@ public sealed class TargetSeekerAlertSystem : EntitySystem
             return;
 
         AddAlerterToGrid(alertGridUid, alertEntity);
+
+        // remove it from old parent if it was a grid, and if necessary
+        if (TryComp<MapGridComponent>(args.OldParent, out _) &&
+            TryComp<TargetSeekerAlertGridComponent>(alertGridUid, out var alertGridComponent))
+            RemoveAlerterFromGrid((alertGridUid, alertGridComponent), alertEntity);
     }
 
     private void OnAlerterShutdown(Entity<TargetSeekerAlertComponent> alertEntity, ref ComponentShutdown args)

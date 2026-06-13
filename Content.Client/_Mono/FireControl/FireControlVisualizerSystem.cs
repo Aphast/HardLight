@@ -11,9 +11,9 @@ namespace Content.Client._Mono.FireControl;
 /// <summary>
 /// Client-side system that visualizes firing directions for debug purposes
 /// </summary>
-public sealed class FireControlVisualizerSystem : EntitySystem
+public sealed partial class FireControlVisualizerSystem : EntitySystem
 {
-    [Dependency] private readonly IOverlayManager _overlayManager = default!;
+    [Dependency] private IOverlayManager _overlayManager = default!;
 
     private readonly Dictionary<EntityUid, VisualizationData> _activeVisualizations = new();
 
@@ -99,7 +99,7 @@ public sealed class FireControlVisualizerSystem : EntitySystem
                 var position = _transformSystem.GetWorldPosition(transform);
 
                 // Draw a small circle at the weapon position
-                handle.DrawCircle(position, 0.3f, Color.Yellow, true);
+                handle.DrawCircle(position, 0.2f, Color.Yellow, true);
 
                 // Draw rays for each direction
                 foreach (var (angle, canFire) in data.Directions)
@@ -109,7 +109,7 @@ public sealed class FireControlVisualizerSystem : EntitySystem
 
                     // Calculate end point (25 units length)
                     var direction = new Vector2((float)Math.Cos(radians), (float)Math.Sin(radians));
-                    var endPoint = position + direction * 25f;
+                    var endPoint = position + direction * 50f;
 
                     // Choose color based on whether firing is possible
                     var color = canFire ? Color.Green : Color.Red;

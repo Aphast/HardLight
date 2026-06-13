@@ -23,12 +23,15 @@ public enum SlotFlags
     GLOVES = 1 << 10,
     IDCARD = 1 << 11,
     POCKET = 1 << 12,
-    LEGS = 1 << 13, // Frontier: unused Hardlight: for some reason something wants this now?
-    ACCESSORY = 1 << 16,
-    ACCESSORYALT = 1 << 17,
+    LEGS = 1 << 13, // Frontier: unused
     FEET = 1 << 14,
     SUITSTORAGE = 1 << 15,
-    WALLET = 1 << 18, // Frontier: using an unused slot, redefine to a new bit if/when it's used (goodbye ushort)
+    WALLET = 1 << 16, // Frontier: using an unused slot, redefine to a new bit if/when it's used (goodbye ushort)
+    BALACLAVA = 1 << 17, // Mono start
+    ARMBANDRIGHT = 1 << 18,
+    ARMBANDLEFT = 1 << 19,
+    HELMETCOVER = 1 << 20,
+    HELMETATTACHMENT = 1 << 21, //Mono end
     All = ~NONE,
 
     WITHOUT_POCKET = All & ~POCKET

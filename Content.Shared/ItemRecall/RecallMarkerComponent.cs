@@ -13,6 +13,6 @@ public sealed partial class RecallMarkerComponent : Component
     /// <summary>
     /// The action that marked this item.
     /// </summary>
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityUid? MarkedByAction;
 }

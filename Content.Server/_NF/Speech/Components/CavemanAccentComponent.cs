@@ -1,14 +1,13 @@
 using Content.Server._NF.Speech.EntitySystems;
 
-namespace Content.Server.NF.Speech.Components;
+namespace Content.Server._NF.Speech.Components;
 
 [RegisterComponent]
 [Access(typeof(CavemanAccentSystem))]
 public sealed partial class CavemanAccentComponent : Component
 {
     [ViewVariables(VVAccess.ReadWrite)]
-    [DataField("MaxWordLength")]
-    public int MaxWordLength = 5; // so man not talk smart, any word up dis be gone
+    public static int MaxWordLength = 5; // so man not talk smart, any word up dis be gone
 
     [ViewVariables]
     public static readonly List<string> ForbiddenWords = new()

@@ -1,4 +1,4 @@
-﻿using Content.Shared.Administration;
+using Content.Shared.Administration;
 using Content.Shared.CCVar.CVarAccess;
 using Robust.Shared.Configuration;
 
@@ -25,7 +25,7 @@ public sealed partial class CCVars
     ///     Whether the arrivals terminal should be on a planet map.
     /// </summary>
     public static readonly CVarDef<bool> ArrivalsPlanet =
-        CVarDef.Create("shuttle.arrivals_planet", false, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.arrivals_planet", true, CVar.SERVERONLY);
 
     /// <summary>
     ///     Whether the arrivals shuttle is enabled.
@@ -43,13 +43,13 @@ public sealed partial class CCVars
     ///     Cooldown between arrivals departures. This should be longer than the FTL time or it will double cycle.
     /// </summary>
     public static readonly CVarDef<float> ArrivalsCooldown =
-        CVarDef.Create("shuttle.arrivals_cooldown", 30f, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.arrivals_cooldown", 50f, CVar.SERVERONLY);
 
     /// <summary>
     ///     Are players allowed to return on the arrivals shuttle.
     /// </summary>
     public static readonly CVarDef<bool> ArrivalsReturns =
-        CVarDef.Create("shuttle.arrivals_returns", true, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.arrivals_returns", false, CVar.SERVERONLY);
 
     /// <summary>
     ///     Should all players who spawn at arrivals have godmode until they leave the map?
@@ -74,7 +74,7 @@ public sealed partial class CCVars
     ///     Whether to automatically preloading grids by GridPreloaderSystem
     /// </summary>
     public static readonly CVarDef<bool> PreloadGrids =
-        CVarDef.Create("shuttle.preload_grids", false, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.preload_grids", true, CVar.SERVERONLY);
 
     /// <summary>
     ///     How long the warmup time before FTL start should be.
@@ -86,7 +86,7 @@ public sealed partial class CCVars
     ///     How long a shuttle spends in FTL.
     /// </summary>
     public static readonly CVarDef<float> FTLTravelTime =
-        CVarDef.Create("shuttle.travel_time", 10f, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.travel_time", 20f, CVar.SERVERONLY);
 
     /// <summary>
     ///     How long the final stage of FTL before arrival should be.
@@ -95,24 +95,17 @@ public sealed partial class CCVars
         CVarDef.Create("shuttle.arrival_time", 5f, CVar.SERVERONLY);
 
     /// <summary>
-    ///     How much time in seconds that needs to pass before a non-arrivals shuttle can FTL again.
+    ///     How much time needs to pass before a shuttle can FTL again.
     /// </summary>
     public static readonly CVarDef<float> FTLCooldown =
-        CVarDef.Create("shuttle.cooldown", 60f, CVar.SERVERONLY);
-
-    /// <summary>
-    ///     How much time in seconds that needs to pass before the arrivals shuttle can FTL again.
-    ///     If this is adjusted, ensure that shuttle.arrivals_cooldown is longer than this value.
-    /// </summary>
-    public static readonly CVarDef<float> ArrivalsFTLCooldown =
-        CVarDef.Create("shuttle.arrivals_ftl_cooldown", 10f, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.cooldown", 10f, CVar.SERVERONLY);
 
     /// <summary>
     ///     The maximum <see cref="PhysicsComponent.Mass"/> a grid can have before it becomes unable to FTL.
     ///     Any value equal to or less than zero will disable this check.
     /// </summary>
     public static readonly CVarDef<float> FTLMassLimit =
-        CVarDef.Create("shuttle.mass_limit", 5000f, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.mass_limit", 0f, CVar.SERVERONLY);
 
     /// <summary>
     ///     How long to knock down entities for if they aren't buckled when FTL starts and stops.
@@ -124,13 +117,13 @@ public sealed partial class CCVars
     ///     Is the emergency shuttle allowed to be early launched.
     /// </summary>
     public static readonly CVarDef<bool> EmergencyEarlyLaunchAllowed =
-        CVarDef.Create("shuttle.emergency_early_launch_allowed", true, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.emergency_early_launch_allowed", false, CVar.SERVERONLY);
 
     /// <summary>
     ///     How long the emergency shuttle remains docked with the station, in seconds.
     /// </summary>
     public static readonly CVarDef<float> EmergencyShuttleDockTime =
-        CVarDef.Create("shuttle.emergency_dock_time", 180f, CVar.SERVERONLY); // Frontier: 180f<300f
+        CVarDef.Create("shuttle.emergency_dock_time", 300f, CVar.SERVERONLY); // Frontier: 180f<300f
 
     /// <summary>
     ///     If the emergency shuttle can't dock at a priority port, the dock time will be multiplied with this value.
@@ -151,23 +144,23 @@ public sealed partial class CCVars
         CVarDef.Create("shuttle.emergency_authorize_time", 10f, CVar.SERVERONLY);
 
     /// <summary>
-    ///     The minimum time for the emergency shuttle to arrive at Colcomm.
+    ///     The minimum time for the emergency shuttle to arrive at centcomm.
     ///     Actual minimum travel time cannot be less than <see cref="ShuttleSystem.DefaultArrivalTime"/>
     /// </summary>
     public static readonly CVarDef<float> EmergencyShuttleMinTransitTime =
-        CVarDef.Create("shuttle.emergency_transit_time_min", 60f, CVar.SERVERONLY); // Frontier: 60f<300f
+        CVarDef.Create("shuttle.emergency_transit_time_min", 300f, CVar.SERVERONLY); // Frontier: 60f<300f
 
     /// <summary>
-    ///     The maximum time for the emergency shuttle to arrive at Colcomm.
+    ///     The maximum time for the emergency shuttle to arrive at centcomm.
     /// </summary>
     public static readonly CVarDef<float> EmergencyShuttleMaxTransitTime =
-        CVarDef.Create("shuttle.emergency_transit_time_max", 180f, CVar.SERVERONLY); // Frontier: 180f<600f
+        CVarDef.Create("shuttle.emergency_transit_time_max", 600f, CVar.SERVERONLY); // Frontier: 180f<600f
 
     /// <summary>
     ///     Whether the emergency shuttle is enabled or should the round just end.
     /// </summary>
     public static readonly CVarDef<bool> EmergencyShuttleEnabled =
-        CVarDef.Create("shuttle.emergency", true, CVar.SERVERONLY); // Frontier: false
+        CVarDef.Create("shuttle.emergency", false, CVar.SERVERONLY); // Frontier: false
 
     /// <summary>
     ///     The percentage of time passed from the initial call to when the shuttle can no longer be recalled.
@@ -181,14 +174,14 @@ public sealed partial class CCVars
     /// </summary>
     [CVarControl(AdminFlags.Server | AdminFlags.Mapping, min: 0, max: int.MaxValue)]
     public static readonly CVarDef<int> EmergencyShuttleAutoCallTime =
-        CVarDef.Create("shuttle.auto_call_time", 240, CVar.SERVERONLY); // Frontier: 90<360
+        CVarDef.Create("shuttle.auto_call_time", 360, CVar.SERVERONLY); // Frontier: 90<360
 
     /// <summary>
     ///     Time in minutes after the round was extended (by recalling the shuttle) to call
     ///     the shuttle again.
     /// </summary>
     public static readonly CVarDef<int> EmergencyShuttleAutoCallExtensionTime =
-        CVarDef.Create("shuttle.auto_call_extension_time", 60, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.auto_call_extension_time", 45, CVar.SERVERONLY);
 
     /// <summary>
     ///     Impulse multiplier for player interactions that move grids (other than shuttle thrusters, gyroscopes and grid collisons).
@@ -202,39 +195,91 @@ public sealed partial class CCVars
     public static readonly CVarDef<float> GridImpulseMultiplier =
         CVarDef.Create("shuttle.grid_impulse_multiplier", 0.01f, CVar.SERVERONLY);
 
-    #region Orphaned Grid Cleanup
+    #region impacts
 
     /// <summary>
-    ///     Whether automatic cleanup of orphaned/empty grids is enabled.
+    /// Whether shuttle impacts should do anything beyond produce a sound.
     /// </summary>
-    public static readonly CVarDef<bool> OrphanedGridCleanupEnabled =
-        CVarDef.Create("shuttle.orphaned_grid_cleanup_enabled", true, CVar.SERVERONLY);
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<bool> ImpactEnabled =
+        CVarDef.Create("shuttle.impact.enabled", true, CVar.SERVERONLY);
 
     /// <summary>
-    ///     Minimum number of tiles a grid must have to avoid being cleaned up (unless it has important entities).
+    /// Minimum impact inertia to trigger special shuttle impact behaviors when impacting slower than MinimumImpactVelocity.
     /// </summary>
-    public static readonly CVarDef<int> OrphanedGridMinimumTiles =
-        CVarDef.Create("shuttle.orphaned_grid_minimum_tiles", 20, CVar.SERVERONLY);
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> MinimumImpactInertia =
+        CVarDef.Create("shuttle.impact.minimum_inertia", 300f, CVar.SERVERONLY); //baeg vaporization threshold of >35m/s (2 seconds of acceleration) Previously 5f * 50f: "100tile grid (cargo shuttle) going at 5 m/s". (>14m/s baeg vaporization threshold)
 
     /// <summary>
-    ///     Whether to periodically check and clean up empty/nameless grids.
-    ///     This catches grids that spawn without tiles during gameplay.
+    /// Minimum velocity difference between 2 bodies for a shuttle impact to be guaranteed to trigger any special behaviors like damage.
     /// </summary>
-    public static readonly CVarDef<bool> EmptyGridCleanupEnabled =
-        CVarDef.Create("shuttle.empty_grid_cleanup_enabled", true, CVar.SERVERONLY);
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> MinimumImpactVelocity =
+        CVarDef.Create("shuttle.impact.minimum_velocity", 35f, CVar.SERVERONLY); // needed so that random space debris can be rammed // Also important for baeg vaporization threshold increase. Previously 15f
 
     /// <summary>
-    ///     How often (in seconds) to check for empty/nameless grids to clean up.
+    /// Multiplier of Kinetic energy required to dismantle a single tile in relation to its mass
     /// </summary>
-    public static readonly CVarDef<float> EmptyGridCleanupInterval =
-        CVarDef.Create("shuttle.empty_grid_cleanup_interval", 60f, CVar.SERVERONLY);
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> TileBreakEnergyMultiplier =
+        CVarDef.Create("shuttle.impact.tile_break_energy", 3000f, CVar.SERVERONLY);
 
     /// <summary>
-    ///     Minimum age (in seconds) a grid must be before it can be cleaned up as empty.
-    ///     This prevents newly spawned grids from being immediately deleted before they're populated.
+    /// Multiplier of damage done to entities on colliding areas
     /// </summary>
-    public static readonly CVarDef<float> EmptyGridCleanupMinAge =
-        CVarDef.Create("shuttle.empty_grid_cleanup_min_age", 30f, CVar.SERVERONLY);
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactDamageMultiplier =
+        CVarDef.Create("shuttle.impact.damage_multiplier", 0.00001f, CVar.SERVERONLY);
+
+    /// <summary>
+    /// Multiplier of additional structural damage to do
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactStructuralDamage =
+        CVarDef.Create("shuttle.impact.structural_damage", 2f, CVar.SERVERONLY);
+
+    /// <summary>
+    /// Kinetic energy required to spawn sparks
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> SparkEnergy =
+        CVarDef.Create("shuttle.impact.spark_energy", 2000000f, CVar.SERVERONLY);
+
+    /// <summary>
+    /// Area to consider for impact calculations
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactRadius =
+        CVarDef.Create("shuttle.impact.radius", 4f, CVar.SERVERONLY);
+
+    /// <summary>
+    /// Affects slowdown on impact
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactSlowdown =
+        CVarDef.Create("shuttle.impact.slowdown", 4f, CVar.SERVERONLY); //Previously: 1.6f
+
+    /// <summary>
+    /// Minimum velocity change from impact for special throw effects (e.g. stuns, beakers breaking) to occur
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactMinThrowVelocity =
+        CVarDef.Create("shuttle.impact.min_throw_velocity", 1f, CVar.SERVERONLY); // due to how it works this is about 16 m/s for cargo shuttle
+
+    /// <summary>
+    /// Affects how much damage reduction to give to grids with higher mass
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactMassBias =
+        CVarDef.Create("shuttle.impact.mass_bias", 0.65f, CVar.SERVERONLY);
+
+    /// <summary>
+    /// How much should total grid inertia affect our collision damage
+    /// </summary>
+    [CVarControl(AdminFlags.VarEdit)]
+    public static readonly CVarDef<float> ImpactInertiaScaling =
+        CVarDef.Create("shuttle.impact.inertia_scaling", 0.5f, CVar.SERVERONLY);
 
     #endregion
 }

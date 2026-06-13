@@ -1,12 +1,18 @@
-# VRS: Ported from Triad_Sector — Derelict Drillsite POI.
+# Author Info
+# GitHub: Primusirius
+# Discord: Primusirius
 
+# Maintainer Info
+# GitHub: ???
+# Discord: ???
+
+# Notes:
 - type: pointOfInterest
   id: Mining
   parent: [BasePOI, BaseRepairablePOI]
   name: 'Derelict Drillsite'
   minimumDistance: 5500
   maximumDistance: 9500
-  spawnGamePreset: [ NFAdventure, NFPirate ]
   spawnGroup: Required
   gridPath: /Maps/_Mono/POI/derelictdrillsite.yml
   addComponents:

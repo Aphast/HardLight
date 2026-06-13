@@ -13,7 +13,6 @@ using Robust.Shared.Enums;
 using Robust.Shared.Log;
 using Robust.Shared.Maths;
 using Robust.Shared.Network;
-using Robust.Shared.Prototypes;
 using Robust.UnitTesting;
 
 namespace Content.IntegrationTests.Tests.Preferences
@@ -49,12 +48,9 @@ namespace Content.IntegrationTests.Tests.Preferences
                 Appearance = new(
                     "Afro",
                     Color.Aqua,
-                    false, //starlight
                     "Shaved",
                     Color.Aquamarine,
-                    false, //starlight
                     Color.Azure,
-                    false, //starlight
                     Color.Beige,
                     new ())
             }.WithBankBalance(27000); // Frontier - accessor issue
@@ -64,12 +60,11 @@ namespace Content.IntegrationTests.Tests.Preferences
         {
             var cfg = server.ResolveDependency<IConfigurationManager>();
             var opsLog = server.ResolveDependency<ILogManager>().GetSawmill("db.ops");
-            var proto = server.ResolveDependency<IPrototypeManager>();
             var builder = new DbContextOptionsBuilder<SqliteServerDbContext>();
             var conn = new SqliteConnection("Data Source=:memory:");
             conn.Open();
             builder.UseSqlite(conn);
-            return new ServerDbSqlite(() => builder.Options, true, cfg, true, opsLog, proto);
+            return new ServerDbSqlite(() => builder.Options, true, cfg, true, opsLog);
         }
 
         [Test]

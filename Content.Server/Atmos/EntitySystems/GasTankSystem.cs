@@ -2,6 +2,8 @@ using Content.Server.Cargo.Systems;
 using Content.Server.Explosion.EntitySystems;
 using Content.Shared.Atmos;
 using Content.Shared.Atmos.Components;
+using Content.Shared.Examine;
+using Content.Shared.Explosion.Components;
 using Content.Shared.Atmos.EntitySystems;
 using Content.Shared.Throwing;
 using JetBrains.Annotations;
@@ -15,15 +17,15 @@ using Content.Shared.CCVar;
 namespace Content.Server.Atmos.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class GasTankSystem : SharedGasTankSystem
+    public sealed partial class GasTankSystem : SharedGasTankSystem
     {
-        [Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
-        [Dependency] private readonly ExplosionSystem _explosions = default!;
-        [Dependency] private readonly SharedAudioSystem _audioSys = default!;
-        [Dependency] private readonly UserInterfaceSystem _ui = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly ThrowingSystem _throwing = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
+        [Dependency] private AtmosphereSystem _atmosphereSystem = default!;
+        [Dependency] private ExplosionSystem _explosions = default!;
+        [Dependency] private SharedAudioSystem _audioSys = default!;
+        [Dependency] private UserInterfaceSystem _ui = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private ThrowingSystem _throwing = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
 
         private const float TimerDelay = 0.5f;
         private float _timer = 0f;
@@ -170,6 +172,12 @@ namespace Content.Server.Atmos.EntitySystems
 
                 pressure = component.Air.Pressure;
                 var range = MathF.Sqrt((pressure - component.TankFragmentPressure) / component.TankFragmentScale);
+
+                if (TryComp<ExplosiveComponent>(owner, out var explosive)) // Monolith - pressure wave scaling
+                {
+                    explosive.MaxIntensity *= MathF.Sqrt(range); // technically pointless but guarantees it's a full cone instead of an octagonal frustum
+                    explosive.IntensitySlope *= MathF.Sqrt(range);
+                }
 
                 // Let's cap the explosion, yeah?
                 // !1984

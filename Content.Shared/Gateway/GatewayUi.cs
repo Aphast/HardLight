@@ -79,11 +79,6 @@ public record struct GatewayDestinationData
     /// Is the map the gateway on locked or unlocked.
     /// </summary>
     public bool Locked;
-
-    /// <summary>
-    /// Is this a docking arm destination that can be spawned.
-    /// </summary>
-    public bool IsDockingArm;
 }
 
 [Serializable, NetSerializable]
@@ -92,17 +87,6 @@ public sealed class GatewayOpenPortalMessage : BoundUserInterfaceMessage
     public NetEntity Destination;
 
     public GatewayOpenPortalMessage(NetEntity destination)
-    {
-        Destination = destination;
-    }
-}
-
-[Serializable, NetSerializable]
-public sealed class GatewaySpawnDockingArmMessage : BoundUserInterfaceMessage
-{
-    public NetEntity Destination;
-
-    public GatewaySpawnDockingArmMessage(NetEntity destination)
     {
         Destination = destination;
     }

@@ -1,4 +1,4 @@
-using Robust.Shared.Audio;
+﻿using Robust.Shared.Audio;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 using Robust.Shared.Utility;
@@ -95,11 +95,6 @@ public abstract partial class BaseActionComponent : Component
     [DataField("charges")] public int? Charges;
 
     /// <summary>
-    /// DeltaV: If disabled the action will not disable when no charges remain. Use if you want to handle no charges differently.
-    /// </summary>
-    [DataField] public bool DisableWhenEmpty = true;
-
-    /// <summary>
     ///     The max charges this action has. If null, this is set automatically from <see cref="Charges"/> on mapinit.
     /// </summary>
     [DataField] public int? MaxCharges;
@@ -114,6 +109,7 @@ public abstract partial class BaseActionComponent : Component
     /// This should almost always be non-null.
     /// </summary>
     [Access(typeof(ActionContainerSystem), typeof(SharedActionsSystem))]
+    [DataField]
     public EntityUid? Container;
 
     /// <summary>
@@ -135,6 +131,7 @@ public abstract partial class BaseActionComponent : Component
         set => EntIcon = value;
     }
 
+    [DataField]
     public EntityUid? EntIcon;
 
     /// <summary>
@@ -162,7 +159,7 @@ public abstract partial class BaseActionComponent : Component
     /// <summary>
     ///     What entity, if any, currently has this action in the actions component?
     /// </summary>
-    public EntityUid? AttachedEntity;
+    [DataField] public EntityUid? AttachedEntity;
 
     /// <summary>
     ///     If true, this will cause the the action event to always be raised directed at the action performer/user instead of the action's container/provider.
@@ -212,6 +209,9 @@ public abstract class BaseActionComponentState : ComponentState
     public bool Toggled;
     public (TimeSpan Start, TimeSpan End)? Cooldown;
     public TimeSpan? UseDelay;
+    public int? Charges;
+    public int? MaxCharges;
+    public bool RenewCharges;
     public NetEntity? Container;
     public NetEntity? EntityIcon;
     public bool CheckCanInteract;
@@ -228,13 +228,9 @@ public abstract class BaseActionComponentState : ComponentState
 
     protected BaseActionComponentState(BaseActionComponent component, IEntityManager entManager)
     {
-        entManager.TryGetNetEntity(component.Container, out NetEntity? container);
-        entManager.TryGetNetEntity(component.EntIcon, out NetEntity? entityIcon);
-        entManager.TryGetNetEntity(component.AttachedEntity, out NetEntity? attachedEntity);
-
-        Container = container;
-        EntityIcon = entityIcon;
-        AttachedEntity = attachedEntity;
+        Container = entManager.GetNetEntity(component.Container);
+        EntityIcon = entManager.GetNetEntity(component.EntIcon);
+        AttachedEntity = entManager.GetNetEntity(component.AttachedEntity);
         RaiseOnUser = component.RaiseOnUser;
         RaiseOnAction = component.RaiseOnAction;
         Icon = component.Icon;
@@ -247,6 +243,9 @@ public abstract class BaseActionComponentState : ComponentState
         Toggled = component.Toggled;
         Cooldown = component.Cooldown;
         UseDelay = component.UseDelay;
+        Charges = component.Charges;
+        MaxCharges = component.MaxCharges;
+        RenewCharges = component.RenewCharges;
         CheckCanInteract = component.CheckCanInteract;
         CheckConsciousness = component.CheckConsciousness;
         ClientExclusive = component.ClientExclusive;

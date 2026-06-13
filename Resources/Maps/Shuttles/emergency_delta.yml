@@ -24,6 +24,7 @@ entities:
       name: NT Evac Delta
     - type: Transform
       pos: -0.5625,0.671875
+      parent: invalid
     - type: MapGrid
       chunks:
         0,0:
@@ -62,8 +63,6 @@ entities:
     - type: OccluderTree
     - type: SpreaderGrid
     - type: Shuttle
-    - type: WorldLoader
-      disabled: False
     - type: GridPathfinding
     - type: Gravity
       gravityShakeSound: !type:SoundPathSpecifier
@@ -3154,7 +3153,7 @@ entities:
       rot: -1.5707963267948966 rad
       pos: -9.5,-16.5
       parent: 1
-- proto: MagazinePistol
+- proto: Magazine9x19mmPistolFMJ
   entities:
   - uid: 784
     components:

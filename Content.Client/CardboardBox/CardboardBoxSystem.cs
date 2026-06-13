@@ -8,12 +8,11 @@ using Robust.Client.GameObjects;
 
 namespace Content.Client.CardboardBox;
 
-public sealed class CardboardBoxSystem : SharedCardboardBoxSystem
+public sealed partial class CardboardBoxSystem : SharedCardboardBoxSystem
 {
-    [Dependency] private readonly EntityLookupSystem _entityLookup = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly ExamineSystemShared _examine = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private EntityLookupSystem _entityLookup = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private ExamineSystemShared _examine = default!;
 
     private EntityQuery<BodyComponent> _bodyQuery;
 
@@ -75,7 +74,7 @@ public sealed class CardboardBoxSystem : SharedCardboardBoxSystem
             if (!xformQuery.TryGetComponent(ent, out var entTransform) || !TryComp<SpriteComponent>(ent, out var sprite))
                 continue;
 
-            _sprite.SetOffset((ent, sprite), new Vector2(0, 1));
+            sprite.Offset = new Vector2(0, 1);
             _transform.SetParent(ent, entTransform, mob);
         }
 

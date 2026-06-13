@@ -14,7 +14,7 @@ public partial class AmmoComponent : Component, IShootable
     // Muzzle flash stored on ammo because if we swap a gun to whatever we may want to override it.
 
     [DataField]
-    public EntProtoId? MuzzleFlash = "NFMuzzleFlashEffect"; // Frontier: MuzzleFlashEffect<NFMuzzleFlashEffect
+    public EntProtoId? MuzzleFlash = "MuzzleFlashEffect";
 }
 
 /// <summary>
@@ -38,4 +38,12 @@ public sealed partial class CartridgeAmmoComponent : AmmoComponent
 
     [DataField("soundEject")]
     public SoundSpecifier? EjectSound = new SoundCollectionSpecifier("CasingEject");
+
+    // Mono start
+    /// <summary>
+    /// Whether to addcomp timeddespawn, and dictates the lifetime of spent boolets. Set to 0 to ignore.
+    /// </summary>
+    [DataField]
+    public float AutoTimedDespawn = 30f;
+    // Mono end
 }

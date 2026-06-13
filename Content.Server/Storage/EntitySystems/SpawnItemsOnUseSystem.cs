@@ -1,28 +1,24 @@
 using Content.Server.Administration.Logs;
 using Content.Server.Cargo.Systems;
-using Content.Server.Stack;
 using Content.Server.Storage.Components;
 using Content.Shared.Database;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction.Events;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Map;
-using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using static Content.Shared.Storage.EntitySpawnCollection;
 
 namespace Content.Server.Storage.EntitySystems
 {
-    public sealed class SpawnItemsOnUseSystem : EntitySystem
+    public sealed partial class SpawnItemsOnUseSystem : EntitySystem
     {
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly SharedHandsSystem _hands = default!;
-        [Dependency] private readonly StackSystem _stackSystem = default!;
-        [Dependency] private readonly PricingSystem _pricing = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly SharedTransformSystem _transform = default!;
-        [Dependency] private readonly IPrototypeManager _proto = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private SharedHandsSystem _hands = default!;
+        [Dependency] private PricingSystem _pricing = default!;
+        [Dependency] private SharedAudioSystem _audio = default!;
+        [Dependency] private SharedTransformSystem _transform = default!;
 
         public override void Initialize()
         {
@@ -38,19 +34,10 @@ namespace Content.Server.Storage.EntitySystems
 
             foreach (var entry in ungrouped)
             {
-                if (entry.PrototypeId is not {} prototypeId || !_proto.TryIndex<EntityPrototype>(prototypeId, out var prototype))
-                    continue;
-
-                if (!args.AllowSideEffects)
-                {
-                    args.Price += _pricing.GetEstimatedPrice(prototype) * entry.SpawnProbability * entry.GetAmount(getAverage: true);
-                    continue;
-                }
-
-                var protUid = Spawn(prototypeId, MapCoordinates.Nullspace);
+                var protUid = Spawn(entry.PrototypeId, MapCoordinates.Nullspace);
 
                 // Calculate the average price of the possible spawned items
-                args.Price += _pricing.GetPrice(protUid, allowSideEffects: args.AllowSideEffects) * entry.SpawnProbability * entry.GetAmount(getAverage: true);
+                args.Price += _pricing.GetPrice(protUid) * entry.SpawnProbability * entry.GetAmount(getAverage: true);
 
                 EntityManager.DeleteEntity(protUid);
             }
@@ -59,21 +46,10 @@ namespace Content.Server.Storage.EntitySystems
             {
                 foreach (var entry in group.Entries)
                 {
-                    if (entry.PrototypeId is not {} prototypeId || !_proto.TryIndex<EntityPrototype>(prototypeId, out var prototype))
-                        continue;
-
-                    if (!args.AllowSideEffects)
-                    {
-                        args.Price += _pricing.GetEstimatedPrice(prototype) *
-                                      (entry.SpawnProbability / group.CumulativeProbability) *
-                                      entry.GetAmount(getAverage: true);
-                        continue;
-                    }
-
-                    var protUid = Spawn(prototypeId, MapCoordinates.Nullspace);
+                    var protUid = Spawn(entry.PrototypeId, MapCoordinates.Nullspace);
 
                     // Calculate the average price of the possible spawned items
-                    args.Price += _pricing.GetPrice(protUid, allowSideEffects: args.AllowSideEffects) *
+                    args.Price += _pricing.GetPrice(protUid) *
                                   (entry.SpawnProbability / group.CumulativeProbability) *
                                   entry.GetAmount(getAverage: true);
 
@@ -94,18 +70,11 @@ namespace Content.Server.Storage.EntitySystems
                 return;
 
             var coords = Transform(args.User).Coordinates;
-            var initialUses = component.Uses;
             var spawnEntities = GetSpawns(component.Items, _random);
             EntityUid? entityToPlaceInHands = null;
 
             foreach (var proto in spawnEntities)
             {
-                if (!_proto.HasIndex<EntityPrototype>(proto))
-                {
-                    Log.Error($"SpawnItemsOnUse attempted invalid prototype '{proto}' from {ToPrettyString(uid)}.");
-                    continue;
-                }
-
                 entityToPlaceInHands = SpawnAtPosition(proto, coords); // Frontier: Spawn<SpawnAtPosition
                 _adminLogger.Add(LogType.EntitySpawn, LogImpact.Low, $"{ToPrettyString(args.User)} used {ToPrettyString(uid)} which spawned {ToPrettyString(entityToPlaceInHands.Value)}");
             }
@@ -116,30 +85,18 @@ namespace Content.Server.Storage.EntitySystems
 
             component.Uses--;
 
-            // Delete or decrement stack only if component was successfully used
+            // Delete entity only if component was successfully used
             if (component.Uses <= 0)
             {
-                // If this is a stacked entity, remove a single unit instead of deleting the whole stack.
-                if (TryComp<Shared.Stacks.StackComponent>(uid, out var stack) && stack.Count > 1)
-                {
-                    _stackSystem.SetCount(uid, stack.Count - 1, stack);
-                    // Restore per-item uses for the remaining stack so future uses don't fall-through.
-                    component.Uses = initialUses;
-                }
-                else
-                {
-                    // Don't delete the entity in the event bus, so we queue it for deletion.
-                    // We need the free hand for the new item, so we send it to nullspace.
-                    _transform.DetachEntity(uid, Transform(uid));
-                    QueueDel(uid);
-                }
+                // Don't delete the entity in the event bus, so we queue it for deletion.
+                // We need the free hand for the new item, so we send it to nullspace.
+                _transform.DetachEntity(uid, Transform(uid));
+                QueueDel(uid);
             }
 
             if (entityToPlaceInHands != null)
-            {
                 _hands.PickupOrDrop(args.User, entityToPlaceInHands.Value);
-                _audio.PlayPvs(component.Sound, entityToPlaceInHands.Value);
-            }
+
             args.Handled = true;
         }
     }

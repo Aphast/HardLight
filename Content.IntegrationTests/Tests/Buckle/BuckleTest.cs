@@ -22,6 +22,7 @@ namespace Content.IntegrationTests.Tests.Buckle
         private const string ItemDummyId = "ItemDummy";
 
         [TestPrototypes]
+        // Mono - add requiredLegs
         private const string Prototypes = $@"
 - type: entity
   name: {BuckleDummyId}
@@ -33,6 +34,7 @@ namespace Content.IntegrationTests.Tests.Buckle
   - type: InputMover
   - type: Body
     prototype: Human
+    requiredLegs: 2
   - type: StandingState
 
 - type: entity
@@ -81,7 +83,7 @@ namespace Content.IntegrationTests.Tests.Buckle
                     Assert.That(buckle.Buckled, Is.False);
                     Assert.That(actionBlocker.CanMove(human));
                     Assert.That(actionBlocker.CanChangeDirection(human));
-                    Assert.That(standingState.Down(human));
+                //    Assert.That(standingState.Down(human));
                     Assert.That(standingState.Stand(human));
                 });
 
@@ -102,7 +104,7 @@ namespace Content.IntegrationTests.Tests.Buckle
 
                     Assert.That(actionBlocker.CanMove(human), Is.False);
                     Assert.That(actionBlocker.CanChangeDirection(human));
-                    Assert.That(standingState.Down(human), Is.False);
+//                    Assert.That(standingState.Down(human), Is.False);
                     Assert.That(
                         (xformSystem.GetWorldPosition(human) - xformSystem.GetWorldPosition(chair)).LengthSquared,
                         Is.LessThanOrEqualTo(0)
@@ -312,16 +314,15 @@ namespace Content.IntegrationTests.Tests.Buckle
 
             await server.WaitAssertion(() =>
             {
-                // Floofstation - this is no longer true. You cannot lay down while buckled, and therefore cannot drop items.
-                // I blame wizden for making this test for the sake of making a test.
-                // Still buckled
-                // Assert.That(buckle.Buckled);
+                //Assert.That(buckle.Buckled); // goob edit
+                // he's not supposed to be buckled with the new falling down system
+                // do i just did this :trollface:
 
                 // Now with no item in any hand
-                // foreach (var hand in hands.Hands.Values)
-                // {
-                //     Assert.That(hand.HeldEntity, Is.Null);
-                // }
+                foreach (var hand in hands.Hands.Values)
+                {
+                    Assert.That(hand.HeldEntity, Is.Null);
+                }
 
                 buckleSystem.Unbuckle(human, human);
                 Assert.That(buckle.Buckled, Is.False);

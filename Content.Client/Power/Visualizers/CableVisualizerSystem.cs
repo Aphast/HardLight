@@ -4,10 +4,9 @@ using Robust.Client.GameObjects;
 
 namespace Content.Client.Power.Visualizers;
 
-public sealed class CableVisualizerSystem : EntitySystem
+public sealed partial class CableVisualizerSystem : EntitySystem
 {
-    [Dependency] private readonly AppearanceSystem _appearanceSystem = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private AppearanceSystem _appearanceSystem = default!;
 
     public override void Initialize()
     {
@@ -31,8 +30,6 @@ public sealed class CableVisualizerSystem : EntitySystem
         if (!_appearanceSystem.TryGetData<WireVisDirFlags>(uid, WireVisVisuals.ConnectedMask, out var mask, args.Component))
             mask = WireVisDirFlags.None;
 
-        _sprite.LayerSetRsiState((uid, args.Sprite), 0, $"{component.StatePrefix}{(int)mask}");
-        if (component.ExtraLayerPrefix != null)
-            _sprite.LayerSetRsiState((uid, args.Sprite), 1, $"{component.ExtraLayerPrefix}{(int)mask}");
+        args.Sprite.LayerSetState(0, $"{component.StatePrefix}{(int) mask}");
     }
 }

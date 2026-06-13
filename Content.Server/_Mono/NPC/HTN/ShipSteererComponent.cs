@@ -31,7 +31,7 @@ public sealed partial class ShipSteererComponent : Component
     public bool AvoidProjectiles = false;
 
     /// <summary>
-    /// If AlwaysFaceTarget is true, how much of a difference in angle (in radians) to accept.
+    /// Prevents collision avoidance from triggering ship rotation.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
     public bool AvoidanceNoRotate = false;
@@ -67,6 +67,12 @@ public sealed partial class ShipSteererComponent : Component
     public float BrakeThreshold = 0.3f;
 
     /// <summary>
+    /// How much damage we consider an EMP projectile to do, with 1s disable and 1m radius.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float EmpThreat = 50f;
+
+    /// <summary>
     /// How much larger to consider the ship for collision evasion purposes.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
@@ -94,7 +100,7 @@ public sealed partial class ShipSteererComponent : Component
     /// How much to enlarge grid search bounds for collision evasion.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
-    public float GridSearchBuffer = 96f;
+    public float GridSearchBuffer = 312f;
 
     /// <summary>
     /// How much to enlarge grid search forward distance for collision evasion.
@@ -103,10 +109,22 @@ public sealed partial class ShipSteererComponent : Component
     public float GridSearchDistanceBuffer = 96f;
 
     /// <summary>
+    /// How much damage we consider an impacting grid to do, per tile, at 1 m/s.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public float GridThreat = 5f;
+
+    /// <summary>
     /// Up to how fast can we be going before being considered in range, if not null.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
     public float? InRangeMaxSpeed = null;
+
+    /// <summary>
+    /// Global angle to rotate to while in range.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)]
+    public Angle? InRangeRotation = null;
 
     /// <summary>
     /// Whether to try to match velocity with target.
@@ -179,57 +197,13 @@ public sealed partial class ShipSteererComponent : Component
     /// How fast to accumulate the rotational offset integral, rad/s/rad (also affected by sqrt of angular acceleration).
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
-    public float RotationCompensationGain = 0.03f;
+    public float RotationCompensationGain = 0.1f;
 
     /// <summary>
     /// Target rotation in relation to movement direction.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
     public float TargetRotation = 0f;
-
-    /// <summary>
-    /// Controls how much to ease in when turning with really high angular accelerations.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float TurnEaseIn = 0.2f;
-
-    /// <summary>
-    /// If set, enables distance-based speed capping. Speed is throttled based on distance to target.
-    /// Provides scaling between SpeedCapCloseMaxSpeed at SpeedCapCloseDistance and
-    /// SpeedCapFarMaxSpeed at SpeedCapFarDistance. Null = disabled.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float? DistanceSpeedCapEnabled = null;
-
-    /// <summary>
-    /// Distance at which speed cap reaches its close-range maximum. Below this, full speed is allowed.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float SpeedCapCloseDistance = 300f;
-
-    /// <summary>
-    /// Maximum speed allowed at SpeedCapCloseDistance.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float SpeedCapCloseMaxSpeed = float.PositiveInfinity;
-
-    /// <summary>
-    /// Distance at which speed cap reaches its far-range minimum. Beyond this, minimum speed is applied.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float SpeedCapFarDistance = 1000f;
-
-    /// <summary>
-    /// Maximum speed allowed at SpeedCapFarDistance and beyond.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float SpeedCapFarMaxSpeed = 2f;
-
-    /// <summary>
-    /// Hard cap on maximum speed for this ship (m/s). Applies regardless of distance-based throttling.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public float MaximumSpeed = float.PositiveInfinity;
 }
 
 public enum ShipSteeringStatus : byte

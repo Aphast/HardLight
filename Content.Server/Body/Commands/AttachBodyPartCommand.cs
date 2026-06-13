@@ -9,9 +9,9 @@ using Robust.Shared.Console;
 namespace Content.Server.Body.Commands
 {
     [AdminCommand(AdminFlags.Fun)]
-    public sealed class AttachBodyPartCommand : IConsoleCommand
+    public sealed partial class AttachBodyPartCommand : IConsoleCommand
     {
-        [Dependency] private readonly IEntityManager _entManager = default!;
+        [Dependency] private IEntityManager _entManager = default!;
 
         public string Command => "attachbodypart";
         public string Description => "Attaches a body part to you or someone else.";
@@ -94,7 +94,7 @@ namespace Content.Server.Body.Commands
 
             var bodySystem = _entManager.System<BodySystem>();
             var sharedBodySystem = _entManager.System<SharedBodySystem>();
-
+            
             if (bodySystem.BodyHasChild(bodyId, partUid.Value, body, part))
             {
                 shell.WriteLine($"Body part {_entManager.GetComponent<MetaDataComponent>(partUid.Value).EntityName} with uid {partUid} is already attached to entity {_entManager.GetComponent<MetaDataComponent>(bodyId).EntityName} with uid {bodyId}");
@@ -105,7 +105,7 @@ namespace Content.Server.Body.Commands
             var slotId = sharedBodySystem.GetFormattedSlotId(partUid.Value, part);
             // Set the slot ID properly using the system
             sharedBodySystem.SetBodyPartSlotId(partUid.Value, part.GetHashCode().ToString(), part);
-
+            
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (body.RootContainer.ContainedEntity != null)
             {
@@ -120,6 +120,7 @@ namespace Content.Server.Body.Commands
                     return;
                 }
             }
+
             shell.WriteLine($"Attached part {_entManager.ToPrettyString(partUid.Value)} to {_entManager.ToPrettyString(bodyId)}");
         }
     }

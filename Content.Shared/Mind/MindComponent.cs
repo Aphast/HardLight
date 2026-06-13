@@ -114,4 +114,12 @@ public sealed partial class MindComponent : Component
     /// </summary>
     [DataField]
     public LocId? Subtype;
+
+    // Goob Station
+    /// <summary>
+    ///     The last mob entity this mind was in.
+    ///     Can be null.
+    /// </summary>
+    [DataField]
+    public EntityUid? LastMob = null;
 }

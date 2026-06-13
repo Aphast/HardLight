@@ -6,10 +6,10 @@ namespace Content.Server.Worldgen.Systems.Carvers;
 /// <summary>
 ///     This handles carving out holes in world generation according to a noise channel.
 /// </summary>
-public sealed class NoiseRangeCarverSystem : EntitySystem
+public sealed partial class NoiseRangeCarverSystem : EntitySystem
 {
-    [Dependency] private readonly NoiseIndexSystem _index = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private NoiseIndexSystem _index = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
     /// <inheritdoc />
     public override void Initialize()
@@ -20,6 +20,11 @@ public sealed class NoiseRangeCarverSystem : EntitySystem
     private void OnPrePlaceDebris(EntityUid uid, NoiseRangeCarverComponent component,
         ref PrePlaceDebrisFeatureEvent args)
     {
+        // Frontier: something handled this, nothing to do
+        if (args.Handled)
+            return;
+        // End Frontier
+
         var coords = WorldGen.WorldToChunkCoords(_transform.ToMapCoordinates(args.Coords).Position);
         var val = _index.Evaluate(uid, component.NoiseChannel, coords);
 

@@ -15,6 +15,8 @@ namespace Content.IntegrationTests.Tests.Commands
     [TestOf(typeof(RejuvenateSystem))]
     public sealed class RejuvenateTest
     {
+        private static readonly ProtoId<DamageGroupPrototype> TestDamageGroup = "Toxin";
+
         [TestPrototypes]
         private const string Prototypes = @"
 - type: entity
@@ -29,8 +31,6 @@ namespace Content.IntegrationTests.Tests.Commands
       0: Alive
       200: Dead
 ";
-
-        private static readonly ProtoId<DamageGroupPrototype> ToxinId = "Toxin";
 
         [Test]
         public async Task RejuvenateDeadTest()
@@ -64,7 +64,7 @@ namespace Content.IntegrationTests.Tests.Commands
                 });
 
                 // Kill the entity
-                DamageSpecifier damage = new(prototypeManager.Index<DamageGroupPrototype>(ToxinId), FixedPoint2.New(10000000));
+                DamageSpecifier damage = new(prototypeManager.Index(TestDamageGroup), FixedPoint2.New(10000000));
 
                 damSystem.TryChangeDamage(human, damage, true);
 

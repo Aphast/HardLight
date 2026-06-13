@@ -41,29 +41,29 @@ namespace Content.Shared.Magic;
 /// <summary>
 /// Handles learning and using spells (actions)
 /// </summary>
-public abstract class SharedMagicSystem : EntitySystem
+public abstract partial class SharedMagicSystem : EntitySystem
 {
-    [Dependency] private readonly ISerializationManager _seriMan = default!;
-    [Dependency] private readonly IComponentFactory _compFact = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly SharedMapSystem _mapSystem = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedGunSystem _gunSystem = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly SharedBodySystem _body = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly SharedDoorSystem _door = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
-    [Dependency] private readonly LockSystem _lock = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedMindSystem _mind = default!;
-    [Dependency] private readonly SharedStunSystem _stun = default!;
+    [Dependency] private ISerializationManager _seriMan = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private SharedMapSystem _mapSystem = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedGunSystem _gunSystem = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private SharedBodySystem _body = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private SharedDoorSystem _door = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedInteractionSystem _interaction = default!;
+    [Dependency] private LockSystem _lock = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private TagSystem _tag = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
+    [Dependency] private SharedStunSystem _stun = default!;
+    [Dependency] private TurfSystem _turf = default!;
 
     private static readonly ProtoId<TagPrototype> InvalidForGlobalSpawnSpellTag = "InvalidForGlobalSpawnSpell";
 
@@ -161,7 +161,7 @@ public abstract class SharedMagicSystem : EntitySystem
 
                 if (!TryComp<MapGridComponent>(casterXform.GridUid, out var mapGrid))
                     return new List<EntityCoordinates>();
-                if (!directionPos.TryGetTileRef(out var tileReference, EntityManager, _mapManager))
+                if (!_turf.TryGetTileRef(directionPos, out var tileReference))
                     return new List<EntityCoordinates>();
 
                 var tileIndex = tileReference.Value.GridIndices;
@@ -174,7 +174,7 @@ public abstract class SharedMagicSystem : EntitySystem
                 if (!TryComp<MapGridComponent>(casterXform.GridUid, out var mapGrid))
                     return new List<EntityCoordinates>();
 
-                if (!directionPos.TryGetTileRef(out var tileReference, EntityManager, _mapManager))
+                if (!_turf.TryGetTileRef(directionPos, out var tileReference))
                     return new List<EntityCoordinates>();
 
                 var tileIndex = tileReference.Value.GridIndices;
@@ -279,14 +279,14 @@ public abstract class SharedMagicSystem : EntitySystem
         var userVelocity = _physics.GetMapLinearVelocity(ev.Performer);
 
         // If applicable, this ensures the projectile is parented to grid on spawn, instead of the map.
-        var fromMap = _transform.ToMapCoordinates(fromCoords);
+        var fromMap = fromCoords.ToMap(EntityManager, _transform);
         var spawnCoords = _mapManager.TryFindGridAt(fromMap, out var gridUid, out _)
-            ? _transform.WithEntityId(fromCoords, gridUid)
+            ? fromCoords.WithEntityId(gridUid, EntityManager)
             : new(_mapManager.GetMapEntityId(fromMap.MapId), fromMap.Position);
 
         var ent = Spawn(ev.Prototype, spawnCoords);
-        var direction = _transform.ToMapCoordinates(toCoords).Position -
-                         _transform.ToMapCoordinates(spawnCoords).Position;
+        var direction = toCoords.ToMapPos(EntityManager, _transform) -
+                        spawnCoords.ToMapPos(EntityManager, _transform);
         _gunSystem.ShootProjectile(ent, direction, userVelocity, ev.Performer, ev.Performer);
     }
     // End Projectile Spells
@@ -368,7 +368,7 @@ public abstract class SharedMagicSystem : EntitySystem
             if (HasComp(target, data.Component.GetType()))
                 continue;
 
-            var component = (Component)_compFact.GetComponent(name);
+            var component = (Component)Factory.GetComponent(name);
             var temp = (object)component;
             _seriMan.CopyTo(data.Component, ref temp);
             EntityManager.AddComponent(target, (Component)temp!);
@@ -379,7 +379,7 @@ public abstract class SharedMagicSystem : EntitySystem
     {
         foreach (var toRemove in comps)
         {
-            if (_compFact.TryGetRegistration(toRemove, out var registration))
+            if (Factory.TryGetRegistration(toRemove, out var registration))
                 RemComp(target, registration.Type);
         }
     }

@@ -1,4 +1,3 @@
-using System.Numerics;
 using Content.Server.Doors.Systems;
 using Content.Server.NPC.Pathfinding;
 using Content.Server.Shuttles.Components;
@@ -11,31 +10,26 @@ using Content.Shared.Shuttles.Events;
 using Content.Shared.Shuttles.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
-using Robust.Shared.Physics;
-using Robust.Shared.Physics.Collision.Shapes;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Dynamics.Joints;
 using Robust.Shared.Physics.Systems;
 using Robust.Shared.Utility;
-using Robust.Shared.Log;
 
 namespace Content.Server.Shuttles.Systems
 {
     public sealed partial class DockingSystem : SharedDockingSystem
     {
-        [Dependency] private readonly IMapManager _mapManager = default!;
-        [Dependency] private readonly SharedMapSystem _mapSystem = default!;
-        [Dependency] private readonly DoorSystem _doorSystem = default!;
-        [Dependency] private readonly EntityLookupSystem _lookup = default!;
-        [Dependency] private readonly PathfindingSystem _pathfinding = default!;
-        [Dependency] private readonly ShuttleConsoleSystem _console = default!;
-        [Dependency] private readonly SharedJointSystem _jointSystem = default!;
-        [Dependency] private readonly SharedPopupSystem _popup = default!;
-        [Dependency] private readonly SharedTransformSystem _transform = default!;
+        [Dependency] private IMapManager _mapManager = default!;
+        [Dependency] private SharedMapSystem _mapSystem = default!;
+        [Dependency] private DoorSystem _doorSystem = default!;
+        [Dependency] private EntityLookupSystem _lookup = default!;
+        [Dependency] private PathfindingSystem _pathfinding = default!;
+        [Dependency] private ShuttleConsoleSystem _console = default!;
+        [Dependency] private SharedJointSystem _jointSystem = default!;
+        [Dependency] private SharedPopupSystem _popup = default!;
+        [Dependency] private SharedTransformSystem _transform = default!;
 
         private const string DockingJoint = "docking";
-
-        private ISawmill _sawmill = default!;
 
         private EntityQuery<MapGridComponent> _gridQuery;
         private EntityQuery<PhysicsComponent> _physicsQuery;
@@ -47,7 +41,6 @@ namespace Content.Server.Shuttles.Systems
         public override void Initialize()
         {
             base.Initialize();
-            _sawmill = Logger.GetSawmill("docking");
             _gridQuery = GetEntityQuery<MapGridComponent>();
             _physicsQuery = GetEntityQuery<PhysicsComponent>();
             _xformQuery = GetEntityQuery<TransformComponent>();
@@ -63,6 +56,7 @@ namespace Content.Server.Shuttles.Systems
             // in which case I would also add their subs here.
             SubscribeLocalEvent<ShuttleConsoleComponent, DockRequestMessage>(OnRequestDock);
             SubscribeLocalEvent<ShuttleConsoleComponent, UndockRequestMessage>(OnRequestUndock);
+            SubscribeLocalEvent<ShuttleConsoleComponent, UndockAllRequestMessage>(OnRequestUndockAll);
         }
 
         public void UndockDocks(EntityUid gridUid)
@@ -73,6 +67,21 @@ namespace Content.Server.Shuttles.Systems
             foreach (var dock in _dockingSet)
             {
                 Undock(dock);
+            }
+        }
+
+        // Mono
+        public void RedockDocks(EntityUid gridUid)
+        {
+            _dockingSet.Clear();
+            _lookup.GetChildEntities(gridUid, _dockingSet);
+
+            foreach (var dock in _dockingSet)
+            {
+                if (dock.Comp.DockedWith is not { } with || !TryComp<DockingComponent>(with, out var otherDock))
+                    continue;
+
+                Dock(dock, (with, otherDock), true);
             }
         }
 
@@ -98,7 +107,7 @@ namespace Content.Server.Shuttles.Systems
         private void OnShutdown(EntityUid uid, DockingComponent component, ComponentShutdown args)
         {
             if (component.DockedWith == null ||
-                Comp<MetaDataComponent>(uid).EntityLifeStage > EntityLifeStage.MapInitialized)
+                EntityManager.GetComponent<MetaDataComponent>(uid).EntityLifeStage > EntityLifeStage.MapInitialized)
             {
                 return;
             }
@@ -141,8 +150,8 @@ namespace Content.Server.Shuttles.Systems
             dockA.DockJointId = null;
 
             // If these grids are ever null then need to look at fixing ordering for unanchored events elsewhere.
-            var gridAUid = Comp<TransformComponent>(dockAUid).GridUid;
-            var gridBUid = Comp<TransformComponent>(dockBUid.Value).GridUid;
+            var gridAUid = EntityManager.GetComponent<TransformComponent>(dockAUid).GridUid;
+            var gridBUid = EntityManager.GetComponent<TransformComponent>(dockBUid.Value).GridUid;
 
             var msg = new UndockEvent
             {
@@ -163,34 +172,17 @@ namespace Content.Server.Shuttles.Systems
             var component = entity.Comp;
 
             // Use startup so transform already initialized
-            if (!Comp<TransformComponent>(uid).Anchored)
+            if (!EntityManager.GetComponent<TransformComponent>(uid).Anchored)
                 return;
 
             // This little gem is for docking deserialization
             if (component.DockedWith != null)
             {
-                // Guard: ignore invalid or zero entity references that can appear in legacy / malformed YAML
-                if (!component.DockedWith.Value.IsValid())
-                {
-                    component.DockedWith = null;
-                    component.DockJoint = null;
-                    component.DockJointId = null;
-                    return;
-                }
-
-                // If the referenced entity lacks metadata (not spawned or pruned) skip docking gracefully.
-                if (!TryComp(component.DockedWith.Value, out MetaDataComponent? _))
-                {
-                    component.DockedWith = null;
-                    component.DockJoint = null;
-                    component.DockJointId = null;
-                    return;
-                }
                 // They're still initialising so we'll just wait for both to be ready.
                 if (MetaData(component.DockedWith.Value).EntityLifeStage < EntityLifeStage.Initialized)
                     return;
 
-                var otherDock = Comp<DockingComponent>(component.DockedWith.Value);
+                var otherDock = EntityManager.GetComponent<DockingComponent>(component.DockedWith.Value);
                 DebugTools.Assert(otherDock.DockedWith != null);
 
                 Dock((uid, component), (component.DockedWith.Value, otherDock));
@@ -225,7 +217,8 @@ namespace Content.Server.Shuttles.Systems
         /// <summary>
         /// Docks 2 ports together and assumes it is valid.
         /// </summary>
-        public void Dock(Entity<DockingComponent> dockA, Entity<DockingComponent> dockB)
+        public void Dock(Entity<DockingComponent> dockA, Entity<DockingComponent> dockB,
+            bool noEvent = false) // Mono
         {
             var dockAUid = dockA.Owner;
             var dockBUid = dockB.Owner;
@@ -241,8 +234,8 @@ namespace Content.Server.Shuttles.Systems
             // https://gamedev.stackexchange.com/questions/98772/b2distancejoint-with-frequency-equal-to-0-vs-b2weldjoint
 
             // We could also potentially use a prismatic joint? Depending if we want clamps that can extend or whatever
-            var dockAXform = Comp<TransformComponent>(dockAUid);
-            var dockBXform = Comp<TransformComponent>(dockBUid);
+            var dockAXform = EntityManager.GetComponent<TransformComponent>(dockAUid);
+            var dockBXform = EntityManager.GetComponent<TransformComponent>(dockBUid);
 
             DebugTools.Assert(dockAXform.GridUid != null);
             DebugTools.Assert(dockBXform.GridUid != null);
@@ -250,16 +243,14 @@ namespace Content.Server.Shuttles.Systems
             var gridB = dockBXform.GridUid!.Value;
 
             // May not be possible if map or the likes.
-            var hasPhysA = HasComp<PhysicsComponent>(gridA);
-            var hasPhysB = HasComp<PhysicsComponent>(gridB);
-
-            if (hasPhysA && hasPhysB)
+            if (TryComp<PhysicsComponent>(gridA, out var bodyA) &&
+                TryComp<PhysicsComponent>(gridB, out var bodyB))
             {
                 SharedJointSystem.LinearStiffness(
-                    2f,
-                    0.7f,
-                    Comp<PhysicsComponent>(gridA).Mass,
-                    Comp<PhysicsComponent>(gridB).Mass,
+                    0.5f, // Mono: 2 -> 0.5
+                    2f, // Mono: 0.7 -> 2
+                    bodyA.FixturesMass,
+                    bodyB.FixturesMass,
                     out var stiffness,
                     out var damping);
 
@@ -278,8 +269,8 @@ namespace Content.Server.Shuttles.Systems
                     joint = _jointSystem.GetOrCreateWeldJoint(gridA, gridB, DockingJoint + dockAUid);
                 }
 
-                var gridAXform = Comp<TransformComponent>(gridA);
-                var gridBXform = Comp<TransformComponent>(gridB);
+                var gridAXform = EntityManager.GetComponent<TransformComponent>(gridA);
+                var gridBXform = EntityManager.GetComponent<TransformComponent>(gridB);
 
                 var anchorA = dockAXform.LocalPosition + dockAXform.LocalRotation.ToWorldVec() / 2f;
                 var anchorB = dockBXform.LocalPosition + dockBXform.LocalRotation.ToWorldVec() / 2f;
@@ -296,15 +287,6 @@ namespace Content.Server.Shuttles.Systems
 
                 dockB.Comp.DockJoint = joint;
                 dockB.Comp.DockJointId = joint.ID;
-                _sawmill.Debug($"Created weld joint '{joint.ID}' between grids {gridA} and {gridB} for docks {dockAUid} <-> {dockBUid}.");
-            }
-            else
-            {
-                // If either grid lacks physics we cannot create a weld joint; docking will be visual/logic-only.
-                if (!hasPhysA)
-                    _sawmill.Warning($"Docking without PhysicsComponent on gridA {gridA}. No weld joint will be created.");
-                if (!hasPhysB)
-                    _sawmill.Warning($"Docking without PhysicsComponent on gridB {gridB}. No weld joint will be created.");
             }
 
             dockA.Comp.DockedWith = dockBUid;
@@ -333,6 +315,10 @@ namespace Content.Server.Shuttles.Systems
                 }
                 doorB.ChangeAirtight = false;
             }
+
+            // Mono
+            if (noEvent)
+                return;
 
             if (_pathfinding.TryCreatePortal(dockAXform.Coordinates, dockBXform.Coordinates, out var handle))
             {
@@ -370,10 +356,63 @@ namespace Content.Server.Shuttles.Systems
             if (dock.Comp.DockedWith == null)
                 return;
 
+            // Check if either shuttle is in FTL before undocking
+            var otherDockUid = dock.Comp.DockedWith.Value;
+            var shuttleUid = Transform(dock).GridUid;
+            var otherShuttleUid = Transform(otherDockUid).GridUid;
+
+            bool dockedInFTL = false;
+            EntityUid? ftlSourceShuttle = null;
+            FTLComponent? ftlComp = null;
+
+            // Check if either shuttle is in FTL travel
+            if (shuttleUid != null && TryComp<FTLComponent>(shuttleUid, out var shuttleFTL) &&
+                shuttleFTL.State == FTLState.Travelling)
+            {
+                dockedInFTL = true;
+                ftlSourceShuttle = shuttleUid;
+                ftlComp = shuttleFTL;
+            }
+            else if (otherShuttleUid != null && TryComp<FTLComponent>(otherShuttleUid, out var otherShuttleFTL) &&
+                     otherShuttleFTL.State == FTLState.Travelling)
+            {
+                dockedInFTL = true;
+                ftlSourceShuttle = otherShuttleUid;
+                ftlComp = otherShuttleFTL;
+            }
+
             OnUndock(dock.Owner);
             OnUndock(dock.Comp.DockedWith.Value);
             Cleanup(dock.Owner, dock);
             _console.RefreshShuttleConsoles();
+
+            // If undocking occurred during FTL travel, we need to update the FTL components
+            if (dockedInFTL && ftlSourceShuttle != null && ftlComp != null)
+            {
+                // The linked shuttle should be the main shuttle controlling FTL
+                var mainFTLShuttle = ftlComp.LinkedShuttle ?? ftlSourceShuttle.Value;
+
+                // For both shuttles, make sure they can complete their FTL journey independently
+                if (shuttleUid != null && shuttleUid != mainFTLShuttle &&
+                    TryComp<FTLComponent>(shuttleUid, out var shuttleFtlComp) && shuttleFtlComp.State == FTLState.Travelling)
+                {
+                    // Make sure the undocked shuttle maintains the same FTL state
+                    // This allows the undocked shuttle to complete its FTL journey
+                    // Set no LinkedShuttle so it will be processed independently
+                    shuttleFtlComp.LinkedShuttle = null;
+                    Dirty(shuttleUid.Value, shuttleFtlComp);
+                }
+
+                if (otherShuttleUid != null && otherShuttleUid != mainFTLShuttle &&
+                    TryComp<FTLComponent>(otherShuttleUid, out var otherFtlComp) && otherFtlComp.State == FTLState.Travelling)
+                {
+                    // Make sure the undocked shuttle maintains the same FTL state
+                    // This allows the undocked shuttle to complete its FTL journey
+                    // Set no LinkedShuttle so it will be processed independently
+                    otherFtlComp.LinkedShuttle = null;
+                    Dirty(otherShuttleUid.Value, otherFtlComp);
+                }
+            }
         }
 
         private void OnUndock(EntityUid dockUid)
@@ -418,8 +457,6 @@ namespace Content.Server.Shuttles.Systems
                 return;
             }
 
-            var shuttleUid = Transform(console.Value).GridUid;
-
             if (!TryGetEntity(args.DockEntity, out var ourDock) ||
                 !TryGetEntity(args.TargetDockEntity, out var targetDock) ||
                 !TryComp(ourDock, out DockingComponent? ourDockComp) ||
@@ -429,8 +466,10 @@ namespace Content.Server.Shuttles.Systems
                 return;
             }
 
-            // VRS: check both shuttles; gas docks bypass PreventPilotComponent (Triad #3817)
-            var otherShuttleUid = Transform(targetDock.Value).GridUid;
+            var shuttleUid = Transform(console.Value).GridUid;
+            var otherShuttleUid = Transform(targetDock.Value).GridUid; // Mono
+
+            // Mono - check both grids
             if (!CanShuttleDock(shuttleUid, ourDockComp) || !CanShuttleDock(otherShuttleUid, targetDockComp))
             {
                 _popup.PopupCursor(Loc.GetString("shuttle-console-dock-fail"));
@@ -502,6 +541,38 @@ namespace Content.Server.Shuttles.Systems
 
             return CanDock(new MapCoordinates(worldPosA, xformA.MapID), worldRotA,
                 new MapCoordinates(worldPosB, xformB.MapID), worldRotB);
+        }
+
+        private void OnRequestUndockAll(EntityUid uid, ShuttleConsoleComponent component, UndockAllRequestMessage args)
+        {
+            if (args.DockEntities.Count == 0)
+                return;
+
+            var undockedAny = false;
+
+            foreach (var dockEntity in args.DockEntities)
+            {
+                if (!TryGetEntity(dockEntity, out var dockEnt) ||
+                    !TryComp(dockEnt, out DockingComponent? dockComp))
+                {
+                    continue;
+                }
+
+                var dock = (dockEnt.Value, dockComp);
+
+                if (!CanUndock(dock))
+                {
+                    continue;
+                }
+
+                Undock(dock);
+                undockedAny = true;
+            }
+
+            if (!undockedAny)
+            {
+                _popup.PopupCursor(Loc.GetString("shuttle-console-undock-fail"));
+            }
         }
     }
 }

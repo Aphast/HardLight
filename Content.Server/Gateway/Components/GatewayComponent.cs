@@ -37,13 +37,13 @@ public sealed partial class GatewayComponent : Component
     /// Originally named PortalSound as it was used for opening and closing.
     /// </remarks>
     [DataField("portalSound")]
-    public SoundSpecifier OpenSound = new SoundPathSpecifier("/Audio/Items/hiss.ogg");
+    public SoundSpecifier OpenSound = new SoundPathSpecifier("/Audio/Effects/Lightning/lightningbolt.ogg");
 
     /// <summary>
     /// Sound to play when closing the portal.
     /// </summary>
     [DataField]
-    public SoundSpecifier CloseSound = new SoundPathSpecifier("/Audio/Items/hiss.ogg");
+    public SoundSpecifier CloseSound = new SoundPathSpecifier("/Audio/Effects/Lightning/lightningbolt.ogg");
 
     /// <summary>
     /// Sound to play when trying to open or close the portal and missing access.
@@ -55,7 +55,7 @@ public sealed partial class GatewayComponent : Component
     /// Cooldown between opening portal / closing.
     /// </summary>
     [DataField]
-    public TimeSpan Cooldown = TimeSpan.FromSeconds(5);
+    public TimeSpan Cooldown = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// The time at which the portal can next be opened.

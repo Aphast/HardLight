@@ -10,11 +10,9 @@ using Content.Server.Traitor.Uplink;
 using Content.Shared.Access.Components;
 using Content.Shared.CartridgeLoader;
 using Content.Shared.Chat;
-using Content.Shared.DeviceNetwork.Components;
 using Content.Shared.Light;
 using Content.Shared.Light.EntitySystems;
 using Content.Shared.PDA;
-using Content.Shared.PDA.Ringer;
 using Robust.Server.Containers;
 using Robust.Server.GameObjects;
 using Robust.Shared.Containers;
@@ -24,22 +22,26 @@ using Content.Shared._NF.Bank.Components; // Frontier
 using Content.Shared._NF.Shipyard.Components; // Frontier
 using Content.Server._NF.Shipyard.Systems; // Frontier
 using Content.Server._NF.SectorServices; // Frontier
+using Content.Shared._Mono.Company;
+using Robust.Shared.Prototypes;
+using Content.Shared.DeviceNetwork.Components;
 
 namespace Content.Server.PDA
 {
-    public sealed class PdaSystem : SharedPdaSystem
+    public sealed partial class PdaSystem : SharedPdaSystem
     {
-        [Dependency] private readonly CartridgeLoaderSystem _cartridgeLoader = default!;
-        [Dependency] private readonly InstrumentSystem _instrument = default!;
-        [Dependency] private readonly RingerSystem _ringer = default!;
-        [Dependency] private readonly StationSystem _station = default!;
-        [Dependency] private readonly StoreSystem _store = default!;
-        [Dependency] private readonly IChatManager _chatManager = default!;
-        [Dependency] private readonly UserInterfaceSystem _ui = default!;
-        [Dependency] private readonly UnpoweredFlashlightSystem _unpoweredFlashlight = default!;
-        [Dependency] private readonly ContainerSystem _containerSystem = default!;
-        [Dependency] private readonly IdCardSystem _idCard = default!;
-        [Dependency] private readonly SectorServiceSystem _sectorService = default!;
+        [Dependency] private CartridgeLoaderSystem _cartridgeLoader = default!;
+        [Dependency] private InstrumentSystem _instrument = default!;
+        [Dependency] private RingerSystem _ringer = default!;
+        [Dependency] private StationSystem _station = default!;
+        [Dependency] private StoreSystem _store = default!;
+        [Dependency] private IChatManager _chatManager = default!;
+        [Dependency] private UserInterfaceSystem _ui = default!;
+        [Dependency] private UnpoweredFlashlightSystem _unpoweredFlashlight = default!;
+        [Dependency] private ContainerSystem _containerSystem = default!;
+        [Dependency] private IdCardSystem _idCard = default!;
+        [Dependency] private SectorServiceSystem _sectorService = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
 
         public override void Initialize()
         {
@@ -104,7 +106,7 @@ namespace Content.Server.PDA
 
         protected override void OnItemRemoved(EntityUid uid, PdaComponent pda, EntRemovedFromContainerMessage args)
         {
-            if (args.Container.ID != pda.IdSlot.ID && args.Container.ID != pda.PenSlot.ID && args.Container.ID != pda.PaiSlot.ID && args.Container.ID != pda.BookSlot.ID)
+            if (args.Container.ID != pda.IdSlot.ID && args.Container.ID != pda.PenSlot.ID && args.Container.ID != pda.PaiSlot.ID)
                 return;
 
             // TODO: This is super cursed just use compstates please.
@@ -172,7 +174,7 @@ namespace Content.Server.PDA
         /// <summary>
         /// Send new UI state to clients, call if you modify something like uplink.
         /// </summary>
-        public override void UpdatePdaUi(EntityUid uid, PdaComponent? pda = null, EntityUid? actorUid = null) // Frontier: add actorUid
+        public void UpdatePdaUi(EntityUid uid, PdaComponent? pda = null, EntityUid? actor_uid = null) // Frontier
         {
             if (!Resolve(uid, ref pda, false))
                 return;
@@ -195,15 +197,29 @@ namespace Content.Server.PDA
 
             var programs = _cartridgeLoader.GetAvailablePrograms(uid, loader);
             var id = CompOrNull<IdCardComponent>(pda.ContainedId);
+            var balance = 0; // frontier
+            if (actor_uid != null && TryComp<BankAccountComponent>(actor_uid, out var account)) // frontier
+                balance = account.Balance; // frontier
+            var ownedShipName = ""; // Frontier
+            if (TryComp<ShuttleDeedComponent>(pda.ContainedId, out var shuttleDeedComp)) // Frontier
+                ownedShipName = ShipyardSystem.GetFullName(shuttleDeedComp); // Frontier
 
-            // Frontier: balance & ship deeds
-            var balance = 0;
-            if (actorUid != null && TryComp<BankAccountComponent>(actorUid, out var account))
-                balance = account.Balance;
-            var ownedShipName = "";
-            if (TryComp<ShuttleDeedComponent>(pda.ContainedId, out var shuttleDeedComp))
-                ownedShipName = ShipyardSystem.GetFullName(shuttleDeedComp);
-            // End Frontier: balance & ship deeds
+            // Get company information from ID card
+            string? companyName = null;
+            Color companyColor = Color.White;
+            if (id?.CompanyName != null && !string.IsNullOrWhiteSpace(id.CompanyName) && id.CompanyName != "None")
+            {
+                if (_prototypeManager.TryIndex<CompanyPrototype>(id.CompanyName, out var companyProto))
+                {
+                    companyName = companyProto.Name; // Use the display name, not the ID
+                    companyColor = companyProto.Color;
+                }
+                else
+                {
+                    // Fallback to ID if prototype not found
+                    companyName = id.CompanyName;
+                }
+            }
 
             var state = new PdaUpdateState(
                 programs,
@@ -211,12 +227,13 @@ namespace Content.Server.PDA
                 pda.FlashlightOn,
                 pda.PenSlot.HasItem,
                 pda.PaiSlot.HasItem,
-                pda.BookSlot.HasItem,
                 new PdaIdInfoText
                 {
                     ActualOwnerName = pda.OwnerName,
                     IdOwner = id?.FullName,
                     JobTitle = id?.LocalizedJobTitle,
+                    CompanyName = companyName,
+                    CompanyColor = companyColor,
                     StationAlertLevel = pda.StationAlertLevel,
                     StationAlertColor = pda.StationAlertColor
                 },
@@ -262,7 +279,7 @@ namespace Content.Server.PDA
                 return;
 
             if (HasComp<RingerComponent>(uid))
-                _ringer.TryToggleRingerUi(uid, msg.Actor);
+                _ringer.ToggleRingerUI(uid, msg.Actor);
         }
 
         private void OnUiMessage(EntityUid uid, PdaComponent pda, PdaShowMusicMessage msg)
@@ -291,7 +308,7 @@ namespace Content.Server.PDA
 
             if (TryComp<RingerUplinkComponent>(uid, out var uplink))
             {
-                _ringer.LockUplink((uid, uplink));
+                _ringer.LockUplink(uid, uplink);
                 UpdatePdaUi(uid, pda);
             }
         }
@@ -304,20 +321,14 @@ namespace Content.Server.PDA
         private void UpdateStationName(EntityUid uid, PdaComponent pda)
         {
             var station = _station.GetOwningStation(uid);
-            if (station is null || !station.Value.IsValid() || !TryComp<MetaDataComponent>(station.Value, out var meta))
-            {
-                pda.StationName = null;
-                return;
-            }
-
-            pda.StationName = meta.EntityName;
+            pda.StationName = station is null ? null : Name(station.Value);
         }
 
         private void UpdateAlertLevel(EntityUid uid, PdaComponent pda)
         {
             //var station = _station.GetOwningStation(uid); // Frontier
             var station = _sectorService.GetServiceEntity(); // Frontier
-            if (!station.IsValid() || !TryComp(station, out AlertLevelComponent? alertComp) ||
+            if (!TryComp(station, out AlertLevelComponent? alertComp) ||
                 alertComp.AlertLevels == null)
                 return;
             pda.StationAlertLevel = alertComp.CurrentLevel;

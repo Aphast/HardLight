@@ -12,29 +12,27 @@ namespace Content.Server.Speech.EntitySystems
     /// <summary>
     /// Replaces text in messages, either with full replacements or word replacements.
     /// </summary>
-    public sealed class ReplacementAccentSystem : EntitySystem
+    public sealed partial class ReplacementAccentSystem : EntitySystem
     {
-        [Dependency] private readonly IPrototypeManager _proto = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly ILocalizationManager _loc = default!;
+        [Dependency] private IPrototypeManager _proto = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private ILocalizationManager _loc = default!;
 
-        // Cache compiled word-boundary regexes keyed by the resolved replacement word.
-        // Building a new Regex per word per spoken message was a major hotspot in chat-heavy rounds.
-        private readonly Dictionary<string, Regex> _wordRegexCache = new();
+        private readonly Dictionary<ProtoId<ReplacementAccentPrototype>, (Regex regex, string replacement)[]>
+            _cachedReplacements = new();
 
         public override void Initialize()
         {
             SubscribeLocalEvent<ReplacementAccentComponent, AccentGetEvent>(OnAccent);
+
+            _proto.PrototypesReloaded += OnPrototypesReloaded;
         }
 
-        private Regex GetWordRegex(string word)
+        public override void Shutdown()
         {
-            if (_wordRegexCache.TryGetValue(word, out var regex))
-                return regex;
+            base.Shutdown();
 
-            regex = new Regex($@"(?<!\w){word}(?!\w)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-            _wordRegexCache[word] = regex;
-            return regex;
+            _proto.PrototypesReloaded -= OnPrototypesReloaded;
         }
 
         private void OnAccent(EntityUid uid, ReplacementAccentComponent component, AccentGetEvent args)
@@ -61,20 +59,14 @@ namespace Content.Server.Speech.EntitySystems
                 return prototype.FullReplacements.Length != 0 ? Loc.GetString(_random.Pick(prototype.FullReplacements)) : "";
             }
 
-            if (prototype.WordReplacements == null)
-                return message;
-
             // Prohibition of repeated word replacements.
             // All replaced words placed in the final message are placed here as dashes (___) with the same length.
             // The regex search goes through this buffer message, from which the already replaced words are crossed out,
             // ensuring that the replaced words cannot be replaced again.
             var maskMessage = message;
 
-            foreach (var (first, replace) in prototype.WordReplacements)
+            foreach (var (regex, replace) in GetCachedReplacements(prototype))
             {
-                var f = _loc.GetString(first);
-                var r = _loc.GetString(replace);
-                var regex = GetWordRegex(f);
                 // this is kind of slow but its not that bad
                 // essentially: go over all matches, try to match capitalization where possible, then replace
                 // rather than using regex.replace
@@ -82,7 +74,7 @@ namespace Content.Server.Speech.EntitySystems
                 {
                     // fetch the match again as the character indices may have changed
                     Match match = regex.Match(maskMessage);
-                    var replacement = r;
+                    var replacement = replace;
 
                     // Intelligently replace capitalization
                     // two cases where we will do so:
@@ -111,6 +103,41 @@ namespace Content.Server.Speech.EntitySystems
             }
 
             return message;
+        }
+
+        private (Regex regex, string replacement)[] GetCachedReplacements(ReplacementAccentPrototype prototype)
+        {
+            if (!_cachedReplacements.TryGetValue(prototype.ID, out var replacements))
+            {
+                replacements = GenerateCachedReplacements(prototype);
+                _cachedReplacements.Add(prototype.ID, replacements);
+            }
+
+            return replacements;
+        }
+
+        private (Regex regex, string replacement)[] GenerateCachedReplacements(ReplacementAccentPrototype prototype)
+        {
+            if (prototype.WordReplacements is not { } replacements)
+                return [];
+
+            return replacements.Select(kv =>
+                {
+                    var (first, replace) = kv;
+                    var firstLoc = _loc.GetString(first);
+                    var replaceLoc = _loc.GetString(replace);
+
+                    var regex = new Regex($@"(?<!\w){firstLoc}(?!\w)", RegexOptions.IgnoreCase);
+
+                    return (regex, replaceLoc);
+
+                })
+                .ToArray();
+        }
+
+        private void OnPrototypesReloaded(PrototypesReloadedEventArgs obj)
+        {
+            _cachedReplacements.Clear();
         }
     }
 }

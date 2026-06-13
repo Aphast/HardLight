@@ -11,10 +11,10 @@ namespace Content.Shared.Species;
 
 public sealed partial class GibActionSystem : EntitySystem
 {
-    [Dependency] private readonly SharedActionsSystem _actionsSystem = default!;
-    [Dependency] private readonly SharedBodySystem _bodySystem = default!;
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
+    [Dependency] private SharedActionsSystem _actionsSystem = default!;
+    [Dependency] private SharedBodySystem _bodySystem = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
 
     public override void Initialize()
     {
@@ -45,17 +45,7 @@ public sealed partial class GibActionSystem : EntitySystem
         }
 
         // If they aren't given the action, remove it.
-        if (comp.ActionEntity == null)
-            return;
-
-        if (_actionsSystem.TryGetActionData(comp.ActionEntity, out var action, logError: false) && action.AttachedEntity == uid)
-        {
-            _actionsSystem.RemoveAction(uid, comp.ActionEntity);
-            return;
-        }
-
-        comp.ActionEntity = null;
-        Dirty(uid, comp);
+        _actionsSystem.RemoveAction(uid, comp.ActionEntity);
     }
     
     private void OnGibAction(EntityUid uid, GibActionComponent comp, GibActionEvent args)

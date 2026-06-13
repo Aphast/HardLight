@@ -36,7 +36,7 @@ public sealed partial class NinjaHackingThreatPrototype : IPrototype
     public string ID { get; private set; } = default!;
 
     /// <summary>
-    /// Locale id for the announcement to be made from ColCom.
+    /// Locale id for the announcement to be made from CentCom.
     /// </summary>
     [DataField(required: true)]
     public LocId Announcement;

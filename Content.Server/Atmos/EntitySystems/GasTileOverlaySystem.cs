@@ -1,6 +1,3 @@
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Content.Server.Atmos.Components;
 using Content.Shared.Atmos;
 using Content.Shared.Atmos.Components;
@@ -13,7 +10,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.ObjectPool;
 using Robust.Server.Player;
 using Robust.Shared;
-using Robust.Shared.Configuration;
 using Robust.Shared.Enums;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
@@ -21,21 +17,21 @@ using Robust.Shared.Player;
 using Robust.Shared.Threading;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
+using System.Runtime.CompilerServices;
 
 // ReSharper disable once RedundantUsingDirective
 
 namespace Content.Server.Atmos.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class GasTileOverlaySystem : SharedGasTileOverlaySystem
+    public sealed partial class GasTileOverlaySystem : SharedGasTileOverlaySystem
     {
-        [Robust.Shared.IoC.Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Robust.Shared.IoC.Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Robust.Shared.IoC.Dependency] private readonly IMapManager _mapManager = default!;
-        [Robust.Shared.IoC.Dependency] private readonly IConfigurationManager _confMan = default!;
-        [Robust.Shared.IoC.Dependency] private readonly IParallelManager _parMan = default!;
-        [Robust.Shared.IoC.Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
-        [Robust.Shared.IoC.Dependency] private readonly ChunkingSystem _chunkingSys = default!;
+        [Robust.Shared.IoC.Dependency] private IGameTiming _gameTiming = default!;
+        [Robust.Shared.IoC.Dependency] private IPlayerManager _playerManager = default!;
+        [Robust.Shared.IoC.Dependency] private IMapManager _mapManager = default!;
+        [Robust.Shared.IoC.Dependency] private IParallelManager _parMan = default!;
+        [Robust.Shared.IoC.Dependency] private AtmosphereSystem _atmosphereSystem = default!;
+        [Robust.Shared.IoC.Dependency] private ChunkingSystem _chunkingSys = default!;
 
         /// <summary>
         /// Per-tick cache of sessions.
@@ -85,11 +81,10 @@ namespace Content.Server.Atmos.EntitySystems
             };
 
             _playerManager.PlayerStatusChanged += OnPlayerStatusChanged;
-            Subs.CVar(_confMan, CCVars.NetGasOverlayTickRate, UpdateTickRate, true);
-            Subs.CVar(_confMan, CCVars.GasOverlayThresholds, UpdateThresholds, true);
-            Subs.CVar(_confMan, CVars.NetPVS, OnPvsToggle, true);
 
-            /* SubscribeLocalEvent<RoundRestartCleanupEvent>(Reset); */
+            InitializeCVars();
+
+            SubscribeLocalEvent<RoundRestartCleanupEvent>(Reset);
             SubscribeLocalEvent<GasTileOverlayComponent, ComponentStartup>(OnStartup);
         }
 
@@ -175,7 +170,16 @@ namespace Content.Server.Atmos.EntitySystems
 
         public GasOverlayData GetOverlayData(GasMixture? mixture)
         {
-            var data = new GasOverlayData(0, new byte[VisibleGasId.Length]);
+            ThermalByte byteTemp;
+            if (mixture == null)
+            {
+                byteTemp = new();
+                byteTemp.SetVacuum();
+            }
+            else
+                byteTemp = new(mixture.Temperature);
+
+            var data = new GasOverlayData(0, new byte[VisibleGasId.Length], byteTemp, 0);
 
             for (var i = 0; i < VisibleGasId.Length; i++)
             {
@@ -215,15 +219,28 @@ namespace Content.Server.Atmos.EntitySystems
             }
 
             var changed = false;
+
+            ThermalByte newByteTemp = new();
+
+            if (tile.Hotspot.Valid)
+                newByteTemp.SetTemperature(tile.Hotspot.Temperature);
+            else if (!tile.Space && tile.Air?.TotalMoles <= 5f)
+                newByteTemp.SetVacuum();
+            else if (!tile.Space && tile.Air != null)
+                newByteTemp = new(tile.Air.Temperature);
+
             if (oldData.Equals(default))
             {
                 changed = true;
-                oldData = new GasOverlayData(tile.Hotspot.State, new byte[VisibleGasId.Length]);
+                oldData = new GasOverlayData(tile.Hotspot.State, new byte[VisibleGasId.Length], newByteTemp, (byte)tile.Hotspot.Type);
             }
-            else if (oldData.FireState != tile.Hotspot.State)
+            else if (oldData.FireState != tile.Hotspot.State ||
+                     oldData.FireType != (byte)tile.Hotspot.Type || // mono reagent fire
+                     Math.Abs(oldData.ByteGasTemperature.Value - newByteTemp.Value) > 1 || // Dirty Temperature when there is more then 1 byte difference. That should measure up to minimum 4 degreese difference, 6 degreese on average.
+                     (oldData.ByteGasTemperature.Value != newByteTemp.Value && newByteTemp.Value > ThermalByte.TempResolution)) // change of special ThermalByte value
             {
                 changed = true;
-                oldData = new GasOverlayData(tile.Hotspot.State, oldData.Opacity);
+                oldData = new GasOverlayData(tile.Hotspot.State, oldData.Opacity, newByteTemp, (byte)tile.Hotspot.Type);
             }
 
             if (tile is {Air: not null, NoGridTile: false})
@@ -342,13 +359,11 @@ namespace Content.Server.Atmos.EntitySystems
             if (_sessions.Count == 0)
                 return;
 
-            // Use double PVS range for atmos overlay updates.
-            _updateJob.ViewEnlargement = _confMan.GetCVar(CVars.NetMaxUpdateRange) / 2f;
             _parMan.ProcessNow(_updateJob, _sessions.Count);
             _updateJob.LastSessionUpdate = _gameTiming.CurTick;
         }
 
-        /* public void Reset(RoundRestartCleanupEvent ev)
+        public void Reset(RoundRestartCleanupEvent ev)
         {
             foreach (var data in _lastSentChunks.Values)
             {
@@ -360,7 +375,7 @@ namespace Content.Server.Atmos.EntitySystems
 
                 data.Clear();
             }
-        } */
+        }
 
         #region Jobs
 
@@ -377,7 +392,6 @@ namespace Content.Server.Atmos.EntitySystems
             public GasTileOverlaySystem System;
             public ObjectPool<HashSet<Vector2i>> ChunkIndexPool;
             public ObjectPool<Dictionary<NetEntity, HashSet<Vector2i>>> ChunkViewerPool;
-            public float ViewEnlargement;
 
             public GameTick LastSessionUpdate;
             public Dictionary<ICommonSession, Dictionary<NetEntity, HashSet<Vector2i>>> LastSentChunks;
@@ -388,7 +402,7 @@ namespace Content.Server.Atmos.EntitySystems
             public void Execute(int index)
             {
                 var playerSession = Sessions[index];
-                var chunksInRange = ChunkingSys.GetChunksForSession(playerSession, ChunkSize, ChunkIndexPool, ChunkViewerPool, ViewEnlargement);
+                var chunksInRange = ChunkingSys.GetChunksForSession(playerSession, ChunkSize, ChunkIndexPool, ChunkViewerPool);
                 var previouslySent = LastSentChunks[playerSession];
 
                 var ev = new GasOverlayUpdateEvent();
@@ -468,5 +482,12 @@ namespace Content.Server.Atmos.EntitySystems
         }
 
         #endregion
+
+        private void InitializeCVars()
+        {
+            Subs.CVar(ConfMan, CCVars.NetGasOverlayTickRate, UpdateTickRate, true);
+            Subs.CVar(ConfMan, CCVars.GasOverlayThresholds, UpdateThresholds, true);
+            Subs.CVar(ConfMan, CVars.NetPVS, OnPvsToggle, true);
+        }
     }
 }

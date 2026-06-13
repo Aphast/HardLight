@@ -1,66 +1,47 @@
 using Content.Shared.Actions;
+using DrawDepth = Content.Shared.DrawDepth.DrawDepth;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
-using System.Numerics; // HardLight
 
 namespace Content.Shared._DV.Abilities;
 
-/// <summary>
-/// Lets an entity toggle sneaking/squeezing under objects at reduced speed. // HardLight: Reworded
-/// </summary>
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class CrawlUnderObjectsComponent : Component
 {
     [DataField]
     public EntityUid? ToggleHideAction;
 
-    [DataField] // HardLight: DataField(required: true)<DataField
-    public EntProtoId? ActionProto; // HardLight: Added ?
+    [DataField]
+    public EntProtoId? ActionProto;
 
+    [DataField]
+    public bool Enabled = false;
+
+    /// <summary>
+    ///     List of fixtures that had their collision mask changed.
+    ///     Required for re-adding the collision mask.
+    /// </summary>
     [DataField, AutoNetworkedField]
-    public bool Enabled;
+    public List<(string key, int originalMask)> ChangedFixtures = new();
+
+    [DataField]
+    public int? OriginalDrawDepth;
 
     [DataField]
     public float SneakSpeedModifier = 0.7f;
-
-    // HardLight start
-    [DataField]
-    public float SqueezeRadiusScale = 1f;
-
-    [DataField]
-    public float UnsqueezedRadiusScale = 1f;
-
-    /// <summary>
-    /// Circle geometry captured at squeeze start and restored on squeeze end.
-    /// Keeps each squeeze cycle independent and prevents cumulative drift.
-    /// </summary>
-    public List<(string key, Vector2 position, float radius)> ChangedCircles = new();
-
-    /// <summary>
-    /// Guards the unsqueezed baseline inflation so it is only applied once.
-    /// </summary>
-    public bool BaselineInflationApplied;
-
-    /// <summary>
-    /// Captured geometry used for temporary downed/laying radius scaling.
-    /// </summary>
-    public List<(string key, Vector2 position, float radius)> DownedCircles = new();
-
-    /// <summary>
-    /// True while downed scaling is currently applied.
-    /// </summary>
-    public bool DownedScaleApplied;
-    // HardLight end
 }
 
 [Serializable, NetSerializable]
-public enum SneakingVisuals : byte
+public enum SneakMode : byte
 {
-    Sneaking
+    Enabled
 }
 
-public sealed partial class ToggleCrawlingStateEvent : InstantActionEvent;
+public sealed partial class ToggleCrawlingStateEvent : InstantActionEvent { }
 
-[ByRefEvent]
-public readonly record struct CrawlingUpdatedEvent(bool Enabled, CrawlUnderObjectsComponent Comp);
+[Serializable, NetSerializable]
+public sealed partial class CrawlingUpdatedEvent(bool enabled = false) : EventArgs
+{
+    public readonly bool Enabled = enabled;
+}

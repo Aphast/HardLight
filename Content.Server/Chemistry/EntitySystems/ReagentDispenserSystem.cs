@@ -13,12 +13,13 @@ using Robust.Shared.Audio;
 using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
 using Content.Shared.Labels.Components;
+using Content.Shared.Chemistry.Components.SolutionManager; // Frontier
+using Content.Shared.Chemistry.Components; // Frontier
 using Content.Shared.Chemistry.Reagent; // Frontier
+using Content.Server.Labels; // Frontier
 using Content.Shared.Verbs; // Frontier
 using Content.Shared.Examine; // Frontier
 using Content.Server.Construction; // Frontier
-using Content.Shared.Labels.EntitySystems; // Frontier
-using Content.Shared._Starlight.Plumbing.Components; // Starlight
 
 namespace Content.Server.Chemistry.EntitySystems
 {
@@ -27,17 +28,17 @@ namespace Content.Server.Chemistry.EntitySystems
     /// <seealso cref="ReagentDispenserComponent"/>
     /// </summary>
     [UsedImplicitly]
-    public sealed class ReagentDispenserSystem : EntitySystem
+    public sealed partial class ReagentDispenserSystem : EntitySystem
     {
-        [Dependency] private readonly AudioSystem _audioSystem = default!;
-        [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-        [Dependency] private readonly SolutionTransferSystem _solutionTransferSystem = default!;
-        [Dependency] private readonly ItemSlotsSystem _itemSlotsSystem = default!;
-        [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly OpenableSystem _openable = default!;
-        [Dependency] private readonly LabelSystem _label = default!; // Frontier
-        [Dependency] private readonly SharedContainerSystem _containers = default!; // Frontier
+        [Dependency] private AudioSystem _audioSystem = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+        [Dependency] private SolutionTransferSystem _solutionTransferSystem = default!;
+        [Dependency] private ItemSlotsSystem _itemSlotsSystem = default!;
+        [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private OpenableSystem _openable = default!;
+        [Dependency] private LabelSystem _label = default!; // Frontier
+        [Dependency] private SharedContainerSystem _containers = default!; // Frontier
 
         public override void Initialize()
         {
@@ -59,9 +60,6 @@ namespace Content.Server.Chemistry.EntitySystems
             SubscribeLocalEvent<ReagentDispenserComponent, ReagentDispenserClearContainerSolutionMessage>(OnClearContainerSolutionMessage);
 
             SubscribeLocalEvent<ReagentDispenserComponent, MapInitEvent>(OnMapInit, before: new []{typeof(ItemSlotsSystem)});
-            SubscribeLocalEvent<ReagentDispenserComponent, ComponentInit>(OnDispenserInit); // FIX: Added ComponentInit subscription
-
-            SubscribeLocalEvent<ReagentDispenserComponent, ReagentDispenserToggleValveMessage>(OnToggleValveMessage);
         }
 
         private void SubscribeUpdateUiState<T>(Entity<ReagentDispenserComponent> ent, ref T ev)
@@ -134,8 +132,7 @@ namespace Content.Server.Chemistry.EntitySystems
 
             var inventory = GetInventory(reagentDispenser);
 
-            var valveOpen = TryComp<PlumbingOutletComponent>(reagentDispenser.Owner, out var plumbingOutlet) && plumbingOutlet.Enabled; // Starlight-edit: Plumbing valve
-            var state = new ReagentDispenserBoundUserInterfaceState(outputContainerInfo, GetNetEntity(outputContainer), inventory, reagentDispenser.Comp.DispenseAmount, valveOpen); // Starlight: Valve
+            var state = new ReagentDispenserBoundUserInterfaceState(outputContainerInfo, GetNetEntity(outputContainer), inventory, reagentDispenser.Comp.DispenseAmount);
             _userInterfaceSystem.SetUiState(reagentDispenser.Owner, ReagentDispenserUiKey.Key, state);
         }
 
@@ -232,19 +229,6 @@ namespace Content.Server.Chemistry.EntitySystems
             ClickSound(reagentDispenser);
         }
 
-        // Starlight-start: Plumbing valve toggle
-        private void OnToggleValveMessage(Entity<ReagentDispenserComponent> reagentDispenser, ref ReagentDispenserToggleValveMessage message)
-        {
-            if (!TryComp<PlumbingOutletComponent>(reagentDispenser.Owner, out var plumbingOutlet))
-                return;
-
-            plumbingOutlet.Enabled = !plumbingOutlet.Enabled;
-            Dirty(reagentDispenser.Owner, plumbingOutlet);
-            UpdateUiState(reagentDispenser);
-            ClickSound(reagentDispenser);
-        }
-        // Starlight-end
-
         private void ClickSound(Entity<ReagentDispenserComponent> reagentDispenser)
         {
             _audioSystem.PlayPvs(reagentDispenser.Comp.ClickSound, reagentDispenser, AudioParams.Default.WithVolume(-2f));
@@ -304,32 +288,6 @@ namespace Content.Server.Chemistry.EntitySystems
                 }
             }
             // End Frontier
-        }
-
-        /// <summary>
-        /// FIX: Initialize dispenser slots when component initializes.
-        /// For dispensers loaded from save (where slots were cleared), this recreates them.
-        /// For fresh spawns, MapInit/RefreshParts already handled it.
-        /// </summary>
-        private void OnDispenserInit(EntityUid uid, ReagentDispenserComponent component, ComponentInit args)
-        {
-            // If slots are empty (loaded from save with cleared slots), trigger RefreshParts
-            if (component.StorageSlots.Count == 0)
-            {
-                Logger.Info($"Dispenser {uid} has no slots (loaded from save), creating them via RefreshParts");
-
-                // Create default part ratings - base parts (rating 1.0)
-                var partRatings = new Dictionary<string, float>
-                {
-                    { component.SlotUpgradeMachinePart, 1.0f }
-                };
-
-                // Trigger RefreshParts to create the slots
-				var ev = new RefreshPartsEvent { PartRatings = partRatings };
-				RaiseLocalEvent(uid, ev);
-
-                Logger.Info($"Created {component.StorageSlots.Count} storage slots for dispenser {uid}");
-            }
         }
 
         // Frontier: upgradable parts

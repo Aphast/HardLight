@@ -2,16 +2,17 @@ using Content.Shared.Light;
 using Robust.Client.Animations;
 using Robust.Client.GameObjects;
 using Robust.Shared.Animations;
+using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Random;
 
 namespace Content.Client.Light.Visualizers;
 
-public sealed class PoweredLightVisualizerSystem : VisualizerSystem<PoweredLightVisualsComponent>
+public sealed partial class PoweredLightVisualizerSystem : VisualizerSystem<PoweredLightVisualsComponent>
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
 
     public override void Initialize()
     {
@@ -53,14 +54,12 @@ public sealed class PoweredLightVisualizerSystem : VisualizerSystem<PoweredLight
     /// </summary>
     private void OnAnimationCompleted(EntityUid uid, PoweredLightVisualsComponent comp, AnimationCompletedEvent args)
     {
-        if (!TryComp<AnimationPlayerComponent>(uid, out var animationPlayer))
-            return;
         if (args.Key != PoweredLightVisualsComponent.BlinkingAnimationKey)
             return;
         if (!comp.IsBlinking)
             return;
 
-        AnimationSystem.Play((uid, animationPlayer), BlinkingAnimation(comp), PoweredLightVisualsComponent.BlinkingAnimationKey);
+        AnimationSystem.Play(uid, Comp<AnimationPlayerComponent>(uid), BlinkingAnimation(comp), PoweredLightVisualsComponent.BlinkingAnimationKey);
     }
 
     /// <summary>
@@ -77,7 +76,7 @@ public sealed class PoweredLightVisualizerSystem : VisualizerSystem<PoweredLight
         var animationPlayer = EnsureComp<AnimationPlayerComponent>(uid);
         if (shouldBeBlinking)
         {
-            AnimationSystem.Play((uid, animationPlayer), BlinkingAnimation(comp), PoweredLightVisualsComponent.BlinkingAnimationKey);
+            AnimationSystem.Play(uid, animationPlayer, BlinkingAnimation(comp), PoweredLightVisualsComponent.BlinkingAnimationKey);
         }
         else if (AnimationSystem.HasRunningAnimation(uid, animationPlayer, PoweredLightVisualsComponent.BlinkingAnimationKey))
         {

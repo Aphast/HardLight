@@ -9,41 +9,44 @@ using Content.Shared.Administration.Logs;
 using Content.Server.Radio.EntitySystems;
 using Content.Shared.Cargo;
 using Content.Shared.Cargo.Components;
-using Content.Shared.Cargo.Prototypes;
-using Content.Shared.CCVar;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Paper;
 using JetBrains.Annotations;
 using Robust.Server.GameObjects;
 using Robust.Shared.Audio.Systems;
-using Robust.Shared.Configuration;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Timing;
 using Robust.Shared.Random;
+using Content.Server._NF.SectorServices; // Frontier
+using Content.Shared.Whitelist;
+using Content.Server._NF.Bank; // Frontier
 
 namespace Content.Server.Cargo.Systems;
 
 public sealed partial class CargoSystem : SharedCargoSystem
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly AccessReaderSystem _accessReaderSystem = default!;
-    [Dependency] private readonly DeviceLinkSystem _linker = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly ItemSlotsSystem _slots = default!;
-    [Dependency] private readonly PaperSystem _paperSystem = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly PricingSystem _pricing = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    // [Dependency] private readonly ShuttleConsoleSystem _console = default!; // Frontier: warning suppression
-    [Dependency] private readonly StackSystem _stack = default!;
-    [Dependency] private readonly StationSystem _station = default!;
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly MetaDataSystem _metaSystem = default!;
-    [Dependency] private readonly RadioSystem _radio = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IPrototypeManager _protoMan = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private AccessReaderSystem _accessReaderSystem = default!;
+    [Dependency] private DeviceLinkSystem _linker = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private ItemSlotsSystem _slots = default!;
+    [Dependency] private PaperSystem _paperSystem = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private PricingSystem _pricing = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private ShuttleConsoleSystem _console = default!;
+    [Dependency] private StackSystem _stack = default!;
+    [Dependency] private StationSystem _station = default!;
+    [Dependency] private UserInterfaceSystem _uiSystem = default!;
+    [Dependency] private MetaDataSystem _metaSystem = default!;
+    [Dependency] private SectorServiceSystem _sectorService = default!; // Frontier
+    [Dependency] private EntityWhitelistSystem _whitelist = default!; // Frontier
+    [Dependency] private BankSystem _bank = default!;
 
     private EntityQuery<TransformComponent> _xformQuery;
     private EntityQuery<CargoSellBlacklistComponent> _blacklistQuery;
@@ -67,59 +70,36 @@ public sealed partial class CargoSystem : SharedCargoSystem
         InitializeShuttle();
         InitializeTelepad();
         InitializeBounty();
-        InitializeFunds();
+        // Frontier: add specific initialization calls here.
+        InitializePirateBounty();
+        InitializeTradeCrates();
+        // End Frontier
     }
 
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
-        UpdateConsole();
+        UpdateConsole(frameTime);
         UpdateTelepad(frameTime);
         UpdateBounty();
     }
 
-    public void UpdateBankAccount(
-        Entity<StationBankAccountComponent?> ent,
-        int balanceAdded,
-        ProtoId<CargoAccountPrototype> account,
-        bool dirty = true)
-    {
-        UpdateBankAccount(
-            ent,
-            balanceAdded,
-            new Dictionary<ProtoId<CargoAccountPrototype>, double> { {account, 1} },
-            dirty: dirty);
-    }
-
-    /// <summary>
-    /// Adds or removes funds from the <see cref="StationBankAccountComponent"/>.
-    /// </summary>
-    /// <param name="ent">The station.</param>
-    /// <param name="balanceAdded">The amount of funds to add or remove.</param>
-    /// <param name="accountDistribution">The distribution between individual <see cref="CargoAccountPrototype"/>.</param>
-    /// <param name="dirty">Whether to mark the bank account component as dirty.</param>
     [PublicAPI]
-    public void UpdateBankAccount(
-        Entity<StationBankAccountComponent?> ent,
-        int balanceAdded,
-        Dictionary<ProtoId<CargoAccountPrototype>, double> accountDistribution,
-        bool dirty = true)
+    public void UpdateBankAccount(EntityUid uid, StationBankAccountComponent component, int balanceAdded)
     {
-        if (!Resolve(ent, ref ent.Comp))
-            return;
+        component.Balance += balanceAdded;
+        var query = EntityQueryEnumerator<BankClientComponent, TransformComponent>();
 
-        foreach (var (account, percent) in accountDistribution)
+        var ev = new BankBalanceUpdatedEvent(uid, component.Balance);
+        while (query.MoveNext(out var client, out var comp, out var xform))
         {
-            var accountBalancedAdded = (int) Math.Round(percent * balanceAdded);
-            ent.Comp.Accounts[account] += accountBalancedAdded;
+            var station = _station.GetOwningStation(client, xform);
+            if (station != uid)
+                continue;
+
+            comp.Balance = component.Balance;
+            Dirty(client, comp);
+            RaiseLocalEvent(client, ref ev);
         }
-
-        var ev = new BankBalanceUpdatedEvent(ent, ent.Comp.Accounts);
-        RaiseLocalEvent(ent, ref ev, true);
-
-        if (!dirty)
-            return;
-
-        Dirty(ent);
     }
 }

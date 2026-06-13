@@ -16,9 +16,9 @@ namespace Content.Client.PDA
     [GenerateTypedNameReferences]
     public sealed partial class PdaMenu : PdaWindow
     {
-        [Dependency] private readonly IClipboardManager _clipboard = null!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly IEntitySystemManager _entitySystem = default!;
+        [Dependency] private IClipboardManager _clipboard = null!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private IEntitySystemManager _entitySystem = default!;
         private readonly ClientGameTicker _gameTicker;
 
         public const int HomeView = 0;
@@ -53,7 +53,6 @@ namespace Content.Client.PDA
             HomeButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/home.png"));
             FlashLightToggleButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/light.png"));
             EjectPenButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/pencil.png"));
-            EjectBookButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/gavel.png"));
             EjectIdButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/eject.png"));
             EjectPaiButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/pai.png"));
             ProgramCloseButton.IconTexture = new SpriteSpecifier.Texture(new("/Textures/Interface/Nano/cross.svg.png"));
@@ -154,8 +153,20 @@ namespace Content.Client.PDA
             if (state.PdaOwnerInfo.ActualOwnerName != null)
             {
                 _pdaOwner = state.PdaOwnerInfo.ActualOwnerName;
-                PdaOwnerLabel.SetMarkup(Loc.GetString("comp-pda-ui-owner",
-                    ("actualOwnerName", _pdaOwner)));
+
+                // Check if we have company information to display
+                if (!string.IsNullOrWhiteSpace(state.PdaOwnerInfo.CompanyName))
+                {
+                    PdaOwnerLabel.SetMarkup(Loc.GetString("comp-pda-ui-owner-with-company",
+                        ("actualOwnerName", _pdaOwner),
+                        ("companyName", state.PdaOwnerInfo.CompanyName),
+                        ("companyColor", state.PdaOwnerInfo.CompanyColor.ToHex())));
+                }
+                else
+                {
+                    PdaOwnerLabel.SetMarkup(Loc.GetString("comp-pda-ui-owner",
+                        ("actualOwnerName", _pdaOwner)));
+                }
                 PdaOwnerLabel.Visible = true;
             }
             else

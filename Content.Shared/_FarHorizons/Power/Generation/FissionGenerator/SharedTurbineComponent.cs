@@ -1,10 +1,3 @@
-// SPDX-FileCopyrightText: 2025 jhrushbe <capnmerry@gmail.com>
-// SPDX-FileCopyrightText: 2025 rottenheadphones <juaelwe@outlook.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
-//
-// SPDX-License-Identifier: CC-BY-NC-SA-3.0
-
-
 using Robust.Shared.Serialization;
 
 namespace Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
@@ -35,6 +28,7 @@ public sealed class TurbineBuiState : BoundUserInterfaceState
 
     // Stator load
     public float StatorLoadMin;
+    public float StatorLoadMax;
     public float StatorLoad;
 
     // Power generation
@@ -44,10 +38,6 @@ public sealed class TurbineBuiState : BoundUserInterfaceState
     // Health
     public float Health;
     public float HealthMax;
-
-    // Parts
-    public NetEntity? Blade;
-    public NetEntity? Stator;
 }
 
 [Serializable, NetSerializable]

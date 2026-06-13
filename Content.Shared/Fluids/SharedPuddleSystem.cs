@@ -8,6 +8,7 @@ using Content.Shared.FixedPoint;
 using Content.Shared.Fluids.Components;
 using Content.Shared.Movement.Events;
 using Content.Shared.StepTrigger.Components;
+using Content.Shared.Atmos;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
 
@@ -15,9 +16,9 @@ namespace Content.Shared.Fluids;
 
 public abstract partial class SharedPuddleSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
 
     /// <summary>
     /// The lowest threshold to be considered for puddle sprite states as well as slipperiness of a puddle.
@@ -35,6 +36,7 @@ public abstract partial class SharedPuddleSystem : EntitySystem
         SubscribeLocalEvent<RefillableSolutionComponent, CanDropDraggedEvent>(OnRefillableCanDropDragged);
         SubscribeLocalEvent<PuddleComponent, GetFootstepSoundEvent>(OnGetFootstepSound);
         SubscribeLocalEvent<PuddleComponent, ExaminedEvent>(HandlePuddleExamined);
+        SubscribeLocalEvent<PuddleComponent, TileFireEvent>(OnPuddleBurn);
 
         InitializeSpillable();
     }
@@ -110,6 +112,17 @@ public abstract partial class SharedPuddleSystem : EntitySystem
             else
                 args.PushMarkup(Loc.GetString("puddle-component-examine-evaporating-no"));
         }
+    }
+
+    public void OnPuddleBurn(Entity<PuddleComponent> ent, ref TileFireEvent args)
+    {
+        if (!_solutionContainerSystem.ResolveSolution(ent.Owner,
+                ent.Comp.SolutionName,
+                ref ent.Comp.Solution,
+                out var solution))
+            return;
+        _solutionContainerSystem.BurnFlammableReagents(ent.Comp.Solution.Value, 0.05f);
+
     }
 
     #region Spill

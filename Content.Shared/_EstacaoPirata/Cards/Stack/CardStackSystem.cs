@@ -21,19 +21,19 @@ namespace Content.Shared._EstacaoPirata.Cards.Stack;
 /// It is used to shuffle, flip, insert, remove, and join stacks of cards.
 /// It also handles the events related to the stack of cards.
 /// </summary>
-public sealed class CardStackSystem : EntitySystem
+public sealed partial class CardStackSystem : EntitySystem
 {
     public const string ContainerId = "cardstack-container";
     public const int MaxCardsInStack = 212; // Frontier: four 53-card decks.
 
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly EntityManager _entityManager = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedStorageSystem _storage = default!;
-    [Dependency] private readonly CardHandSystem _cardHandSystem = default!; // Frontier
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private EntityManager _entityManager = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedStorageSystem _storage = default!;
+    [Dependency] private CardHandSystem _cardHandSystem = default!; // Frontier
+    [Dependency] private SharedHandsSystem _hands = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -91,9 +91,7 @@ public sealed class CardStackSystem : EntitySystem
         if (comp.Cards.Count >= MaxCardsInStack)
             return false;
 
-        if (!_container.Insert(card, comp.ItemContainer))
-            return false;
-
+        _container.Insert(card, comp.ItemContainer);
         comp.Cards.Add(card);
 
         Dirty(uid, comp);
@@ -158,18 +156,10 @@ public sealed class CardStackSystem : EntitySystem
         {
             if (firstComp.Cards.Count >= MaxCardsInStack)
                 break;
-
             _container.Remove(card, secondComp.ItemContainer);
             secondComp.Cards.Remove(card);
-
-            if (!_container.Insert(card, firstComp.ItemContainer))
-            {
-                _container.Insert(card, secondComp.ItemContainer);
-                secondComp.Cards.Add(card);
-                continue;
-            }
-
             firstComp.Cards.Add(card);
+            _container.Insert(card, firstComp.ItemContainer);
             changed = true;
         }
         if (changed)
@@ -207,18 +197,12 @@ public sealed class CardStackSystem : EntitySystem
     private void OnStartup(EntityUid uid, CardStackComponent component, ComponentStartup args)
     {
         component.ItemContainer = _container.EnsureContainer<Container>(uid, ContainerId);
-
-        component.Cards.Clear();
-        component.Cards.AddRange(component.ItemContainer.ContainedEntities);
-        Dirty(uid, component);
     }
 
     private void OnMapInit(EntityUid uid, CardStackComponent comp, MapInitEvent args)
     {
         if (_net.IsClient)
             return;
-
-        comp.ItemContainer = _container.EnsureContainer<Container>(uid, ContainerId);
 
         var coordinates = Transform(uid).Coordinates;
         var spawnedEntities = new List<EntityUid>();
@@ -351,18 +335,10 @@ public sealed class CardStackSystem : EntitySystem
         {
             if (secondComp.Cards.Count >= MaxCardsInStack)
                 break;
-
             _container.Remove(card, firstComp.ItemContainer);
             firstComp.Cards.Remove(card);
-
-            if (!_container.Insert(card, secondComp.ItemContainer))
-            {
-                _container.Insert(card, firstComp.ItemContainer);
-                firstComp.Cards.Add(card);
-                continue;
-            }
-
             secondComp.Cards.Add(card);
+            _container.Insert(card, secondComp.ItemContainer);
             changed = true;
         }
 

@@ -28,11 +28,6 @@
                                  Scale="2 2"
                                  VerticalAlignment="Center"
                                  Margin="4"/>
-                    <TextureRect Name="TechnologyIconTexture"
-                                 TextureScale="2 2"
-                                 VerticalAlignment="Center"
-                                 Margin="4"
-                                 Visible="False"/>
                 </BoxContainer>
                 <Control HorizontalExpand="True"
                          SizeFlagsStretchRatio="2"/>

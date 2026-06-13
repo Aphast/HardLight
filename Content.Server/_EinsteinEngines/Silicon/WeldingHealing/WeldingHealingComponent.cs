@@ -28,7 +28,7 @@ namespace Content.Server._EinsteinEngines.Silicon.WeldingHealing
         public int FuelCost = 5;
 
         [DataField]
-        public int DoAfterDelay = 1; // HL: Changed from 3 to 1 to match WizDen
+        public int DoAfterDelay = 3;
 
         /// <summary>
         ///     A multiplier that will be applied to the above if an entity is repairing themselves.

@@ -13,7 +13,7 @@ public sealed partial class PathfindingSystem
             return PathResult.Path;
         }
 
-        if (request.CancelToken.IsCancellationRequested)
+        if (request.Task.IsCanceled)
         {
             return PathResult.NoPath;
         }

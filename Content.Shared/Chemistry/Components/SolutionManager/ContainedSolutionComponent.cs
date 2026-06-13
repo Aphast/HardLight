@@ -13,30 +13,19 @@ namespace Content.Shared.Chemistry.Components.SolutionManager;
 /// Solution entities would just become an apporpriately composed entity hanging out in the container.
 /// Will probably require entities in components being given a relation to associate themselves with their container.
 /// </remarks>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 [Access(typeof(SharedSolutionContainerSystem))]
 public sealed partial class ContainedSolutionComponent : Component
 {
     /// <summary>
     /// The entity that the solution is contained in.
     /// </summary>
-    /// <remarks>
-    /// Networked manually (see <see cref="SharedSolutionContainerSystem"/>) using
-    /// <c>TryGetNetEntity</c> so a stale reference to a deleted container does not
-    /// spam stack-trace logs from PVS state generation every tick.
-    /// </remarks>
+    [DataField(required: true), AutoNetworkedField]
     public EntityUid Container;
 
     /// <summary>
     /// The name/key of the container the solution is located in.
     /// </summary>
-    [DataField(required: true)]
-    public string ContainerName = default!;
-}
-
-[Serializable, NetSerializable]
-public sealed class ContainedSolutionComponentState : ComponentState
-{
-    public NetEntity Container;
+    [DataField(required: true), AutoNetworkedField]
     public string ContainerName = default!;
 }

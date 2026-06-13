@@ -22,6 +22,13 @@ public sealed partial class MagazineVisualsComponent : Component
     /// Should we hide when the count is 0
     /// </summary>
     [DataField("zeroVisible")] public bool ZeroVisible;
+
+    /// <summary>
+    /// Goobstation.
+    /// Whether should only set zero step when there is no ammo left.
+    /// </summary>
+    [DataField]
+    public bool ZeroNoAmmo;
 }
 
 public enum GunVisualLayers : byte
@@ -30,5 +37,4 @@ public enum GunVisualLayers : byte
     BaseUnshaded,
     Mag,
     MagUnshaded,
-    Tip, // Starlight: added for speedloader bullet tips
 }

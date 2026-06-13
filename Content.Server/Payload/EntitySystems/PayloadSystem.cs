@@ -15,14 +15,13 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Server.Payload.EntitySystems;
 
-public sealed class PayloadSystem : EntitySystem
+public sealed partial class PayloadSystem : EntitySystem
 {
-    [Dependency] private readonly TagSystem _tagSystem = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IComponentFactory _componentFactory = default!;
-    [Dependency] private readonly ISerializationManager _serializationManager = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private ISerializationManager _serializationManager = default!;
 
     private static readonly ProtoId<TagPrototype> PayloadTag = "Payload";
 
@@ -92,13 +91,13 @@ public sealed class PayloadSystem : EntitySystem
         // ANY payload trigger that gets inserted can grant components. It is up to the construction graphs to determine trigger capacity.
         foreach (var (name, data) in trigger.Components)
         {
-            if (!_componentFactory.TryGetRegistration(name, out var registration))
+            if (!Factory.TryGetRegistration(name, out var registration))
                 continue;
 
             if (HasComp(uid, registration.Type))
                 continue;
 
-            if (_componentFactory.GetComponent(registration.Type) is not Component component)
+            if (Factory.GetComponent(registration.Type) is not Component component)
                 continue;
 
             var temp = (object) component;

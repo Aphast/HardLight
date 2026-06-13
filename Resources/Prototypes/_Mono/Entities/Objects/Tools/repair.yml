@@ -37,7 +37,7 @@
   components:
   - type: LimitedCharges
     maxCharges: 300
-    lastCharges: 100
+    charges: 100
 
 - type: entity
   id: ShipRepairDeviceEmpty
@@ -45,7 +45,7 @@
   suffix: Empty
   components:
   - type: LimitedCharges
-    lastCharges: 0
+    charges: 0
 
 - type: entity
   id: ShipRepairDeviceRecharging
@@ -55,7 +55,7 @@
   components:
   - type: LimitedCharges
     maxCharges: 300
-    lastCharges: 50
+    charges: 50
   - type: AutoRecharge
     rechargeDuration: 5
 
@@ -83,10 +83,10 @@
     sprite: _Mono/Objects/Tools/repair_device_item.rsi
     state: prefracture
   - type: LimitedCharges
-    maxCharges: 300
-    lastCharges: 50
+    maxCharges: 800
+    charges: 50
   - type: AutoRecharge
-    rechargeDuration: 3
+    rechargeDuration: 2
   - type: Tag
     tags:
     - ShipRepairTool

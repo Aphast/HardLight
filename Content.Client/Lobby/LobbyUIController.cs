@@ -1,4 +1,6 @@
 using System.Linq;
+using Content.Client._Mono.Company; // Mono
+using Content.Client._Mono.MonoCoins;
 using Content.Client.Guidebook;
 using Content.Client.Humanoid;
 using Content.Client.Inventory;
@@ -28,18 +30,20 @@ using Robust.Shared.Utility;
 
 namespace Content.Client.Lobby;
 
-public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState>, IOnStateExited<LobbyState>
+public sealed partial class LobbyUIController : UIController, IOnStateEntered<LobbyState>, IOnStateExited<LobbyState>
 {
-    [Dependency] private readonly IClientPreferencesManager _preferencesManager = default!;
-    [Dependency] private readonly IConfigurationManager _configurationManager = default!;
-    [Dependency] private readonly IFileDialogManager _dialogManager = default!;
-    [Dependency] private readonly ILogManager _logManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IResourceCache _resourceCache = default!;
-    [Dependency] private readonly IStateManager _stateManager = default!;
-    [Dependency] private readonly JobRequirementsManager _requirements = default!;
-    [Dependency] private readonly MarkingManager _markings = default!;
+    [Dependency] private IClientPreferencesManager _preferencesManager = default!;
+    [Dependency] private IConfigurationManager _configurationManager = default!;
+    [Dependency] private IFileDialogManager _dialogManager = default!;
+    [Dependency] private ILogManager _logManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IResourceCache _resourceCache = default!;
+    [Dependency] private IStateManager _stateManager = default!;
+    [Dependency] private JobRequirementsManager _requirements = default!;
+    [Dependency] private MarkingManager _markings = default!;
+    [Dependency] private CompanyManager _companyManager = default!; // Mono
+    [Dependency] private MonoCoinsManager _monoCoins = default!; // Mono
     [UISystemDependency] private readonly HumanoidAppearanceSystem _humanoid = default!;
     [UISystemDependency] private readonly ClientInventorySystem _inventory = default!;
     [UISystemDependency] private readonly StationSpawningSystem _spawn = default!;
@@ -76,6 +80,40 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
         _configurationManager.OnValueChanged(CCVars.GameRoleTimers, _ => RefreshProfileEditor());
 
         _configurationManager.OnValueChanged(CCVars.GameRoleWhitelist, _ => RefreshProfileEditor());
+    }
+
+    private bool _monoCoinsSubscribed = false;
+
+    /// <summary>
+    /// Safely subscribes to MonoCoins balance updates if not already subscribed.
+    /// </summary>
+    private void EnsureMonoCoinsSubscription()
+    {
+        if (!_monoCoinsSubscribed && _monoCoins != null)
+        {
+            _monoCoins.BalanceUpdated += OnMonoCoinsBalanceUpdated;
+            _monoCoinsSubscribed = true;
+        }
+    }
+
+    /// <summary>
+    /// Called when MonoCoins balance is updated from the server.
+    /// </summary>
+    private void OnMonoCoinsBalanceUpdated(long balance)
+    {
+        UpdateMonoCoinsDisplay();
+    }
+
+    /// <summary>
+    /// Updates the MonoCoins display in the lobby preview panel.
+    /// </summary>
+    private void UpdateMonoCoinsDisplay()
+    {
+        if (PreviewPanel == null)
+            return;
+
+        var balance = _monoCoins?.GetLastKnownBalance() ?? -1;
+        PreviewPanel.SetMonoCoinsText(Loc.GetString("server-currency-text", ("balance", balance)));
     }
 
     private LobbyCharacterPreviewPanel? GetLobbyPreview()
@@ -135,6 +173,9 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
     {
         PreviewPanel?.SetLoaded(true);
 
+        if (_stateManager.CurrentState is not LobbyState)
+            return;
+
         ReloadCharacterSetup();
     }
 
@@ -142,6 +183,10 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
     {
         PreviewPanel?.SetLoaded(_preferencesManager.ServerDataLoaded);
         ReloadCharacterSetup();
+
+        // Ensure MonoCoins subscription and request balance when entering lobby
+        EnsureMonoCoinsSubscription();
+        _monoCoins?.RequestBalance();
     }
 
     public void OnStateExited(LobbyState state)
@@ -184,27 +229,23 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
             PreviewPanel.SetSummaryText(string.Empty);
             PreviewPanel.SetBankBalanceText(string.Empty); // Frontier
             PreviewPanel.SetCompanyText(string.Empty); // Company Display
+            PreviewPanel.SetMonoCoinsText("server-currency-loading"); // MonoCoins Display
             return;
         }
 
-        // HardLight: Verify company exists, if not set it to "None".
-        // Wrapped in try/catch so a failure here can't abort ReloadCharacterSetup
-        // and leave the character picker empty (see character setup loading race).
-        try
+        // Verify company exists, if not set it to "None"
+        if (!string.IsNullOrEmpty(humanoid.Company) &&
+            humanoid.Company != "None" &&
+            !_prototypeManager.HasIndex<CompanyPrototype>(humanoid.Company))
         {
-            if (!string.IsNullOrEmpty(humanoid.Company) &&
-                humanoid.Company != "None" &&
-                !_prototypeManager.HasIndex<CompanyPrototype>(humanoid.Company))
-            {
-                // Create a new profile with the company set to "None"
-                humanoid = humanoid.WithCompany("None");
+            // Create a new profile with the company set to "None"
+            humanoid = humanoid.WithCompany("None");
 
-                // Never auto-write during preview refresh. Profile persistence must be explicit.
+            // Update the character in preferences
+            if (_preferencesManager.Preferences != null)
+            {
+                _preferencesManager.UpdateCharacter(humanoid, _preferencesManager.Preferences.SelectedCharacterIndex);
             }
-        }
-        catch (Exception e)
-        {
-            _logManager.GetSawmill("lobby").Error($"Error validating company on lobby preview refresh: {e}");
         }
 
         var dummy = LoadProfileEntity(humanoid, null, true);
@@ -216,12 +257,17 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
         var companyId = humanoid.Company;
         if (_prototypeManager.TryIndex<CompanyPrototype>(companyId, out var company))
         {
-            PreviewPanel.SetCompanyText($"Company: [color={company.Color.ToHex()}]{company.Name}[/color]");
+            PreviewPanel.SetCompanyText($"[color=white]Company:[/color] [color={company.Color.ToHex()}]{company.Name}[/color]");
         }
         else
         {
-            PreviewPanel.SetCompanyText($"Company: [color=yellow]{companyId}[/color]");
+            PreviewPanel.SetCompanyText($"[color=white]Company:[/color] [color=yellow]{companyId}[/color]");
         }
+
+        // MonoCoins Display - Request balance from server and update display
+        EnsureMonoCoinsSubscription();
+        _monoCoins?.RequestBalance();
+        UpdateMonoCoinsDisplay();
     }
 
     private void RefreshProfileEditor()
@@ -289,67 +335,69 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
 
     private (CharacterSetupGui, HumanoidProfileEditor) EnsureGui()
     {
-        if (_characterSetup == null || _profileEditor == null)
+        if (_characterSetup != null && _profileEditor != null)
         {
-            _profileEditor = new HumanoidProfileEditor(
-                _preferencesManager,
-                _configurationManager,
-                EntityManager,
-                _dialogManager,
-                _logManager,
-                _playerManager,
-                _prototypeManager,
-                _resourceCache,
-                _requirements,
-                _markings);
-
-            _profileEditor.OnOpenGuidebook += _guide.OpenHelp;
-
-            _characterSetup = new CharacterSetupGui(_profileEditor);
-
-            _characterSetup.CloseButton.OnPressed += _ =>
-            {
-                // Open the save panel if we have unsaved changes.
-                if (_profileEditor.Profile != null && _profileEditor.IsDirty)
-                {
-                    OpenSavePanel();
-
-                    return;
-                }
-
-                // Reset sliders etc.
-                CloseProfileEditor();
-            };
-
-            _profileEditor.Save += SaveProfile;
-
-            _characterSetup.SelectCharacter += args =>
-            {
-                _preferencesManager.SelectCharacter(args);
-                ReloadCharacterSetup();
-            };
-
-            _characterSetup.DeleteCharacter += args =>
-            {
-                _preferencesManager.DeleteCharacter(args);
-
-                // Reload everything
-                if (EditedSlot == args)
-                {
-                    ReloadCharacterSetup();
-                }
-                else
-                {
-                    // Only need to reload character pickers
-                    _characterSetup?.ReloadCharacterPickers();
-                }
-            };
+            _characterSetup.Visible = true;
+            _profileEditor.Visible = true;
+            return (_characterSetup, _profileEditor);
         }
 
-        _characterSetup.Visible = true;
-        _profileEditor.Visible = true;
+        _profileEditor = new HumanoidProfileEditor(
+            _preferencesManager,
+            _configurationManager,
+            EntityManager,
+            _dialogManager,
+            _logManager,
+            _playerManager,
+            _prototypeManager,
+            _resourceCache,
+            _requirements,
+            _markings,
+            _companyManager); // Mono
 
-        if (_stateManager.CurrentState is LobbyState lobby && _characterSetup.Parent == null)
+        _profileEditor.OnOpenGuidebook += _guide.OpenHelp;
+
+        _characterSetup = new CharacterSetupGui(_profileEditor);
+
+        _characterSetup.CloseButton.OnPressed += _ =>
+        {
+            // Open the save panel if we have unsaved changes.
+            if (_profileEditor.Profile != null && _profileEditor.IsDirty)
+            {
+                OpenSavePanel();
+
+                return;
+            }
+
+            // Reset sliders etc.
+            CloseProfileEditor();
+        };
+
+        _profileEditor.Save += SaveProfile;
+
+        _characterSetup.SelectCharacter += args =>
+        {
+            _preferencesManager.SelectCharacter(args);
+            ReloadCharacterSetup();
+        };
+
+        _characterSetup.DeleteCharacter += args =>
+        {
+            _preferencesManager.DeleteCharacter(args);
+
+            // Reload everything
+            if (EditedSlot == args)
+            {
+                ReloadCharacterSetup();
+            }
+            else
+            {
+                // Only need to reload character pickers
+                _characterSetup?.ReloadCharacterPickers();
+            }
+        };
+
+        if (_stateManager.CurrentState is LobbyState lobby)
         {
             lobby.Lobby?.CharacterSetupState.AddChild(_characterSetup);
         }
@@ -381,15 +429,7 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
     {
         var highPriorityJob = profile.JobPriorities.FirstOrDefault(p => p.Value == JobPriority.High).Key;
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract (what is resharper smoking?)
-        // Frontier: Proper fallback for missing prototypes
-        //return _prototypeManager.Index<JobPrototype>(highPriorityJob.Id ?? SharedGameTicker.FallbackOverflowJob);
-        if (highPriorityJob.Id is { } highPriorityJobId &&
-            _prototypeManager.TryIndex<JobPrototype>(highPriorityJobId, out var job))
-        {
-            return job;
-        }
-        return _prototypeManager.Index<JobPrototype>(SharedGameTicker.FallbackOverflowJob);
-        // End Frontier
+        return _prototypeManager.Index<JobPrototype>(highPriorityJob.Id ?? SharedGameTicker.FallbackOverflowJob);
     }
 
     public void GiveDummyLoadout(EntityUid uid, RoleLoadout? roleLoadout)
@@ -518,14 +558,6 @@ public sealed class LobbyUIController : UIController, IOnStateEntered<LobbyState
         }
 
         _humanoid.LoadProfile(dummyEnt, humanoid);
-
-        // Far Horizons start
-        if (humanoid != null)
-        {
-            var loadout = humanoid.GetSpeciesLoadoutOrDefault(_playerManager.LocalSession, _prototypeManager);
-            GiveDummyLoadout(dummyEnt, loadout);
-        }
-        // Far Horizons end
 
         if (humanoid != null && jobClothes)
         {

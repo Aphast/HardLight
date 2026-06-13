@@ -1,7 +1,6 @@
 using Robust.Shared.Map;
 using Robust.Shared.Serialization;
-using Content.Shared._NF.Shuttles.Events;
-using Content.Shared.Shuttles.Components; // Frontier - InertiaDampeningMode access
+using Content.Shared._NF.Shuttles.Events; // Frontier - InertiaDampeningMode access
 
 namespace Content.Shared.Shuttles.BUIStates;
 
@@ -22,6 +21,12 @@ public sealed class NavInterfaceState
 
     public Dictionary<NetEntity, List<DockingPortState>> Docks;
 
+    /// <summary>
+    /// Custom display names for network port buttons.
+    /// Key is the port ID, value is the display name.
+    /// </summary>
+    public Dictionary<string, string> NetworkPortNames = new();
+
     // Frontier fields
     /// <summary>
     /// Frontier - the state of the shuttle's inertial dampeners
@@ -37,26 +42,22 @@ public sealed class NavInterfaceState
     /// Frontier: settable coordinate visibility
     /// </summary>
     public bool HideCoords = false;
-
-    /// <summary>
-    /// Service Flags
-    /// </summary>
-    public ServiceFlags ServiceFlags { get; set; } // Frontier
     // End Frontier fields
+
     public NavInterfaceState(
         float maxRange,
         NetCoordinates? coordinates,
         Angle? angle,
         Dictionary<NetEntity, List<DockingPortState>> docks,
-        InertiaDampeningMode dampeningMode, // Frontier
-        ServiceFlags serviceFlags) // Frontier
+        InertiaDampeningMode dampeningMode, // Frontier: add dampeningMode
+        Dictionary<string, string>? networkPortNames = null)
     {
         MaxRange = maxRange;
         Coordinates = coordinates;
         Angle = angle;
         Docks = docks;
         DampeningMode = dampeningMode; // Frontier
-        ServiceFlags = serviceFlags; // Frontier
+        NetworkPortNames = networkPortNames ?? new Dictionary<string, string>();
     }
 }
 

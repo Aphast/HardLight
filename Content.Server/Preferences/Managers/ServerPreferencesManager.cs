@@ -4,12 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Content.Server.Database;
 using Content.Shared.CCVar;
-using Content.Shared.Chat;
 using Content.Shared.Preferences;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 
 namespace Content.Server.Preferences.Managers
@@ -18,16 +18,17 @@ namespace Content.Server.Preferences.Managers
     /// Sends <see cref="MsgPreferencesAndSettings"/> before the client joins the lobby.
     /// Receives <see cref="MsgSelectCharacter"/> and <see cref="MsgUpdateCharacter"/> at any time.
     /// </summary>
-    public sealed class ServerPreferencesManager : IServerPreferencesManager, IPostInjectInit
+    public sealed partial class ServerPreferencesManager : IServerPreferencesManager, IPostInjectInit
     {
-        [Dependency] private readonly IServerNetManager _netManager = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly IServerDbManager _db = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly IDependencyCollection _dependencies = default!;
-        [Dependency] private readonly ILogManager _log = default!;
-        [Dependency] private readonly UserDbDataManager _userDb = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
+        [Dependency] private IServerNetManager _netManager = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private IServerDbManager _db = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
+        [Dependency] private IDependencyCollection _dependencies = default!;
+        [Dependency] private IPrototypeManager _protos = default!;
+        [Dependency] private ILogManager _log = default!;
+        [Dependency] private UserDbDataManager _userDb = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
 
         // Cache player prefs on the server so we don't need as much async hell related to them.
         private readonly Dictionary<NetUserId, PlayerPrefData> _cachedPlayerPrefs =
@@ -53,7 +54,7 @@ namespace Content.Server.Preferences.Managers
 
             if (!_cachedPlayerPrefs.TryGetValue(userId, out var prefsData) || !prefsData.PrefsLoaded)
             {
-                _sawmill.Warning($"User {userId} tried to modify preferences before they loaded.");
+                Logger.WarningS("prefs", $"User {userId} tried to modify preferences before they loaded.");
                 return;
             }
 
@@ -86,10 +87,11 @@ namespace Content.Server.Preferences.Managers
             if (message.Profile == null)
                 _sawmill.Error($"User {userId} sent a {nameof(MsgUpdateCharacter)} with a null profile in slot {message.Slot}.");
             else
-                await SetProfile(userId, message.Slot, message.Profile);
+                await SetProfile(userId, message.Slot, message.Profile, false);
         }
 
-        public async Task SetProfile(NetUserId userId, int slot, ICharacterProfile profile)
+        public async Task SetProfile(NetUserId userId, int slot, ICharacterProfile profile,
+            bool authoritative = true) // Mono
         {
             if (!_cachedPlayerPrefs.TryGetValue(userId, out var prefsData) || !prefsData.PrefsLoaded)
             {
@@ -104,8 +106,17 @@ namespace Content.Server.Preferences.Managers
             var session = _playerManager.GetSessionById(userId);
 
             profile.EnsureValid(session, _dependencies);
+            // Mono
+            if (!authoritative && profile is HumanoidCharacterProfile humanoid)
+            {
+                if (curPrefs.Characters.TryGetValue(slot, out var oldProfile) && oldProfile is HumanoidCharacterProfile oldHumanoid)
+                    profile = humanoid.WithBankBalance(oldHumanoid.BankBalance);
+                else
+                    profile = humanoid.WithBankBalance(HumanoidCharacterProfile.DefaultBalance);
+            }
 
             var profiles = new Dictionary<int, ICharacterProfile>(curPrefs.Characters)
+
             {
                 [slot] = profile
             };
@@ -123,7 +134,7 @@ namespace Content.Server.Preferences.Managers
 
             if (!_cachedPlayerPrefs.TryGetValue(userId, out var prefsData) || !prefsData.PrefsLoaded)
             {
-                _sawmill.Warning($"User {userId} tried to modify preferences before they loaded.");
+                Logger.WarningS("prefs", $"User {userId} tried to modify preferences before they loaded.");
                 return;
             }
 
@@ -179,7 +190,7 @@ namespace Content.Server.Preferences.Managers
                     PrefsLoaded = true,
                     Prefs = new PlayerPreferences(
                         new[] {new KeyValuePair<int, ICharacterProfile>(0, HumanoidCharacterProfile.Random())},
-                        0, ChatChannel.OOC.TextColor())
+                        0, Color.Transparent)
                 };
 
                 _cachedPlayerPrefs[session.UserId] = prefsData;
@@ -283,26 +294,12 @@ namespace Content.Server.Preferences.Managers
 
         private async Task<PlayerPreferences> GetOrCreatePreferencesAsync(NetUserId userId, CancellationToken cancel)
         {
-            PlayerPreferences? prefs;
-            try
-            {
-                prefs = await _db.GetPlayerPreferencesAsync(userId, cancel);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _sawmill.Error($"Preference load failed safely for user {userId}: {ex}");
-                throw new UserDbDataManager.UserDbLoadException(
-                    "Your character data could not be loaded safely. Please contact server staff for profile recovery.",
-                    ex);
-            }
-
+            var prefs = await _db.GetPlayerPreferencesAsync(userId, cancel);
             if (prefs is null)
             {
-                // No prefs found, create new defaults.
                 return await _db.InitPrefsAsync(userId, HumanoidCharacterProfile.Random(), cancel);
             }
 
-            // Optionally, add further validation here if prefs could be malformed.
             return prefs;
         }
 
@@ -325,16 +322,6 @@ namespace Content.Server.Preferences.Managers
                 {
                     prefsData.Prefs = prefs;
                     prefsData.PrefsLoaded = true;
-
-                    // Refresh only needs structural normalization before resending prefs.
-                    // Avoid session-dependent loadout checks here because supporting data can still be loading.
-                    var collection = IoCManager.Instance!;
-                    var validatedChars = new Dictionary<int, ICharacterProfile>();
-                    foreach (var (slot, profile) in prefs.Characters)
-                    {
-                        validatedChars[slot] = profile.Validated(null, collection);
-                    }
-                    prefs = new PlayerPreferences(validatedChars, prefs.SelectedCharacterIndex, prefs.AdminOOCColor);
 
                     var msg = new MsgPreferencesAndSettings
                     {

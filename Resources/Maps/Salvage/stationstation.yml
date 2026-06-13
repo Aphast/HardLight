@@ -20,6 +20,7 @@ entities:
     components:
     - type: MetaData
     - type: Transform
+      parent: invalid
     - type: MapGrid
       chunks:
         -1,0:
@@ -2193,7 +2194,7 @@ entities:
     - type: Transform
       pos: -5.8173656,7.4934487
       parent: 179
-- proto: SpeedLoaderLightRifle
+- proto: SpeedLoader762x39mmFMJ
   entities:
   - uid: 156
     components:

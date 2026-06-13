@@ -2,7 +2,7 @@ name: Map Prototype Checker
 
 on:
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
     # Entity pathspecs - If any of these change (i.e. suffix changes etc), this check should run.
     - "Resources/Prototypes/Entities/**/*.yml"
@@ -14,6 +14,7 @@ on:
     # Also the mapchecker itself
     - ".github/mapchecker/**"
 
+
 permissions:
   contents: read
 
@@ -23,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4.2.2
+    - uses: actions/checkout@v3
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:

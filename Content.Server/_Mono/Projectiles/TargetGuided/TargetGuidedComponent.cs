@@ -39,17 +39,6 @@ public sealed partial class TargetGuidedComponent : Component
     public float CurrentSpeed;
 
     /// <summary>
-    /// Map-frame launch velocity inherited from the firing platform.
-    /// Guidance adjusts speed relative to this base vector.
-    /// </summary>
-    public System.Numerics.Vector2 InheritedVelocity;
-
-    /// <summary>
-    /// Whether <see cref="InheritedVelocity"/> has been initialized.
-    /// </summary>
-    public bool InheritedVelocityInitialized;
-
-    /// <summary>
     /// The target position to guide towards.
     /// </summary>
     [DataField]

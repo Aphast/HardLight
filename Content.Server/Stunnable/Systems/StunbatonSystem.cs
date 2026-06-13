@@ -1,24 +1,26 @@
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Power.Events;
-using Content.Server.Stunnable.Components;
-using Content.Shared._Goobstation.MartialArts;
 using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Damage.Events;
 using Content.Shared.Examine;
+using Content.Shared.Item;
 using Content.Shared.Item.ItemToggle;
 using Content.Shared.Item.ItemToggle.Components;
 using Content.Shared.Popups;
+using Content.Shared.Power;
+using Content.Shared.Power.Components;
 using Content.Shared.Stunnable;
 
 namespace Content.Server.Stunnable.Systems
 {
-    public sealed class StunbatonSystem : SharedStunbatonSystem
+    public sealed partial class StunbatonSystem : SharedStunbatonSystem
     {
-        [Dependency] private readonly RiggableSystem _riggableSystem = default!;
-        [Dependency] private readonly SharedPopupSystem _popup = default!;
-        [Dependency] private readonly BatterySystem _battery = default!;
-        [Dependency] private readonly ItemToggleSystem _itemToggle = default!;
+        [Dependency] private SharedItemSystem _item = default!;
+        [Dependency] private RiggableSystem _riggableSystem = default!;
+        [Dependency] private SharedPopupSystem _popup = default!;
+        [Dependency] private BatterySystem _battery = default!;
+        [Dependency] private ItemToggleSystem _itemToggle = default!;
 
         public override void Initialize()
         {
@@ -28,21 +30,17 @@ namespace Content.Server.Stunnable.Systems
             SubscribeLocalEvent<StunbatonComponent, SolutionContainerChangedEvent>(OnSolutionChange);
             SubscribeLocalEvent<StunbatonComponent, StaminaDamageOnHitAttemptEvent>(OnStaminaHitAttempt);
             SubscribeLocalEvent<StunbatonComponent, ItemToggleActivateAttemptEvent>(TryTurnOn);
+            SubscribeLocalEvent<StunbatonComponent, ItemToggledEvent>(ToggleDone);
             SubscribeLocalEvent<StunbatonComponent, ChargeChangedEvent>(OnChargeChanged);
         }
 
         private void OnStaminaHitAttempt(Entity<StunbatonComponent> entity, ref StaminaDamageOnHitAttemptEvent args)
         {
-            // Goobstation start
-            var energy = entity.Comp.EnergyPerUse;
-
-            if (!_itemToggle.IsActivated(entity.Owner)
-                || !TryComp<BatteryComponent>(entity.Owner, out var battery)
-                || !_battery.TryUseCharge(entity.Owner, energy, battery))
+            if (!_itemToggle.IsActivated(entity.Owner) ||
+            !TryComp<BatteryComponent>(entity.Owner, out var battery) || !_battery.TryUseCharge(entity.Owner, entity.Comp.EnergyPerUse, battery))
             {
                 args.Cancelled = true;
             }
-            // Goobstation end
         }
 
         private void OnExamined(Entity<StunbatonComponent> entity, ref ExaminedEvent args)
@@ -57,6 +55,11 @@ namespace Content.Server.Stunnable.Systems
                 var count = (int) (battery.CurrentCharge / entity.Comp.EnergyPerUse);
                 args.PushMarkup(Loc.GetString("melee-battery-examine", ("color", "yellow"), ("count", count)));
             }
+        }
+
+        private void ToggleDone(Entity<StunbatonComponent> entity, ref ItemToggledEvent args)
+        {
+            _item.SetHeldPrefix(entity.Owner, args.Activated ? "on" : "off");
         }
 
         private void TryTurnOn(Entity<StunbatonComponent> entity, ref ItemToggleActivateAttemptEvent args)

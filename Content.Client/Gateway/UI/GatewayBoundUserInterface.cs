@@ -25,11 +25,6 @@ public sealed class GatewayBoundUserInterface : BoundUserInterface
         {
             SendMessage(new GatewayOpenPortalMessage(destination));
         };
-
-        _window.SpawnDockingArm += destination =>
-        {
-            SendMessage(new GatewaySpawnDockingArmMessage(destination));
-        };
     }
 
     protected override void UpdateState(BoundUserInterfaceState state)

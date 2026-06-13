@@ -1,5 +1,3 @@
-# VRS port: Mono — Scrammer (random-teleport) action prototypes.
-
 # fallback action
 - type: entity
   id: ActionScrammerScram

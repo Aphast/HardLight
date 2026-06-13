@@ -3,6 +3,7 @@ using Content.Shared.FixedPoint;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
+using System.Numerics;
 
 namespace Content.Shared.Projectiles;
 
@@ -24,11 +25,13 @@ public sealed partial class ProjectileComponent : Component
     /// <summary>
     ///     User that shot this projectile.
     /// </summary>
+    [DataField, AutoNetworkedField]
     public EntityUid? Shooter;
 
     /// <summary>
     ///     Weapon used to shoot.
     /// </summary>
+    [DataField, AutoNetworkedField]
     public EntityUid? Weapon;
 
     /// <summary>
@@ -80,12 +83,6 @@ public sealed partial class ProjectileComponent : Component
     public bool ProjectileSpent;
 
     /// <summary>
-    ///     If true, the projectile has hit enough targets and should no longer interact with further collisions pending deletion.
-    /// </summary>
-    [DataField, AutoNetworkedField]
-    public bool DamagedEntity;
-
-    /// <summary>
     ///     When a projectile has this threshold set, it will continue to penetrate entities until the damage dealt reaches this threshold.
     /// </summary>
     [DataField]
@@ -104,11 +101,10 @@ public sealed partial class ProjectileComponent : Component
     public FixedPoint2 PenetrationAmount = FixedPoint2.Zero;
 
     /// <summary>
-    ///     Chance for this projectile to inflict a brief blindness effect on hit. 0 disables.
-    ///     Server-side systems may apply blinding when this is greater than 0.
+    ///     Mono: Determines either should be entity deleted on collision if damage == null or not.
     /// </summary>
     [DataField]
-    public float RandomBlindChance = 0f; // Frontier
+    public bool NoDamageDelete = true;
 
     // Goobstation Start
     [DataField]
@@ -116,10 +112,10 @@ public sealed partial class ProjectileComponent : Component
     // Goobstation End
 
     /// <summary>
-    ///     Mono - If true, when going at sufficient velocity to cause raycasts, will significantly decrease velocity to just below raycast threshold to increase stability.
+    ///     Mono - Needed for hack to allow us to work properly when raycasting through continuous batches of wall.
     /// </summary>
     [DataField]
-    public bool RaycastResetVelocity = true;
+    public Vector2? RaycastResetVelocity = null;
 
     // Mono
     [DataField]

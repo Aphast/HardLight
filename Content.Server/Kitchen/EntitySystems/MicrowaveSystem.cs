@@ -1,4 +1,5 @@
 using Content.Server.Administration.Logs;
+using Content.Server.Atmos.EntitySystems; // Mono
 using Content.Server.Body.Systems;
 using Content.Server.Construction;
 using Content.Server.Explosion.EntitySystems;
@@ -9,6 +10,7 @@ using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Temperature.Components;
 using Content.Server.Temperature.Systems;
+using Content.Shared.Atmos.Components; // Mono
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Part;
 using Content.Shared.Chemistry.Components.SolutionManager;
@@ -48,30 +50,32 @@ namespace Content.Server.Kitchen.EntitySystems
 {
     public sealed partial class MicrowaveSystem : EntitySystem // Frontier: add partial
     {
-        [Dependency] private readonly BodySystem _bodySystem = default!;
-        [Dependency] private readonly DeviceLinkSystem _deviceLink = default!;
-        [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-        [Dependency] private readonly PowerReceiverSystem _power = default!;
-        [Dependency] private readonly RecipeManager _recipeManager = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly LightningSystem _lightning = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly ExplosionSystem _explosion = default!;
-        [Dependency] private readonly SharedContainerSystem _container = default!;
-        [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
-        [Dependency] private readonly TagSystem _tag = default!;
-        [Dependency] private readonly TemperatureSystem _temperature = default!;
-        [Dependency] private readonly UserInterfaceSystem _userInterface = default!;
-        [Dependency] private readonly HandsSystem _handsSystem = default!;
-        [Dependency] private readonly SharedItemSystem _item = default!;
-        [Dependency] private readonly SharedStackSystem _stack = default!;
-        [Dependency] private readonly IPrototypeManager _prototype = default!;
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly SharedSuicideSystem _suicide = default!;
+        [Dependency] private AtmosphereSystem _atmosphereSystem = default!; // Mono
+        [Dependency] private BodySystem _bodySystem = default!;
+        [Dependency] private DeviceLinkSystem _deviceLink = default!;
+        [Dependency] private SharedPopupSystem _popupSystem = default!;
+        [Dependency] private PowerReceiverSystem _power = default!;
+        [Dependency] private RecipeManager _recipeManager = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
+        [Dependency] private SharedAudioSystem _audio = default!;
+        [Dependency] private LightningSystem _lightning = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private ExplosionSystem _explosion = default!;
+        [Dependency] private SharedContainerSystem _container = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutionContainer = default!;
+        [Dependency] private TagSystem _tag = default!;
+        [Dependency] private TemperatureSystem _temperature = default!;
+        [Dependency] private UserInterfaceSystem _userInterface = default!;
+        [Dependency] private HandsSystem _handsSystem = default!;
+        [Dependency] private SharedItemSystem _item = default!;
+        [Dependency] private SharedStackSystem _stack = default!;
+        [Dependency] private IPrototypeManager _prototype = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private SharedSuicideSystem _suicide = default!;
 
-        private static readonly EntProtoId MalfunctionSpark = new("Spark");
+        [ValidatePrototypeId<EntityPrototype>]
+        private const string MalfunctionSpark = "Spark";
 
         private static readonly ProtoId<TagPrototype> MetalTag = "Metal";
         private static readonly ProtoId<TagPrototype> PlasticTag = "Plastic";
@@ -194,6 +198,15 @@ namespace Content.Server.Kitchen.EntitySystems
                 if (TryComp<TemperatureComponent>(entity, out var tempComp))
                     _temperature.ChangeHeat(entity, heatToAdd * component.ObjectHeatMultiplier, false, tempComp);
 
+                // Mono Start - Heat gas tanks
+                if (TryComp<GasTankComponent>(entity, out var gasTank) && gasTank.Air != null)
+                {
+                    // Thermal energy to be added based on gas heat capacity
+                    var thermalEnergyToAdd = heatToAdd * component.ObjectHeatMultiplier;
+                    _atmosphereSystem.AddHeat(gasTank.Air, thermalEnergyToAdd);
+                }
+                // Mono End
+
                 if (!TryComp<SolutionContainerManagerComponent>(entity, out var solutions))
                     continue;
                 foreach (var (_, soln) in _solutionContainer.EnumerateSolutions((entity, solutions)))
@@ -214,8 +227,7 @@ namespace Content.Server.Kitchen.EntitySystems
             var totalReagentsToRemove = new Dictionary<string, FixedPoint2>(recipe.IngredientsReagents);
 
             // this is spaghetti ngl
-            // iterate over a snapshot to avoid modifying the collection while iterating
-            foreach (var item in component.Storage.ContainedEntities.ToArray())
+            foreach (var item in component.Storage.ContainedEntities)
             {
                 // use the same reagents as when we selected the recipe
                 if (!_solutionContainer.TryGetDrainableSolution(item, out var solutionEntity, out var solution))
@@ -247,30 +259,14 @@ namespace Content.Server.Kitchen.EntitySystems
             {
                 for (var i = 0; i < recipeSolid.Value; i++)
                 {
-                    // iterate over a snapshot to avoid modifying the collection while iterating
-                    foreach (var item in component.Storage.ContainedEntities.ToArray())
+                    foreach (var item in component.Storage.ContainedEntities)
                     {
                         string? itemID = null;
-                        StackComponent? stackComp = null;
 
-                        // If an entity has a stack component, prefer the entity prototype when the
-                        // stack spawns itself; otherwise use the stack prototype's spawn.
-                        if (TryComp<StackComponent>(item, out var sc))
+                        // If an entity has a stack component, use the stacktype instead of prototype id
+                        if (TryComp<StackComponent>(item, out var stackComp))
                         {
-                            stackComp = sc;
-                            if (HasComp<StackSpawnSelfComponent>(item))
-                            {
-                                var metaData = MetaData(item);
-                                if (metaData.EntityPrototype == null)
-                                {
-                                    continue;
-                                }
-                                itemID = metaData.EntityPrototype.ID;
-                            }
-                            else
-                            {
-                                itemID = _prototype.Index<StackPrototype>(stackComp.StackTypeId).Spawn;
-                            }
+                            itemID = _prototype.Index<StackPrototype>(stackComp.StackTypeId).Spawn;
                         }
                         else
                         {
@@ -289,11 +285,11 @@ namespace Content.Server.Kitchen.EntitySystems
 
                         if (stackComp is not null)
                         {
-                            _stack.Use(item, 1, stackComp);
-                            if (_stack.GetCount(item) <= 0)
+                            if (stackComp.Count == 1)
                             {
                                 _container.Remove(item, component.Storage);
                             }
+                            _stack.Use(item, 1, stackComp);
                             break;
                         }
                         else
@@ -453,27 +449,7 @@ namespace Content.Server.Kitchen.EntitySystems
             }
 
             args.Handled = true;
-
-            // Handle stacks: split them before inserting so each item is separate for recipes
-            if (TryComp<StackComponent>(args.Used, out var stack) && stack.Count > 1)
-            {
-                var splitEnt = _stack.Split(args.Used, 1, Transform(args.Used).Coordinates, stack);
-                if (splitEnt == null)
-                    return;
-
-                if (!_container.Insert(splitEnt.Value, ent.Comp.Storage))
-                {
-                    // If insertion failed, try to merge back to user's hands
-                    _stack.TryMergeToHands(splitEnt.Value, args.User);
-                    return;
-                }
-            }
-            else
-            {
-                // Non-stack item or single item stack - use normal insertion
-                _handsSystem.TryDropIntoContainer(args.User, args.Used, ent.Comp.Storage);
-            }
-
+            _handsSystem.TryDropIntoContainer(args.User, args.Used, ent.Comp.Storage);
             UpdateUserInterfaceState(ent, ent.Comp);
         }
 
@@ -498,11 +474,8 @@ namespace Content.Server.Kitchen.EntitySystems
 
         private void OnAnchorChanged(EntityUid uid, MicrowaveComponent component, ref AnchorStateChangedEvent args)
         {
-            if (TerminatingOrDeleted(uid))
-                return;
-
             if (!args.Anchored)
-                _container.EmptyContainer(component.Storage, force: TerminatingOrDeleted(uid));
+                _container.EmptyContainer(component.Storage);
         }
 
         private void OnRefreshParts(Entity<MicrowaveComponent> ent, ref RefreshPartsEvent args)
@@ -640,24 +613,10 @@ namespace Content.Server.Kitchen.EntitySystems
                 string? solidID = null;
                 int amountToAdd = 1;
 
-                // If a microwave recipe uses a stacked item, prefer the entity prototype when the
-                // stack is marked to spawn itself (StackSpawnSelf). Otherwise fall back to the
-                // stack prototype's configured spawn entity.
+                // If a microwave recipe uses a stacked item, use the default stack prototype id instead of prototype id
                 if (TryComp<StackComponent>(item, out var stackComp))
                 {
-                    if (HasComp<StackSpawnSelfComponent>(item))
-                    {
-                        var metaData = MetaData(item); //this simply begs for cooking refactor
-                        if (metaData.EntityPrototype is not null)
-                            solidID = metaData.EntityPrototype.ID;
-                        else
-                            solidID = _prototype.Index<StackPrototype>(stackComp.StackTypeId).Spawn;
-                    }
-                    else
-                    {
-                        solidID = _prototype.Index<StackPrototype>(stackComp.StackTypeId).Spawn;
-                    }
-
+                    solidID = _prototype.Index<StackPrototype>(stackComp.StackTypeId).Spawn;
                     amountToAdd = stackComp.Count;
                 }
                 else
@@ -708,10 +667,10 @@ namespace Content.Server.Kitchen.EntitySystems
 
         private void StopCooking(Entity<MicrowaveComponent> ent)
         {
-            RemComp<ActiveMicrowaveComponent>(ent);
+            RemCompDeferred<ActiveMicrowaveComponent>(ent);
             foreach (var solid in ent.Comp.Storage.ContainedEntities)
             {
-                RemComp<ActivelyMicrowavedComponent>(solid);
+                RemCompDeferred<ActivelyMicrowavedComponent>(solid);
             }
         }
 
@@ -800,15 +759,11 @@ namespace Content.Server.Kitchen.EntitySystems
                     }
                 }
 
-                // Stop cooking first to clean up ActiveMicrowaveComponent and ActivelyMicrowavedComponent
-                StopCooking((uid, microwave));
-
-                // Now empty the container - all items should eject properly
                 _container.EmptyContainer(microwave.Storage);
-
                 microwave.CurrentCookTimeEnd = TimeSpan.Zero;
                 UpdateUserInterfaceState(uid, microwave);
                 _audio.PlayPvs(microwave.FoodDoneSound, uid);
+                StopCooking((uid, microwave));
             }
         }
 

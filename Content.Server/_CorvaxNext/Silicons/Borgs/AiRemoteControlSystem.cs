@@ -1,44 +1,38 @@
+// SPDX-FileCopyrightText: 2025 GoobBot <uristmchands@proton.me>
+// SPDX-FileCopyrightText: 2025 ImHoks <142083149+ImHoks@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 ImHoks <imhokzzzz@gmail.com>
+// SPDX-FileCopyrightText: 2025 KillanGenifer <killangenifer@gmail.com>
+// SPDX-FileCopyrightText: 2025 gluesniffler <159397573+gluesniffler@users.noreply.github.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 using Content.Server.Radio.Components;
 using Content.Server.Silicons.Laws;
 using Content.Shared._CorvaxNext.Silicons.Borgs;
 using Content.Shared._CorvaxNext.Silicons.Borgs.Components;
 using Content.Shared.Actions;
-using Content.Shared.Containers.ItemSlots;
-using Content.Shared.Damage;
 using Content.Shared.Mind;
-using Content.Shared.Mobs;
-using Content.Shared.Mobs.Components;
-using Content.Shared.Mobs.Systems;
-using Content.Shared.Standing;
-using Content.Shared.Silicons.Borgs.Components;
 using Content.Shared.Silicons.Laws.Components;
 using Content.Shared.Silicons.StationAi;
 using Content.Shared.StationAi;
 using Content.Shared.Verbs;
+using Robust.Shared.Map; // Mono
 using Robust.Server.GameObjects;
-using Content.Shared.Body.Part;
-using Robust.Shared.Containers;
 using Robust.Shared.Player;
-using Content.Shared._HL.Silicons.Components;
-using Content.Shared.Interaction.Events;
-using Content.Server.Popups;
+using System.Threading.Tasks.Dataflow;
 
 namespace Content.Server._CorvaxNext.Silicons.Borgs;
 
-public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
+public sealed partial class AiRemoteControlSystem : SharedAiRemoteControlSystem
 {
-    [Dependency] private readonly SharedActionsSystem _actions = default!;
-    [Dependency] private readonly SiliconLawSystem _lawSystem = default!;
-    [Dependency] private readonly SharedStationAiSystem _stationAiSystem = default!;
-    [Dependency] private readonly SharedMindSystem _mind = default!;
-    [Dependency] private readonly UserInterfaceSystem _userInterface = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly MobThresholdSystem _mobThreshold = default!;
-    [Dependency] private readonly StandingStateSystem _standing = default!;
-    [Dependency] private readonly SharedTransformSystem _xformSystem = default!;
-    [Dependency] private readonly PositronicJumpSystem _positronicJumpSystem = default!; //Hardlight: Incorporates positronic jump system into transfer
-    [Dependency] private readonly TransformSystem _transformSystem = default!; //Used to prevent AI from selecting borgs from list that aren't on same grid
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private SiliconLawSystem _lawSystem = default!;
+    [Dependency] private SharedStationAiSystem _stationAiSystem = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
+    [Dependency] private UserInterfaceSystem _userInterface = default!;
+    [Dependency] private SharedTransformSystem _xformSystem = default!;
+
+    [Dependency] private IMapManager _map = default!; // Mono
 
     public override void Initialize()
     {
@@ -50,53 +44,6 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
         SubscribeLocalEvent<AiRemoteControllerComponent, GetVerbsEvent<AlternativeVerb>>(OnGetVerbs);
         SubscribeLocalEvent<StationAiHeldComponent, AiRemoteControllerComponent.RemoteDeviceActionMessage>(OnUiRemoteAction);
         SubscribeLocalEvent<StationAiHeldComponent, ToggleRemoteDevicesScreenEvent>(OnToggleRemoteDevicesScreen);
-
-        SubscribeLocalEvent<AiRemoteBrainComponent, EntGotInsertedIntoContainerMessage>(OnBrainInserted);
-        SubscribeLocalEvent<AiRemoteBrainComponent, EntGotRemovedFromContainerMessage>(OnBrainRemoved);
-
-        SubscribeLocalEvent<AIShuntReceiverComponent, UseInHandEvent>(OnShuntRadioUsed); //Hardlight: For setting the AIShuntRadioComponent grid
-    }
-
-    //Hardlight:
-    /// <summary>
-    /// Sets the receiver's assigned grid so an AI on that grid can access it.
-    /// </summary>
-    /// <param name="ent"></param>
-    /// <param name="args"></param>
-    private void OnShuntRadioUsed(Entity<AIShuntReceiverComponent> ent, ref UseInHandEvent args)
-    {
-        if (!TryComp<AIShuntReceiverComponent>(ent, out var radioComponent))
-            return;
-
-        radioComponent.AssignedGrid = _transformSystem.GetGrid(args.User);
-
-        _popupSystem.PopupEntity("Radio linked to local grid", args.User, args.User);
-    }
-    //Hardlight End
-
-    private void OnBrainInserted(EntityUid uid, AiRemoteBrainComponent component, EntGotInsertedIntoContainerMessage args)
-    {
-        var target = GetRemoteTarget(args.Container.Owner);
-        if (target != null)
-            EnsureComp<AiRemoteControllerComponent>(target.Value);
-    }
-
-    private void OnBrainRemoved(EntityUid uid, AiRemoteBrainComponent component, EntGotRemovedFromContainerMessage args)
-    {
-        var target = GetRemoteTarget(args.Container.Owner);
-        if (target != null)
-            RemComp<AiRemoteControllerComponent>(target.Value);
-    }
-
-    private EntityUid? GetRemoteTarget(EntityUid containerOwner)
-    {
-        if (HasComp<BorgChassisComponent>(containerOwner))
-            return containerOwner;
-
-        if (TryComp<BodyPartComponent>(containerOwner, out var bodyPart) && bodyPart.Body != null)
-            return bodyPart.Body.Value;
-
-        return null;
     }
 
     private void OnMapInit(Entity<AiRemoteControllerComponent> entity, ref MapInitEvent args)
@@ -151,11 +98,17 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
         if (!_mind.TryGetMind(ai, out var mindId, out var mind))
             return;
 
+        if (_mind.TryGetMind(entity, out _, out _))
+            return;
+
         if (!TryComp<StationAiHeldComponent>(ai, out var stationAiHeldComp))
             return;
 
         if (!TryComp<AiRemoteControllerComponent>(entity, out var aiRemoteComp))
             return;
+
+        if (!_map.TryFindGridAt(Transform(ai).MapPosition, out var grid, out var _) || Transform(entity).GridUid != grid)
+            return; // Mono no controlling borgs outside the ai's grid.
 
         if (TryComp(entity, out IntrinsicRadioTransmitterComponent? transmitter))
         {
@@ -177,20 +130,6 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
         aiRemoteComp.AiHolder = ai;
         aiRemoteComp.LinkedMind = mindId;
 
-        if (TryComp<MobStateComponent>(entity, out var mobState) && _mobState.IsDead(entity, mobState))
-        {
-            if (_mobThreshold.TryGetThresholdForState(entity, MobState.Critical, out var critThreshold)
-                && TryComp<DamageableComponent>(entity, out var damageable)
-                && damageable.TotalDamage < critThreshold)
-            {
-                _mobState.ChangeMobState(entity, MobState.Alive, mobState);
-            }
-            else
-                return;
-        }
-
-        _standing.Stand(entity, force: true);
-
         stationAiHeldComp.CurrentConnectedEntity = entity;
 
         if (!_stationAiSystem.TryGetCore(ai, out var stationAiCore))
@@ -203,47 +142,20 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
 
     private void OnToggleRemoteDevicesScreen(EntityUid uid, StationAiHeldComponent component, ToggleRemoteDevicesScreenEvent args)
     {
-        if (args.Handled || !TryComp<ActorComponent>(uid, out var actor))
+        if (args.Handled || !TryComp<ActorComponent>(args.Performer, out var actor))
             return;
         args.Handled = true;
 
-        //Hardlight: Gets AI's current grid
-        var aiGrid = _transformSystem.GetGrid(uid);
-
-        if (aiGrid == null)
-            return;
-        //Hardlight end
-
         _userInterface.TryToggleUi(uid, RemoteDeviceUiKey.Key, actor.PlayerSession);
 
-        //var query = EntityManager.EntityQueryEnumerator<AiRemoteControllerComponent>();
-        var query = EntityQueryEnumerator<BorgChassisComponent>();// Hardlight: Queries for Borg Chassis instead of AiRemoteController
+        var aiGrid = Transform(uid).GridUid; // Mono
+        var query = EntityManager.EntityQueryEnumerator<AiRemoteControllerComponent>();
         var remoteDevices = new List<RemoteDevicesData>();
 
         while (query.MoveNext(out var queryUid, out var comp))
         {
-            //Hardlight: Compares grid of potential targets to AI grid
-            //Rejects any that are not on the same parent grid
-            var targetEntity = GetEntity(GetNetEntity(queryUid));
-            var targetGrid = _transformSystem.GetGrid(targetEntity);
-
-            //Checks to make sure the borg entity has the AIShuntReceiver component
-            if (!TryComp<BorgChassisComponent>(targetEntity, out var chassis))
+            if (Transform(queryUid).GridUid != aiGrid)
                 continue;
-
-            if (!TryComp<AIShuntReceiverComponent>(chassis.BrainContainer.ContainedEntity, out var radioComponent))
-                continue;
-
-            //Checks to make sure AIShuntReceiver is set to proper grid
-            if (radioComponent.AssignedGrid == null || radioComponent?.AssignedGrid != aiGrid)
-                continue;
-
-            //Only lists borgs that pass the valid candidate check
-            //TODO: Consider potentially moving grid check into this function
-            if (!_positronicJumpSystem.IsTargetValidControlCandidate(uid, targetEntity))
-                continue;
-            //Hardlight end
-
             var data = new RemoteDevicesData
             {
                 NetEntityUid = GetNetEntity(queryUid),
@@ -264,15 +176,9 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
 
         var target = GetEntity(msg.RemoteAction?.Target);
 
-        //Hardlight: Swapped out AiRemoteController check as we're now doing
-        //all available shunting components.
-        if (target == null)
+        if (!HasComp<AiRemoteControllerComponent>(target))
             return;
 
-
-        //if (!HasComp<AiRemoteControllerComponent>(target))
-        //    return;
-        //Hardlight end
         switch (msg.RemoteAction?.ActionType)
         {
             case RemoteDeviceActionEvent.RemoteDeviceActionType.MoveToDevice:
@@ -283,8 +189,7 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
                 break;
 
             case RemoteDeviceActionEvent.RemoteDeviceActionType.TakeControl:
-                _positronicJumpSystem.TryTakeControl(uid, target.Value); //Hardlight: Swapped in shunting system
-                //AiTakeControl(uid, target.Value);
+                AiTakeControl(uid, target.Value);
                 break;
         }
     }
@@ -301,6 +206,6 @@ public sealed class AiRemoteControlSystem : SharedAiRemoteControlSystem
             return;
 
         var fromLaws = _lawSystem.GetLaws(from);
-        _lawSystem.SetLawsSilent(fromLaws.Laws, to);
+        _lawSystem.SetLaws(fromLaws.Laws, to, silent: true);
     }
 }

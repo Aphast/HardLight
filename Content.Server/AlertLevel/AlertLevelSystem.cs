@@ -12,15 +12,15 @@ using Content.Server._NF.SectorServices; // Frontier
 
 namespace Content.Server.AlertLevel;
 
-public sealed class AlertLevelSystem : EntitySystem
+public sealed partial class AlertLevelSystem : EntitySystem
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly ChatSystem _chatSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    // [Dependency] private readonly StationSystem _stationSystem = default!; // Frontier: sector-wide alerts
-    [Dependency] private readonly GameTicker _ticker = default!; // Frontier
-    [Dependency] private readonly SectorServiceSystem _sectorService = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private ChatSystem _chatSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private StationSystem _stationSystem = default!;
+    [Dependency] private GameTicker _ticker = default!; // Frontier
+    [Dependency] private SectorServiceSystem _sectorService = default!;
 
     // Until stations are a prototype, this is how it's going to have to be.
     public const string DefaultAlertLevelSet = "stationAlerts";
@@ -155,20 +155,6 @@ public sealed class AlertLevelSystem : EntitySystem
     }
 
     /// <summary>
-    /// Get the default alert level for a station entity.
-    /// Returns an empty string if the station has no alert levels defined.
-    /// </summary>
-    /// <param name="station">The station entity.</param>
-    public string GetDefaultLevel(Entity<AlertLevelComponent?> station)
-    {
-        if (!Resolve(station.Owner, ref station.Comp) || station.Comp.AlertLevels == null)
-        {
-            return string.Empty;
-        }
-        return station.Comp.AlertLevels.DefaultLevel;
-    }
-
-    /// <summary>
     /// Set the alert level based on the station's entity ID.
     /// </summary>
     /// <param name="station">Station entity UID.</param>
@@ -248,8 +234,11 @@ public sealed class AlertLevelSystem : EntitySystem
         if (announce && Resolve(station, ref dataComponent)) // Frontier: add Resolve for dataComponent
         {
             var stationName = dataComponent.EntityName; // Frontier: moved down
-            _chatSystem.DispatchStationAnnouncement(station, announcementFull, playDefaultSound: playDefault,
-                colorOverride: detail.Color, sender: stationName);
+            _chatSystem.DispatchGlobalAnnouncement(
+                announcementFull,
+                sender: stationName,
+                playSound: playDefault,
+                colorOverride: detail.Color);
         }
 
         RaiseLocalEvent(new AlertLevelChangedEvent(EntityUid.Invalid, level)); // Frontier: pass invalid, we have no station

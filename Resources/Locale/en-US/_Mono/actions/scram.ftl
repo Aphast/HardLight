@@ -1,1 +1,1 @@
-action-scram-popup-disabled = SCRAM is currently disabled.
+action-scram-popup-disabled = No Power!

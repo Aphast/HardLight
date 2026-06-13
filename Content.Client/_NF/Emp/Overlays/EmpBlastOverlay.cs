@@ -10,11 +10,11 @@ using Robust.Shared.Timing;
 
 namespace Content.Client._NF.Emp.Overlays
 {
-    public sealed class EmpBlastOverlay : Overlay
+    public sealed partial class EmpBlastOverlay : Overlay
     {
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
         private TransformSystem? _transform;
 
         private const float PvsDist = 25.0f;
@@ -22,14 +22,13 @@ namespace Content.Client._NF.Emp.Overlays
         public override OverlaySpace Space => OverlaySpace.WorldSpace;
         public override bool RequestScreenTexture => true;
 
-        private static readonly ProtoId<ShaderPrototype> EmpShaderId = "Emp";
         private readonly ShaderInstance _baseShader;
         private readonly Dictionary<EntityUid, (ShaderInstance shd, EmpShaderInstance instance)> _blasts = new();
 
         public EmpBlastOverlay()
         {
             IoCManager.InjectDependencies(this);
-            _baseShader = _prototypeManager.Index(EmpShaderId).Instance().Duplicate();
+            _baseShader = _prototypeManager.Index<ShaderPrototype>("Emp").Instance().Duplicate();
         }
 
         protected override bool BeforeDraw(in OverlayDrawArgs args)

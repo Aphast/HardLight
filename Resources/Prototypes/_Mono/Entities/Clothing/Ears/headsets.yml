@@ -1,15 +1,15 @@
+#TSFMC
 - type: entity
   parent: ClothingHeadsetAlt
   id: ClothingHeadsetAltTsfmc
-  name: ColSec over-ear headset
+  name: TSFMC over-ear headset
   components:
-  # HardLight: Redundancy
-  #- type: ContainerFill
-  #  containers:
-  #    key_slots:
-  #    - EncryptionKeyCommon
-  #    - EncryptionKeyNfsd
-  #    - EncryptionKeyCommand
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyCommon
+      - EncryptionKeyNfsd
+      - EncryptionKeyCommand
   - type: Sprite
     sprite: Clothing/Ears/Headsets/security.rsi
   - type: Clothing
@@ -18,13 +18,12 @@
 - type: entity
   parent: ClothingHeadsetAlt
   id: ClothingHeadsetAltTsfmcCommander
-  name: ColSec command over-ear headset
+  name: TSFMC command over-ear headset
   components:
-  # HardLight: Redundancy
-  #- type: ContainerFill
-  #  containers:
-  #    key_slots:
-  #    - EncryptionKeyStationMaster
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyStationMaster
   - type: Sprite
     sprite: Clothing/Ears/Headsets/security.rsi
   - type: Clothing
@@ -33,56 +32,114 @@
 - type: entity
   parent: ClothingHeadset
   id: ClothingHeadsetTsfmc
-  name: ColSec headset
+  name: TSFMC headset
   components:
   - type: Sprite
     sprite: Clothing/Ears/Headsets/security.rsi
   - type: Clothing
     sprite: Clothing/Ears/Headsets/security.rsi
-  # HardLight: Redundancy
-  #- type: ContainerFill
-  #  containers:
-  #    key_slots:
-  #    - EncryptionKeyCommon
-  #    - EncryptionKeyNfsd
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyCommon
+      - EncryptionKeyNfsd
 
 - type: entity
-  parent: [ClothingHeadsetUSSP] # HardLight: Parented to base headset.
+  parent: ClothingHeadsetAlt
+  id: ClothingHeadsetAltTsfmcMarsoc
+  name: TSFMC MARSOC over-ear headset
+  components:
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyCommand
+      - EncryptionKeyCommon
+      - EncryptionKeyNfsd
+      - EncryptionKeyTraffic
+      - EncryptionKeyMedical
+      - EncryptionKeySecurity
+      - EncryptionKeyCentCom
+  - type: Sprite
+    sprite: Clothing/Ears/Headsets/security.rsi
+  - type: Clothing
+    sprite: Clothing/Ears/Headsets/security.rsi
+
+- type: entity
+  parent: ClothingHeadsetAlt
+  id: ClothingHeadsetAltTsfmcMarsocFtl
+  name: TSFMC MARSOC command over-ear headset
+  components:
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyStationMaster
+      - EncryptionKeyCentCom
+  - type: Sprite
+    sprite: Clothing/Ears/Headsets/security.rsi
+  - type: Clothing
+    sprite: Clothing/Ears/Headsets/security.rsi
+
+#USSP
+- type: entity
+  parent: ClothingHeadsetAlt
   id: ClothingHeadsetUSSPCommand
   name: USSP command headset
+  description: A modular headset issued exclusively to high ranking USSP personnel. This headset will accept standard encryption keys and comes prefitted with a key for USSP Tactical Communications. Switching to the Strategic channel produces only static.
   components:
   - type: Sprite
     sprite: Clothing/Ears/Headsets/security.rsi
-    state: icon_alt # HardLight
   - type: Clothing
     sprite: Clothing/Ears/Headsets/security.rsi
-    equippedState: alt-equipped-EARS # HardLight
   - type: ContainerFill
-  # HardLight start: Replaced starting encryption keys with intrinsic radio channels.
-  - type: ActiveRadio
-    intrinsicChannels:
-    - USSPCommand
-    - USSP
-  - type: EncryptionKeyHolder
-    intrinsicChannels:
-    - USSPCommand
-    - USSP
-  # HardLight end
+    containers:
+      key_slots:
+      - EncryptionKeyCommon
+      - EncryptionKeyUssp
 
 - type: entity
-  parent: [ClothingHeadsetAlt, BaseC3Contraband, ContrabandClothing] # HardLight: Added BaseC3Contraband and ContrabandClothing.
+  parent: ClothingHeadsetAlt
   id: ClothingHeadsetUSSP
   name: USSP headset
+  description: The standard-issue headset of the USSP Defensive Navy for decades. This headset will accept standard encryption keys and comes prefitted with a key for USSP Tactical Communications.
   components:
   - type: Sprite
     sprite: Clothing/Ears/Headsets/security.rsi
   - type: Clothing
     sprite: Clothing/Ears/Headsets/security.rsi
-  # HardLight start: Replaced starting encryption keys with intrinsic radio channels.
-  - type: ActiveRadio
-    intrinsicChannels:
-    - USSP
-  - type: EncryptionKeyHolder
-    intrinsicChannels:
-    - USSP
-  # HardLight end
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyCommon
+      - EncryptionKeyUssp
+
+#PDV
+- type: entity
+  parent: [ClothingHeadsetAlt]
+  id: ClothingHeadsetAltVanguardCommand
+  name: vanguard command over-ear headset
+  components:
+    - type: Headset
+  #  - type: EncryptionKeyHolder #Mono parity with ClothingHeadset key capacity.
+  #      keySlots: 5
+    - type: ContainerFill
+      containers:
+        key_slots:
+          - EncryptionKeyFreelance
+          - EncryptionKeyVanguardCommand
+          - EncryptionKeyCommon # Mono
+    - type: Sprite
+      sprite: Clothing/Ears/Headsets/freelance.rsi
+    - type: Clothing
+      sprite: Clothing/Ears/Headsets/freelance.rsi
+
+#Overseer (Locker spare)
+- type: entity
+  parent: ClothingHeadsetAltCentCom
+  id: ClothingHeadsetAltCentComSR
+  components:
+  - type: ContainerFill
+    containers:
+      key_slots:
+      - EncryptionKeyCentCom
+      - EncryptionKeyStationMasterSR
+      - EncryptionKeyDiplomacy

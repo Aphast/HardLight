@@ -1,5 +1,4 @@
 using Content.Server.Administration.Managers;
-using Content.Server.Station.Components;
 using Content.Server.Station.Systems;
 using Content.Shared.Administration;
 using Content.Shared.CCVar;
@@ -12,12 +11,12 @@ using Robust.Shared.Prototypes;
 namespace Content.Server.GameTicking.Commands
 {
     [AnyCommand]
-    sealed class JoinGameCommand : IConsoleCommand
+    sealed partial class JoinGameCommand : IConsoleCommand
     {
-        [Dependency] private readonly IEntityManager _entManager = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IAdminManager _adminManager = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
+        [Dependency] private IEntityManager _entManager = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IAdminManager _adminManager = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
 
         public string Command => "joingame";
         public string Description => "";
@@ -64,19 +63,11 @@ namespace Content.Server.GameTicking.Commands
                 if (!int.TryParse(args[1], out var sid))
                 {
                     shell.WriteError(Loc.GetString("shell-argument-must-be-number"));
-                    return;
                 }
 
                 var station = _entManager.GetEntity(new NetEntity(sid));
                 var jobPrototype = _prototypeManager.Index<JobPrototype>(id);
-
-                if (station == EntityUid.Invalid || !_entManager.TryGetComponent<StationJobsComponent>(station, out var stationJobsComp))
-                {
-                    shell.WriteError("Invalid station selection.");
-                    return;
-                }
-
-                if (stationJobs.TryGetJobSlot(station, jobPrototype, out var slots, stationJobsComp) == false || slots == 0)
+                if(stationJobs.TryGetJobSlot(station, jobPrototype, out var slots) == false || slots == 0)
                 {
                     shell.WriteLine($"{jobPrototype.LocalizedName} has no available slots.");
                     return;

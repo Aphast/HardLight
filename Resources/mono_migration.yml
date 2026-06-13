@@ -1,11 +1,39 @@
-# SPDX-FileCopyrightText: 2025 Blu
-# SPDX-FileCopyrightText: 2025 BlueHNT
-# SPDX-FileCopyrightText: 2025 sleepyyapril
-#
-# SPDX-License-Identifier: AGPL-3.0-or-later
-
 CrescentMothershipComputer: null # missing from map
 ShipyardLiquidatorInfo: null # missing from map
+ShipyardCeresInfo: null
 StationEfficiencyCircuitBoard : null # item removed by wizden
-40mmGrenadeIncendiary: null # item removed
-40mmGrenadeStinger: null # item removed
+40mmGrenadeIncendiary: 40mmGrenadeThermobaric # item removed
+40mmGrenadeStinger: 40mmGrenadeBaton # item removed
+40mmGrenadeShrapnel: 40mmGrenadeFragmentation # item removed
+CircularShieldConsole: null # entity removed
+CircularShieldBase: ShieldGeneratorSmall
+
+# rogue->PDV AI core
+PlayerStationAiRogue: PlayerStationAiPDV
+
+# missile launchers rename.
+
+ShipMissileASM557: ShipMissileASM250
+ShipMissileASM302: ShipMissileASM150
+ShipMissileASM417: MissileProjectile50mmHE
+
+# shipgun caliber changes
+
+220mmCartridge: 220mmCartridgeAPHE
+VesperaMagazine: MissileMagazine50mmHE
+255mmCartridge: 255mmCartridgeAPHE
+Magazine57mm: Magazine57mmHE
+Magazine90mm: 90mmMagazineHE
+
+# bullets
+
+57mmBullet: 57mmBulletHE
+90mmBullet: 90mmBulletHE
+ShipCyrexaProjectile: 220mmBulletAPHE
+ShipBoforsProjectile: 255mmBulletAPHE
+
+# Hyperlink books
+
+HyperlinkBookSpaceLaw: null
+HyperlinkBookNfsdSop: null
+

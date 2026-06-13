@@ -1,20 +1,17 @@
 using Content.Shared.Containers.ItemSlots;
+using Content.Shared.Emp;
 using Content.Shared.PowerCell.Components;
 using Content.Shared.Rejuvenate;
-using Content.Shared.Tag;
-using Content.Shared.Whitelist;
 using Robust.Shared.Containers;
 using Robust.Shared.Timing;
 
 namespace Content.Shared.PowerCell;
 
-public abstract class SharedPowerCellSystem : EntitySystem
+public abstract partial class SharedPowerCellSystem : EntitySystem
 {
-    [Dependency] protected readonly IGameTiming Timing = default!;
-    [Dependency] private readonly ItemSlotsSystem _itemSlots = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
+    [Dependency] protected IGameTiming Timing = default!;
+    [Dependency] private ItemSlotsSystem _itemSlots = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
 
     public override void Initialize()
     {
@@ -26,6 +23,8 @@ public abstract class SharedPowerCellSystem : EntitySystem
         SubscribeLocalEvent<PowerCellSlotComponent, EntInsertedIntoContainerMessage>(OnCellInserted);
         SubscribeLocalEvent<PowerCellSlotComponent, EntRemovedFromContainerMessage>(OnCellRemoved);
         SubscribeLocalEvent<PowerCellSlotComponent, ContainerIsInsertingAttemptEvent>(OnCellInsertAttempt);
+
+        SubscribeLocalEvent<PowerCellComponent, EmpAttemptEvent>(OnCellEmpAttempt);
     }
 
     private void OnMapInit(Entity<PowerCellDrawComponent> ent, ref MapInitEvent args)
@@ -51,16 +50,6 @@ public abstract class SharedPowerCellSystem : EntitySystem
             return;
 
         if (!HasComp<PowerCellComponent>(args.EntityUid))
-        {
-            args.Cancel();
-            return;
-        }
-
-        // Special-case the NT-88 Peregrine magazine so it cannot be treated as a generic power cell.
-        var magazineRailgunTag = "MagazineRailgunTag";
-        if (_tag.HasTag(args.EntityUid, magazineRailgunTag) &&
-            (!_itemSlots.TryGetSlot(uid, component.CellSlotId, out var itemSlot) ||
-             !_whitelist.IsWhitelistPass(itemSlot.Whitelist, args.EntityUid)))
         {
             args.Cancel();
         }
@@ -94,12 +83,21 @@ public abstract class SharedPowerCellSystem : EntitySystem
             ent.Comp.NextUpdateTime = Timing.CurTime;
     }
 
+    private void OnCellEmpAttempt(EntityUid uid, PowerCellComponent component, EmpAttemptEvent args)
+    {
+        var parent = Transform(uid).ParentUid;
+        // relay the attempt event to the slot so it can cancel it
+        if (HasComp<PowerCellSlotComponent>(parent))
+            RaiseLocalEvent(parent, ref args);
+    }
+
     public void SetDrawEnabled(Entity<PowerCellDrawComponent?> ent, bool enabled)
     {
         if (!Resolve(ent, ref ent.Comp, false) || ent.Comp.Enabled == enabled)
             return;
 
         ent.Comp.Enabled = enabled;
+        QueueUpdate(ent); // Mono - fix, should be ported to wizden too
         Dirty(ent, ent.Comp);
     }
 

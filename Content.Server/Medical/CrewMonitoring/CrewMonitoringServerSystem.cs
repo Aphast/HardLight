@@ -11,12 +11,12 @@ using Content.Shared.DeviceNetwork.Components;
 
 namespace Content.Server.Medical.CrewMonitoring;
 
-public sealed class CrewMonitoringServerSystem : EntitySystem
+public sealed partial class CrewMonitoringServerSystem : EntitySystem
 {
-    [Dependency] private readonly SuitSensorSystem _sensors = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly DeviceNetworkSystem _deviceNetworkSystem = default!;
-    [Dependency] private readonly SingletonDeviceNetServerSystem _singletonServerSystem = default!;
+    [Dependency] private SuitSensorSystem _sensors = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private DeviceNetworkSystem _deviceNetworkSystem = default!;
+    [Dependency] private SingletonDeviceNetServerSystem _singletonServerSystem = default!;
 
     private const float UpdateRate = 3f;
     private float _updateDiff;
@@ -39,18 +39,11 @@ public sealed class CrewMonitoringServerSystem : EntitySystem
             return;
         _updateDiff -= UpdateRate;
 
-        var servers = EntityQueryEnumerator<CrewMonitoringServerComponent, TransformComponent>();
-        var processedMaps = new HashSet<MapId>();
+        var servers = EntityQueryEnumerator<CrewMonitoringServerComponent>();
 
-        while (servers.MoveNext(out var id, out var server, out var xform))
+        while (servers.MoveNext(out var id, out var server))
         {
             if (!_singletonServerSystem.IsActiveServer(id))
-                continue;
-
-            // VRS: suit sensors are map-scoped. Broadcasting every active crew monitor server
-            // globally causes station + expedition ship datasets to fight each other on clients.
-            // Keep one authoritative broadcast per map per tick.
-            if (!processedMaps.Add(xform.MapID))
                 continue;
 
             UpdateTimeout(id);
@@ -87,24 +80,11 @@ public sealed class CrewMonitoringServerSystem : EntitySystem
         if (!Resolve(uid, ref component))
             return;
 
-        List<string>? staleAddresses = null;
-
         foreach (var (address, sensor) in component.SensorStatus)
         {
-            var elapsed = _gameTiming.CurTime - sensor.Timestamp;
-            if (elapsed.TotalSeconds <= component.SensorTimeout)
-                continue;
-
-            staleAddresses ??= new List<string>();
-            staleAddresses.Add(address);
-        }
-
-        if (staleAddresses == null)
-            return;
-
-        foreach (var address in staleAddresses)
-        {
-            component.SensorStatus.Remove(address);
+            var dif = _gameTiming.CurTime - sensor.Timestamp;
+            if (dif.Seconds > component.SensorTimeout)
+                component.SensorStatus.Remove(address);
         }
     }
 

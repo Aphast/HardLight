@@ -9,21 +9,19 @@ using Content.Shared.Inventory.VirtualItem;
 using Content.Shared.Storage.EntitySystems;
 using Robust.Shared.Containers;
 using Robust.Shared.Input.Binding;
-using Robust.Shared.Network;
 
 namespace Content.Shared.Hands.EntitySystems;
 
 public abstract partial class SharedHandsSystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] protected readonly SharedContainerSystem ContainerSystem = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly SharedStorageSystem _storage = default!;
-    [Dependency] protected readonly SharedTransformSystem TransformSystem = default!;
-    [Dependency] private readonly SharedVirtualItemSystem _virtualSystem = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] protected SharedContainerSystem ContainerSystem = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private SharedStorageSystem _storage = default!;
+    [Dependency] protected SharedTransformSystem TransformSystem = default!;
+    [Dependency] private SharedVirtualItemSystem _virtualSystem = default!;
 
     protected event Action<Entity<HandsComponent>?>? OnHandSetActive;
 

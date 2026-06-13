@@ -3,13 +3,13 @@ using Content.Server.Body.Systems;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Devour;
 using Content.Shared.Devour.Components;
-using Content.Shared.Mobs.Components;
+using Content.Shared.Humanoid;
 
 namespace Content.Server.Devour;
 
-public sealed class DevourSystem : SharedDevourSystem
+public sealed partial class DevourSystem : SharedDevourSystem
 {
-    [Dependency] private readonly BloodstreamSystem _bloodstreamSystem = default!;
+    [Dependency] private BloodstreamSystem _bloodstreamSystem = default!;
 
     public override void Initialize()
     {
@@ -25,33 +25,29 @@ public sealed class DevourSystem : SharedDevourSystem
             return;
 
         var ichorInjection = new Solution(component.Chemical, component.HealRate);
-        var target = args.Args.Target;
-        var targetIsCreature = false;
 
-        if (target is EntityUid targetUid && HasComp<MobStateComponent>(targetUid))
+        if (component.FoodPreference == FoodPreference.All ||
+            (component.FoodPreference == FoodPreference.Humanoid && HasComp<HumanoidAppearanceComponent>(args.Args.Target)))
         {
-            targetIsCreature = true;
             ichorInjection.ScaleSolution(0.5f);
 
-            if (component.ShouldStoreDevoured)
+            if (component.ShouldStoreDevoured && args.Args.Target is not null)
             {
-                ContainerSystem.Insert(targetUid, component.Stomach);
+                ContainerSystem.Insert(args.Args.Target.Value, component.Stomach);
             }
+            _bloodstreamSystem.TryAddToChemicals(uid, ichorInjection);
         }
 
-        if (target is EntityUid targetEntity)
+        //TODO: Figure out a better way of removing structures via devour that still entails standing still and waiting for a DoAfter. Somehow.
+        //If it's not human, it must be a structure
+        else if (args.Args.Target != null)
         {
-            _bloodstreamSystem.TryAddToChemicals(uid, ichorInjection);
-
-            if (!targetIsCreature)
-            {
-                QueueDel(targetEntity);
-            }
+            QueueDel(args.Args.Target.Value);
         }
 
         _audioSystem.PlayPvs(component.SoundDevour, uid);
     }
-
+    
     private void OnGibContents(EntityUid uid, DevourerComponent component, ref BeingGibbedEvent args)
     {
         if (!component.ShouldStoreDevoured)

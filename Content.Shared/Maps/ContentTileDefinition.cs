@@ -9,7 +9,6 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype.Array;
-using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype.List;
 using Robust.Shared.Utility;
 using System.Numerics; // Mono
 
@@ -18,8 +17,9 @@ namespace Content.Shared.Maps
     [Prototype("tile")]
     public sealed partial class ContentTileDefinition : IPrototype, IInheritingPrototype, ITileDefinition
     {
-        public static readonly ProtoId<ToolQualityPrototype> PryingToolQuality = "Prying";
-        public static readonly ProtoId<ToolQualityPrototype> DiggingToolQuality = "Digging"; // Frontier
+        [ValidatePrototypeId<ToolQualityPrototype>]
+        public const string PryingToolQuality = "Prying";
+        public const string DiggingToolQuality = "Digging"; // Frontier
 
         public const string SpaceID = "Space";
 
@@ -45,16 +45,19 @@ namespace Content.Shared.Maps
         [DataField("isSubfloor")] public bool IsSubFloor { get; private set; }
 
         [DataField("baseTurf")]
-        public ProtoId<ContentTileDefinition>? BaseTurf { get; private set; }
-
-        /// <summary>
-        /// On what tiles this tile can be placed on. BaseTurf is already included.
-        /// </summary>
-        [DataField]
-        public List<ProtoId<ContentTileDefinition>> BaseWhitelist { get; private set; } = new();
+        public string BaseTurf { get; private set; } = string.Empty;
 
         [DataField]
         public PrototypeFlags<ToolQualityPrototype> DeconstructTools { get; set; } = new();
+
+        /// Monolith - Goobstation
+        /// Tile deconstruct do-after time multiplier
+        [DataField]
+        public float DeconstructTimeMultiplier { get; private set; }
+
+        // Delta V
+        // [DataField("canShovel")] public bool CanShovel { get; private set; }
+        //Delta V
 
         /// <remarks>
         /// Legacy AF but nice to have.
@@ -78,6 +81,11 @@ namespace Content.Shared.Maps
         [DataField("friction")] public float Friction { get; set; } = 1f;
 
         [DataField("variants")] public byte Variants { get; set; } = 1;
+
+        /// <summary>
+        ///     Allows the tile to be rotated/mirrored when placed on a grid.
+        /// </summary>
+        [DataField] public bool AllowRotationMirror { get; set; } = false;
 
         /// <summary>
         /// This controls what variants the `variantize` command is allowed to use.
@@ -131,6 +139,11 @@ namespace Content.Shared.Maps
         public float? MobAcceleration { get; private set; }
 
         [DataField("sturdy")] public bool Sturdy { get; private set; } = true;
+
+        /// <summary>
+        /// Can weather affect this tile.
+        /// </summary>
+        [DataField("weather")] public bool Weather = false;
 
         /// <summary>
         /// Is this tile immune to RCD deconstruct.

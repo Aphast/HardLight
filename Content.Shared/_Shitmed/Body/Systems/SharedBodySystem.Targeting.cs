@@ -28,14 +28,12 @@ namespace Content.Shared.Body.Systems;
 
 public partial class SharedBodySystem
 {
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private IRobustRandom _random = default!;
 
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
     private readonly string[] _severingDamageTypes = { "Slash", "Piercing", "Blunt" };
-    private static readonly ProtoId<DamageModifierSetPrototype> PartDamageSetId = "PartDamage";
     private const double IntegrityJobTime = 0.005;
     private readonly JobQueue _integrityJobQueue = new(IntegrityJobTime);
     public sealed class IntegrityJob : Job<object>
@@ -84,7 +82,7 @@ public partial class SharedBodySystem
             && damage <= entity.Comp.IntegrityThresholds[TargetIntegrity.HeavilyWounded]
             && _queryTargeting.HasComp(body)
             && !_mobState.IsDead(body))
-            _damageable.TryChangeDamage(entity, GetHealingSpecifier(entity), canSever: false, targetPart: GetTargetBodyPart(entity));
+            Damageable.TryChangeDamage(entity, GetHealingSpecifier(entity), canSever: false, targetPart: GetTargetBodyPart(entity));
     }
 
     public override void Update(float frameTime)
@@ -142,8 +140,8 @@ public partial class SharedBodySystem
                 // Otherwise we damage all parts equally (barotrauma, explosions, etc).
                 else if (damage != null)
                 {
-                    // Division by 10 cuz damaging all parts by the same damage by default is too much.
-                    damage /= 10;
+                    // Division by 2 cuz damaging all parts by the same damage by default is too much.
+                    damage /= 2;
                     targetPart = TargetBodyPart.All;
                 }
             }
@@ -177,7 +175,7 @@ public partial class SharedBodySystem
             && TryComp(partEnt.Comp.Body.Value, out InventoryComponent? inventory))
             _inventory.RelayEvent((partEnt.Comp.Body.Value, inventory), ref args);
 
-        if (Prototypes.TryIndex<DamageModifierSetPrototype>(PartDamageSetId, out var partModifierSet))
+        if (Prototypes.TryIndex<DamageModifierSetPrototype>("PartDamage", out var partModifierSet))
             args.Damage = DamageSpecifier.ApplyModifierSet(args.Damage, partModifierSet);
 
         args.Damage *= GetPartDamageModifier(partEnt.Comp.PartType);
@@ -204,7 +202,7 @@ public partial class SharedBodySystem
                 if (canEvade && TryEvadeDamage(entity, GetEvadeChance(targetType)))
                     continue;
 
-                var damageResult = _damageable.TryChangeDamage(part.FirstOrDefault().Id, damage * partMultiplier, ignoreResistances, canSever: canSever);
+                var damageResult = Damageable.TryChangeDamage(part.FirstOrDefault().Id, damage * partMultiplier, ignoreResistances, canSever: canSever);
                 if (damageResult != null && damageResult.GetTotal() != 0)
                     landed = true;
             }
@@ -435,7 +433,7 @@ public partial class SharedBodySystem
     {
         return partType switch
         {
-            BodyPartType.Head => 0.2f, // 20% damage, necks are hard to cut
+            BodyPartType.Head => 0.5f, // 50% damage, necks are hard to cut
             BodyPartType.Torso => 1.0f, // 100% damage
             BodyPartType.Arm => 0.7f, // 70% damage
             BodyPartType.Hand => 0.7f, // 70% damage

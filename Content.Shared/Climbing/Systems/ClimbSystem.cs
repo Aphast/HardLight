@@ -29,18 +29,18 @@ namespace Content.Shared.Climbing.Systems;
 
 public sealed partial class ClimbSystem : VirtualController
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlockerSystem = default!;
-    [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-    [Dependency] private readonly FixtureSystem _fixtureSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-    [Dependency] private readonly SharedContainerSystem _containers = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedStunSystem _stunSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _xformSystem = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private ActionBlockerSystem _actionBlockerSystem = default!;
+    [Dependency] private DamageableSystem _damageableSystem = default!;
+    [Dependency] private FixtureSystem _fixtureSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+    [Dependency] private SharedContainerSystem _containers = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedStunSystem _stunSystem = default!;
+    [Dependency] private SharedTransformSystem _xformSystem = default!;
 
     private const string ClimbingFixtureName = "climb";
     private const int ClimbingCollisionGroup = (int) (CollisionGroup.TableLayer | CollisionGroup.LowImpassable);
@@ -62,10 +62,8 @@ public sealed partial class ClimbSystem : VirtualController
         SubscribeLocalEvent<ClimbingComponent, ClimbDoAfterEvent>(OnDoAfter);
         SubscribeLocalEvent<ClimbingComponent, EndCollideEvent>(OnClimbEndCollide);
         SubscribeLocalEvent<ClimbingComponent, BuckledEvent>(OnBuckled);
-        SubscribeLocalEvent<ClimbingComponent, EntGotInsertedIntoContainerMessage>(OnStored);
 
         SubscribeLocalEvent<ClimbableComponent, CanDropTargetEvent>(OnCanDragDropOn);
-        SubscribeLocalEvent<ClimbableComponent, GetVerbsEvent<AlternativeVerb>>(AddClimbableVerb);
         SubscribeLocalEvent<ClimbableComponent, DragDropTargetEvent>(OnClimbableDragDrop);
 
         SubscribeLocalEvent<GlassTableComponent, ClimbedOnEvent>(OnGlassClimbed);
@@ -168,28 +166,13 @@ public sealed partial class ClimbSystem : VirtualController
         args.Handled = true;
     }
 
-    private void AddClimbableVerb(EntityUid uid, ClimbableComponent component, GetVerbsEvent<AlternativeVerb> args)
-    {
-        if (!args.CanAccess || !args.CanInteract || !_actionBlockerSystem.CanMove(args.User))
-            return;
-
-        if (!TryComp(args.User, out ClimbingComponent? climbingComponent) || climbingComponent.IsClimbing || !climbingComponent.CanClimb)
-            return;
-
-        // TODO VERBS ICON add a climbing icon?
-        args.Verbs.Add(new AlternativeVerb
-        {
-            Act = () => TryClimb(args.User, args.User, args.Target, out _, component),
-            Text = Loc.GetString("comp-climbable-verb-climb")
-        });
-    }
-
     private void OnClimbableDragDrop(EntityUid uid, ClimbableComponent component, ref DragDropTargetEvent args)
     {
         if (args.Handled)
             return;
 
-        TryClimb(args.User, args.Dragged, uid, out _, component);
+        // Goobstation - DragnDrop climbing fix after GoobDragDropSystem
+        args.Handled = TryClimb(args.User, args.Dragged, uid, out _, component);
     }
 
     public bool TryClimb(
@@ -235,27 +218,13 @@ public sealed partial class ClimbSystem : VirtualController
         };
 
         _audio.PlayPredicted(comp.StartClimbSound, climbable, user);
-        var success = _doAfterSystem.TryStartDoAfter(args, out id);
-
-        if (success)
-            climbing.DoAfter = id;
-
-        return success;
-
+        return _doAfterSystem.TryStartDoAfter(args, out id);
     }
 
     private void OnDoAfter(EntityUid uid, ClimbingComponent component, ClimbDoAfterEvent args)
     {
-        component.DoAfter = null;
-
         if (args.Handled || args.Cancelled || args.Args.Target == null || args.Args.Used == null)
             return;
-
-        if (_containers.IsEntityInContainer(uid))
-        {
-            args.Handled = true;
-            return;
-        }
 
         Climb(uid, args.Args.User, args.Args.Target.Value, climbing: component);
         args.Handled = true;
@@ -539,35 +508,9 @@ public sealed partial class ClimbSystem : VirtualController
         Climb(uid, uid, climbable, true, component);
     }
 
-    // EE - used in StandingStateSystem
-    public void ForciblyStopClimbing(EntityUid uid, ClimbingComponent? component = null)
-    {
-        StopClimb(uid, component);
-    }
-
     private void OnBuckled(EntityUid uid, ClimbingComponent component, ref BuckledEvent args)
     {
-        StopOrCancelClimb(uid, component);
-    }
-
-    private void OnStored(EntityUid uid, ClimbingComponent component, ref EntGotInsertedIntoContainerMessage args)
-    {
-        StopOrCancelClimb(uid, component);
-    }
-
-    private void StopOrCancelClimb(EntityUid uid, ClimbingComponent component)
-    {
-        if (component.IsClimbing)
-        {
-            StopClimb(uid, component);
-            return;
-        }
-
-        if (component.DoAfter != null)
-        {
-            _doAfterSystem.Cancel(component.DoAfter);
-            component.DoAfter = null;
-        }
+        StopClimb(uid, component);
     }
 
     private void OnGlassClimbed(EntityUid uid, GlassTableComponent component, ref ClimbedOnEvent args)

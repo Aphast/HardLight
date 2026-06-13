@@ -60,13 +60,13 @@ public sealed partial class StencilOverlay
         }, Color.Transparent);
 
         worldHandle.SetTransform(Matrix3x2.Identity);
-        worldHandle.UseShader(_protoManager.Index(StencilMaskId).Instance());
+        worldHandle.UseShader(_protoManager.Index(StencilMask).Instance());
         worldHandle.DrawTextureRect(res.Blep!.Texture, worldBounds);
         var curTime = _timing.RealTime;
         var sprite = _sprite.GetFrame(weatherProto.Sprite, curTime);
 
         // Draw the rain
-        worldHandle.UseShader(_protoManager.Index(StencilDrawId).Instance());
+        worldHandle.UseShader(_protoManager.Index(StencilDraw).Instance());
         _parallax.DrawParallax(worldHandle, worldAABB, sprite, curTime, position, Vector2.Zero, modulate: (weatherProto.Color ?? Color.White).WithAlpha(alpha));
 
         worldHandle.SetTransform(Matrix3x2.Identity);

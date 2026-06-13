@@ -1,6 +1,4 @@
-using Content.Shared._DV.Traits.Assorted; // DeltaV
-using Content.Shared._Shitmed.Targeting;  // Shitmed Change
-using Content.Shared.FixedPoint; // Starlight
+using Content.Shared._Shitmed.Targeting; // Shitmed Change
 using Robust.Shared.Serialization;
 
 namespace Content.Shared.MedicalScanner;
@@ -19,10 +17,9 @@ public sealed class HealthAnalyzerScannedUserMessage : BoundUserInterfaceMessage
     public Dictionary<TargetBodyPart, TargetIntegrity>? Body; // Shitmed Change
     public NetEntity? Part; // Shitmed Change
     public bool? Unrevivable;
-    public bool? Uncloneable; // DeltaV
-    public List<(string ReagentId, FixedPoint2 Quantity)>? MetabolizingReagents; // Starlight - list of metabolizing reagents inside scanned user
+    public bool? Uncloneable; // Frontier
 
-    public HealthAnalyzerScannedUserMessage(NetEntity? targetEntity, float temperature, float bloodLevel, bool? scanMode, bool? bleeding, bool? unrevivable, bool? uncloneable, Dictionary<TargetBodyPart, TargetIntegrity>? body, NetEntity? part = null, List<(string ReagentId, FixedPoint2 Quantity)>? metabolizingReagents = null) // Starlight - added metabolizingReagents parameter // Shitmed Change
+    public HealthAnalyzerScannedUserMessage(NetEntity? targetEntity, float temperature, float bloodLevel, bool? scanMode, bool? bleeding, bool? unrevivable, bool? uncloneable, Dictionary<TargetBodyPart, TargetIntegrity>? body, NetEntity? part = null) // Shitmed Change
     {
         TargetEntity = targetEntity;
         Temperature = temperature;
@@ -32,8 +29,7 @@ public sealed class HealthAnalyzerScannedUserMessage : BoundUserInterfaceMessage
         Body = body; // Shitmed Change
         Part = part; // Shitmed Change
         Unrevivable = unrevivable;
-        Uncloneable = uncloneable; // DeltaV
-        MetabolizingReagents = metabolizingReagents;
+        Uncloneable = uncloneable; // Frontier
     }
 }
 

@@ -1,7 +1,7 @@
-using Content.Server._NF.CryoSleep; // Frontier
 using Content.Server.Administration.Logs;
 using Content.Server.GameTicking;
 using Content.Server.Ghost;
+using Content.Server.Mind.Commands;
 using Content.Shared.Database;
 using Content.Shared.Ghost;
 using Content.Shared.Mind;
@@ -13,18 +13,18 @@ using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Utility;
 using System.Diagnostics.CodeAnalysis;
+using Content.Shared.Mobs.Components; // Goob Station
 
 namespace Content.Server.Mind;
 
-public sealed class MindSystem : SharedMindSystem
+public sealed partial class MindSystem : SharedMindSystem
 {
-    [Dependency] private readonly GameTicker _gameTicker = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IPlayerManager _players = default!;
-    [Dependency] private readonly GhostSystem _ghosts = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly PvsOverrideSystem _pvsOverride = default!;
-    [Dependency] private readonly CryoSleepSystem _cryo = default!; // Frontier
+    [Dependency] private GameTicker _gameTicker = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private IPlayerManager _players = default!;
+    [Dependency] private GhostSystem _ghosts = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private PvsOverrideSystem _pvsOverride = default!;
 
     public override void Initialize()
     {
@@ -63,14 +63,14 @@ public sealed class MindSystem : SharedMindSystem
         {
             TransferTo(mindId, visiting, mind: mind);
             if (TryComp(visiting, out GhostComponent? ghostComp))
-                _ghosts.SetCanReturnToBody((visiting, ghostComp), false);
+                _ghosts.SetCanReturnToBody(ghostComp, false);
             return;
         }
 
         TransferTo(mindId, null, createGhost: false, mind: mind);
         DebugTools.AssertNull(mind.OwnedEntity);
 
-        if (!component.GhostOnShutdown || !_players.TryGetSessionById(mind.UserId, out _) || _gameTicker.RunLevel == GameRunLevel.PreRoundLobby) // SS220 ghost-del-fix
+        if (!component.GhostOnShutdown || _gameTicker.RunLevel == GameRunLevel.PreRoundLobby)
             return;
 
         var ghost = _ghosts.SpawnGhost((mindId, mind), uid);
@@ -86,11 +86,11 @@ public sealed class MindSystem : SharedMindSystem
     {
         if (base.TryGetMind(user, out mindId, out mind))
         {
-            DebugTools.Assert(!_players.TryGetPlayerData(user, out var playerData) || playerData.ContentData() is not { } data || data.Mind == mindId);
+            DebugTools.Assert(_players.GetPlayerData(user).ContentData() is not { } data || data.Mind == mindId);
             return true;
         }
 
-        DebugTools.Assert(!_players.TryGetPlayerData(user, out var pData) || pData.ContentData()?.Mind == null);
+        DebugTools.Assert(_players.GetPlayerData(user).ContentData()?.Mind == null);
         return false;
     }
 
@@ -186,8 +186,8 @@ public sealed class MindSystem : SharedMindSystem
         {
             component = EnsureComp<MindContainerComponent>(entity.Value);
 
-            if (TryGetMind(entity.Value, out var entityMindId, out _) && entityMindId != mindId) // VRS: upstream fix #43177 - correctly checks entity's current mind
-                _ghosts.OnGhostAttempt(entityMindId, false);
+            if (component.HasMind)
+                _ghosts.OnGhostAttempt(component.Mind.Value, false);
 
             if (TryComp<ActorComponent>(entity.Value, out var actor))
             {
@@ -200,6 +200,9 @@ public sealed class MindSystem : SharedMindSystem
 
                 alreadyAttached = true;
             }
+
+            if (HasComp<MobStateComponent>(entity.Value))// Goob Station
+                mind.LastMob = entity.Value;
         }
         else if (createGhost)
         {
@@ -215,8 +218,7 @@ public sealed class MindSystem : SharedMindSystem
             entity = Spawn(GameTicker.ObserverPrototypeName, position);
             component = EnsureComp<MindContainerComponent>(entity.Value);
             var ghostComponent = Comp<GhostComponent>(entity.Value);
-            _ghosts.SetCanReturnToBody((entity.Value, ghostComponent), false);
-            _ghosts.SetCanReturnFromCryo(ghostComponent, mind.UserId != null ? _cryo.HasCryosleepingBody(mind.UserId.Value) : false); // Frontier
+            _ghosts.SetCanReturnToBody(ghostComponent, false);
         }
 
         var oldEntity = mind.OwnedEntity;
@@ -351,7 +353,7 @@ public sealed class MindSystem : SharedMindSystem
             return;
         }
 
-        MakeSentient(target);
+        MakeSentientCommand.MakeSentient(target, EntityManager);
         TransferTo(mindId, target, ghostCheckOverride: true, mind: mind);
     }
 }

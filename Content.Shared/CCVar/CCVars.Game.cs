@@ -11,6 +11,22 @@ public sealed partial class CCVars
     public static readonly CVarDef<bool>
         GameDummyTicker = CVarDef.Create("game.dummyticker", false, CVar.ARCHIVE | CVar.SERVERONLY);
 
+    // Mono Start
+    /// Enables the automatic voting system.
+    public static readonly CVarDef<bool> AutoVoteEnabled =
+        CVarDef.Create("vote.autovote_enabled", true, CVar.SERVERONLY);
+
+    /// Automatically starts a map vote when returning to the lobby.
+    /// Requires auto voting to be enabled.
+    public static readonly CVarDef<bool> MapAutoVoteEnabled =
+        CVarDef.Create("vote.map_autovote_enabled", false, CVar.SERVERONLY);
+
+    /// Automatically starts a gamemode vote when returning to the lobby.
+    /// Requires auto voting to be enabled.
+    public static readonly CVarDef<bool> PresetAutoVoteEnabled =
+        CVarDef.Create("vote.preset_autovote_enabled", true, CVar.SERVERONLY);
+    // Mono End
+
     /// <summary>
     ///     Controls if the lobby is enabled. If it is not, and there are no available jobs, you may get stuck on a black screen.
     /// </summary>
@@ -63,7 +79,7 @@ public sealed partial class CCVars
     ///     Controls the maximum number of character slots a player is allowed to have.
     /// </summary>
     public static readonly CVarDef<int>
-        GameMaxCharacterSlots = CVarDef.Create("game.maxcharacterslots", 100, CVar.ARCHIVE | CVar.SERVERONLY);
+        GameMaxCharacterSlots = CVarDef.Create("game.maxcharacterslots", 30, CVar.ARCHIVE | CVar.SERVERONLY);
 
     /// <summary>
     ///     Controls the game map prototype to load. SS14 stores these prototypes in Prototypes/Maps.
@@ -88,20 +104,20 @@ public sealed partial class CCVars
     ///     Prototype to use for map pool.
     /// </summary>
     public static readonly CVarDef<string>
-        GameMapPool = CVarDef.Create("game.map_pool", "NFMapPool", CVar.SERVERONLY); // Frontier: DefaultMapPool<NFMapPool
+        GameMapPool = CVarDef.Create("game.map_pool", "DefaultMapPool", CVar.SERVERONLY);
 
     /// <summary>
     ///     The depth of the queue used to calculate which map is next in rotation.
     ///     This is how long the game "remembers" that some map was put in play. Default is 16 rounds.
     /// </summary>
     public static readonly CVarDef<int>
-        GameMapMemoryDepth = CVarDef.Create("game.map_memory_depth", 2, CVar.SERVERONLY);
+        GameMapMemoryDepth = CVarDef.Create("game.map_memory_depth", 16, CVar.SERVERONLY);
 
     /// <summary>
     ///     Is map rotation enabled?
     /// </summary>
     public static readonly CVarDef<bool>
-        GameMapRotation = CVarDef.Create("game.map_rotation", true, CVar.SERVERONLY); // Frontier: false
+        GameMapRotation = CVarDef.Create("game.map_rotation", false, CVar.SERVERONLY); // Frontier: false
 
     /// <summary>
     ///     If roles should be restricted based on time.
@@ -131,7 +147,7 @@ public sealed partial class CCVars
     ///     When enabled, guests will be assigned permanent UIDs and will have their preferences stored.
     /// </summary>
     public static readonly CVarDef<bool> GamePersistGuests =
-        CVarDef.Create("game.persistguests", false, CVar.ARCHIVE | CVar.SERVERONLY);
+        CVarDef.Create("game.persistguests", true, CVar.ARCHIVE | CVar.SERVERONLY);
 
     public static readonly CVarDef<bool> GameDiagonalMovement =
         CVarDef.Create("game.diagonalmovement", true, CVar.ARCHIVE);
@@ -348,7 +364,7 @@ public sealed partial class CCVars
     ///     Defaults to 2 minutes.
     /// </summary>
     public static readonly CVarDef<float> RoundRestartTime =
-        CVarDef.Create("game.round_restart_time", 600f, CVar.SERVERONLY);
+        CVarDef.Create("game.round_restart_time", 120f, CVar.SERVERONLY);
 
     /// <summary>
     ///     The prototype to use for secret weights.
@@ -368,7 +384,7 @@ public sealed partial class CCVars
     ///     but may cause lag during round end with very high player counts.
     /// </summary>
     public static readonly CVarDef<bool> RoundEndPVSOverrides =
-        CVarDef.Create("game.round_end_pvs_overrides", false, CVar.SERVERONLY);
+        CVarDef.Create("game.round_end_pvs_overrides", true, CVar.SERVERONLY);
 
     /// <summary>
     ///     If true, players can place objects onto tabletop games like chess boards.
@@ -398,18 +414,25 @@ public sealed partial class CCVars
     public static readonly CVarDef<bool> GameHostnameInTitlebar =
         CVarDef.Create("game.hostname_in_titlebar", true, CVar.SERVER | CVar.REPLICATED);
 
+    /// Mono Changes Below
+
     /// <summary>
-    /// The maximum amount of tiles you can stack on top of each other. 0 is unlimited.
+    ///     Enable dynamic adjustment of role timers and whitelists based on player count.
     /// </summary>
     /// <remarks>
     /// Having it too high can result in "doomstacking" tiles - this messes with efficiency of explosions, deconstruction of tiles, and might result in memory problems.
     /// </remarks>
     public static readonly CVarDef<int> TileStackLimit =
         CVarDef.Create("game.tile_stack_limit", 5, CVar.SERVER | CVar.REPLICATED);
+    public static readonly CVarDef<bool> DynamicRolesEnabled =
+         CVarDef.Create("game.dynamic_roles.enabled", true, CVar.SERVERONLY | CVar.ARCHIVE);
 
     /// <summary>
-    /// HardLight: How long a job must work to receive their payment.
+    ///     The player count at or below which role timers and whitelists are disabled if dynamic roles are enabled.
+    ///     Set to 0 to always disable timers and whitelists when dynamic roles are enabled.
     /// </summary>
     public static readonly CVarDef<TimeSpan> GameStationPayoutDelay =
         CVarDef.Create("game.station_payout_delay", TimeSpan.FromMinutes(20), CVar.SERVERONLY);
+    public static readonly CVarDef<int> DynamicRolesPlayerThreshold =
+         CVarDef.Create("game.dynamic_roles.player_threshold", 5, CVar.SERVERONLY | CVar.ARCHIVE);
 }

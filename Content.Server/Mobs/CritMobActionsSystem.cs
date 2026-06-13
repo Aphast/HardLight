@@ -1,13 +1,11 @@
 ﻿using Content.Server.Administration;
 using Content.Server.Chat.Systems;
-using Content.Server.Ghost;
-using Content.Server.Mind;
 using Content.Server.Popups;
+using Content.Shared.Chat; // Einstein Engines - Languages
 using Content.Server.Speech.Muting;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Mobs.Systems;
-using Content.Shared.Chat; // For InGameICChatType
 using Robust.Server.Console;
 using Robust.Shared.Player;
 using Content.Shared.Speech.Muting;
@@ -17,15 +15,14 @@ namespace Content.Server.Mobs;
 /// <summary>
 ///     Handles performing crit-specific actions.
 /// </summary>
-public sealed class CritMobActionsSystem : EntitySystem
+public sealed partial class CritMobActionsSystem : EntitySystem
 {
-    [Dependency] private readonly ChatSystem _chat = default!;
-    [Dependency] private readonly DeathgaspSystem _deathgasp = default!;
-    [Dependency] private readonly GhostSystem _ghostSystem = default!;
-    [Dependency] private readonly MindSystem _mindSystem = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly QuickDialogSystem _quickDialog = default!;
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private DeathgaspSystem _deathgasp = default!;
+    [Dependency] private IServerConsoleHost _host = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private QuickDialogSystem _quickDialog = default!;
 
     private const int MaxLastWordsLength = 30;
 
@@ -43,11 +40,7 @@ public sealed class CritMobActionsSystem : EntitySystem
         if (!TryComp<ActorComponent>(uid, out var actor) || !_mobState.IsCritical(uid))
             return;
 
-        if (_mindSystem.TryGetMind(actor.PlayerSession, out var mindId, out var mind))
-        {
-            _ghostSystem.OnGhostAttempt(mindId, true, viaCommand: true, mind: mind);
-        }
-
+        _host.ExecuteCommand(actor.PlayerSession, "ghost");
         args.Handled = true;
     }
 
@@ -85,11 +78,7 @@ public sealed class CritMobActionsSystem : EntitySystem
                 lastWords += "...";
 
                 _chat.TrySendInGameICMessage(uid, lastWords, InGameICChatType.Whisper, ChatTransmitRange.Normal, checkRadioPrefix: false, ignoreActionBlocker: true);
-
-                if (_mindSystem.TryGetMind(actor.PlayerSession, out var mindId, out var mind))
-                {
-                    _ghostSystem.OnGhostAttempt(mindId, true, viaCommand: true, mind: mind);
-                }
+                _host.ExecuteCommand(actor.PlayerSession, "ghost");
             });
 
         args.Handled = true;

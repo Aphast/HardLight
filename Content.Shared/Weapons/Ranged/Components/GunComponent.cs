@@ -1,5 +1,6 @@
 using System.Numerics;
 using Content.Shared.Weapons.Ranged.Events;
+using Content.Shared.Weapons.Ranged.Systems;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Map;
@@ -8,7 +9,7 @@ using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 namespace Content.Shared.Weapons.Ranged.Components;
 
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState(fieldDeltas: true), AutoGenerateComponentPause]
-// Goob modularity - rip explicit access
+// [Access(typeof(SharedGunSystem))] Frontier: Commenting this out because OniSystem (shared) needs to access this component
 public sealed partial class GunComponent : Component
 {
     #region Sound
@@ -143,6 +144,14 @@ public sealed partial class GunComponent : Component
     [ViewVariables]
     public EntityUid? Target = null;
 
+    // Begin DeltaV additions
+    /// <summary>
+    /// Who the gun is being held by
+    /// </summary>
+    [ViewVariables]
+    public EntityUid? Holder = null;
+    // End DeltaV additions
+
     /// <summary>
     ///     The base value for how many shots to fire per burst.
     /// </summary>
@@ -236,6 +245,20 @@ public sealed partial class GunComponent : Component
     [AutoNetworkedField]
     public SelectiveFire AvailableModes = SelectiveFire.SemiAuto;
 
+
+    /// <summary>
+    /// Frontier: add gun caliber text
+    /// </summary>
+    [DataField]
+    public LocId? ExamineCaliber;
+
+    // Mono
+    /// <summary>
+    /// If we have a <see cref="ThermalSignatureComponent">, how much heat to generate per shot.
+    /// </summary>
+    [DataField]
+    public float ShootThermalSignature = 0f;
+
     /// <summary>
     /// What firemode is currently selected.
     /// </summary>
@@ -264,12 +287,6 @@ public sealed partial class GunComponent : Component
     public Vector2 DefaultDirection = new Vector2(0, -1);
 
     /// <summary>
-    /// Frontier: add gun caliber text
-    /// </summary>
-    [DataField]
-    public LocId? ExamineCaliber;
-
-    /// <summary>
     /// Goobstation
     /// Whether the system won't change gun target when we stop aiming at it while firing in burst mode.
     /// </summary>
@@ -284,39 +301,45 @@ public sealed partial class GunComponent : Component
     public Angle MuzzleFlashRotationOffset;
 
     /// <summary>
-    /// Mono
-    /// Recoil to incur per ammo shot, kg*m/s.
-    /// </summary>
-    [DataField]
-    public float Recoil = 0f;
-
-    // VRS (Triad #3731)
-    /// <summary>
-    /// Damage multiplier applied to each fired projectile.
+    ///     This multiplier will apply per projectile fired by the weapon.
     /// </summary>
     [DataField]
     public float DamageModifier = 1f;
 
-    // HardLight start
     /// <summary>
-    /// Cooldown state for handling-rule failure popups.
-    /// Stored on the weapon like normal GunRequiresWield popup state.
+    /// Mono
+    /// Recoil to incur per ammo shot, kg*m/s.
     /// </summary>
-    [DataField, AutoNetworkedField]
-    public TimeSpan HandlingLastPopup;
-
-    [DataField, AutoNetworkedField]
-    public TimeSpan HandlingPopupCooldown = TimeSpan.FromSeconds(1);
+    [DataField]
+    public float Recoil = 25f;
 
     /// <summary>
-    /// Cooldown state for failed wield-attempt popups.
+    /// Mono
+    /// Multiplier of how much recoil should rotate you.
     /// </summary>
-    [DataField, AutoNetworkedField]
-    public TimeSpan WieldFailLastPopup;
+    [DataField]
+    public float RecoilRotation = 0.2f;
 
-    [DataField, AutoNetworkedField]
-    public TimeSpan WieldFailPopupCooldown = TimeSpan.FromSeconds(1);
-    // HardLight end
+    /// <summary>
+    /// Mono
+    /// How long executing another person takes
+    /// </summary>
+    [DataField]
+    public float ExecutionTime = 6.0f;
+
+    /// <summary>
+    /// Mono
+    /// How long executing yourself takes
+    /// </summary>
+    [DataField]
+    public float SuicideTime = 2.0f;
+
+    /// <summary>
+    /// Mono
+    /// Damage multiplier when performing an execution
+    /// </summary>
+    [DataField]
+    public float ExecutionModifier = 9.0f;
 }
 
 [Flags]

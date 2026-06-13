@@ -24,7 +24,6 @@ public class SpawnEquipDeleteBenchmark
     private StartingGearPrototype _gear = default!;
     private EntityUid _entity;
     private EntityCoordinates _coords;
-    private const string CaptainGear = "CaptainGear";
 
     [Params(1, 4, 16, 64)]
     public int N;
@@ -40,7 +39,7 @@ public class SpawnEquipDeleteBenchmark
         var mapData = await _pair.CreateTestMap();
         _coords = mapData.GridCoords;
         _spawnSys = server.System<StationSpawningSystem>();
-        _gear = server.ProtoMan.Index<StartingGearPrototype>(CaptainGear);
+        _gear = server.ProtoMan.Index<StartingGearPrototype>("CaptainGear");
     }
 
     [GlobalCleanup]

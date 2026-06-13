@@ -1,4 +1,4 @@
-using Content.Shared.Examine;
+﻿using Content.Shared.Examine;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
@@ -9,11 +9,11 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared.Atmos.Rotting;
 
-public abstract class SharedRottingSystem : EntitySystem
+public abstract partial class SharedRottingSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] protected readonly MobStateSystem _mobState = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] protected MobStateSystem _mobState = default!;
 
     public const int MaxStages = 3;
 
@@ -123,16 +123,11 @@ public abstract class SharedRottingSystem : EntitySystem
         if (TryComp<MobStateComponent>(uid, out var mobState) && !_mobState.IsDead(uid, mobState))
             return false;
 
-        // Frontier: prevent rot if *any* container has AntiRottingContainer
-        //if (_container.TryGetOuterContainer(uid, Transform(uid), out var container) &&
-        //    HasComp<AntiRottingContainerComponent>(container.Owner))
-        //    return false;
-        foreach (var container in _container.GetContainingContainers(uid))
+        if (_container.TryGetOuterContainer(uid, Transform(uid), out var container) &&
+            HasComp<AntiRottingContainerComponent>(container.Owner))
         {
-            if (HasComp<AntiRottingContainerComponent>(container.Owner))
-                return false;
+            return false;
         }
-        // End Frontier
 
         var ev = new IsRottingEvent();
         RaiseLocalEvent(uid, ref ev);

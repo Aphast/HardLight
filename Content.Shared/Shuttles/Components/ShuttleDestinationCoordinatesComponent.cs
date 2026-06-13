@@ -1,5 +1,4 @@
 namespace Content.Shared.Shuttles.Components;
-using Robust.Shared.GameObjects;
 using Robust.Shared.GameStates;
 
 /// <summary>
@@ -11,6 +10,6 @@ public sealed partial class ShuttleDestinationCoordinatesComponent : Component
     /// <summary>
     /// Uid for entity containing the FTLDestination component
     /// </summary>
-    [ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
-    public NetEntity? Destination;
+    [ViewVariables(VVAccess.ReadWrite), DataField, AutoNetworkedField]
+    public EntityUid? Destination;
 }

@@ -1,8 +1,9 @@
 using System.Collections.Frozen;
+using Content.Shared.Chat; // Einstein Engines - Languages
 using System.Collections.Immutable;
-using Content.Shared.Chat;
 using Content.Shared.Chat.Prototypes;
 using Content.Shared.Speech;
+using Robust.Shared.Audio;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 
@@ -99,8 +100,8 @@ public partial class ChatSystem
         {
             // not all emotes are loc'd, but for the ones that are we pass in entity
             var action = Loc.GetString(_random.Pick(emote.ChatMessages), ("entity", source));
-            var language = _language.GetLanguage(source); // Starlight-edit: Languages
-            SendEntityEmote(source, action, range, nameOverride, language, hideLog: hideLog, checkEmote: false, ignoreActionBlocker: ignoreActionBlocker); // Starlight-edit: Languages
+            var language = _language.GetLanguage(source); // Einstein Engines - Language
+            SendEntityEmote(source, action, range, nameOverride, language, hideLog: hideLog, checkEmote: false, ignoreActionBlocker: ignoreActionBlocker); // Einstein Engines - Language
         }
 
         // do the rest of emote event logic here
@@ -133,16 +134,16 @@ public partial class ChatSystem
     ///     Tries to find and play relevant emote sound in emote sounds collection.
     /// </summary>
     /// <returns>True if emote sound was played.</returns>
-    public bool TryPlayEmoteSound(EntityUid uid, EmoteSoundsPrototype? proto, EmotePrototype emote)
+    public bool TryPlayEmoteSound(EntityUid uid, EmoteSoundsPrototype? proto, EmotePrototype emote, AudioParams? audioParams = null)
     {
-        return TryPlayEmoteSound(uid, proto, emote.ID);
+        return TryPlayEmoteSound(uid, proto, emote.ID, audioParams);
     }
 
     /// <summary>
     ///     Tries to find and play relevant emote sound in emote sounds collection.
     /// </summary>
     /// <returns>True if emote sound was played.</returns>
-    public bool TryPlayEmoteSound(EntityUid uid, EmoteSoundsPrototype? proto, string emoteId)
+    public bool TryPlayEmoteSound(EntityUid uid, EmoteSoundsPrototype? proto, string emoteId, AudioParams? audioParams = null)
     {
         if (proto == null)
             return false;
@@ -156,8 +157,8 @@ public partial class ChatSystem
                 return false;
         }
 
-        // if general params for all sounds set - use them
-        var param = proto.GeneralParams ?? sound.Params;
+        // optional override params > general params for all sounds in set > individual sound params
+        var param = audioParams ?? proto.GeneralParams ?? sound.Params;
         _audio.PlayPvs(sound, uid, param);
         return true;
     }
@@ -166,11 +167,11 @@ public partial class ChatSystem
     /// </summary>
     /// <param name="uid"></param>
     /// <param name="textInput"></param>
-    private bool TryEmoteChatInput(EntityUid uid, string textInput) // Frontier: void<bool
+    private void TryEmoteChatInput(EntityUid uid, string textInput)
     {
         var actionTrimmedLower = TrimPunctuation(textInput.ToLower());
         if (!_wordEmoteDict.TryGetValue(actionTrimmedLower, out var emotes)) // DeltaV, renames to emotes
-            return false; // Frontier: add false
+            return;
 
         bool validEmote = false; // DeltaV - Multiple emotes for the same trigger
         foreach (var emote in emotes)
@@ -180,10 +181,10 @@ public partial class ChatSystem
 
             InvokeEmoteEvent(uid, emote);
             validEmote = true; // DeltaV
-            break; // Frontier: break on first emote (avoid playing multiple sounds at once)
         }
 
-        return validEmote; // Frontier
+        if (!validEmote) // DeltaV
+            return;
 
         static string TrimPunctuation(string textInput)
         {

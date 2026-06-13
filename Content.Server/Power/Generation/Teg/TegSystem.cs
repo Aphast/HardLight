@@ -17,7 +17,6 @@ using Content.Shared.Power.EntitySystems;
 using Content.Shared.Power.Generation.Teg;
 using Content.Shared.Rounding;
 using Robust.Server.GameObjects;
-using Robust.Shared.Utility;
 
 namespace Content.Server.Power.Generation.Teg;
 
@@ -48,7 +47,7 @@ namespace Content.Server.Power.Generation.Teg;
 /// <seealso cref="TegCirculatorComponent"/>
 /// <seealso cref="TegNodeGroup"/>
 /// <seealso cref="TegSensorData"/>
-public sealed class TegSystem : EntitySystem
+public sealed partial class TegSystem : EntitySystem
 {
     /// <summary>
     /// Node name for the TEG part connection nodes (<see cref="TegNodeGroup"/>).
@@ -70,12 +69,12 @@ public sealed class TegSystem : EntitySystem
     /// </summary>
     public const string DeviceNetworkCommandSyncData = "teg_sync_data";
 
-    [Dependency] private readonly AmbientSoundSystem _ambientSound = default!;
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly AtmosphereSystem _atmosphere = default!;
-    [Dependency] private readonly DeviceNetworkSystem _deviceNetwork = default!;
-    [Dependency] private readonly PointLightSystem _pointLight = default!;
-    [Dependency] private readonly SharedPowerReceiverSystem _receiver = default!;
+    [Dependency] private AmbientSoundSystem _ambientSound = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private AtmosphereSystem _atmosphere = default!;
+    [Dependency] private DeviceNetworkSystem _deviceNetwork = default!;
+    [Dependency] private PointLightSystem _pointLight = default!;
+    [Dependency] private SharedPowerReceiverSystem _receiver = default!;
 
     private EntityQuery<NodeContainerComponent> _nodeContainerQuery;
 
@@ -125,10 +124,8 @@ public sealed class TegSystem : EntitySystem
         var (inletA, outletA) = GetPipes(circA);
         var (inletB, outletB) = GetPipes(circB);
 
-        var airA = component.TransferBufferA;
-        var airB = component.TransferBufferB;
-        var δpA = GetCirculatorAirTransfer(inletA.Air, outletA.Air, airA);
-        var δpB = GetCirculatorAirTransfer(inletB.Air, outletB.Air, airB);
+        var (airA, δpA) = GetCirculatorAirTransfer(inletA.Air, outletA.Air);
+        var (airB, δpB) = GetCirculatorAirTransfer(inletB.Air, outletB.Air);
 
         var cA = _atmosphere.GetHeatCapacity(airA, true);
         var cB = _atmosphere.GetHeatCapacity(airB, true);
@@ -265,16 +262,13 @@ public sealed class TegSystem : EntitySystem
         // Otherwise, make sure circulator is set to nothing.
         if (!group.IsFullyBuilt)
         {
-            UpdateCirculatorAppearance((uid, component), false);
+            UpdateCirculatorAppearance(uid, false);
         }
     }
 
-    private void UpdateCirculatorAppearance(Entity<TegCirculatorComponent?> ent, bool powered)
+    private void UpdateCirculatorAppearance(EntityUid uid, bool powered)
     {
-        if (!Resolve(ent, ref ent.Comp))
-            return;
-
-        var circ = ent.Comp;
+        var circ = Comp<TegCirculatorComponent>(uid);
 
         TegCirculatorSpeed speed;
         if (powered && circ.LastPressureDelta > 0 && circ.LastMolesTransferred > 0)
@@ -289,13 +283,13 @@ public sealed class TegSystem : EntitySystem
             speed = TegCirculatorSpeed.SpeedStill;
         }
 
-        _appearance.SetData(ent, TegVisuals.CirculatorSpeed, speed);
-        _appearance.SetData(ent, TegVisuals.CirculatorPower, powered);
+        _appearance.SetData(uid, TegVisuals.CirculatorSpeed, speed);
+        _appearance.SetData(uid, TegVisuals.CirculatorPower, powered);
 
-        if (_pointLight.TryGetLight(ent, out var pointLight))
+        if (_pointLight.TryGetLight(uid, out var pointLight))
         {
-            _pointLight.SetEnabled(ent, powered, pointLight);
-            _pointLight.SetColor(ent, speed == TegCirculatorSpeed.SpeedFast ? circ.LightColorFast : circ.LightColorSlow, pointLight);
+            _pointLight.SetEnabled(uid, powered, pointLight);
+            _pointLight.SetColor(uid, speed == TegCirculatorSpeed.SpeedFast ? circ.LightColorFast : circ.LightColorSlow, pointLight);
         }
     }
 
@@ -328,7 +322,7 @@ public sealed class TegSystem : EntitySystem
         return tegGroup;
     }
 
-    private static float GetCirculatorAirTransfer(GasMixture airInlet, GasMixture airOutlet, GasMixture transferBuffer)
+    private static (GasMixture, float δp) GetCirculatorAirTransfer(GasMixture airInlet, GasMixture airOutlet)
     {
         var n1 = airInlet.TotalMoles;
         var n2 = airOutlet.TotalMoles;
@@ -346,59 +340,10 @@ public sealed class TegSystem : EntitySystem
         if (δp > 0 && p1 > 0 && denom > 0)
         {
             var transferMoles = n1 - (n1 + n2) * T2 * V1 / denom;
-            RemoveInto(airInlet, transferMoles, transferBuffer);
-            return δp;
+            return (airInlet.Remove(transferMoles), δp);
         }
 
-        ClearTransfer(transferBuffer);
-        return δp;
-    }
-
-    private static void ClearTransfer(GasMixture transferBuffer)
-    {
-        transferBuffer.Clear();
-        transferBuffer.Volume = 0f;
-        transferBuffer.Temperature = Atmospherics.TCMB;
-    }
-
-    private static void RemoveInto(GasMixture source, float amount, GasMixture destination)
-    {
-        var totalMoles = source.TotalMoles;
-        var ratio = totalMoles > 0f ? amount / totalMoles : 0f;
-
-        switch (ratio)
-        {
-            case <= 0f:
-                destination.Clear();
-                destination.Volume = source.Volume;
-                destination.Temperature = source.Temperature;
-                return;
-            case > 1f:
-                ratio = 1f;
-                break;
-        }
-
-        destination.CopyFrom(source);
-        destination.Multiply(ratio);
-
-        for (var i = 0; i < Atmospherics.AdjustedNumberOfGases; i++)
-        {
-            var removedMoles = destination.GetMoles(i);
-            if (removedMoles < Atmospherics.GasMinMoles || float.IsNaN(removedMoles))
-            {
-                removedMoles = 0f;
-                destination.SetMoles(i, 0f);
-            }
-
-            if (source.Immutable)
-                continue;
-
-            var remainingMoles = source.GetMoles(i) - removedMoles;
-            if (remainingMoles < Atmospherics.GasMinMoles || float.IsNaN(remainingMoles))
-                remainingMoles = 0f;
-
-            source.SetMoles(i, remainingMoles);
-        }
+        return (new GasMixture(), δp);
     }
 
     private (PipeNode inlet, PipeNode outlet) GetPipes(EntityUid uidCirculator)

@@ -18,15 +18,15 @@ namespace Content.Server.MagicMirror;
 /// <summary>
 /// Allows humanoids to change their appearance mid-round.
 /// </summary>
-public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
+public sealed partial class MagicMirrorSystem : SharedMagicMirrorSystem
 {
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly DoAfterSystem _doAfterSystem = default!;
-    [Dependency] private readonly MarkingManager _markings = default!;
-    [Dependency] private readonly HumanoidAppearanceSystem _humanoid = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly TagSystem _tagSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private DoAfterSystem _doAfterSystem = default!;
+    [Dependency] private MarkingManager _markings = default!;
+    [Dependency] private HumanoidAppearanceSystem _humanoid = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
 
     private static readonly ProtoId<TagPrototype> HidesHairTag = "HidesHair";
 
@@ -62,7 +62,7 @@ public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
             _popup.PopupEntity(
                 component.Target == message.Actor
                     ? Loc.GetString("magic-mirror-blocked-by-hat-self")
-                    : Loc.GetString("magic-mirror-blocked-by-hat-self-target", ("target", Identity.Entity(message.Actor, EntityManager))),
+                    : Loc.GetString("magic-mirror-blocked-by-hat-self-target"),
                 message.Actor,
                 message.Actor,
                 PopupType.Medium);
@@ -98,7 +98,7 @@ public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
         }
         else
         {
-            _popup.PopupEntity(Loc.GetString("magic-mirror-change-slot-target", ("user", Identity.Entity(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
+            _popup.PopupEntity(Loc.GetString("magic-mirror-change-slot-target", ("user", Identity.Name(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
         }
 
         component.DoAfter = doAfterId;
@@ -178,7 +178,7 @@ public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
         }
         else
         {
-            _popup.PopupEntity(Loc.GetString("magic-mirror-change-color-target", ("user", Identity.Entity(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
+            _popup.PopupEntity(Loc.GetString("magic-mirror-change-color-target", ("user", Identity.Name(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
         }
 
         component.DoAfter = doAfterId;
@@ -256,7 +256,7 @@ public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
         }
         else
         {
-            _popup.PopupEntity(Loc.GetString("magic-mirror-remove-slot-target", ("user", Identity.Entity(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
+            _popup.PopupEntity(Loc.GetString("magic-mirror-remove-slot-target", ("user", Identity.Name(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
         }
 
         component.DoAfter = doAfterId;
@@ -334,7 +334,7 @@ public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
         }
         else
         {
-            _popup.PopupEntity(Loc.GetString("magic-mirror-add-slot-target", ("user", Identity.Entity(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
+            _popup.PopupEntity(Loc.GetString("magic-mirror-add-slot-target", ("user", Identity.Name(message.Actor, EntityManager))), component.Target.Value, component.Target.Value, PopupType.Medium);
         }
 
         component.DoAfter = doAfterId;
@@ -364,7 +364,7 @@ public sealed class MagicMirrorSystem : SharedMagicMirrorSystem
         if (string.IsNullOrEmpty(marking))
             return;
 
-        _humanoid.AddMarking(component.Target.Value, marking, false, Color.Black); //starlight, glowing
+        _humanoid.AddMarking(component.Target.Value, marking, Color.Black);
 
         UpdateInterface(uid, component.Target.Value, component);
 

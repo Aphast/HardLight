@@ -1,12 +1,10 @@
 using System.Linq;
 using System.Numerics;
 using Content.Client.Message;
-using Content.Shared._DV.Traits.Assorted; // DeltaV
 using Content.Shared.Atmos;
 using Content.Client.UserInterface.Controls;
 using Content.Shared._Shitmed.Targeting; // Shitmed
 using Content.Shared.Alert;
-using Content.Shared.Chemistry.Reagent; // Starlight
 using Content.Shared.Damage;
 using Content.Shared.Damage.Prototypes;
 using Content.Shared.FixedPoint;
@@ -34,14 +32,10 @@ namespace Content.Client.HealthAnalyzer.UI
     [GenerateTypedNameReferences]
     public sealed partial class HealthAnalyzerWindow : FancyWindow
     {
-        private static readonly Color Green = Color.FromHex("#00FF00"); // Starlight
-        private static readonly Color Red = Color.FromHex("#FF0000"); // Starlight
-
         private readonly IEntityManager _entityManager;
         private readonly SpriteSystem _spriteSystem;
         private readonly IPrototypeManager _prototypes;
         private readonly IResourceCache _cache;
-        private readonly UnborgableSystem _unborgable; // DeltaV
 
         // Shitmed Change Start
         public event Action<TargetBodyPart?, EntityUid>? OnBodyPartSelected;
@@ -63,7 +57,6 @@ namespace Content.Client.HealthAnalyzer.UI
             _spriteSystem = _entityManager.System<SpriteSystem>();
             _prototypes = dependencies.Resolve<IPrototypeManager>();
             _cache = dependencies.Resolve<IResourceCache>();
-            _unborgable = _entityManager.System<UnborgableSystem>(); // DeltaV
             // Shitmed Change Start
             _bodyPartControls = new Dictionary<TargetBodyPart, TextureButton>
             {
@@ -164,18 +157,11 @@ namespace Content.Client.HealthAnalyzer.UI
                 : Loc.GetString("health-analyzer-window-entity-unknown-text"));
             NameLabel.SetMessage(name);
 
-            // HardLight start: Add a check for Synths/IPCs to not show Uncloneable alert.
-            var hasHumanoidAppearance = _entityManager.TryGetComponent<HumanoidAppearanceComponent>(_target.Value,
-                out var humanoidAppearanceComponent);
-
-            SpeciesLabel.Text = hasHumanoidAppearance
-                ? Loc.GetString(_prototypes.Index<SpeciesPrototype>(humanoidAppearanceComponent!.Species).Name)
-                : Loc.GetString("health-analyzer-window-entity-unknown-species-text");
-
-            var isSynth = hasHumanoidAppearance && humanoidAppearanceComponent!.Species == "Synth";
-            var isIpc = hasHumanoidAppearance && humanoidAppearanceComponent!.Species == "IPC";
-            var showUncloneableAlert = msg.Uncloneable == true && !isSynth && !isIpc;
-            // HardLight end
+            SpeciesLabel.Text =
+                _entityManager.TryGetComponent<HumanoidAppearanceComponent>(_target.Value,
+                    out var humanoidAppearanceComponent)
+                    ? Loc.GetString(_prototypes.Index<SpeciesPrototype>(humanoidAppearanceComponent.Species).Name)
+                    : Loc.GetString("health-analyzer-window-entity-unknown-species-text");
 
             // Basic Diagnostic
 
@@ -198,8 +184,7 @@ namespace Content.Client.HealthAnalyzer.UI
 
             // Alerts
 
-            var unborgable = _unborgable.IsUnborgable(_target.Value); // DeltaV
-            var showAlerts = msg.Unrevivable == true || msg.Bleeding == true || unborgable || showUncloneableAlert; // DeltaV: Unborgable/Uncloneable, HardLight: msg.Uncloneable == true<showUncloneableAlert
+            var showAlerts = msg.Unrevivable == true || msg.Uncloneable == true || msg.Bleeding == true; // Frontier: add Uncloneable
 
             AlertsDivider.Visible = showAlerts;
             AlertsContainer.Visible = showAlerts;
@@ -215,26 +200,20 @@ namespace Content.Client.HealthAnalyzer.UI
                     MaxWidth = 300
                 });
 
+            // Frontier: uncloneable text
+            if (msg.Uncloneable == true)
+                AlertsContainer.AddChild(new RichTextLabel
+                {
+                    Text = Loc.GetString("health-analyzer-window-entity-uncloneable-text"),
+                    Margin = new Thickness(0, 4),
+                    MaxWidth = 300
+                });
+            // End Frontier
+
             if (msg.Bleeding == true)
                 AlertsContainer.AddChild(new RichTextLabel
                 {
                     Text = Loc.GetString("health-analyzer-window-entity-bleeding-text"),
-                    Margin = new Thickness(0, 4),
-                    MaxWidth = 300
-                });
-
-            if (unborgable) // DeltaV
-                AlertsContainer.AddChild(new RichTextLabel
-                {
-                    Text = Loc.GetString("health-analyzer-window-entity-unborgable-text"),
-                    Margin = new Thickness(0, 4),
-                    MaxWidth = 300
-                });
-
-            if (showUncloneableAlert) // DeltaV, HardLight: msg.Uncloneable == true<showUncloneableAlert
-                AlertsContainer.AddChild(new RichTextLabel
-                {
-                    Text = Loc.GetString("health-analyzer-window-entity-uncloneable-text"),
                     Margin = new Thickness(0, 4),
                     MaxWidth = 300
                 });
@@ -248,7 +227,6 @@ namespace Content.Client.HealthAnalyzer.UI
             IReadOnlyDictionary<string, FixedPoint2> damagePerType = damageable.Damage.DamageDict;
 
             DrawDiagnosticGroups(damageSortedGroups, damagePerType);
-            DrawMetabolizingChemicals(msg.MetabolizingReagents); // Starlight - Metabolizing Chemicals Section
         }
         // Shitmed Change End
         private static string GetStatus(MobState mobState)
@@ -307,70 +285,6 @@ namespace Content.Client.HealthAnalyzer.UI
                 }
             }
         }
-
-        // Metabolizing chemicals display
-        private void DrawMetabolizingChemicals(List<(string ReagentId, FixedPoint2 Quantity)>? reagents)
-        {
-            ChemicalsContainer.RemoveAllChildren();
-
-            var hasChemicals = reagents != null && reagents.Count > 0;
-
-            ChemicalsDivider.Visible = hasChemicals;
-            ChemicalsContainer.Visible = hasChemicals;
-
-            if (!hasChemicals || reagents == null)
-                return;
-
-            // Sort by quantity descending
-            var sortedReagents = reagents.OrderByDescending(r => r.Quantity).ToList();
-
-            foreach (var reagent in sortedReagents)
-            {
-                var reagentName = reagent.ReagentId;
-                var reagentColor = Color.White;
-
-                if (_prototypes.TryIndex<ReagentPrototype>(reagent.ReagentId, out var reagentProto))
-                {
-                    reagentName = reagentProto.LocalizedName;
-                    reagentColor = reagentProto.SubstanceColor;
-
-                }
-
-                var rowContainer = new BoxContainer
-                {
-                    Orientation = BoxContainer.LayoutOrientation.Horizontal,
-                    Margin = new Thickness(0, 2),
-                };
-
-                // Color bar
-                var colorBar = new PanelContainer
-                {
-                    MinWidth = 10,
-                    MinHeight = 16,
-                    Margin = new Thickness(0, 0, 6, 0),
-                };
-                colorBar.PanelOverride = new StyleBoxFlat(reagentColor);
-
-                var nameLabel = new Label
-                {
-                    Text = reagentName,
-                    HorizontalExpand = true,
-                    HorizontalAlignment = HAlignment.Left,
-                };
-
-                var quantityLabel = new Label
-                {
-                    Text = $"{reagent.Quantity}u",
-                    HorizontalAlignment = HAlignment.Right,
-                };
-
-                rowContainer.AddChild(colorBar);
-                rowContainer.AddChild(nameLabel);
-                rowContainer.AddChild(quantityLabel);
-                ChemicalsContainer.AddChild(rowContainer);
-            }
-        }
-        // Starlight end
 
         private Texture GetTexture(string texture)
         {

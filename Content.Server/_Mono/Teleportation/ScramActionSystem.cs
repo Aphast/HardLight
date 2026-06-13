@@ -3,14 +3,15 @@ using Content.Server.Teleportation;
 using Content.Shared._Mono.Teleportation;
 using Content.Shared.Item.ItemToggle.Components;
 using Content.Shared.Popups;
+using Content.Shared.Teleportation;
 
 namespace Content.Server._Mono.Teleportation;
 
-public sealed class ScramActionSystem : EntitySystem
+public sealed partial class ScramActionSystem : EntitySystem
 {
-    [Dependency] private readonly ActionsSystem _action = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly TeleportSystem _teleportSys = default!;
+    [Dependency] private ActionsSystem _action = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private TeleportSystem _teleportSys = default!;
 
     public override void Initialize()
     {
@@ -25,7 +26,7 @@ public sealed class ScramActionSystem : EntitySystem
 
     private void OnInit(Entity<ScrammerComponent> ent, ref MapInitEvent args)
     {
-        ent.Comp.ActionUid = _action.AddAction(ent, ent.Comp.ActionProto);
+        ent.Comp.ActionUid =_action.AddAction(ent, ent.Comp.ActionProto);
     }
 
     private void OnRemove(Entity<ScrammerComponent> ent, ref ComponentRemove args)

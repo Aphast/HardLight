@@ -5,10 +5,10 @@ using JetBrains.Annotations;
 
 namespace Content.Shared.Eye.Blinding.Systems;
 
-public sealed class BlindableSystem : EntitySystem
+public sealed partial class BlindableSystem : EntitySystem
 {
-    [Dependency] private readonly BlurryVisionSystem _blurriness = default!;
-    [Dependency] private readonly EyeClosingSystem _eyelids = default!;
+    [Dependency] private BlurryVisionSystem _blurriness = default!;
+    [Dependency] private EyeClosingSystem _eyelids = default!;
 
     public override void Initialize()
     {
@@ -24,7 +24,7 @@ public sealed class BlindableSystem : EntitySystem
 
     private void OnDamageChanged(Entity<BlindableComponent> ent, ref EyeDamageChangedEvent args)
     {
-        _blurriness.UpdateBlurMagnitude((ent.Owner, ent.Comp), ent.Comp.IsWearingGlasses); // Starlight-edit
+        _blurriness.UpdateBlurMagnitude((ent.Owner, ent.Comp));
         _eyelids.UpdateEyesClosable((ent.Owner, ent.Comp));
     }
 

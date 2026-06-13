@@ -7,11 +7,11 @@ using Robust.Shared.Timing;
 namespace Content.Client.Chat.TypingIndicator;
 
 // Client-side typing system tracks user input in chat box
-public sealed partial class TypingIndicatorSystem : SharedTypingIndicatorSystem // DeltaV: Added partial
+public sealed partial class TypingIndicatorSystem : SharedTypingIndicatorSystem
 {
-    [Dependency] private readonly IGameTiming _time = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
+    [Dependency] private IGameTiming _time = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
 
     private readonly TimeSpan _typingTimeout = TimeSpan.FromSeconds(2);
     private TimeSpan _lastTextChange;
@@ -23,7 +23,6 @@ public sealed partial class TypingIndicatorSystem : SharedTypingIndicatorSystem 
         base.Initialize();
 
         Subs.CVar(_cfg, CCVars.ChatShowTypingIndicator, OnShowTypingChanged);
-        InitializeAlternateTyping(); // DeltaV
     }
 
     public void ClientChangedChatText()
@@ -85,7 +84,7 @@ public sealed partial class TypingIndicatorSystem : SharedTypingIndicatorSystem 
         // check if player controls any pawn
         if (_playerManager.LocalEntity == null)
             return;
-
+		
         var state = TypingIndicatorState.None;
         if (_isClientChatFocused)
             state = _isClientTyping ? TypingIndicatorState.Typing : TypingIndicatorState.Idle;

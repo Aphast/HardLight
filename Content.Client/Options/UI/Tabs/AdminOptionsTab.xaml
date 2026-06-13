@@ -3,6 +3,7 @@
          xmlns:ui="clr-namespace:Content.Client.Options.UI">
     <BoxContainer Orientation="Vertical">
         <ScrollContainer VerticalExpand="True" HScrollEnabled="False">
+
             <BoxContainer Orientation="Vertical" Margin="8">
                 <Label Text="{Loc 'ui-options-admin-player-panel'}"
                        StyleClasses="LabelKeyText"/>
@@ -15,7 +16,6 @@
                 <ui:OptionDropDown Name="DropDownOverlayAntagSymbol" Title="{Loc 'ui-options-admin-overlay-antag-symbol'}" />
                 <CheckBox Name="EnableOverlayPlaytimeCheckBox" Text="{Loc 'ui-options-admin-enable-overlay-playtime'}" />
                 <CheckBox Name="EnableOverlayStartingJobCheckBox" Text="{Loc 'ui-options-admin-enable-overlay-starting-job'}" />
-                <CheckBox Name="EnableOverlayBalanceCheckBox" Text="{Loc 'ui-options-enable-overlay-nf-balance'}" /> <!-- Frontier -->
                 <ui:OptionSlider Name="OverlayMergeDistanceSlider"  Title="{Loc 'ui-options-admin-overlay-merge-distance'}"/>
                 <ui:OptionSlider Name="OverlayGhostFadeSlider"  Title="{Loc 'ui-options-admin-overlay-ghost-fade-distance'}"/>
                 <ui:OptionSlider Name="OverlayGhostHideSlider"  Title="{Loc 'ui-options-admin-overlay-ghost-hide-distance'}"/>

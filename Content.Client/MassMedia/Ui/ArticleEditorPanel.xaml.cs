@@ -114,7 +114,6 @@ public sealed partial class ArticleEditorPanel : Control
         ArticleDraftUpdated?.Invoke(string.Empty, string.Empty);
     }
 
-    [Obsolete]
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);

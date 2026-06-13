@@ -368,22 +368,6 @@ namespace Content.Server.Construction
             newTransform.LocalRotation = transform.LocalRotation;
             newTransform.Anchored = transform.Anchored;
 
-            // Preserve stack information when changing prototypes (e.g., roasting a stack of beans)
-            if (TryComp<Shared.Stacks.StackComponent>(uid, out var oldStack) && TryComp<Shared.Stacks.StackComponent>(newUid, out var newStack))
-            {
-                // Copy non-count properties first
-                newStack.Unlimited = oldStack.Unlimited;
-                newStack.MaxCountOverride = oldStack.MaxCountOverride;
-                newStack.Lingering = oldStack.Lingering;
-                newStack.ThrowIndividually = oldStack.ThrowIndividually;
-                newStack.BaseLayer = oldStack.BaseLayer;
-                newStack.IsComposite = oldStack.IsComposite;
-                newStack.LayerStates = new List<string>(oldStack.LayerStates);
-
-                // Then set the count via the stack system to ensure proper handling
-                _stackSystem.SetCount(newUid, oldStack.Count, newStack);
-            }
-
             // Container transferring.
             if (containerManager != null)
             {
@@ -416,13 +400,9 @@ namespace Content.Server.Construction
             RaiseLocalEvent(uid, entChangeEv);
             RaiseLocalEvent(newUid, entChangeEv, broadcast: true);
 
-            var currentNode = GetCurrentNode(newUid, newConstruction);
-            if (currentNode != null)
+            foreach (var logic in GetCurrentNode(newUid, newConstruction)!.TransformLogic)
             {
-                foreach (var logic in currentNode.TransformLogic)
-                {
-                    logic.Transform(uid, newUid, userUid, new(EntityManager));
-                }
+                logic.Transform(uid, newUid, userUid, new(EntityManager));
             }
 
             EntityManager.InitializeAndStartEntity(newUid);

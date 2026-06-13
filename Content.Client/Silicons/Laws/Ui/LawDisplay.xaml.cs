@@ -17,10 +17,10 @@ namespace Content.Client.Silicons.Laws.Ui;
 [GenerateTypedNameReferences]
 public sealed partial class LawDisplay : Control
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IChatManager _chatManager = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly EntityManager _entityManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IChatManager _chatManager = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private EntityManager _entityManager = default!;
 
     private static readonly TimeSpan PressCooldown = TimeSpan.FromSeconds(3);
 
@@ -50,8 +50,9 @@ public sealed partial class LawDisplay : Control
             Text = Loc.GetString("hud-chatbox-select-channel-Local"),
             Modulate = Color.DarkGray,
             StyleClasses = { "chatSelectorOptionButton" },
-            MinHeight = 35,
-            MinWidth = 75,
+            MinHeight = 30,
+            MinWidth = 80,
+            Margin = new Thickness(2, 0, 6, 0)
         };
 
         _nextAllowedPress[localButton] = TimeSpan.Zero;
@@ -77,21 +78,21 @@ public sealed partial class LawDisplay : Control
                 Text = Loc.GetString(radioChannelProto.Name),
                 Modulate = radioChannelProto.Color,
                 StyleClasses = { "chatSelectorOptionButton" },
-                MinHeight = 35,
-                MinWidth = 75,
+                MinHeight = 30,
+                MinWidth = 80,
+                Margin = new Thickness(2, 0, 6, 0)
             };
 
             _nextAllowedPress[radioChannelButton] = TimeSpan.Zero;
 
             radioChannelButton.OnPressed += _ =>
             {
-                if (radioChannel == SharedChatSystem.CommonChannel)
+                switch (radioChannel)
                 {
-                    _chatManager.SendMessage($"{SharedChatSystem.RadioCommonPrefix} {lawIdentifierPlaintext}: {lawDescriptionPlaintext}", ChatSelectChannel.Radio);
-                }
-                else
-                {
-                    _chatManager.SendMessage($"{SharedChatSystem.RadioChannelPrefix}{radioChannelProto.KeyCode} {lawIdentifierPlaintext}: {lawDescriptionPlaintext}", ChatSelectChannel.Radio);
+                    case SharedChatSystem.CommonChannel:
+                        _chatManager.SendMessage($"{SharedChatSystem.RadioCommonPrefix} {lawIdentifierPlaintext}: {lawDescriptionPlaintext}", ChatSelectChannel.Radio); break;
+                    default:
+                        _chatManager.SendMessage($"{SharedChatSystem.RadioChannelPrefix}{radioChannelProto.KeyCode} {lawIdentifierPlaintext}: {lawDescriptionPlaintext}", ChatSelectChannel.Radio); break;
                 }
                 _nextAllowedPress[radioChannelButton] = _timing.CurTime + PressCooldown;
             };

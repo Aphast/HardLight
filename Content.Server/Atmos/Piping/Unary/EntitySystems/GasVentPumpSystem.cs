@@ -32,19 +32,19 @@ using Robust.Shared.Utility;
 namespace Content.Server.Atmos.Piping.Unary.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class GasVentPumpSystem : EntitySystem
+    public sealed partial class GasVentPumpSystem : EntitySystem
     {
-        [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
-        [Dependency] private readonly DeviceNetworkSystem _deviceNetSystem = default!;
-        [Dependency] private readonly DeviceLinkSystem _signalSystem = default!;
-        [Dependency] private readonly NodeContainerSystem _nodeContainer = default!;
-        [Dependency] private readonly SharedAmbientSoundSystem _ambientSoundSystem = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-        [Dependency] private readonly WeldableSystem _weldable = default!;
-        [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-        [Dependency] private readonly IGameTiming _timing = default!;
-        [Dependency] private readonly PowerReceiverSystem _powerReceiverSystem = default!;
+        [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+        [Dependency] private AtmosphereSystem _atmosphereSystem = default!;
+        [Dependency] private DeviceNetworkSystem _deviceNetSystem = default!;
+        [Dependency] private DeviceLinkSystem _signalSystem = default!;
+        [Dependency] private NodeContainerSystem _nodeContainer = default!;
+        [Dependency] private SharedAmbientSoundSystem _ambientSoundSystem = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
+        [Dependency] private WeldableSystem _weldable = default!;
+        [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+        [Dependency] private IGameTiming _timing = default!;
+        [Dependency] private PowerReceiverSystem _powerReceiverSystem = default!;
         public override void Initialize()
         {
             base.Initialize();
@@ -61,7 +61,6 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
             SubscribeLocalEvent<GasVentPumpComponent, GasAnalyzerScanEvent>(OnAnalyzed);
             SubscribeLocalEvent<GasVentPumpComponent, WeldableChangedEvent>(OnWeldChanged);
             SubscribeLocalEvent<GasVentPumpComponent, GetVerbsEvent<Verb>>(OnGetVerbs);
-            SubscribeLocalEvent<GasVentPumpComponent, GetVerbsEvent<AlternativeVerb>>(OnGetAltVerbs);
             SubscribeLocalEvent<GasVentPumpComponent, VentScrewedDoAfterEvent>(OnVentScrewed);
         }
 
@@ -85,11 +84,6 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
             {
                 return;
             }
-
-            // Frontier: check running gas extraction
-            if (!_atmosphereSystem.AtmosInputCanRunOnMap(args.Map))
-                return;
-            // End Frontier
 
             var environment = _atmosphereSystem.GetContainingMixture(uid, args.Grid, args.Map, true, true);
 
@@ -388,7 +382,7 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
 
         private void OnGetVerbs(Entity<GasVentPumpComponent> ent, ref GetVerbsEvent<Verb> args)
         {
-            if (!CanAddReleaseLockoutVerb(ent)) // HardLight
+            if (ent.Comp.UnderPressureLockout == false || !Transform(ent).Anchored)
                 return;
 
             var user = args.User;
@@ -400,51 +394,22 @@ namespace Content.Server.Atmos.Piping.Unary.EntitySystems
                 Text = Loc.GetString("gas-vent-pump-release-lockout"),
                 Impact = LogImpact.Low,
                 DoContactInteraction = true,
-                Act = () => TryStartReleaseLockoutDoAfter(ent, user), // HardLight
-            };
+                Act = () =>
+                {
+                    var doAfter = new DoAfterArgs(EntityManager, user, ent.Comp.ManualLockoutDisableDoAfter, new VentScrewedDoAfterEvent(), ent, ent)
+                    {
+                        BreakOnDamage = true,
+                        NeedHand = true,
+                        BreakOnMove = true,
+                        BreakOnWeightlessMove = true,
+                    };
 
-            args.Verbs.Add(v); // HardLight
-        }
-
-        // HardLight start
-        private void OnGetAltVerbs(Entity<GasVentPumpComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)
-        {
-            if (!CanAddReleaseLockoutVerb(ent) || !args.CanAccess || !args.CanInteract || args.Hands == null)
-                return;
-
-            var user = args.User;
-
-            var v = new AlternativeVerb
-            {
-                Priority = 1,
-                Icon = new SpriteSpecifier.Texture(new ResPath("/Textures/Interface/VerbIcons/unlock.svg.192dpi.png")),
-                Text = Loc.GetString("gas-vent-pump-release-lockout"),
-                Impact = LogImpact.Low,
-                DoContactInteraction = true,
-                Act = () => TryStartReleaseLockoutDoAfter(ent, user),
+                    _doAfterSystem.TryStartDoAfter(doAfter);
+                },
             };
 
             args.Verbs.Add(v);
         }
-
-        private bool CanAddReleaseLockoutVerb(Entity<GasVentPumpComponent> ent)
-        {
-            return ent.Comp.UnderPressureLockout && Transform(ent).Anchored;
-        }
-
-        private void TryStartReleaseLockoutDoAfter(Entity<GasVentPumpComponent> ent, EntityUid user)
-        {
-            var doAfter = new DoAfterArgs(EntityManager, user, ent.Comp.ManualLockoutDisableDoAfter, new VentScrewedDoAfterEvent(), ent, ent)
-            {
-                BreakOnDamage = true,
-                NeedHand = true,
-                BreakOnMove = true,
-                BreakOnWeightlessMove = true,
-            };
-
-            _doAfterSystem.TryStartDoAfter(doAfter);
-        }
-        // HardLight end
 
         private void OnVentScrewed(EntityUid uid, GasVentPumpComponent component, VentScrewedDoAfterEvent args)
         {

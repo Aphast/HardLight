@@ -24,23 +24,21 @@ using Content.Server.Shuttles.Components; // Frontier
 
 namespace Content.Server.Atmos.Monitor.Systems;
 
-public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
+public sealed partial class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
 {
-    [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-    [Dependency] private readonly AirAlarmSystem _airAlarmSystem = default!;
-    [Dependency] private readonly AtmosDeviceNetworkSystem _atmosDevNet = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly MapSystem _mapSystem = default!;
-    [Dependency] private readonly TransformSystem _transformSystem = default!;
-    [Dependency] private readonly NavMapSystem _navMapSystem = default!;
-    [Dependency] private readonly DeviceListSystem _deviceListSystem = default!;
-    [Dependency] private readonly NodeContainerSystem _nodeContainer = default!; // Frontier
-    [Dependency] private readonly GasPressurePumpSystem _pressurePump = default!; // Frontier
-    [Dependency] private readonly DockingSystem _docking = default!; // Frontier
+    [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+    [Dependency] private AirAlarmSystem _airAlarmSystem = default!;
+    [Dependency] private AtmosDeviceNetworkSystem _atmosDevNet = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private MapSystem _mapSystem = default!;
+    [Dependency] private TransformSystem _transformSystem = default!;
+    [Dependency] private NavMapSystem _navMapSystem = default!;
+    [Dependency] private DeviceListSystem _deviceListSystem = default!;
+    [Dependency] private NodeContainerSystem _nodeContainer = default!; // Frontier
+    [Dependency] private GasPressurePumpSystem _pressurePump = default!; // Frontier
+    [Dependency] private DockingSystem _docking = default!; // Frontier
 
     private const float UpdateTime = 1.0f;
-    // Limit how many tiles we collect as region seeds per alarm to avoid huge allocations on large maps
-    private const int MaxRegionSeedsPerAlarm = 4096;
 
     // Note: this data does not need to be saved
     private float _updateTimer = 1.0f;
@@ -167,19 +165,6 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
             _updateTimer -= UpdateTime;
 
             // Keep a list of UI entries for each gridUid, in case multiple consoles stand on the same grid
-            // Also determine which grids currently have at least one open console UI, so we can skip
-            // expensive NavMap region building when nobody is looking at it.
-            var gridsWithOpenUi = new HashSet<EntityUid>();
-            var scanQuery = AllEntityQuery<AtmosAlertsComputerComponent, TransformComponent>();
-            while (scanQuery.MoveNext(out var scanEnt, out var scanConsole, out var scanXform))
-            {
-                if (scanXform?.GridUid == null)
-                    continue;
-
-                if (_userInterfaceSystem.IsUiOpen(scanEnt, AtmosAlertsComputerUiKey.Key))
-                    gridsWithOpenUi.Add(scanXform.GridUid.Value);
-            }
-
             var airAlarmEntriesForEachGrid = new Dictionary<EntityUid, AtmosAlertsComputerEntry[]>();
             var fireAlarmEntriesForEachGrid = new Dictionary<EntityUid, AtmosAlertsComputerEntry[]>();
             var gaslockEntriesForEachGrid = new Dictionary<EntityUid, AtmosAlertsComputerEntry[]>(); // Frontier
@@ -190,25 +175,23 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
                 if (entXform?.GridUid == null)
                     continue;
 
-                var buildRegions = gridsWithOpenUi.Contains(entXform.GridUid.Value);
-
                 // Make a list of alarm state data for all the air and fire alarms on the grid
                 if (!airAlarmEntriesForEachGrid.TryGetValue(entXform.GridUid.Value, out var airAlarmEntries))
                 {
-                    airAlarmEntries = GetAlarmStateData(entXform.GridUid.Value, AtmosAlertsComputerGroup.AirAlarm, buildRegions).ToArray();
+                    airAlarmEntries = GetAlarmStateData(entXform.GridUid.Value, AtmosAlertsComputerGroup.AirAlarm).ToArray();
                     airAlarmEntriesForEachGrid[entXform.GridUid.Value] = airAlarmEntries;
                 }
 
                 if (!fireAlarmEntriesForEachGrid.TryGetValue(entXform.GridUid.Value, out var fireAlarmEntries))
                 {
-                    fireAlarmEntries = GetAlarmStateData(entXform.GridUid.Value, AtmosAlertsComputerGroup.FireAlarm, buildRegions).ToArray();
+                    fireAlarmEntries = GetAlarmStateData(entXform.GridUid.Value, AtmosAlertsComputerGroup.FireAlarm).ToArray();
                     fireAlarmEntriesForEachGrid[entXform.GridUid.Value] = fireAlarmEntries;
                 }
 
                 // Frontier: gaslocks (note: no alarm state)
                 if (!gaslockEntriesForEachGrid.TryGetValue(entXform.GridUid.Value, out var gaslockEntries))
                 {
-                    gaslockEntries = GetAlarmStateData(entXform.GridUid.Value, AtmosAlertsComputerGroup.Gaslock, buildRegions).ToArray();
+                    gaslockEntries = GetAlarmStateData(entXform.GridUid.Value, AtmosAlertsComputerGroup.Gaslock).ToArray();
                     gaslockEntriesForEachGrid[entXform.GridUid.Value] = gaslockEntries;
                 }
                 // End Frontier
@@ -254,7 +237,8 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
         if (!HasComp<MapGridComponent>(gridUid))
             return;
 
-        // NavMapComponent is now ensured at console init / parent-change instead of every tick.
+        // The grid must have a NavMapComponent to visualize the map in the UI
+        EnsureComp<NavMapComponent>(gridUid);
 
         // Gathering remaining data to be send to the client
         var focusAlarmData = GetFocusAlarmData(uid, GetEntity(component.FocusDevice), gridUid);
@@ -266,7 +250,7 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
             new AtmosAlertsComputerBoundInterfaceState(airAlarmStateData, fireAlarmStateData, focusAlarmData, gaslockStateData, focusGaslockData)); // Frontier: add gaslockStateData, focusGaslockData
     }
 
-    private List<AtmosAlertsComputerEntry> GetAlarmStateData(EntityUid gridUid, AtmosAlertsComputerGroup group, bool buildRegions)
+    private List<AtmosAlertsComputerEntry> GetAlarmStateData(EntityUid gridUid, AtmosAlertsComputerGroup group)
     {
         var alarmStateData = new List<AtmosAlertsComputerEntry>();
 
@@ -309,7 +293,7 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
             // Get the list of sensors attached to the alarm
             var sensorList = TryComp<DeviceListComponent>(ent, out var entDeviceList) ? _deviceListSystem.GetDeviceList(ent, entDeviceList) : null;
 
-            if (buildRegions && sensorList?.Any() == true)
+            if (sensorList?.Any() == true)
             {
                 var alarmRegionSeeds = new HashSet<Vector2i>();
 
@@ -322,11 +306,7 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
                     var sensorXform = Transform(sensorEnt);
 
                     if (sensorXform.Anchored && sensorXform.GridUid == entXform.GridUid)
-                    {
                         alarmRegionSeeds.Add(_mapSystem.CoordinatesToTile(entXform.GridUid.Value, mapGrid, _transformSystem.GetMapCoordinates(sensorEnt, sensorXform)));
-                        if (alarmRegionSeeds.Count >= MaxRegionSeedsPerAlarm)
-                            break;
-                    }
                 }
 
                 var regionProperties = new SharedNavMapSystem.NavMapRegionProperties(netEnt, AtmosAlertsComputerUiKey.Key, alarmRegionSeeds);
@@ -454,12 +434,6 @@ public sealed class AtmosAlertsComputerSystem : SharedAtmosAlertsComputerSystem
             return;
 
         var grid = xform.GridUid.Value;
-
-        // Ensure the grid carries a NavMapComponent here so the per-tick UpdateUIState path doesn't
-        // have to call EnsureComp every second per console.
-        if (HasComp<MapGridComponent>(grid))
-            EnsureComp<NavMapComponent>(grid);
-
         component.AtmosDevices = GetAllAtmosDeviceNavMapData(grid);
 
         Dirty(uid, component);

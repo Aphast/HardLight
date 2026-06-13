@@ -10,34 +10,6 @@ public enum DroneConsoleUiKey : byte
     Key
 }
 
-/// <summary>
-///     Added to the Console entity.
-///     Requires DeviceNetworkComponent and DeviceListComponent to function.
-/// </summary>
-[RegisterComponent]
-public sealed partial class DroneControlConsoleComponent : Component
-{
-    [DataField]
-    public float? MaxOrderRadius = 4000f;
-}
-
-/// <summary>
-///     Added to Drones to allow them to receive orders.
-///     Requires DeviceNetworkComponent and HTNComponent.
-/// </summary>
-[RegisterComponent]
-public sealed partial class DroneControlComponent : Component
-{
-    [DataField]
-    public string OrderKey = "DroneCommand";
-
-    [DataField]
-    public string TargetKey = "DroneTarget";
-
-    [DataField]
-    public bool Autolinked = false;
-}
-
 [Serializable, NetSerializable]
 public sealed class DroneConsoleBoundUserInterfaceState : BoundUserInterfaceState
 {

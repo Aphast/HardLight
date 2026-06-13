@@ -4,13 +4,16 @@ using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Utility;
 using Robust.Shared.Timing;
+using Content.Shared.Whitelist; // Frontier
 
 namespace Content.Server.Explosion.EntitySystems;
 
 public sealed partial class TriggerSystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!; // Frontier
 
     private void InitializeProximity()
     {
@@ -69,7 +72,7 @@ public sealed partial class TriggerSystem
         if (args.OurFixtureId != TriggerOnProximityComponent.FixtureID)
             return;
 
-        if (_whitelist.IsWhitelistFail(component.Whitelist, args.OtherEntity)) // Frontier
+        if (_whitelistSystem.IsWhitelistFail(component.Whitelist, args.OtherEntity)) // Frontier
             return;
 
         component.Colliding[args.OtherEntity] = args.OtherBody;
@@ -121,7 +124,6 @@ public sealed partial class TriggerSystem
     private void UpdateProximity()
     {
         var curTime = _timing.CurTime;
-        var toActivate = new List<(EntityUid Trigger, EntityUid User)>();
 
         var query = EntityQueryEnumerator<TriggerOnProximityComponent>();
         while (query.MoveNext(out var uid, out var trigger))
@@ -150,19 +152,9 @@ public sealed partial class TriggerSystem
                     continue;
 
                 // Trigger!
-                toActivate.Add((uid, collidingUid));
+                Activate(uid, collidingUid, trigger);
                 break;
             }
-        }
-
-        foreach (var (triggerUid, userUid) in toActivate)
-        {
-            if (!TryComp<TriggerOnProximityComponent>(triggerUid, out var trigger) ||
-                !trigger.Enabled ||
-                curTime < trigger.NextTrigger)
-                continue;
-
-            Activate(triggerUid, userUid, trigger);
         }
     }
 }

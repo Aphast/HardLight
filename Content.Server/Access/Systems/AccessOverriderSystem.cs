@@ -19,14 +19,15 @@ using static Content.Shared.Access.Components.AccessOverriderComponent;
 namespace Content.Server.Access.Systems;
 
 [UsedImplicitly]
-public sealed class AccessOverriderSystem : SharedAccessOverriderSystem
+public sealed partial class AccessOverriderSystem : SharedAccessOverriderSystem
 {
-    [Dependency] private readonly UserInterfaceSystem _userInterface = default!;
-    [Dependency] private readonly AccessReaderSystem _accessReader = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
+    [Dependency] private UserInterfaceSystem _userInterface = default!;
+    [Dependency] private AccessReaderSystem _accessReader = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedAudioSystem _audioSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
 
     public override void Initialize()
     {
@@ -147,8 +148,7 @@ public sealed class AccessOverriderSystem : SharedAccessOverriderSystem
             missingAccess,
             privilegedIdName,
             targetLabel,
-            targetLabelColor,
-            component.ShowPrivilegedId);
+            targetLabelColor);
 
         _userInterface.SetUiState(uid, AccessOverriderUiKey.Key, newState);
     }
@@ -241,9 +241,9 @@ public sealed class AccessOverriderSystem : SharedAccessOverriderSystem
         var addedTags = newAccessList.Except(oldTags).Select(tag => "+" + tag).ToList();
         var removedTags = oldTags.Except(newAccessList).Select(tag => "-" + tag).ToList();
 
-        /* _adminLogger.Add(LogType.Action, LogImpact.High,
+        _adminLogger.Add(LogType.Action, LogImpact.Medium,
             $"{ToPrettyString(player):player} has modified {ToPrettyString(accessReaderEnt.Value):entity} with the following allowed access level holders: [{string.Join(", ", addedTags.Union(removedTags))}] [{string.Join(", ", newAccessList)}]");
- */
+
         accessReaderEnt.Value.Comp.AccessLists = ConvertAccessListToHashSet(newAccessList);
 
         var ev = new OnAccessOverriderAccessUpdatedEvent(player);

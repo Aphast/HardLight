@@ -15,11 +15,11 @@ public abstract partial class SharedBuckleSystem
     private void InitializeInteraction()
     {
         SubscribeLocalEvent<StrapComponent, GetVerbsEvent<InteractionVerb>>(AddStrapVerbs);
-        SubscribeLocalEvent<StrapComponent, InteractHandEvent>(OnStrapInteractHand);
+        SubscribeLocalEvent<StrapComponent, InteractHandEvent>(OnStrapInteractHand, before: [typeof(InteractionPopupSystem)]);
         SubscribeLocalEvent<StrapComponent, DragDropTargetEvent>(OnStrapDragDropTarget);
         SubscribeLocalEvent<StrapComponent, CanDropTargetEvent>(OnCanDropTarget);
 
-        SubscribeLocalEvent<BuckleComponent, InteractHandEvent>(OnBuckleInteractHand);
+        SubscribeLocalEvent<BuckleComponent, InteractHandEvent>(OnBuckleInteractHand, before: [typeof(InteractionPopupSystem)]);
         SubscribeLocalEvent<BuckleComponent, GetVerbsEvent<InteractionVerb>>(AddUnbuckleVerb);
     }
 
@@ -31,6 +31,11 @@ public abstract partial class SharedBuckleSystem
 
     private void OnStrapDragDropTarget(EntityUid uid, StrapComponent component, ref DragDropTargetEvent args)
     {
+        // Frontier: check handled
+        if (args.Handled)
+            return;
+        // End Frontier
+
         if (!StrapCanDragDropOn(uid, args.User, uid, args.Dragged, component))
             return;
 
@@ -39,20 +44,7 @@ public abstract partial class SharedBuckleSystem
             if (!TryComp(args.User, out BuckleComponent? buckle))
                 return;
 
-            // Hardlight start, self buckle doafter
-            var doAfterArgs = new DoAfterArgs(EntityManager, args.User, component.BuckleSelfDoafterTime, new BuckleDoAfterEvent(), args.Dragged, args.Dragged, uid)
-            {
-                BreakOnMove = true,
-                BreakOnDamage = true,
-                AttemptFrequency = AttemptFrequency.EveryTick
-            };
-
-            var popupString = Loc.GetString("hardlight-buckle-strap-attempt-user", ("target", args.Dragged));
-            _popup.PopupEntity(popupString, uid, uid, Popups.PopupType.MediumCaution);
-
-            _doAfter.TryStartDoAfter(doAfterArgs);
-            // Hardlight end
-            // args.Handled = TryBuckle(args.User, args.User, uid, buckle);
+            args.Handled = TryBuckle(args.User, args.User, uid, buckle);
         }
         else
         {
@@ -91,6 +83,9 @@ public abstract partial class SharedBuckleSystem
         if (args.Handled)
             return;
 
+        if (!component.Enabled)
+            return;
+
         if (!TryComp(args.User, out BuckleComponent? buckle))
             return;
 
@@ -124,10 +119,15 @@ public abstract partial class SharedBuckleSystem
         if (args.Handled)
             return;
 
+        // Frontier: set handled to true only if you actually unbuckle something
         if (ent.Comp.BuckledTo != null)
+        {
             args.Handled = TryUnbuckle(ent!, args.User, popup: true);
+        }
 
         // TODO BUCKLE add out bool for whether a pop-up was generated or not.
+        // args.Handled = true;
+        // End Frontier: set handled to true only if you actually unbuckle something
     }
 
     private void AddStrapVerbs(EntityUid uid, StrapComponent component, GetVerbsEvent<InteractionVerb> args)
@@ -163,15 +163,6 @@ public abstract partial class SharedBuckleSystem
             args.Verbs.Add(verb);
         }
 
-        // Hardlight start, self buckle doafter
-        var doAfterArgs = new DoAfterArgs(EntityManager, args.User, component.BuckleSelfDoafterTime, new BuckleDoAfterEvent(), args.User, args.User, uid)
-        {
-            BreakOnMove = true,
-            BreakOnDamage = true,
-            AttemptFrequency = AttemptFrequency.EveryTick
-        };
-        // Hardlight end
-
         // Add a verb to buckle the user.
         if (TryComp<BuckleComponent>(args.User, out var buckle) &&
             buckle.BuckledTo != uid &&
@@ -181,7 +172,7 @@ public abstract partial class SharedBuckleSystem
         {
             InteractionVerb verb = new()
             {
-                Act = () => _doAfter.TryStartDoAfter(doAfterArgs), // Hardlight doafter change
+                Act = () => TryBuckle(args.User, args.User, args.Target, buckle),
                 Category = VerbCategory.Buckle,
                 Text = Loc.GetString("verb-self-target-pronoun")
             };

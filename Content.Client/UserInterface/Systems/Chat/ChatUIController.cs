@@ -15,6 +15,7 @@ using Content.Client.Stylesheets;
 using Content.Client.UserInterface.Screens;
 using Content.Client.UserInterface.Systems.Chat.Widgets;
 using Content.Client.UserInterface.Systems.Gameplay;
+using Content.Shared._Starlight.CollectiveMind; // Goobstation - Starlight collective mind port
 using Content.Shared.Administration;
 using Content.Shared.CCVar;
 using Content.Shared.Chat;
@@ -36,32 +37,31 @@ using Robust.Shared.GameObjects.Components.Localization;
 using Robust.Shared.Input.Binding;
 using Robust.Shared.Map;
 using Robust.Shared.Network;
-using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Replays;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
-using Content.Client.Nyanotrasen.Chat; //Nyano - Summary: chat namespace.
 
 namespace Content.Client.UserInterface.Systems.Chat;
 
 public sealed partial class ChatUIController : UIController
 {
-    [Dependency] private readonly IClientAdminManager _admin = default!;
-    [Dependency] private readonly IChatManager _manager = default!;
-    [Dependency] private readonly IConfigurationManager _config = default!;
-    [Dependency] private readonly IEyeManager _eye = default!;
-    [Dependency] private readonly IEntityManager _ent = default!;
-    [Dependency] private readonly IInputManager _input = default!;
-    [Dependency] private readonly IClientNetManager _net = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IStateManager _state = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IReplayRecordingManager _replayRecording = default!;
+    [Dependency] private IClientAdminManager _admin = default!;
+    [Dependency] private IChatManager _manager = default!;
+    [Dependency] private IConfigurationManager _config = default!;
+    [Dependency] private IEyeManager _eye = default!;
+    [Dependency] private IEntityManager _ent = default!;
+    [Dependency] private IInputManager _input = default!;
+    [Dependency] private IClientNetManager _net = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IStateManager _state = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IReplayRecordingManager _replayRecording = default!;
 
     [UISystemDependency] private readonly ExamineSystem? _examine = default;
     [UISystemDependency] private readonly GhostSystem? _ghost = default;
+    [UISystemDependency] private readonly CollectiveMindSystem? _collectiveMind = default!;
     [UISystemDependency] private readonly TypingIndicatorSystem? _typingIndicator = default;
     [UISystemDependency] private readonly ChatSystem? _chatSys = default;
     [UISystemDependency] private readonly TransformSystem? _transform = default;
@@ -72,7 +72,6 @@ public sealed partial class ChatUIController : UIController
     private const string ChatNamePalette = "ChatNames";
     private string[] _chatNameColors = default!;
     private bool _chatNameColorsEnabled;
-    [UISystemDependency] private readonly PsionicChatUpdateSystem? _psionic = default!; //Nyano - Summary: makes the psionic chat available.
 
     private ISawmill _sawmill = default!;
 
@@ -85,12 +84,10 @@ public sealed partial class ChatUIController : UIController
         {SharedChatSystem.OOCPrefix, ChatSelectChannel.OOC},
         {SharedChatSystem.EmotesPrefix, ChatSelectChannel.Emotes},
         {SharedChatSystem.EmotesAltPrefix, ChatSelectChannel.Emotes},
-        {SharedChatSystem.SubtlePrefix, ChatSelectChannel.Subtle}, // Floofstation
-        {SharedChatSystem.SubtleOOCPrefix, ChatSelectChannel.SubtleOOC}, // Den
         {SharedChatSystem.AdminPrefix, ChatSelectChannel.Admin},
         {SharedChatSystem.RadioCommonPrefix, ChatSelectChannel.Radio},
         {SharedChatSystem.DeadPrefix, ChatSelectChannel.Dead},
-        {SharedChatSystem.TelepathicPrefix, ChatSelectChannel.Telepathic} //Nyano - Summary: adds the telepathic prefix =.
+        {SharedChatSystem.CollectiveMindPrefix, ChatSelectChannel.CollectiveMind}
     };
 
     public static readonly Dictionary<ChatSelectChannel, char> ChannelPrefixes = new()
@@ -101,12 +98,10 @@ public sealed partial class ChatUIController : UIController
         {ChatSelectChannel.LOOC, SharedChatSystem.LOOCPrefix},
         {ChatSelectChannel.OOC, SharedChatSystem.OOCPrefix},
         {ChatSelectChannel.Emotes, SharedChatSystem.EmotesPrefix},
-        {ChatSelectChannel.Subtle, SharedChatSystem.SubtlePrefix}, // Floofstation
-        {ChatSelectChannel.SubtleOOC, SharedChatSystem.SubtleOOCPrefix}, // Den
         {ChatSelectChannel.Admin, SharedChatSystem.AdminPrefix},
         {ChatSelectChannel.Radio, SharedChatSystem.RadioCommonPrefix},
         {ChatSelectChannel.Dead, SharedChatSystem.DeadPrefix},
-        {ChatSelectChannel.Telepathic, SharedChatSystem.TelepathicPrefix } //Nyano - Summary: associates telepathic with =.
+        {ChatSelectChannel.CollectiveMind, SharedChatSystem.CollectiveMindPrefix} // Goobstation - Starlight collective mind port
     };
 
     /// <summary>
@@ -189,8 +184,6 @@ public sealed partial class ChatUIController : UIController
         _admin.AdminStatusUpdated += UpdateChannelPermissions;
         _player.LocalPlayerAttached += OnAttachedChanged;
         _player.LocalPlayerDetached += OnAttachedChanged;
-        _manager.PermissionsUpdated += UpdateChannelPermissions; //Nyano - Summary: the event for when permissions are updated for psionics.
-        _player.LocalSessionChanged += OnLocalSessionChanged;
         _state.OnStateChanged += StateChanged;
         _net.RegisterNetMessage<MsgChatMessage>(OnChatMessage);
         _net.RegisterNetMessage<MsgDeleteChatMessagesBy>(OnDeleteChatMessagesBy);
@@ -238,6 +231,10 @@ public sealed partial class ChatUIController : UIController
         _input.SetInputCommand(ContentKeyFunctions.CycleChatChannelBackward,
             InputCmdHandler.FromDelegate(_ => CycleChatChannel(false)));
 
+        // Goobstation - Starlight collective mind port
+        _input.SetInputCommand(ContentKeyFunctions.FocusCollectiveMindChat,
+            InputCmdHandler.FromDelegate(_ => FocusChannel(ChatSelectChannel.CollectiveMind)));
+
         var gameplayStateLoad = UIManager.GetUIController<GameplayStateLoadController>();
         gameplayStateLoad.OnScreenLoad += OnScreenLoad;
         gameplayStateLoad.OnScreenUnload += OnScreenUnload;
@@ -252,6 +249,7 @@ public sealed partial class ChatUIController : UIController
         _config.OnValueChanged(CCVars.ChatWindowOpacity, OnChatWindowOpacityChanged);
 
         InitializeHighlights();
+
     }
 
     public void OnScreenLoad()
@@ -438,13 +436,7 @@ public sealed partial class ChatUIController : UIController
     private void OnAttachedChanged(EntityUid uid)
     {
         UpdateChannelPermissions();
-
         UpdateAutoFillHighlights();
-    }
-
-    private void OnLocalSessionChanged((ICommonSession? Old, ICommonSession? New) _)
-    {
-        UpdateChannelPermissions();
     }
 
     private void AddSpeechBubble(ChatMessage msg, SpeechBubble.SpeechType speechType)
@@ -486,9 +478,8 @@ public sealed partial class ChatUIController : UIController
 
         if (existing.Count > SpeechBubbleCap)
         {
-            // Get the next speech bubble to fade
-            // Any speech bubbles before it are already fading
-            var last = existing[^(SpeechBubbleCap + 1)];
+            // Get the oldest to start fading fast.
+            var last = existing[0];
             last.FadeNow();
         }
     }
@@ -501,7 +492,7 @@ public sealed partial class ChatUIController : UIController
     private void EnqueueSpeechBubble(EntityUid entity, ChatMessage message, SpeechBubble.SpeechType speechType)
     {
         // Don't enqueue speech bubbles for other maps. TODO: Support multiple viewports/maps?
-        if (EntityManager.GetComponent<TransformComponent>(entity).MapID != _eye.CurrentEye.Position.MapId)
+        if (EntityManager.GetComponent<TransformComponent>(entity).MapID != _eye.CurrentMap)
             return;
 
         if (!_queuedSpeechBubbles.TryGetValue(entity, out var queueData))
@@ -550,22 +541,16 @@ public sealed partial class ChatUIController : UIController
             FilterableChannels |= ChatChannel.Whisper;
             FilterableChannels |= ChatChannel.Radio;
             FilterableChannels |= ChatChannel.Emotes;
-            FilterableChannels |= ChatChannel.Subtle;
             FilterableChannels |= ChatChannel.Notifications;
 
             // Can only send local / radio / emote when attached to a non-ghost entity.
             // TODO: this logic is iffy (checking if controlling something that's NOT a ghost), is there a better way to check this?
             if (_ghost is not {IsGhost: true})
             {
-                FilterableChannels |= ChatChannel.Subtle;
-                FilterableChannels |= ChatChannel.SubtleOOC;
-
                 CanSendChannels |= ChatSelectChannel.Local;
                 CanSendChannels |= ChatSelectChannel.Whisper;
                 CanSendChannels |= ChatSelectChannel.Radio;
                 CanSendChannels |= ChatSelectChannel.Emotes;
-                CanSendChannels |= ChatSelectChannel.Subtle; // Floofstation
-                CanSendChannels |= ChatSelectChannel.SubtleOOC;
             }
         }
 
@@ -576,29 +561,22 @@ public sealed partial class ChatUIController : UIController
             CanSendChannels |= ChatSelectChannel.Dead;
         }
 
-        if (_admin.HasFlag(AdminFlags.Pii) && _ghost is { IsGhost: true })
-        {
-            FilterableChannels |= ChatChannel.Subtle;
-            FilterableChannels |= ChatChannel.SubtleOOC;
-        }
-
         // only admins can see / filter asay
         if (_admin.HasFlag(AdminFlags.Adminchat))
         {
             FilterableChannels |= ChatChannel.Admin;
             FilterableChannels |= ChatChannel.AdminAlert;
             FilterableChannels |= ChatChannel.AdminChat;
+            FilterableChannels |= ChatChannel.CollectiveMind; // Goobstation - Starlight collective mind port
             CanSendChannels |= ChatSelectChannel.Admin;
-            FilterableChannels |= ChatChannel.Telepathic; //Nyano - Summary: makes admins able to see psionic chat.
         }
 
-        // Nyano - Summary: - Begin modified code block to add telepathic as a channel for a psionic user.
-        if (_psionic != null && _psionic.IsPsionic)
+        // collective mind
+        if (_collectiveMind != null && _collectiveMind.IsCollectiveMind)
         {
-            FilterableChannels |= ChatChannel.Telepathic;
-            CanSendChannels |= ChatSelectChannel.Telepathic;
+            FilterableChannels |= ChatChannel.CollectiveMind;
+            CanSendChannels |= ChatSelectChannel.CollectiveMind;
         }
-        // /Nyano - End modified code block
 
         SelectableChannels = CanSendChannels;
 
@@ -729,21 +707,41 @@ public sealed partial class ChatUIController : UIController
            && _chatSys.TryProccessRadioMessage(uid, text, out _, out radioChannel, quiet: true);
     }
 
-    public void UpdateSelectedChannel(ChatBox box)
+    // Goobstation - Starlight collective mind port
+    private bool TryGetCollectiveMind(string text, out CollectiveMindPrototype? collectiveMind)
     {
-        var (prefixChannel, _, radioChannel) = SplitInputContents(box.ChatInput.Input.Text.ToLower());
-
-        if (prefixChannel == ChatSelectChannel.None)
-            box.ChatInput.ChannelSelector.UpdateChannelSelectButton(box.SelectedChannel, null);
-        else
-            box.ChatInput.ChannelSelector.UpdateChannelSelectButton(prefixChannel, radioChannel);
+        collectiveMind = null;
+        return _player.LocalEntity is { Valid: true } uid
+               && _chatSys != null
+               && _chatSys.TryProccessCollectiveMindMessage(uid, text, out _, out collectiveMind, quiet: true);
     }
 
-    public (ChatSelectChannel chatChannel, string text, RadioChannelPrototype? radioChannel) SplitInputContents(string text)
+    public void UpdateSelectedChannel(ChatBox box)
+    {
+        // <Goobstation> - Starlight collective mind port
+        var (prefixChannel, _, radioChannel, collectiveMind) = SplitInputContents(box.ChatInput.Input.Text.ToLower());
+
+        switch (prefixChannel)
+        {
+            case ChatSelectChannel.None:
+                box.ChatInput.ChannelSelector.UpdateChannelSelectButton(box.SelectedChannel, null, null);
+                break;
+            case ChatSelectChannel.CollectiveMind:
+                box.ChatInput.ChannelSelector.UpdateChannelSelectButton(prefixChannel, null, collectiveMind);
+                break;
+            default:
+                box.ChatInput.ChannelSelector.UpdateChannelSelectButton(prefixChannel, radioChannel, null);
+                break;
+        }
+        // </Goobstation>
+    }
+
+    // Goobstation - Starlight collective mind port
+    public (ChatSelectChannel chatChannel, string text, RadioChannelPrototype? radioChannel, CollectiveMindPrototype? collectiveMind) SplitInputContents(string text)
     {
         text = text.Trim();
         if (text.Length == 0)
-            return (ChatSelectChannel.None, text, null);
+            return (ChatSelectChannel.None, text, null, null); // Goobstation - Starlight collective mind port
 
         // We only cut off prefix only if it is not a radio or local channel, which both map to the same /say command
         // because ????????
@@ -755,20 +753,24 @@ public sealed partial class ChatUIController : UIController
             chatChannel = PrefixToChannel.GetValueOrDefault(text[0]);
 
         if ((CanSendChannels & chatChannel) == 0)
-            return (ChatSelectChannel.None, text, null);
+            return (ChatSelectChannel.None, text, null, null); // Goobstation - Starlight collective mind port
 
         if (chatChannel == ChatSelectChannel.Radio)
-            return (chatChannel, text, radioChannel);
+            return (chatChannel, text, radioChannel, null); // Goobstation - Starlight collective mind port
+
+        // Goobstation - Starlight collective mind port
+        if (TryGetCollectiveMind(text, out var collectiveMind) && chatChannel == ChatSelectChannel.CollectiveMind)
+            return (chatChannel, text, radioChannel, collectiveMind);
 
         if (chatChannel == ChatSelectChannel.Local)
         {
             if (_ghost?.IsGhost != true)
-                return (chatChannel, text, null);
+                return (chatChannel, text, null, null); // Goobstation - Starlight collective mind port
             else
                 chatChannel = ChatSelectChannel.Dead;
         }
 
-        return (chatChannel, text[1..].TrimStart(), null);
+        return (chatChannel, text[1..].TrimStart(), null, null); // Goobstation - Starlight collective mind port
     }
 
     public void SendMessage(ChatBox box, ChatSelectChannel channel)
@@ -783,7 +785,7 @@ public sealed partial class ChatUIController : UIController
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        (var prefixChannel, text, var _) = SplitInputContents(text);
+        (var prefixChannel, text, var _, var _) = SplitInputContents(text); // Goobstation - Starlight collective mind port
 
         // Check if message is longer than the character limit
         if (text.Length > MaxMessageLength)
@@ -865,12 +867,6 @@ public sealed partial class ChatUIController : UIController
                 msg.WrappedMessage = SharedChatSystem.InjectTagInsideTag(msg, "Name", "color", GetNameColor(SharedChatSystem.GetStringInsideTag(msg, "Name")));
         }
 
-        // Color any words chosen by the client.
-        foreach (var highlight in _highlights)
-        {
-            msg.WrappedMessage = SharedChatSystem.InjectTagAroundString(msg, highlight, "color", _highlightsColor);
-        }
-
         // Color any codewords for minds that have roles that use them
         if (_player.LocalUser != null && _mindSystem != null && _roleCodewordSystem != null)
         {
@@ -882,6 +878,11 @@ public sealed partial class ChatUIController : UIController
                         msg.WrappedMessage = SharedChatSystem.InjectTagAroundString(msg, codeword, "color", codewordData.Color.ToHex());
                 }
             }
+        }
+
+        foreach (var highlight in _highlights)
+        {
+            msg.WrappedMessage = SharedChatSystem.InjectTagAroundString(msg, highlight, "color", _highlightsColor);
         }
 
         // Log all incoming chat to repopulate when filter is un-toggled
@@ -919,19 +920,10 @@ public sealed partial class ChatUIController : UIController
             case ChatChannel.Dead:
                 if (_ghost is not {IsGhost: true})
                     break;
-
                 AddSpeechBubble(msg, SpeechBubble.SpeechType.Say);
                 break;
 
             case ChatChannel.Emotes:
-                AddSpeechBubble(msg, SpeechBubble.SpeechType.Emote);
-                break;
-
-            case ChatChannel.Subtle:
-                AddSpeechBubble(msg, SpeechBubble.SpeechType.Emote);
-                break;
-
-            case ChatChannel.SubtleOOC:
                 AddSpeechBubble(msg, SpeechBubble.SpeechType.Emote);
                 break;
 

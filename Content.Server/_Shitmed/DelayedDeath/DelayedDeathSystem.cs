@@ -1,29 +1,48 @@
-using Content.Shared.Damage;
-using Content.Shared.Damage.Prototypes;
+using Content.Server.Chat.Systems;
+using Content.Shared.Chat; // Einstein Engines - Languages
+using Content.Shared.Medical;
+using Content.Shared.Mobs;
+using Content.Shared.Mobs.Components;
 using Content.Shared.Mobs.Systems;
-using Robust.Shared.Prototypes;
+
 namespace Content.Server._Shitmed.DelayedDeath;
 
 public partial class DelayedDeathSystem : EntitySystem
 {
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly IPrototypeManager _prototypes = default!;
-    private static readonly ProtoId<DamageTypePrototype> BloodlossDamageId = "Bloodloss";
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+
+    public override void Initialize()
+    {
+        base.Initialize();
+
+        SubscribeLocalEvent<DelayedDeathComponent, TargetBeforeDefibrillatorZapsEvent>(OnDefibZap);
+    }
+
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
 
-        using var query = EntityQueryEnumerator<DelayedDeathComponent>();
-        while (query.MoveNext(out var ent, out var component))
+        using var query = EntityQueryEnumerator<DelayedDeathComponent, MobStateComponent>();
+        while (query.MoveNext(out var ent, out var comp, out var mob))
         {
-            component.DeathTimer += frameTime;
+            comp.DeathTimer += frameTime;
 
-            if (component.DeathTimer >= component.DeathTime && !_mobState.IsDead(ent))
+            if (comp.DeathTimer >= comp.DeathTime && !_mobState.IsDead(ent, mob))
             {
-                var damage = new DamageSpecifier(_prototypes.Index<DamageTypePrototype>(BloodlossDamageId), 150);
-                _damageable.TryChangeDamage(ent, damage, partMultiplier: 0f);
+                // go crit then dead so deathgasp can happen
+                _mobState.ChangeMobState(ent, MobState.Critical, mob);
+                _mobState.ChangeMobState(ent, MobState.Dead, mob);
             }
         }
+    }
+
+    private void OnDefibZap(Entity<DelayedDeathComponent> ent, ref TargetBeforeDefibrillatorZapsEvent args)
+    {
+        // can't defib someone without a heart or brain pal
+        args.Cancel();
+
+        _chat.TrySendInGameICMessage(args.Defib, Loc.GetString("defibrillator-missing-organs"),
+            InGameICChatType.Speak, true);
     }
 }

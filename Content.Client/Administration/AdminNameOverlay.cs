@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Linq;
 using System.Numerics;
 using Content.Client.Administration.Systems;
@@ -14,8 +13,6 @@ using Robust.Client.UserInterface;
 using Robust.Shared.Configuration;
 using Robust.Shared.Enums;
 using Robust.Shared.Prototypes;
-using Content.Shared._NF.Bank; // Frontier
-using Content.Shared._NF.CCVar; // Frontier
 
 namespace Content.Client.Administration;
 
@@ -27,23 +24,20 @@ internal sealed class AdminNameOverlay : Overlay
     private readonly EntityLookupSystem _entityLookup;
     private readonly IUserInterfaceManager _userInterfaceManager;
     private readonly SharedRoleSystem _roles;
-    private readonly IPrototypeManager _prototypeManager;
     private readonly Font _font;
     private readonly Font _fontBold;
     private AdminOverlayAntagFormat _overlayFormat;
     private AdminOverlayAntagSymbolStyle _overlaySymbolStyle;
     private bool _overlayPlaytime;
     private bool _overlayStartingJob;
-    private bool _overlayBalance; // Frontier
     private float _ghostFadeDistance;
     private float _ghostHideDistance;
     private int _overlayStackMax;
     private float _overlayMergeDistance;
 
     //TODO make this adjustable via GUI?
-    private static readonly FrozenSet<ProtoId<RoleTypePrototype>> Filter =
-        new ProtoId<RoleTypePrototype>[] {"SoloAntagonist", "TeamAntagonist", "SiliconAntagonist", "FreeAgent", "NFPirate"} // NF: Add NFPirate
-        .ToFrozenSet();
+    private readonly ProtoId<RoleTypePrototype>[] _filter =
+        ["SoloAntagonist", "TeamAntagonist", "SiliconAntagonist", "FreeAgent"];
 
     private readonly string _antagLabelClassic = Loc.GetString("admin-overlay-antag-classic");
 
@@ -55,8 +49,7 @@ internal sealed class AdminNameOverlay : Overlay
         EntityLookupSystem entityLookup,
         IUserInterfaceManager userInterfaceManager,
         IConfigurationManager config,
-        SharedRoleSystem roles,
-        IPrototypeManager prototypeManager)
+        SharedRoleSystem roles)
     {
         _system = system;
         _entityManager = entityManager;
@@ -64,7 +57,6 @@ internal sealed class AdminNameOverlay : Overlay
         _entityLookup = entityLookup;
         _userInterfaceManager = userInterfaceManager;
         _roles = roles;
-        _prototypeManager = prototypeManager;
         ZIndex = 200;
         // Setting these to a specific ttf would break the antag symbols
         _font = resourceCache.NotoStack();
@@ -78,7 +70,6 @@ internal sealed class AdminNameOverlay : Overlay
         config.OnValueChanged(CCVars.AdminOverlayGhostFadeDistance, (f) => { _ghostFadeDistance = f; }, true);
         config.OnValueChanged(CCVars.AdminOverlayStackMax, (i) => { _overlayStackMax = i; }, true);
         config.OnValueChanged(CCVars.AdminOverlayMergeDistance, (f) => { _overlayMergeDistance = f; }, true);
-        config.OnValueChanged(NFCCVars.AdminOverlayBalance, (show) => { _overlayBalance = show; }, true); // Frontier
     }
 
     private AdminOverlayAntagFormat UpdateOverlayFormat(string formatString)
@@ -134,14 +125,6 @@ internal sealed class AdminNameOverlay : Overlay
         foreach (var info in sortable.OrderBy(s => s.Item4.Y).ToList())
         {
             var playerInfo = info.Item1;
-            var rolePrototype = playerInfo.RoleProto == null
-                ? null
-                : _prototypeManager.Index(playerInfo.RoleProto.Value);
-
-            var roleName = Loc.GetString(rolePrototype?.Name ?? RoleTypePrototype.FallbackName);
-            var roleColor = rolePrototype?.Color ?? RoleTypePrototype.FallbackColor;
-            var roleSymbol = rolePrototype?.Symbol ?? RoleTypePrototype.FallbackSymbol;
-
             var aabb = info.Item2;
             var entity = info.Item3;
             var screenCoordinatesCenter = info.Item4;
@@ -221,21 +204,12 @@ internal sealed class AdminNameOverlay : Overlay
                 currentOffset += lineoffset;
             }
 
-            // Frontier: print balance
-            if (_overlayBalance)
-            {
-                var balance = playerInfo.Balance == int.MinValue ? "NO BALANCE" : BankSystemExtensions.ToCurrencyString(playerInfo.Balance);
-                args.ScreenHandle.DrawString(_font, screenCoordinates + currentOffset, $"Balance: {balance}", uiScale, playerInfo.Connected ? Color.GreenYellow : Color.White);
-                currentOffset += lineoffset;
-            }
-            // End Frontier
-
             // Determine antag symbol
             string? symbol;
             switch (_overlaySymbolStyle)
             {
                 case AdminOverlayAntagSymbolStyle.Specific:
-                    symbol = roleSymbol;
+                    symbol = playerInfo.RoleProto.Symbol;
                     break;
                 case AdminOverlayAntagSymbolStyle.Basic:
                     symbol = Loc.GetString("player-tab-antag-prefix");
@@ -251,17 +225,17 @@ internal sealed class AdminNameOverlay : Overlay
             switch (_overlayFormat)
             {
                 case AdminOverlayAntagFormat.Roletype:
-                    color = roleColor;
-                    symbol = IsFiltered(playerInfo.RoleProto) ? symbol : string.Empty;
-                    text = IsFiltered(playerInfo.RoleProto)
-                        ? roleName.ToUpper()
+                    color = playerInfo.RoleProto.Color;
+                    symbol = _filter.Contains(playerInfo.RoleProto) ? symbol : string.Empty;
+                    text = _filter.Contains(playerInfo.RoleProto)
+                        ? Loc.GetString(playerInfo.RoleProto.Name).ToUpper()
                         : string.Empty;
                     break;
                 case AdminOverlayAntagFormat.Subtype:
-                    color = roleColor;
-                    symbol = IsFiltered(playerInfo.RoleProto) ? symbol : string.Empty;
-                    text = IsFiltered(playerInfo.RoleProto)
-                        ? _roles.GetRoleSubtypeLabel(roleName, playerInfo.Subtype).ToUpper()
+                    color = playerInfo.RoleProto.Color;
+                    symbol = _filter.Contains(playerInfo.RoleProto) ? symbol : string.Empty;
+                    text = _filter.Contains(playerInfo.RoleProto)
+                        ? _roles.GetRoleSubtypeLabel(playerInfo.RoleProto.Name, playerInfo.Subtype).ToUpper()
                         : string.Empty;
                     break;
                 default:
@@ -283,13 +257,5 @@ internal sealed class AdminNameOverlay : Overlay
             //Save the coordinates and size of the text block, for stack merge check
             drawnOverlays.Add((screenCoordinatesCenter, currentOffset));
         }
-    }
-
-    private static bool IsFiltered(ProtoId<RoleTypePrototype>? roleProtoId)
-    {
-        if (roleProtoId == null)
-            return false;
-
-        return Filter.Contains(roleProtoId.Value);
     }
 }

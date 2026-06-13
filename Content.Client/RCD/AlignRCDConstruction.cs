@@ -12,15 +12,15 @@ using Robust.Shared.Map.Components;
 
 namespace Content.Client.RCD;
 
-public sealed class AlignRCDConstruction : PlacementMode
+public sealed partial class AlignRCDConstruction : PlacementMode
 {
-    [Dependency] private readonly IEntityManager _entityManager = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
+    [Dependency] private IMapManager _mapManager = default!;
     private readonly SharedMapSystem _mapSystem;
     private readonly RCDSystem _rcdSystem;
     private readonly SharedTransformSystem _transformSystem;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IStateManager _stateManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IStateManager _stateManager = default!;
 
     private const float SearchBoxSize = 2f;
     private const float PlaceColorBaseAlpha = 0.5f;
@@ -96,22 +96,20 @@ public sealed class AlignRCDConstruction : PlacementMode
         if (!_entityManager.TryGetComponent<RCDComponent>(heldEntity, out var rcd))
             return false;
 
-        var gridUid = _transformSystem.GetGrid(position);
-        if (!_entityManager.TryGetComponent<MapGridComponent>(gridUid, out var mapGrid))
+        // Retrieve the map grid data for the position
+        if (!_rcdSystem.TryGetMapGridData(position, out var mapGridData))
             return false;
-        var tile = _mapSystem.GetTileRef(gridUid.Value, mapGrid, position);
-        var posVector = _mapSystem.TileIndicesFor(gridUid.Value, mapGrid, position);
 
         // Determine if the user is hovering over a target
         var currentState = _stateManager.CurrentState;
 
         if (currentState is not GameplayStateBase screen)
             return false;
-
+        
         var target = screen.GetClickedEntity(_transformSystem.ToMapCoordinates(_unalignedMouseCoords));
 
         // Determine if the RCD operation is valid or not
-        if (!_rcdSystem.IsRCDOperationStillValid(heldEntity.Value, rcd, gridUid.Value, mapGrid, tile, posVector, target, player.Value, false))
+        if (!_rcdSystem.IsRCDOperationStillValid(heldEntity.Value, rcd, mapGridData.Value, target, player.Value, false))
             return false;
 
         return true;

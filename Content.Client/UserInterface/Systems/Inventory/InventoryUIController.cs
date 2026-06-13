@@ -21,20 +21,20 @@ using Robust.Client.UserInterface.Controls;
 using Robust.Shared.Input;
 using Robust.Shared.Input.Binding;
 using Robust.Shared.Map;
+using Robust.Shared.Player;
 using Robust.Shared.Utility;
 using static Content.Client.Inventory.ClientInventorySystem;
 
 namespace Content.Client.UserInterface.Systems.Inventory;
 
-public sealed class InventoryUIController : UIController, IOnStateEntered<GameplayState>, IOnStateExited<GameplayState>,
+public sealed partial class InventoryUIController : UIController, IOnStateEntered<GameplayState>, IOnStateExited<GameplayState>,
     IOnSystemChanged<ClientInventorySystem>, IOnSystemChanged<HandsSystem>
 {
-    [Dependency] private readonly IEntityManager _entities = default!;
+    [Dependency] private IEntityManager _entities = default!;
 
     [UISystemDependency] private readonly ClientInventorySystem _inventorySystem = default!;
     [UISystemDependency] private readonly HandsSystem _handsSystem = default!;
     [UISystemDependency] private readonly ContainerSystem _container = default!;
-    [UISystemDependency] private readonly SpriteSystem _sprite = default!;
 
     private EntityUid? _playerUid;
     private InventorySlotsComponent? _playerInventory;
@@ -79,7 +79,7 @@ public sealed class InventoryUIController : UIController, IOnStateEntered<Gamepl
     {
         if (_strippingWindow != null)
         {
-            _strippingWindow.Close();
+            _strippingWindow.Dispose();
             _strippingWindow = null;
         }
 
@@ -364,8 +364,8 @@ public sealed class InventoryUIController : UIController, IOnStateEntered<Gamepl
             }
         }
 
-        _sprite.CopySprite((held, sprite), (hoverEntity, hoverSprite));
-        _sprite.SetColor((hoverEntity, hoverSprite), fits ? new Color(0, 255, 0, 127) : new Color(255, 0, 0, 127));
+        hoverSprite.CopyFrom(sprite);
+        hoverSprite.Color = fits ? new Color(0, 255, 0, 127) : new Color(255, 0, 0, 127);
 
         control.HoverSpriteView.SetEntity(hoverEntity);
     }

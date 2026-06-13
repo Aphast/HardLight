@@ -1,20 +1,24 @@
 using Content.Shared.Clothing.Components;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
+using Content.Shared.Humanoid;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory;
 using Content.Shared.Inventory.Events;
 using Content.Shared.Item;
 using Content.Shared.Strip.Components;
+using Robust.Shared.Containers;
 using Robust.Shared.GameStates;
 
 namespace Content.Shared.Clothing.EntitySystems;
 
-public abstract class ClothingSystem : EntitySystem
+public abstract partial class ClothingSystem : EntitySystem
 {
-    [Dependency] private readonly SharedItemSystem _itemSys = default!;
-    [Dependency] private readonly InventorySystem _invSystem = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
+    [Dependency] private SharedItemSystem _itemSys = default!;
+    [Dependency] private SharedContainerSystem _containerSys = default!;
+    [Dependency] private InventorySystem _invSystem = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private HideLayerClothingSystem _hideLayer = default!;
 
     public override void Initialize()
     {
@@ -53,11 +57,6 @@ public abstract class ClothingSystem : EntitySystem
     {
         foreach (var slotDef in userEnt.Comp1.Slots)
         {
-            // EE - Do not attempt to quick-equip clothing in pocket slots.
-            // We should probably add a special flag to SlotDefinition to skip quick equip if more similar slots get added.
-            if (slotDef.SlotFlags.HasFlag(SlotFlags.POCKET))
-                continue;
-
             if (!_invSystem.CanEquip(userEnt, toEquipEnt, slotDef.Name, out _, slotDef, userEnt, toEquipEnt))
                 continue;
 
@@ -70,14 +69,14 @@ public abstract class ClothingSystem : EntitySystem
                 if (!_invSystem.TryUnequip(userEnt, slotDef.Name, true, inventory: userEnt, checkDoafter: true))
                     continue;
 
-                if (!_invSystem.TryEquip(userEnt, toEquipEnt, slotDef.Name, true, inventory: userEnt, clothing: toEquipEnt, checkDoafter: true, triggerHandContact: true))
+                if (!_invSystem.TryEquip(userEnt, toEquipEnt, slotDef.Name, true, inventory: userEnt, clothing: toEquipEnt, checkDoafter: true))
                     continue;
 
                 _handsSystem.PickupOrDrop(userEnt, slotEntity.Value, handsComp: userEnt);
             }
             else
             {
-                if (!_invSystem.TryEquip(userEnt, toEquipEnt, slotDef.Name, true, inventory: userEnt, clothing: toEquipEnt, checkDoafter: true, triggerHandContact: true))
+                if (!_invSystem.TryEquip(userEnt, toEquipEnt, slotDef.Name, true, inventory: userEnt, clothing: toEquipEnt, checkDoafter: true))
                     continue;
             }
 
@@ -139,7 +138,7 @@ public abstract class ClothingSystem : EntitySystem
     {
         if (args.Handled || args.Cancelled || args.Target is not { } target)
             return;
-        args.Handled = _invSystem.TryUnequip(args.User, target, args.Slot, clothing: ent.Comp, predicted: true, checkDoafter: false, triggerHandContact: true);
+        args.Handled = _invSystem.TryUnequip(args.User, target, args.Slot, clothing: ent.Comp, predicted: true, checkDoafter: false);
         if (args.Handled)
             _handsSystem.TryPickup(args.User, ent);
     }

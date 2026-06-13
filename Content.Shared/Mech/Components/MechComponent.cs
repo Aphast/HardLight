@@ -1,8 +1,11 @@
+using System.Numerics;
 using Content.Shared.FixedPoint;
 using Content.Shared.Whitelist;
 using Robust.Shared.Containers;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
+using Content.Shared.Damage; //Monolith
+
 
 namespace Content.Shared.Mech.Components;
 
@@ -47,6 +50,18 @@ public sealed partial class MechComponent : Component
     public FixedPoint2 MaxEnergy = 0;
 
     /// <summary>
+    /// Monolith - State that activates at 5% of mech battery remaining.
+    /// </summary>
+    [DataField]
+    public bool CriticalPowerState = false;
+
+    /// <summary>
+    /// Monolith - Speed penalty that applies when CriticalPowerState is true.
+    /// </summary>
+    [DataField]
+    public float CriticalPowerStateSpeedPenalty = 0.65f;
+
+    /// <summary>
     /// The slot the battery is stored in.
     /// </summary>
     [ViewVariables]
@@ -61,6 +76,18 @@ public sealed partial class MechComponent : Component
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
     public float MechToPilotDamageMultiplier;
+
+    /// <summary>
+    /// Monolith: The damage dealt by EMPs.
+    /// </summary>
+    [DataField]
+    public DamageSpecifier EMPdamage = new()
+    {
+        DamageDict = new()
+        {
+            { "Blunt", 600 },
+        }
+    };
 
     /// <summary>
     /// Whether the mech has been destroyed and is no longer pilotable.
@@ -144,11 +171,18 @@ public sealed partial class MechComponent : Component
     [DataField]
     public List<EntProtoId> StartingEquipment = new();
 
+    /// <summary>
+    /// Mono edit - How much should pilot's eye be zoomed when entering mech.
+    /// </summary>
+    [DataField, ViewVariables(VVAccess.ReadWrite)]
+    public Vector2 Zoom = new(1.0f, 1.0f);
+
+
     #region Action Prototypes
     [DataField]
     public EntProtoId MechCycleAction = "ActionMechCycleEquipment";
     [DataField]
-    public EntProtoId ToggleAction = "ActionToggleLight"; //Goobstation Mech Lights toggle action 
+    public EntProtoId ToggleAction = "ActionToggleLight"; //Goobstation Mech Lights toggle action
     [DataField]
     public EntProtoId MechUiAction = "ActionMechOpenUI";
     [DataField]
@@ -171,10 +205,4 @@ public sealed partial class MechComponent : Component
     [DataField] public EntityUid? MechEjectActionEntity;
     [DataField, AutoNetworkedField] public EntityUid? ToggleActionEntity; //Goobstation Mech Lights toggle action
     [DataField] public EntityUid? MechRadarUiActionEntity;
-
-    /// <summary>
-    /// Frontier: whether or not the equipment in the mech can be removed.
-    /// </summary>
-    [DataField, ViewVariables(VVAccess.ReadWrite)]
-    public bool CanRemoveEquipment = true;
 }

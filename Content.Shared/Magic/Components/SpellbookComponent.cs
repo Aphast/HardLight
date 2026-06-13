@@ -21,7 +21,7 @@ public sealed partial class SpellbookComponent : Component
     /// </summary>
     [DataField]
     [ViewVariables(VVAccess.ReadWrite)]
-    public Dictionary<EntProtoId, int?> SpellActions = new(); // HardLight: Added ?
+    public Dictionary<EntProtoId, int> SpellActions = new();
 
     [DataField]
     [ViewVariables(VVAccess.ReadWrite)]

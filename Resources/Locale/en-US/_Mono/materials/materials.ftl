@@ -1,14 +1,23 @@
 materials-iridite = iridite
 stack-iridite = iridite
 
-materials-pyrogel = pyrogel
-stack-pyrogel = pyrogel
-
 materials-plastitanium = plastitanium
-# VRS: stack-plastitanium already defined in _HL/stack/stacks.ftl — duplicate removed.
+stack-plastitanium = plastitanium
 
 materials-uraniumfissile = fissile uranium
 stack-uraniumfissile = fissile uranium
 
 materials-uraniumdepleted = depleted uranium
 stack-uraniumdepleted = depleted uranium
+
+# Industry
+
+# Ores
+materials-raw-copper = malachite
+materials-raw-lithium = lithium
+
+# Sheets
+materials-lithium = lithium
+stack-lithium = lithium
+materials-copper = copper
+stack-copper = copper

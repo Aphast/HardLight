@@ -1,19 +1,18 @@
-﻿using System.Linq;
-using Content.Shared.Instruments;
+using System.Linq;
 using Content.Server.Instruments;
 using Content.Server.Xenoarchaeology.XenoArtifacts.Triggers.Components;
+using Content.Shared.Instruments;
 
 namespace Content.Server.Xenoarchaeology.XenoArtifacts.Triggers.Systems;
 
 /// <summary>
 /// This handles activating an artifact when music is playing nearby
 /// </summary>
-public sealed class ArtifactMusicTriggerSystem : EntitySystem
+public sealed partial class ArtifactMusicTriggerSystem : EntitySystem
 {
-    [Dependency] private readonly ArtifactSystem _artifact = default!;
+    [Dependency] private ArtifactSystem _artifact = default!;
 
     private readonly List<Entity<ArtifactMusicTriggerComponent, TransformComponent>> _artifacts = new();
-    private readonly HashSet<EntityUid> _toActivate = new();
 
     public override void Update(float frameTime)
     {
@@ -26,10 +25,10 @@ public sealed class ArtifactMusicTriggerSystem : EntitySystem
             _artifacts.Add((uid, trigger, xform));
         }
 
-        if (_artifacts.Count == 0)
+        if (!_artifacts.Any())
             return;
 
-        _toActivate.Clear();
+        List<EntityUid> toActivate = new();
         var query = EntityQueryEnumerator<ActiveInstrumentComponent, TransformComponent>();
 
         //assume that there's more instruments than artifacts
@@ -37,23 +36,17 @@ public sealed class ArtifactMusicTriggerSystem : EntitySystem
         {
             foreach (var (uid, trigger, xform) in _artifacts)
             {
-                // Already queued from a different instrument this tick; skip the distance check.
-                // Multiple instruments near the same artifact would otherwise call
-                // TryActivateArtifact repeatedly, which the cooldown ignores anyway.
-                if (_toActivate.Contains(uid))
-                    continue;
-
                 if (!instXform.Coordinates.TryDistance(EntityManager, xform.Coordinates, out var distance))
                     continue;
 
                 if (distance > trigger.Range)
                     continue;
 
-                _toActivate.Add(uid);
+                toActivate.Add(uid);
             }
         }
 
-        foreach (var a in _toActivate)
+        foreach (var a in toActivate)
         {
             _artifact.TryActivateArtifact(a);
         }

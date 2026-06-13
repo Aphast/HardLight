@@ -9,10 +9,10 @@ using Content.Server.Speech;
 using Content.Server.Speech.Components;
 using Content.Shared.Examine;
 using Content.Shared.Interaction;
+using Content.Server._EinsteinEngines.Language;
 using Content.Shared.Power;
 using Content.Shared.Radio;
 using Content.Shared.Chat;
-using Content.Shared.Power.EntitySystems;
 using Content.Shared.Radio.Components;
 using Content.Shared.UserInterface; // Nuclear-14
 using Content.Shared._NC.Radio; // Nuclear-14
@@ -20,27 +20,24 @@ using Robust.Server.GameObjects; // Nuclear-14
 using Robust.Shared.Prototypes;
 using Content.Shared.Access.Systems; // Frontier
 using Content.Shared.Verbs; //Frontier
-using Robust.Shared.Utility; // Frontier
-using Content.Shared.ActionBlocker; //Frontier
+using Robust.Shared.Utility; //Frontier
 
 namespace Content.Server.Radio.EntitySystems;
 
 /// <summary>
 ///     This system handles radio speakers and microphones (which together form a hand-held radio).
 /// </summary>
-public sealed class RadioDeviceSystem : EntitySystem
+public sealed partial class RadioDeviceSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
-    [Dependency] private readonly RadioSystem _radio = default!;
-    [Dependency] private readonly InteractionSystem _interaction = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly UserInterfaceSystem _ui = default!;
-    [Dependency] private readonly AccessReaderSystem _access = default!; // Frontier: access
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!; // Frontier
-
-    [Dependency] private readonly SharedPowerReceiverSystem _power = default!; // Goob
+    [Dependency] private IPrototypeManager _protoMan = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private RadioSystem _radio = default!;
+    [Dependency] private InteractionSystem _interaction = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private UserInterfaceSystem _ui = default!;
+    [Dependency] private AccessReaderSystem _access = default!; // Frontier: access
+    [Dependency] private LanguageSystem _language = default!;
 
     // Used to prevent a shitter from using a bunch of radios to spam chat.
     private HashSet<(string, EntityUid, RadioChannelPrototype)> _recentlySent = new();
@@ -220,7 +217,7 @@ public sealed class RadioDeviceSystem : EntitySystem
 
         var channel = _protoMan.Index<RadioChannelPrototype>(component.BroadcastChannel)!;
         if (_recentlySent.Add((args.Message, args.Source, channel)))
-            _radio.SendRadioMessage(args.Source, args.Message, channel, uid, /*Nuclear-14-start*/ frequency: component.Frequency /*Nuclear-14-end*/, originalMessage: args.OriginalMessage);
+            _radio.SendRadioMessage(args.Source, args.Message, channel, uid, /*Nuclear-14-start*/ frequency: component.Frequency /*Nuclear-14-end*/);
     }
 
     private void OnAttemptListen(EntityUid uid, RadioMicrophoneComponent component, ListenAttemptEvent args)
@@ -234,7 +231,7 @@ public sealed class RadioDeviceSystem : EntitySystem
 
     private void OnReceiveRadio(EntityUid uid, RadioSpeakerComponent component, ref RadioReceiveEvent args)
     {
-        if (uid == args.RadioSource || component.PowerRequired && !_power.IsPowered(uid)) // Goobstation, powered required
+        if (uid == args.RadioSource)
             return;
 
         var nameEv = new TransformSpeakerNameEvent(args.MessageSource, Name(args.MessageSource));
@@ -245,15 +242,9 @@ public sealed class RadioDeviceSystem : EntitySystem
             ("originalName", nameEv.VoiceName));
 
         // log to chat so people can identity the speaker/source, but avoid clogging ghost chat if there are many radios
-
-        var message = args.OriginalChatMsg.Message;
-        _chat.TrySendInGameICMessage(uid,
-            message, // HardLight: args.Message<message
-            component.SpeakNormally ? InGameICChatType.Speak : InGameICChatType.Whisper, // Goobstation - radio host
-            ChatTransmitRange.GhostRangeLimitNoAdminCheck,
-            nameOverride: name,
-            checkRadioPrefix: component.SpeakNormally,
-            languageOverride: args.Language); // Starlight
+        var message = args.OriginalChatMsg.Message; // The chat system will handle the rest and re-obfuscate if needed.
+        _chat.TrySendInGameICMessage(uid, message, component.OutputChatType, ChatTransmitRange.GhostRangeLimitNoAdminCheck,
+            nameOverride: name, checkRadioPrefix: false, languageOverride: args.Language); // Einstein Engines - Languages  / Frontier: GhostRangeLimit<GhostRangeLimitNoAdminCheck, InGameICChatType.Whisper<component.OutputChatType
     }
 
     private void OnIntercomEncryptionChannelsChanged(Entity<IntercomComponent> ent, ref EncryptionChannelsChangedEvent args)
@@ -271,8 +262,7 @@ public sealed class RadioDeviceSystem : EntitySystem
     {
         if (ent.Comp.RequiresPower && !this.IsPowered(ent, EntityManager))
             return;
-        if (!_access.IsAllowed(args.Actor, ent.Owner)
-            || !_actionBlocker.CanComplexInteract(args.Actor)) // Frontier
+        if (!_access.IsAllowed(args.Actor, ent.Owner)) // Frontier
             return; // Frontier
 
         SetMicrophoneEnabled(ent, args.Actor, args.Enabled, true);
@@ -284,8 +274,7 @@ public sealed class RadioDeviceSystem : EntitySystem
     {
         if (ent.Comp.RequiresPower && !this.IsPowered(ent, EntityManager))
             return;
-        if (!_access.IsAllowed(args.Actor, ent.Owner)
-            || !_actionBlocker.CanComplexInteract(args.Actor)) // Frontier
+        if (!_access.IsAllowed(args.Actor, ent.Owner)) // Frontier
             return; // Frontier
 
         SetSpeakerEnabled(ent, args.Actor, args.Enabled, true);
@@ -297,8 +286,7 @@ public sealed class RadioDeviceSystem : EntitySystem
     {
         if (ent.Comp.RequiresPower && !this.IsPowered(ent, EntityManager))
             return;
-        if (!_access.IsAllowed(args.Actor, ent.Owner)
-            || !_actionBlocker.CanComplexInteract(args.Actor)) // Frontier
+        if (!_access.IsAllowed(args.Actor, ent.Owner)) // Frontier
             return; // Frontier
 
         if (!_protoMan.TryIndex<RadioChannelPrototype>(args.Channel, out var channel) || !ent.Comp.SupportedChannels.Contains(args.Channel)) // Nuclear-14: add channel
@@ -325,7 +313,7 @@ public sealed class RadioDeviceSystem : EntitySystem
         {
             mic.BroadcastChannel = channel;
             if(_protoMan.TryIndex<RadioChannelPrototype>(channel, out var channelProto)) // Frontier
-                mic.Frequency = channelProto.Frequency; // Frontier
+                mic.Frequency = _radio.GetFrequency(ent, channelProto); // Frontier
         }
         if (TryComp<RadioSpeakerComponent>(ent, out var speaker))
             speaker.Channels = new() { channel };
@@ -394,10 +382,6 @@ public sealed class RadioDeviceSystem : EntitySystem
         if (!args.CanInteract || !args.CanAccess)
             return;
 
-        if (!_access.IsAllowed(args.User, uid)
-            || !_actionBlocker.CanComplexInteract(args.User))
-            return;
-
         AlternativeVerb verb = new()
         {
             Text = Loc.GetString("handheld-radio-component-toggle"),
@@ -450,5 +434,4 @@ public sealed class RadioDeviceSystem : EntitySystem
             _appearance.SetData(uid, RadioDeviceVisuals.Broadcasting, true);
         }
     }
-    // End Frontier
 }

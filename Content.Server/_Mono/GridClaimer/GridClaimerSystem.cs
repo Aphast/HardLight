@@ -4,10 +4,9 @@ using Content.Shared.Verbs;
 
 namespace Content.Server._Mono.GridClaimer;
 
-// VRS: Ported from Triad_Sector — allows players to claim derelict/POI grids, preventing despawn.
-public sealed class GridClaimerSystem : EntitySystem
+public sealed partial class GridClaimerSystem : EntitySystem
 {
-    [Dependency] private readonly PopupSystem _popup = default!;
+    [Dependency] private PopupSystem _popup = default!;
 
     public override void Initialize()
     {
@@ -59,6 +58,7 @@ public sealed class GridClaimerSystem : EntitySystem
 
     private void OnParentChanged(Entity<GridClaimerComponent> ent, ref EntParentChangedMessage args)
     {
+        // unclaim if we move offgrid
         if (ent.Comp.ClaimingGrid != null)
             UnclaimGrid(ent);
     }

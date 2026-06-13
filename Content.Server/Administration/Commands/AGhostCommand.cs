@@ -1,23 +1,21 @@
 using System.Linq;
 using Content.Server.GameTicking;
-using Content.Server.Ghost;
-using Content.Server.Mind;
 using Content.Shared.Administration;
 using Content.Shared.Ghost;
 using Content.Shared.Mind;
 using Robust.Server.GameObjects;
 using Robust.Server.Player;
 using Robust.Shared.Console;
+using GhostSystem = Content.Server.Ghost.GhostSystem;
 using Robust.Shared.Player;
-using Content.Server._NF.CryoSleep; // Frontier
 
 namespace Content.Server.Administration.Commands;
 
 [AdminCommand(AdminFlags.Admin)]
-public sealed class AGhostCommand : LocalizedCommands
+public sealed partial class AGhostCommand : LocalizedCommands
 {
-    [Dependency] private readonly IEntityManager _entities = default!;
-    [Dependency] private readonly ISharedPlayerManager _playerManager = default!;
+    [Dependency] private IEntityManager _entities = default!;
+    [Dependency] private ISharedPlayerManager _playerManager = default!;
 
     public override string Command => "aghost";
     public override string Help => "aghost";
@@ -73,10 +71,9 @@ public sealed class AGhostCommand : LocalizedCommands
 
         var mindSystem = _entities.System<SharedMindSystem>();
         var metaDataSystem = _entities.System<MetaDataSystem>();
-        var ghostSystem = _entities.System<SharedGhostSystem>();
+        var ghostSystem = _entities.System<GhostSystem>();
         var transformSystem = _entities.System<TransformSystem>();
         var gameTicker = _entities.System<GameTicker>();
-        var cryoSystem = _entities.System<CryoSleepSystem>(); // Frontier
 
         if (!mindSystem.TryGetMind(player, out var mindId, out var mind))
         {
@@ -119,7 +116,9 @@ public sealed class AGhostCommand : LocalizedCommands
         }
 
         var comp = _entities.GetComponent<GhostComponent>(ghost);
-        ghostSystem.SetCanReturnToBody((ghost, comp), canReturn);
-        ghostSystem.SetCanReturnFromCryo(comp, cryoSystem.HasCryosleepingBody(player.UserId)); // Frontier
+        ghostSystem.SetCanReturnToBody(comp, canReturn);
+
+        // Apply admin OOC color to the admin ghost
+        ghostSystem.ApplyAdminOOCColor(ghost, mindId);
     }
 }

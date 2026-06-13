@@ -4,7 +4,7 @@
                  xmlns:goob="clr-namespace:Content.Client._Goobstation.Research.UI"
                  Margin="4"
                  HorizontalExpand="False">  <!-- Frontier: Margin="5" < Margin="4" -->
-    <BoxContainer Name="CardContainer" Orientation="Vertical" SetSize="64 64"> <!-- Frontier: "80 80" < "64 64" -->
+    <BoxContainer Orientation="Vertical" SetSize="64 64"> <!-- Frontier: "80 80" < "64 64" -->
         <PanelContainer VerticalExpand="True"
                         HorizontalExpand="True"
                         Name="Panel">
@@ -17,11 +17,6 @@
                 Scale="1.75 1.75"
                 SetSize="56 56">
             </EntityPrototypeView> <!-- Frontier: "2" < "1.75", "64 64" < "56 56" -->
-            <TextureRect Name="ResearchIconTexture"
-                         Stretch="KeepAspectCentered"
-                         TextureScale="2 2"
-                         SetSize="56 56"
-                         Visible="False"/>
         </PanelContainer>
     </BoxContainer>
 </LayoutContainer>

@@ -69,13 +69,6 @@ public partial class StatusIconData : IComparable<StatusIconData>
     public int Offset = 0;
 
     /// <summary>
-    /// Horizontal offset of the status icon.
-    /// Positive values move the icon right.
-    /// </summary>
-    [DataField]
-    public int XOffset = 0;
-
-    /// <summary>
     /// Sets if the icon should be rendered with or without the effect of lighting.
     /// </summary>
     [DataField]
@@ -151,22 +144,6 @@ public sealed partial class SatiationIconPrototype : StatusIconPrototype, IInher
 {
     /// <inheritdoc />
     [ParentDataField(typeof(AbstractPrototypeIdArraySerializer<SatiationIconPrototype>))]
-    public string[]? Parents { get; private set; }
-
-    /// <inheritdoc />
-    [NeverPushInheritance]
-    [AbstractDataField]
-    public bool Abstract { get; private set; }
-}
-
-/// <summary>
-/// StatusIcons for showing the psionics status on the epi HUD
-/// </summary>
-[Prototype]
-public sealed partial class PsionicsIconPrototype : StatusIconPrototype, IInheritingPrototype
-{
-    /// <inheritdoc />
-    [ParentDataField(typeof(AbstractPrototypeIdArraySerializer<PsionicsIconPrototype>))]
     public string[]? Parents { get; private set; }
 
     /// <inheritdoc />

@@ -9,11 +9,11 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Research.Systems;
 
-public abstract class SharedResearchSystem : EntitySystem
+public abstract partial class SharedResearchSystem : EntitySystem
 {
-    [Dependency] protected readonly IPrototypeManager PrototypeManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedLatheSystem _lathe = default!;
+    [Dependency] protected IPrototypeManager PrototypeManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedLatheSystem _lathe = default!;
 
     public override void Initialize()
     {
@@ -73,8 +73,8 @@ public abstract class SharedResearchSystem : EntitySystem
         if (!component.SupportedDisciplines.Contains(tech.Discipline))
             return false;
 
-        if (tech.Tier > disciplineTiers[tech.Discipline])
-            return false;
+        // if (tech.Tier > disciplineTiers[tech.Discipline])    // Goobstation R&D Console rework - removed main discipline checks
+        //     return false;
 
         if (component.UnlockedTechnologies.Contains(tech.ID))
             return false;
@@ -85,38 +85,6 @@ public abstract class SharedResearchSystem : EntitySystem
                 return false;
         }
 
-        return true;
-    }
-
-    public bool CanContributeToDisciplineProgress(TechnologyPrototype technology, string disciplineId)
-    {
-        return CanContributeToDisciplineProgress(technology, disciplineId, new HashSet<string>());
-    }
-
-    private bool CanContributeToDisciplineProgress(
-        TechnologyPrototype technology,
-        string disciplineId,
-        HashSet<string> visited)
-    {
-        if (technology.Hidden || technology.Discipline != disciplineId)
-            return false;
-
-        if (!visited.Add(technology.ID))
-            return false;
-
-        foreach (var prereqId in technology.TechnologyPrerequisites)
-        {
-            var prereq = PrototypeManager.Index<TechnologyPrototype>(prereqId);
-            if (prereq.Discipline != disciplineId ||
-                prereq.Tier > technology.Tier ||
-                !CanContributeToDisciplineProgress(prereq, disciplineId, visited))
-            {
-                visited.Remove(technology.ID);
-                return false;
-            }
-        }
-
-        visited.Remove(technology.ID);
         return true;
     }
 
@@ -139,18 +107,20 @@ public abstract class SharedResearchSystem : EntitySystem
     public int GetHighestDisciplineTier(TechnologyDatabaseComponent component, TechDisciplinePrototype techDiscipline)
     {
         var allTech = PrototypeManager.EnumeratePrototypes<TechnologyPrototype>()
-            .Where(p => CanContributeToDisciplineProgress(p, techDiscipline.ID)).ToList();
+            .Where(p => p.Discipline == techDiscipline.ID && !p.Hidden).ToList();
         var allUnlocked = new List<TechnologyPrototype>();
         foreach (var recipe in component.UnlockedTechnologies)
         {
             var proto = PrototypeManager.Index<TechnologyPrototype>(recipe);
-            if (!CanContributeToDisciplineProgress(proto, techDiscipline.ID))
+            if (proto.Discipline != techDiscipline.ID)
                 continue;
             allUnlocked.Add(proto);
         }
 
         var highestTier = techDiscipline.TierPrerequisites.Keys.Max();
         var tier = 2; //tier 1 is always given
+
+        // todo this might break if you have hidden technologies. i'm not sure
 
         while (tier <= highestTier)
         {
@@ -250,8 +220,6 @@ public abstract class SharedResearchSystem : EntitySystem
     public void TrySetMainDiscipline(TechnologyPrototype prototype, EntityUid uid, TechnologyDatabaseComponent? component = null)
     {
         return;
-        // Frontier: allow unlocking all disciplines
-        /*
         if (!Resolve(uid, ref component))
             return;
 
@@ -263,8 +231,6 @@ public abstract class SharedResearchSystem : EntitySystem
 
         var ev = new TechnologyDatabaseModifiedEvent();
         RaiseLocalEvent(uid, ref ev);
-        */
-        // End Frontier: allow unlocking all disciplines
     }
 
     /// <summary>
@@ -336,7 +302,7 @@ public abstract class SharedResearchSystem : EntitySystem
         component.UnlockedRecipes.Add(recipe);
         Dirty(uid, component);
 
-        var ev = new TechnologyDatabaseModifiedEvent(new List<string> { recipe });
+        var ev = new TechnologyDatabaseModifiedEvent();
         RaiseLocalEvent(uid, ref ev);
     }
 }

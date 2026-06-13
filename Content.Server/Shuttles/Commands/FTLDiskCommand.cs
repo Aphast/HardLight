@@ -1,8 +1,8 @@
 using Content.Server.Administration;
+using Content.Server.Labels;
 using Content.Shared.Administration;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
-using Content.Shared.Labels.EntitySystems;
 using Content.Shared.Shuttles.Components;
 using Content.Shared.Storage;
 using Content.Shared.Storage.EntitySystems;
@@ -18,16 +18,18 @@ namespace Content.Server.Shuttles.Commands;
 /// </summary>
 [AdminCommand(AdminFlags.Fun)]
 
-public sealed class FTLDiskCommand : LocalizedCommands
+public sealed partial class FTLDiskCommand : LocalizedCommands
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IEntitySystemManager _entSystemManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IEntitySystemManager _entSystemManager = default!;
 
     public override string Command => "ftldisk";
 
-    public static readonly EntProtoId CoordinatesDisk = new("CoordinatesDisk");
+    [ValidatePrototypeId<EntityPrototype>]
+    public const string CoordinatesDisk = "CoordinatesDisk";
 
-    public static readonly EntProtoId DiskCase = new("DiskCase");
+    [ValidatePrototypeId<EntityPrototype>]
+    public const string DiskCase = "DiskCase";
     public override void Execute(IConsoleShell shell, string argStr, string[] args)
     {
         if (args.Length == 0)
@@ -133,7 +135,7 @@ public sealed class FTLDiskCommand : LocalizedCommands
                 // create the FTL disk
                 EntityUid cdUid = _entManager.SpawnEntity(CoordinatesDisk, coords);
                 var cd = _entManager.EnsureComponent<ShuttleDestinationCoordinatesComponent>(cdUid);
-                cd.Destination = _entManager.GetNetEntity(dest);
+                cd.Destination = dest;
                 _entManager.Dirty(cdUid, cd);
 
                 // create disk case

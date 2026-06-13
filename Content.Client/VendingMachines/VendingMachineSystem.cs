@@ -1,17 +1,15 @@
-using System.Linq;
 using Content.Shared.VendingMachines;
 using Robust.Client.Animations;
 using Robust.Client.GameObjects;
-using Robust.Shared.GameStates;
-using Robust.Shared.Containers; // Frontier
+using Robust.Shared.Containers;
 
 namespace Content.Client.VendingMachines;
 
-public sealed class VendingMachineSystem : SharedVendingMachineSystem
+public sealed partial class VendingMachineSystem : SharedVendingMachineSystem
 {
-    [Dependency] private readonly AnimationPlayerSystem _animationPlayer = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearanceSystem = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private AnimationPlayerSystem _animationPlayer = default!;
+    [Dependency] private SharedAppearanceSystem _appearanceSystem = default!;
+    [Dependency] private SharedUserInterfaceSystem _uiSystem = default!;
 
     public override void Initialize()
     {
@@ -19,72 +17,36 @@ public sealed class VendingMachineSystem : SharedVendingMachineSystem
 
         SubscribeLocalEvent<VendingMachineComponent, AppearanceChangeEvent>(OnAppearanceChange);
         SubscribeLocalEvent<VendingMachineComponent, AnimationCompletedEvent>(OnAnimationCompleted);
-        SubscribeLocalEvent<VendingMachineComponent, ComponentHandleState>(OnVendingHandleState);
+        SubscribeLocalEvent<VendingMachineComponent, AfterAutoHandleStateEvent>(OnVendingAfterState);
+        SubscribeLocalEvent<VendingMachineComponent, EntInsertedIntoContainerMessage>(OnEntityInserted); // Frontier
+        SubscribeLocalEvent<VendingMachineComponent, EntRemovedFromContainerMessage>(OnEntityRemoved); // Frontier
     }
 
-    private void OnVendingHandleState(Entity<VendingMachineComponent> entity, ref ComponentHandleState args)
+    private void OnVendingAfterState(EntityUid uid, VendingMachineComponent component, ref AfterAutoHandleStateEvent args)
     {
-        if (args.Current is not VendingMachineComponentState state)
-            return;
-
-        var uid = entity.Owner;
-        var component = entity.Comp;
-
-        component.Contraband = state.Contraband;
-        component.EjectEnd = state.EjectEnd;
-        component.DenyEnd = state.DenyEnd;
-        component.DispenseOnHitEnd = state.DispenseOnHitEnd;
-        component.CashSlotBalance = state.CashSlotBalance; // Frontier
-
-        // If all we did was update amounts then we can leave BUI buttons in place.
-        var fullUiUpdate = !component.Inventory.Keys.SequenceEqual(state.Inventory.Keys) ||
-                           !component.EmaggedInventory.Keys.SequenceEqual(state.EmaggedInventory.Keys) ||
-                           !component.ContrabandInventory.Keys.SequenceEqual(state.ContrabandInventory.Keys);
-
-        component.Inventory.Clear();
-        component.EmaggedInventory.Clear();
-        component.ContrabandInventory.Clear();
-
-        foreach (var entry in state.Inventory)
+        if (_uiSystem.TryGetOpenUi<VendingMachineBoundUserInterface>(uid, VendingMachineUiKey.Key, out var bui))
         {
-            component.Inventory.Add(entry.Key, new(entry.Value));
-        }
-
-        foreach (var entry in state.EmaggedInventory)
-        {
-            component.EmaggedInventory.Add(entry.Key, new(entry.Value));
-        }
-
-        foreach (var entry in state.ContrabandInventory)
-        {
-            component.ContrabandInventory.Add(entry.Key, new(entry.Value));
-        }
-
-        if (UISystem.TryGetOpenUi<VendingMachineBoundUserInterface>(uid, VendingMachineUiKey.Key, out var bui))
-        {
-            if (fullUiUpdate)
-            {
-                bui.Refresh();
-            }
-            else
-            {
-                bui.UpdateAmounts();
-            }
+            bui.Refresh();
         }
     }
 
-    protected override void UpdateUI(Entity<VendingMachineComponent?> entity)
+    // Frontier
+    private void OnEntityInserted(Entity<VendingMachineComponent> ent, ref EntInsertedIntoContainerMessage args)
     {
-        if (!Resolve(entity, ref entity.Comp))
-            return;
-
-        if (UISystem.TryGetOpenUi<VendingMachineBoundUserInterface>(entity.Owner,
-                VendingMachineUiKey.Key,
-                out var bui))
+        if (_uiSystem.TryGetOpenUi<VendingMachineBoundUserInterface>(ent.Owner, VendingMachineUiKey.Key, out var bui))
         {
-            bui.UpdateAmounts();
+            bui.Refresh();
         }
     }
+
+    private void OnEntityRemoved(Entity<VendingMachineComponent> ent, ref EntRemovedFromContainerMessage args)
+    {
+        if (_uiSystem.TryGetOpenUi<VendingMachineBoundUserInterface>(ent.Owner, VendingMachineUiKey.Key, out var bui))
+        {
+            bui.Refresh();
+        }
+    }
+    // End Frontier
 
     private void OnAnimationCompleted(EntityUid uid, VendingMachineComponent component, AnimationCompletedEvent args)
     {
@@ -116,48 +78,48 @@ public sealed class VendingMachineSystem : SharedVendingMachineSystem
 
     private void UpdateAppearance(EntityUid uid, VendingMachineVisualState visualState, VendingMachineComponent component, SpriteComponent sprite)
     {
-        SetLayerState(VendingMachineVisualLayers.Base, component.OffState, (uid, sprite));
+        SetLayerState(VendingMachineVisualLayers.Base, component.OffState, sprite);
 
         switch (visualState)
         {
             case VendingMachineVisualState.Normal:
-                SetLayerState(VendingMachineVisualLayers.BaseUnshaded, component.NormalState, (uid, sprite));
-                SetLayerState(VendingMachineVisualLayers.Screen, component.ScreenState, (uid, sprite));
+                SetLayerState(VendingMachineVisualLayers.BaseUnshaded, component.NormalState, sprite);
+                SetLayerState(VendingMachineVisualLayers.Screen, component.ScreenState, sprite);
                 break;
 
             case VendingMachineVisualState.Deny:
                 if (component.LoopDenyAnimation)
-                    SetLayerState(VendingMachineVisualLayers.BaseUnshaded, component.DenyState, (uid, sprite));
+                    SetLayerState(VendingMachineVisualLayers.BaseUnshaded, component.DenyState, sprite);
                 else
-                    PlayAnimation(uid, VendingMachineVisualLayers.BaseUnshaded, component.DenyState, (float)component.DenyDelay.TotalSeconds, sprite);
+                    PlayAnimation(uid, VendingMachineVisualLayers.BaseUnshaded, component.DenyState, component.DenyDelay, sprite);
 
-                SetLayerState(VendingMachineVisualLayers.Screen, component.ScreenState, (uid, sprite));
+                SetLayerState(VendingMachineVisualLayers.Screen, component.ScreenState, sprite);
                 break;
 
             case VendingMachineVisualState.Eject:
-                PlayAnimation(uid, VendingMachineVisualLayers.BaseUnshaded, component.EjectState, (float)component.EjectDelay.TotalSeconds, sprite);
-                SetLayerState(VendingMachineVisualLayers.Screen, component.ScreenState, (uid, sprite));
+                PlayAnimation(uid, VendingMachineVisualLayers.BaseUnshaded, component.EjectState, component.EjectDelay, sprite);
+                SetLayerState(VendingMachineVisualLayers.Screen, component.ScreenState, sprite);
                 break;
 
             case VendingMachineVisualState.Broken:
-                HideLayers((uid, sprite));
-                SetLayerState(VendingMachineVisualLayers.Base, component.BrokenState, (uid, sprite));
+                HideLayers(sprite);
+                SetLayerState(VendingMachineVisualLayers.Base, component.BrokenState, sprite);
                 break;
 
             case VendingMachineVisualState.Off:
-                HideLayers((uid, sprite));
+                HideLayers(sprite);
                 break;
         }
     }
 
-    private void SetLayerState(VendingMachineVisualLayers layer, string? state, Entity<SpriteComponent> sprite)
+    private static void SetLayerState(VendingMachineVisualLayers layer, string? state, SpriteComponent sprite)
     {
         if (string.IsNullOrEmpty(state))
             return;
 
-        _sprite.LayerSetVisible(sprite.AsNullable(), layer, true);
-        _sprite.LayerSetAutoAnimated(sprite.AsNullable(), layer, true);
-        _sprite.LayerSetRsiState(sprite.AsNullable(), layer, state);
+        sprite.LayerSetVisible(layer, true);
+        sprite.LayerSetAutoAnimated(layer, true);
+        sprite.LayerSetState(layer, state);
     }
 
     private void PlayAnimation(EntityUid uid, VendingMachineVisualLayers layer, string? state, float animationTime, SpriteComponent sprite)
@@ -168,7 +130,7 @@ public sealed class VendingMachineSystem : SharedVendingMachineSystem
         if (!_animationPlayer.HasRunningAnimation(uid, state))
         {
             var animation = GetAnimation(layer, state, animationTime);
-            _sprite.LayerSetVisible((uid, sprite), layer, true);
+            sprite.LayerSetVisible(layer, true);
             _animationPlayer.Play(uid, animation, state);
         }
     }
@@ -192,23 +154,17 @@ public sealed class VendingMachineSystem : SharedVendingMachineSystem
         };
     }
 
-    private void HideLayers(Entity<SpriteComponent> sprite)
+    private static void HideLayers(SpriteComponent sprite)
     {
         HideLayer(VendingMachineVisualLayers.BaseUnshaded, sprite);
         HideLayer(VendingMachineVisualLayers.Screen, sprite);
     }
 
-    private void HideLayer(VendingMachineVisualLayers layer, Entity<SpriteComponent> sprite)
+    private static void HideLayer(VendingMachineVisualLayers layer, SpriteComponent sprite)
     {
-        if (!_sprite.LayerMapTryGet(sprite.AsNullable(), layer, out var actualLayer, false))
+        if (!sprite.LayerMapTryGet(layer, out var actualLayer))
             return;
 
-        _sprite.LayerSetVisible(sprite.AsNullable(), actualLayer, false);
+        sprite.LayerSetVisible(actualLayer, false);
     }
-
-    // Frontier: custom vending check
-    public override void AuthorizedVend(EntityUid uid, EntityUid sender, InventoryType type, string itemId, VendingMachineComponent component)
-    {
-    }
-    // End Frontier: custom vending check
 }

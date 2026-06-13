@@ -12,4 +12,6 @@ public abstract partial class GridModifier
     public string Comp = "Transform";
 
     public abstract void Modify(EntityUid gridUid, EntityManager system, IComponentFactory? factory = null);
+
 }
+

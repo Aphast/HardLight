@@ -1,17 +1,9 @@
 name: "Labels: Size"
-
-concurrency:
-  group: labels
-  cancel-in-progress: false
-  queue: max
-
 on: pull_request_target
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   size-label:

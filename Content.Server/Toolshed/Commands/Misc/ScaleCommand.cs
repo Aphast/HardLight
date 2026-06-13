@@ -4,9 +4,6 @@ using Content.Shared.Administration;
 using Content.Shared.Sprite;
 using Robust.Shared.Physics.Systems;
 using Robust.Shared.Toolshed;
-using Content.Shared.Humanoid;                // added
-using Robust.Shared.IoC;                     // added
-using Robust.Shared.GameObjects;          // added
 
 namespace Content.Server.Toolshed.Commands.Misc;
 
@@ -18,7 +15,6 @@ public sealed class ScaleCommand : ToolshedCommand
 {
     private SharedScaleVisualsSystem? _scaleVisuals;
     private SharedPhysicsSystem? _physics;
-    private SharedAppearanceSystem? _appearance;
 
     [CommandImplementation("set")]
     public IEnumerable<EntityUid> Set([PipedArgument] IEnumerable<EntityUid> input, Vector2 scale)
@@ -68,94 +64,6 @@ public sealed class ScaleCommand : ToolshedCommand
         foreach (var ent in input)
         {
             yield return _scaleVisuals.GetSpriteScale(ent);
-        }
-    }
-    [CommandImplementation("hset")]
-    public IEnumerable<EntityUid> HumanoidSet([PipedArgument] IEnumerable<EntityUid> input, float height, float width)
-    {
-        var entManager = IoCManager.Resolve<IEntityManager>();
-
-        foreach (var ent in input)
-        {
-            if (!entManager.TryGetComponent<HumanoidAppearanceComponent>(ent, out var humanoid))
-                continue;
-
-            humanoid.Height = height;
-            humanoid.Width = width;
-
-            // mark the component as dirty so the new values are networked to clients immediately
-            entManager.Dirty(ent, humanoid);
-
-            // Also set humanoid-specific appearance scale so clients that prefer
-            // HumanoidVisuals.Scale will use the updated values (player-controlled mobs).
-            _appearance ??= GetSys<SharedAppearanceSystem>();
-            var appearance = entManager.EnsureComponent<AppearanceComponent>(ent);
-            _appearance.SetData(ent, HumanoidVisuals.Scale, new Vector2(humanoid.Width, humanoid.Height), appearance);
-
-            yield return ent;
-        }
-    }
-
-    [CommandImplementation("hmultiply")]
-    public IEnumerable<EntityUid> HumanoidMultiply([PipedArgument] IEnumerable<EntityUid> input, float factor)
-    {
-        var entManager = IoCManager.Resolve<IEntityManager>();
-
-        foreach (var ent in input)
-        {
-            if (!entManager.TryGetComponent<HumanoidAppearanceComponent>(ent, out var humanoid))
-                continue;
-
-            humanoid.Height *= factor;
-            humanoid.Width *= factor;
-
-            // mark the component as dirty so the new values are networked to clients immediately
-            entManager.Dirty(ent, humanoid);
-
-            _appearance ??= GetSys<SharedAppearanceSystem>();
-            var appearance = entManager.EnsureComponent<AppearanceComponent>(ent);
-            _appearance.SetData(ent, HumanoidVisuals.Scale, new Vector2(humanoid.Width, humanoid.Height), appearance);
-
-            yield return ent;
-        }
-    }
-    [CommandImplementation("hmultiplywithfixture")]
-    public IEnumerable<EntityUid> HumanoidMultiplyWithFixture([PipedArgument] IEnumerable<EntityUid> input, float factor)
-    {
-        var entManager = IoCManager.Resolve<IEntityManager>();
-        _physics ??= GetSys<SharedPhysicsSystem>();
-
-        foreach (var ent in input)
-        {
-            if (!entManager.TryGetComponent<HumanoidAppearanceComponent>(ent, out var humanoid))
-                continue;
-
-            _physics.ScaleFixtures(ent, factor);
-
-            humanoid.Height *= factor;
-            humanoid.Width *= factor;
-
-            // mark the component as dirty so the new values are networked to clients immediately
-            entManager.Dirty(ent, humanoid);
-
-            _appearance ??= GetSys<SharedAppearanceSystem>();
-            var appearance = entManager.EnsureComponent<AppearanceComponent>(ent);
-            _appearance.SetData(ent, HumanoidVisuals.Scale, new Vector2(humanoid.Width, humanoid.Height), appearance);
-
-            yield return ent;
-        }
-    }
-    [CommandImplementation("hget")]
-    public IEnumerable<(float Height, float Width)> HumanoidGet([PipedArgument] IEnumerable<EntityUid> input)
-    {
-        var entManager = IoCManager.Resolve<IEntityManager>();
-
-        foreach (var ent in input)
-        {
-            if (!entManager.TryGetComponent<HumanoidAppearanceComponent>(ent, out var humanoid))
-                continue;
-
-            yield return (humanoid.Height, humanoid.Width);
         }
     }
 }

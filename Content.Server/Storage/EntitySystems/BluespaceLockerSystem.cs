@@ -17,21 +17,20 @@ using Robust.Shared.Random;
 using Robust.Shared.Timing;
 using Robust.Shared.Prototypes;
 using Content.Server.Shuttles.Components;
-using Robust.Shared.Physics;
 
 namespace Content.Server.Storage.EntitySystems;
 
-public sealed class BluespaceLockerSystem : EntitySystem
+public sealed partial class BluespaceLockerSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _robustRandom = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly EntityStorageSystem _entityStorage = default!;
-    [Dependency] private readonly WeldableSystem _weldableSystem = default!;
-    [Dependency] private readonly LockSystem _lockSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly ExplosionSystem _explosionSystem = default!;
+    [Dependency] private IRobustRandom _robustRandom = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private EntityStorageSystem _entityStorage = default!;
+    [Dependency] private WeldableSystem _weldableSystem = default!;
+    [Dependency] private LockSystem _lockSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private ExplosionSystem _explosionSystem = default!;
 
     public override void Initialize()
     {
@@ -164,11 +163,11 @@ public sealed class BluespaceLockerSystem : EntitySystem
             return false;
 
         if (lockerComponent.PickLinksFromSameMap &&
-            _transformSystem.GetMapId(link.ToCoordinates()) != _transformSystem.GetMapId(locker.ToCoordinates()))
+            link.ToCoordinates().GetMapId(EntityManager) != locker.ToCoordinates().GetMapId(EntityManager))
             return false;
 
         if (lockerComponent.PickLinksFromStationGrids &&
-            !HasComp<StationMemberComponent>(_transformSystem.GetGrid(link.ToCoordinates())))
+            !HasComp<StationMemberComponent>(link.ToCoordinates().GetGridUid(EntityManager)))
             return false;
 
         if (lockerComponent.PickLinksFromResistLockers &&
@@ -393,7 +392,7 @@ public sealed class BluespaceLockerSystem : EntitySystem
         switch (component.BehaviorProperties.DestroyType)
         {
             case BluespaceLockerDestroyType.Explode:
-                _explosionSystem.QueueExplosion(_transformSystem.ToMapCoordinates(uid.ToCoordinates()),
+                _explosionSystem.QueueExplosion(uid.ToCoordinates().ToMap(EntityManager, _transformSystem),
                     ExplosionSystem.DefaultExplosionPrototypeId, 4, 1, 2, uid, maxTileBreak: 0);
                 goto case BluespaceLockerDestroyType.Delete;
             case BluespaceLockerDestroyType.Delete:

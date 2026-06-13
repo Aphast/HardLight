@@ -46,13 +46,11 @@ public sealed partial class SiliconLawContainer : BoxContainer
         Delete.OnPressed += _ => DeleteAction?.Invoke(_law!);
     }
 
-    public void SetLaw(SiliconLaw law, bool allowCorruption = true) // HardLight: Added bool allowCorruption = true
+    public void SetLaw(SiliconLaw law)
     {
         _law = law;
         LawContent.TextRope = new Rope.Leaf(Loc.GetString(law.LawString));
         PositionText.Text = law.Order.ToString();
-        Corrupted.Visible = allowCorruption; // HardLight
-        Corrupted.Disabled = !allowCorruption; // HardLight
         if (!string.IsNullOrEmpty(law.LawIdentifierOverride))
         {
             Corrupted.Pressed = true;

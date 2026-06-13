@@ -35,28 +35,13 @@ public sealed partial class SalvageExpeditionComponent : SharedSalvageExpedition
     [DataField("station")]
     public EntityUid Station;
 
-    /// <summary>
-    /// HardLight: Console that initiated this mission for direct targeting
-    /// </summary>
-    [DataField("console")]
-    public EntityUid? Console;
-
     [ViewVariables] public bool Completed = false;
 
     /// <summary>
-    /// HardLight: True once expedition return flow has been triggered.
-    /// Prevents duplicate FTL/cleanup scheduling.
-    /// </summary>
-    [ViewVariables]
-    public bool ReturnTriggered = false;
-
-    // Frontier: moved to Client
-    /// <summary>
     /// Countdown audio stream.
     /// </summary>
-    // [DataField, AutoNetworkedField]
-    // public EntityUid? Stream = null;
-    // End Frontier: moved to Client
+    [DataField, AutoNetworkedField]
+    public EntityUid? Stream = null;
 
     /// <summary>
     /// Sound that plays when the mission end is imminent.
@@ -67,11 +52,23 @@ public sealed partial class SalvageExpeditionComponent : SharedSalvageExpedition
         Params = AudioParams.Default.WithVolume(-5),
     };
 
-    // Frontier: moved to Shared
     /// <summary>
     /// Song selected on MapInit so we can predict the audio countdown properly.
     /// </summary>
-    // [DataField]
-    // public ResolvedSoundSpecifier SelectedSong;
-    // End Frontier: moved to Shared
+    [DataField]
+    public ResolvedSoundSpecifier SelectedSong;
+
+    // Frontier: expedition difficulty and rewards
+    /// <summary>
+    /// The difficulty this mission had or, in the future, was selected.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite), DataField("difficulty")]
+    public DifficultyRating Difficulty;
+
+    /// <summary>
+    /// List of items to order on mission completion
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite), DataField("rewards", customTypeSerializer: typeof(PrototypeIdListSerializer<EntityPrototype>))]
+    public List<string> Rewards = default!;
+    // End Frontier: expedition difficulty and rewards
 }

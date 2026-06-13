@@ -14,23 +14,17 @@ namespace Content.Shared.Teleportation.Components;
 [RegisterComponent, NetworkedComponent]
 public sealed partial class HandTeleporterComponent : Component
 {
-    [ViewVariables]
+    [ViewVariables, DataField("firstPortal")]
     public EntityUid? FirstPortal = null;
 
-    [ViewVariables]
+    [ViewVariables, DataField("secondPortal")]
     public EntityUid? SecondPortal = null;
 
     /// <summary>
-    ///     Should the portals be able to be placed across grids?
+    ///     Portals can't be placed on different grids?
     /// </summary>
     [DataField]
     public bool AllowPortalsOnDifferentGrids;
-
-    /// <summary>
-    ///     Should the portals work across maps?
-    /// </summary>
-    [DataField]
-    public bool AllowPortalsOnDifferentMaps;
 
     [DataField("firstPortalPrototype", customTypeSerializer: typeof(PrototypeIdSerializer<EntityPrototype>))]
     public string FirstPortalPrototype = "PortalRed";

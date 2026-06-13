@@ -1,10 +1,14 @@
 name: Map file schema validator
 on:
   push:
-    branches: [ master, staging, stable ]
+    branches: [ main, staging, stable ]
   merge_group:
   pull_request:
     types: [ opened, reopened, synchronize, ready_for_review ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   yaml-schema-validation:

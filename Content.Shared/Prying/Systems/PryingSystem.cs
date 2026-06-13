@@ -6,23 +6,24 @@ using Content.Shared.Doors.Components;
 using Content.Shared.Interaction;
 using Content.Shared.Popups;
 using Content.Shared.Prying.Components;
+using Content.Shared.Timing;
 using Content.Shared.Verbs;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Serialization;
 using PryUnpoweredComponent = Content.Shared.Prying.Components.PryUnpoweredComponent;
-using Content.Shared.Interaction.Components; // HardLight
 
 namespace Content.Shared.Prying.Systems;
 
 /// <summary>
 /// Handles prying of entities (e.g. doors)
 /// </summary>
-public sealed class PryingSystem : EntitySystem
+public sealed partial class PryingSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLog = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private ISharedAdminLogManager _adminLog = default!;
+    [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+    [Dependency] private SharedAudioSystem _audioSystem = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private UseDelaySystem _delay = default!; // Goobstation
 
     public override void Initialize()
     {
@@ -39,21 +40,7 @@ public sealed class PryingSystem : EntitySystem
         if (args.Handled)
             return;
 
-        var usingPryTool = TryComp<PryingComponent>(args.Used, out var toolPry); // HardLight
-
-        // HardLight start
-        // Prevent prying while the door is already in the process of opening or closing.
-        if (!usingPryTool && comp.State is DoorState.Opening or DoorState.Closing)
-            return;
-
-        // Prevent prying on normal interact if the user has the ComplexInteraction component.
-        if (!usingPryTool && HasComp<ComplexInteractionComponent>(args.User))
-            return;
-
-        args.Handled = usingPryTool
-            ? TryPry(uid, args.User, out _, args.Used, toolPry!)
-            : TryPry(uid, args.User, out _, args.Used);
-        // HardLight end
+        args.Handled = TryPry(uid, args.User, out _, args.Used);
     }
 
     private void OnDoorAltVerb(EntityUid uid, DoorComponent component, GetVerbsEvent<AlternativeVerb> args)
@@ -61,28 +48,14 @@ public sealed class PryingSystem : EntitySystem
         if (!args.CanInteract || !args.CanAccess)
             return;
 
-        // HardLight start
-        // Only show the pry verb if the user is using a pry tool or doesn't have the ComplexInteraction component.
-        EntityUid? tool = null;
-        if (TryComp<PryingComponent>(args.User, out _))
-        {
-            tool = args.User;
-        }
-        else if (args.Using is { } usingEnt && TryComp<PryingComponent>(usingEnt, out _))
-        {
-            tool = usingEnt;
-        }
-
-        if (tool == null)
-        // HardLight end
+        if (!TryComp<PryingComponent>(args.User, out _))
             return;
 
         args.Verbs.Add(new AlternativeVerb()
         {
             Text = Loc.GetString("door-pry"),
             Impact = LogImpact.Low,
-            Priority = 10, // HardLight
-            Act = () => TryPry(uid, args.User, out _, tool.Value), // HardLight: args.User<tool.Value
+            Act = () => TryPry(uid, args.User, out _, args.User),
         });
     }
 
@@ -93,21 +66,12 @@ public sealed class PryingSystem : EntitySystem
     {
         id = null;
 
-        // HardLight start
-        if (!TryComp<PryingComponent>(tool, out var comp))
+        if (TryComp(tool, out UseDelayComponent? delay) && _delay.IsDelayed((tool, delay))) // Goobstation
             return false;
 
-        if (!comp.Enabled)
+        PryingComponent? comp = null;
+        if (!Resolve(tool, ref comp, false))
             return false;
-
-        return TryPry(target, user, out id, tool, comp);
-        // HardLight end
-    }
-
-    // HardLight: This overload is used when we already know the tool has a PryingComponent, so we don't need to check again.
-    public bool TryPry(EntityUid target, EntityUid user, out DoAfterId? id, EntityUid tool, PryingComponent comp)
-    {
-        id = null; // HardLight
 
         if (!comp.Enabled)
             return false;
@@ -133,6 +97,9 @@ public sealed class PryingSystem : EntitySystem
     {
         id = null;
 
+        if (TryComp(user, out UseDelayComponent? delay) && _delay.IsDelayed((user, delay))) // Goobstation
+            return false;
+
         // We don't care about displaying a message if no tool was used.
         if (!TryComp<PryUnpoweredComponent>(target, out var unpoweredComp) || !CanPry(target, user, out _, unpoweredComp: unpoweredComp))
             // If we have reached this point we want the event that caused this
@@ -141,7 +108,7 @@ public sealed class PryingSystem : EntitySystem
 
         // hand-prying is much slower
         var modifier = CompOrNull<PryingComponent>(user)?.SpeedModifier ?? unpoweredComp.PryModifier;
-        return StartPry(target, user, null, modifier, out id);
+        return StartPry(target, user, user, modifier, out id); // Goob edit
     }
 
     private bool CanPry(EntityUid target, EntityUid user, out string? message, PryingComponent? comp = null, PryUnpoweredComponent? unpoweredComp = null)
@@ -172,9 +139,17 @@ public sealed class PryingSystem : EntitySystem
 
     private bool StartPry(EntityUid target, EntityUid user, EntityUid? tool, float toolModifier, [NotNullWhen(true)] out DoAfterId? id)
     {
-        var modEv = new GetPryTimeModifierEvent(user);
+        var instaPry = TryComp(tool, out PryingComponent? prying) && prying.InstaPry; // Goobstation
+
+        var modEv = new GetPryTimeModifierEvent(user, instaPry); // Goob edit
 
         RaiseLocalEvent(target, ref modEv);
+
+        // Begin DeltaV additions
+        // Also raise an event for users to modifiy the time to pry
+        RaiseLocalEvent(user, ref modEv);
+        // End DeltaV additions
+
         var doAfterArgs = new DoAfterArgs(EntityManager, user, TimeSpan.FromSeconds(modEv.BaseTime * modEv.PryTimeModifier / toolModifier), new DoorPryDoAfterEvent(), target, target, tool)
         {
             BreakOnDamage = true,
@@ -216,6 +191,9 @@ public sealed class PryingSystem : EntitySystem
 
         var ev = new PriedEvent(args.User);
         RaiseLocalEvent(uid, ref ev);
+
+        if (TryComp(args.Used, out UseDelayComponent? delay)) // Goobstation
+            _delay.TryResetDelay((args.Used.Value, delay));
     }
 }
 

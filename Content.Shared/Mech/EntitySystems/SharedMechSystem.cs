@@ -21,36 +21,43 @@ using Robust.Shared.Containers;
 using Robust.Shared.Network;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
-using Content.Shared.Mobs.Components; // Frontier
-using Content.Shared.NPC.Components;
-using Content.Shared._NF.Mech.Equipment.Events; // Frontier
 
 // Goobstation Change
-using Content.Shared.Emag.Components;
+using Content.Shared.CCVar;
+using Content.Shared._Goobstation.CCVars;
 using Content.Shared.Emag.Systems;
 using Content.Shared.Weapons.Ranged.Events;
+using Content.Shared.Hands.Components;
+using Content.Shared.Hands.EntitySystems;
+using Content.Shared.Inventory.VirtualItem;
 using Robust.Shared.Configuration;
-using Content.Shared.HL.CCVar;
+using Content.Shared.Implants.Components;
 
 namespace Content.Shared.Mech.EntitySystems;
 
 /// <summary>
 /// Handles all of the interactions, UI handling, and items shennanigans for <see cref="MechComponent"/>
 /// </summary>
-public abstract class SharedMechSystem : EntitySystem
+public abstract partial class SharedMechSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly SharedActionsSystem _actions = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
-    [Dependency] private readonly SharedMoverController _mover = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly IConfigurationManager _config = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedInteractionSystem _interaction = default!;
+    [Dependency] private SharedMoverController _mover = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedHandsSystem _hands = default!; // Goobstation Change
+    [Dependency] private SharedVirtualItemSystem _virtualItem = default!; // Goobstation Change
+    [Dependency] private IConfigurationManager _config = default!; // Goobstation Change
+    [Dependency] private SharedContentEyeSystem _eye = default!; // Mono edit - Pilot camera zoom on mech enter
+
+    // Goobstation: Local variable for checking if mech guns can be used out of them.
+    private bool _canUseMechGunOutside;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -64,12 +71,20 @@ public abstract class SharedMechSystem : EntitySystem
         SubscribeLocalEvent<MechComponent, GetAdditionalAccessEvent>(OnGetAdditionalAccess);
         SubscribeLocalEvent<MechComponent, DragDropTargetEvent>(OnDragDrop);
         SubscribeLocalEvent<MechComponent, CanDropTargetEvent>(OnCanDragDrop);
-        SubscribeLocalEvent<MechComponent, GotEmaggedEvent>(OnEmagged);
+        //SubscribeLocalEvent<MechComponent, GotEmaggedEvent>(OnEmagged);
 
         SubscribeLocalEvent<MechPilotComponent, GetMeleeWeaponEvent>(OnGetMeleeWeapon);
         SubscribeLocalEvent<MechPilotComponent, CanAttackFromContainerEvent>(OnCanAttackFromContainer);
         SubscribeLocalEvent<MechPilotComponent, AttackAttemptEvent>(OnAttackAttempt);
-        SubscribeLocalEvent<MechEquipmentComponent, ShotAttemptedEvent>(OnShotAttempted);
+        SubscribeLocalEvent<MechPilotComponent, EntGotRemovedFromContainerMessage>(OnEntGotRemovedFromContainer);
+        SubscribeLocalEvent<MechEquipmentComponent, ShotAttemptedEvent>(OnShotAttempted); // Goobstation
+        Subs.CVar(_config, GoobCVars.MechGunOutsideMech, value => _canUseMechGunOutside = value, false); // Goobstation
+    }
+
+    // GoobStation: Fixes scram implants or teleports locking the pilot out of being able to move.
+    private void OnEntGotRemovedFromContainer(EntityUid uid, MechPilotComponent component, EntGotRemovedFromContainerMessage args)
+    {
+        TryEject(component.Mech, pilot: uid);
     }
 
     private void OnToggleEquipmentAction(EntityUid uid, MechComponent component, MechToggleEquipmentEvent args)
@@ -166,8 +181,6 @@ public abstract class SharedMechSystem : EntitySystem
         _actions.AddAction(pilot, ref component.MechUiActionEntity, component.MechUiAction, mech);
         _actions.AddAction(pilot, ref component.MechEjectActionEntity, component.MechEjectAction, mech);
         _actions.AddAction(pilot, ref component.ToggleActionEntity, component.ToggleAction, mech); //Goobstation Mech Lights toggle action
-
-        RaiseEquipmentEquippedEvent((mech, component), pilot); // Frontier (note: must send pilot separately, not yet in their seat)
         _actions.AddAction(pilot, ref component.MechRadarUiActionEntity, component.MechRadarUiAction, mech);
     }
 
@@ -179,11 +192,6 @@ public abstract class SharedMechSystem : EntitySystem
         RemComp<InteractionRelayComponent>(pilot);
 
         _actions.RemoveProvidedActions(pilot, mech);
-
-        // Frontier
-        if (TryComp<MechComponent>(mech, out var mechComp) && mechComp.CurrentSelectedEquipment != null)
-            _actions.RemoveProvidedActions(pilot, mechComp.CurrentSelectedEquipment.Value);
-        // End Frontier
     }
 
     /// <summary>
@@ -198,15 +206,10 @@ public abstract class SharedMechSystem : EntitySystem
 
         TryEject(uid, component);
         var equipment = new List<EntityUid>(component.EquipmentContainer.ContainedEntities);
-        // Frontier: optionally removable equipment
-        if (component.CanRemoveEquipment)
+        foreach (var ent in equipment)
         {
-            foreach (var ent in equipment)
-            {
-                RemoveEquipment(uid, ent, component, forced: true);
-            }
+            RemoveEquipment(uid, ent, component, forced: true);
         }
-        // End Frontier
 
         component.Broken = true;
         UpdateAppearance(uid, component);
@@ -231,11 +234,6 @@ public abstract class SharedMechSystem : EntitySystem
             equipmentIndex = allEquipment.FindIndex(StartIndex);
         }
 
-        // Frontier
-        if (component.PilotSlot.ContainedEntity != null && component.CurrentSelectedEquipment != null)
-            _actions.RemoveProvidedActions(component.PilotSlot.ContainedEntity.Value, component.CurrentSelectedEquipment.Value);
-        // End Frontier
-
         equipmentIndex++;
         component.CurrentSelectedEquipment = equipmentIndex >= allEquipment.Count
             ? null
@@ -247,8 +245,6 @@ public abstract class SharedMechSystem : EntitySystem
 
         if (_net.IsServer)
             _popup.PopupEntity(popupString, uid);
-
-        RaiseEquipmentEquippedEvent((uid, component)); // Frontier
 
         Dirty(uid, component);
     }
@@ -388,6 +384,10 @@ public abstract class SharedMechSystem : EntitySystem
         if (!Resolve(uid, ref component))
             return false;
 
+        // Mono: Ensures mechs can't be entered if broken
+        if (component.Broken)
+            return false;
+
         return IsEmpty(component) && _actionBlocker.CanMove(toInsert);
     }
 
@@ -408,12 +408,7 @@ public abstract class SharedMechSystem : EntitySystem
     /// <param name="toInsert"></param>
     /// <param name="component"></param>
     /// <returns>Whether or not the entity was inserted</returns>
-    public bool TryInsert(EntityUid uid,
-        EntityUid? toInsert,
-        MechComponent? component = null,
-        EntityUid? whitelistUser = null,
-        bool bypassMovementCheck = false,
-        bool bypassPilotWhitelist = false)
+    public bool TryInsert(EntityUid uid, EntityUid? toInsert, MechComponent? component = null)
     {
         if (!Resolve(uid, ref component))
             return false;
@@ -421,19 +416,14 @@ public abstract class SharedMechSystem : EntitySystem
         if (toInsert == null || component.PilotSlot.ContainedEntity == toInsert)
             return false;
 
-        var whitelistTarget = whitelistUser ?? toInsert.Value;
-        if (!bypassPilotWhitelist && _whitelistSystem.IsWhitelistFail(component.PilotWhitelist, whitelistTarget))
-            return false;
-
-        if (!IsEmpty(component))
-            return false;
-
-        if (!bypassMovementCheck && !_actionBlocker.CanMove(toInsert.Value))
+        if (!CanInsert(uid, toInsert.Value, component))
             return false;
 
         SetupUser(uid, toInsert.Value);
         _container.Insert(toInsert.Value, component.PilotSlot);
         UpdateAppearance(uid, component);
+        UpdateHands(toInsert.Value, uid, true); // Goobstation
+        UpdateMechZoom(toInsert.Value, component, false); // Mono
         return true;
     }
 
@@ -442,31 +432,72 @@ public abstract class SharedMechSystem : EntitySystem
     /// </summary>
     /// <param name="uid"></param>
     /// <param name="component"></param>
+    /// <param name="pilot">The pilot to eject</param>
     /// <returns>Whether or not the pilot was ejected.</returns>
-    public bool TryEject(EntityUid uid, MechComponent? component = null)
+    public bool TryEject(EntityUid uid, MechComponent? component = null, EntityUid? pilot = null)
     {
         if (!Resolve(uid, ref component))
             return false;
 
-        if (component.PilotSlot.ContainedEntity == null)
+        if (component.PilotSlot.ContainedEntity != null)
+            pilot = component.PilotSlot.ContainedEntity.Value;
+
+        if (pilot == null)
             return false;
 
-        var pilot = component.PilotSlot.ContainedEntity.Value;
-
-        RemoveUser(uid, pilot);
-        _container.RemoveEntity(uid, pilot);
+        RemoveUser(uid, pilot.Value);
+        _container.RemoveEntity(uid, pilot.Value);
         UpdateAppearance(uid, component);
-
-        // Frontier - Make NPC AI attack Mechs
-        if (TryComp<MobStateComponent>(uid, out var _))
-            RemComp<MobStateComponent>(uid);
-        if (TryComp<NpcFactionMemberComponent>(uid, out var _))
-            RemComp<NpcFactionMemberComponent>(uid);
-        // Frontier
-
+        UpdateHands(pilot.Value, uid, false); // Goobstation
+        UpdateMechZoom(pilot.Value, component, true); // Mono
         return true;
     }
 
+    // Goobstation Change Start
+    private void UpdateHands(EntityUid uid, EntityUid mech, bool active)
+    {
+        if (!TryComp<HandsComponent>(uid, out var handsComponent))
+            return;
+
+        if (active)
+            BlockHands(uid, mech, handsComponent);
+        else
+            FreeHands(uid, mech);
+    }
+
+    private void BlockHands(EntityUid uid, EntityUid mech, HandsComponent handsComponent)
+    {
+        var freeHands = 0;
+        foreach (var hand in _hands.EnumerateHands(uid, handsComponent))
+        {
+            if (hand.HeldEntity == null)
+            {
+                freeHands++;
+                continue;
+            }
+
+            // Is this entity removable? (they might have handcuffs on)
+            if (HasComp<UnremoveableComponent>(hand.HeldEntity) && hand.HeldEntity != mech)
+                continue;
+
+            _hands.DoDrop(uid, hand, true, handsComponent);
+            freeHands++;
+            if (freeHands == 2)
+                break;
+        }
+        if (_virtualItem.TrySpawnVirtualItemInHand(mech, uid, out var virtItem1))
+            EnsureComp<UnremoveableComponent>(virtItem1.Value);
+
+        if (_virtualItem.TrySpawnVirtualItemInHand(mech, uid, out var virtItem2))
+            EnsureComp<UnremoveableComponent>(virtItem2.Value);
+    }
+
+    private void FreeHands(EntityUid uid, EntityUid mech)
+    {
+        _virtualItem.DeleteInHandsMatching(uid, mech);
+    }
+
+    // Goobstation Change End
     private void OnGetMeleeWeapon(EntityUid uid, MechPilotComponent component, GetMeleeWeaponEvent args)
     {
         if (args.Handled)
@@ -477,6 +508,7 @@ public abstract class SharedMechSystem : EntitySystem
 
         var weapon = mech.CurrentSelectedEquipment ?? component.Mech;
         args.Weapon = weapon;
+        args.User = component.Mech; // Mono
         args.Handled = true;
     }
 
@@ -492,14 +524,21 @@ public abstract class SharedMechSystem : EntitySystem
     }
 
     // Goobstation: Prevent guns being used out of mechs if CCVAR is set.
-    // Credit to gluesniffer from Goobstation for this code.
     private void OnShotAttempted(EntityUid uid, MechEquipmentComponent component, ref ShotAttemptedEvent args)
     {
         if (!component.EquipmentOwner.HasValue
-            || !TryComp<MechComponent>(component.EquipmentOwner.Value, out var mech))
+            || !HasComp<MechComponent>(component.EquipmentOwner.Value))
         {
-            if (!_config.GetCVar(HLCCVars.MechGunOutsideMech))
+            if (!_canUseMechGunOutside)
                 args.Cancel();
+            return;
+        }
+
+        if (TryComp<TransformComponent>(uid, out var xform) && xform.GridUid != null && component.PreventFireOnGrid)
+        {
+            _popup.PopupEntity(Loc.GetString("gun-no-fire-station"), uid);
+
+            args.Cancel();
             return;
         }
 
@@ -527,41 +566,44 @@ public abstract class SharedMechSystem : EntitySystem
         var doAfterEventArgs = new DoAfterArgs(EntityManager, args.Dragged, component.EntryDelay, new MechEntryEvent(), uid, target: uid)
         {
             BreakOnMove = true,
+            MultiplyDelay = false, // Goobstation
         };
 
         _doAfter.TryStartDoAfter(doAfterEventArgs);
     }
 
+    // Mono edit - Update pilot zoom when inserting/ejecting pilot from mech
+    private void UpdateMechZoom(EntityUid uid, MechComponent component, bool eject)
+    {
+        if (!TryComp<EyeComponent>(uid, out var eye))
+            return;
+
+        if (eject)
+        {
+            _eye.ResetZoom(uid);
+            _eye.SetMaxZoom(uid, eye.Zoom);
+            return;
+        }
+
+        _eye.SetMaxZoom(uid, component.Zoom);
+        _eye.SetZoom(uid, component.Zoom);
+    }
+    // Mono edit end
+
     private void OnCanDragDrop(EntityUid uid, MechComponent component, ref CanDropTargetEvent args)
     {
         args.Handled = true;
 
-        args.CanDrop |= !component.Broken && CanInsert(uid, args.Dragged, component);
+        args.CanDrop |= CanInsert(uid, args.Dragged, component); // Mono: moved mech broken check to CanInsert
     }
-
-    // Frontier
-    private void RaiseEquipmentEquippedEvent(Entity<MechComponent> ent, EntityUid? pilot = null)
-    {
-        if (_net.IsServer && ent.Comp.CurrentSelectedEquipment != null)
-        {
-            var ev = new MechEquipmentEquippedAction
-            {
-                Mech = ent,
-                Pilot = pilot ?? ent.Comp.PilotSlot.ContainedEntity
-            };
-            RaiseLocalEvent(ent.Comp.CurrentSelectedEquipment.Value, ev);
-        }
-    }
-    // End Frontier
-
-    private void OnEmagged(EntityUid uid, MechComponent component, ref GotEmaggedEvent args) // Goobstation
-    {
-        if (!component.BreakOnEmag)
-            return;
-        args.Handled = true;
-        component.EquipmentWhitelist = null;
-        Dirty(uid, component);
-    }
+    //private void OnEmagged(EntityUid uid, MechComponent component, ref GotEmaggedEvent args) // Goobstation
+    //{
+    //    if (!component.BreakOnEmag)
+    //        return;
+    //    args.Handled = true;
+    //    component.EquipmentWhitelist = null;
+    //    Dirty(uid, component);
+    //}
 }
 
 /// <summary>

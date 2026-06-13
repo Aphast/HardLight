@@ -9,40 +9,22 @@ using Robust.Shared.Audio.Systems;
 using Content.Shared.Examine;
 using Content.Server.Explosion.Components;
 using Content.Shared.Explosion.Components;
-using Content.Shared.Explosion.Components.OnTrigger;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Maths;
 
 namespace Content.Server._Crescent.ShipShields;
 
 public partial class ShipShieldsSystem
 {
     private const float MAX_EMP_DAMAGE = 10000f;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+    [Dependency] private TriggerSystem _trigger = default!;
+    [Dependency] private StationSystem _station = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
     public void InitializeEmitters()
     {
         SubscribeLocalEvent<ShipShieldEmitterComponent, ShieldDeflectedEvent>(OnShieldDeflected);
-        SubscribeLocalEvent<ShipShieldEmitterComponent, ShieldHitscanDeflectedEvent>(OnShieldHitscanDeflected); // Mono - hitscan interception
         SubscribeLocalEvent<ShipShieldEmitterComponent, ExaminedEvent>(OnExamined);
         SubscribeLocalEvent<ShipShieldEmitterComponent, ComponentRemove>(OnRemoved);
-        SubscribeLocalEvent<ShipShieldEmitterComponent, MapInitEvent>(OnEmitterMapInit);
-    }
-
-    private void OnEmitterMapInit(EntityUid uid, ShipShieldEmitterComponent component, MapInitEvent args)
-    {
-        // Clean up any stale shield references and orphaned runtime shields from save/load.
-        // This guarantees a fresh spawn on the next update tick even if old shield entities
-        // were serialized in bad transform state (e.g. legacy world-origin placement).
-        var parent = Transform(uid).GridUid;
-        if (parent is null)
-            RemoveEmitterShield(uid, component);
-        else
-            RemoveEmitterShield(uid, component, parent.Value);
-
-        component.Shield = null;
-        component.Shielded = null;
-        component.Recharging = false;
     }
 
 
@@ -50,12 +32,8 @@ public partial class ShipShieldsSystem
     {
         var parent = Transform(owner.Owner).GridUid;
         if (parent is null)
-        {
-            RemoveEmitterShield(owner.Owner, owner.Comp); // HardLight
             return;
-        }
-
-        RemoveEmitterShield(owner.Owner, owner.Comp, parent.Value); // HardLight
+        UnshieldEntity(parent.Value, null);
     }
 
     private void OnShieldDeflected(EntityUid uid, ShipShieldEmitterComponent component, ShieldDeflectedEvent args)
@@ -63,56 +41,18 @@ public partial class ShipShieldsSystem
         if (TryComp<EmpOnTriggerComponent>(args.Deflected, out var emp))
         {
             component.Damage += Math.Clamp(emp.EnergyConsumption, 0f, MAX_EMP_DAMAGE);
-            // VRS: Deflected payload should damage the shield emitter only. Triggering the
-            // projectile after interception can spawn secondary effects (EMP/explosions) at the
-            // shield entity location, which players experience as blasts displaced to ship center
-            // (HL #1697).
-            RemCompDeferred<EmpOnTriggerComponent>(args.Deflected);
+            _trigger.Trigger(args.Deflected);
         }
 
         if (TryComp<ExplosiveComponent>(args.Deflected, out var exp) && _prototypeManager.TryIndex(exp.ExplosionType, out var type))
         {
             component.Damage += exp.TotalIntensity * (float)type.DamagePerIntensity.GetTotal();
-            // We already translated this explosive payload into emitter damage above; suppress
-            // world explosion side-effects when the projectile entity is deleted.
-            RemCompDeferred<ExplosiveComponent>(args.Deflected);
         }
-
-        // Deflected payloads should never run trigger chains after interception.
-        RemCompDeferred<ExplodeOnTriggerComponent>(args.Deflected);
-        RemCompDeferred<TriggerOnCollideComponent>(args.Deflected);
 
         component.Damage += (float)args.Projectile.Damage.GetTotal();
         args.Projectile.ProjectileSpent = true;
 
         QueueDel(args.Deflected);
-    }
-
-    /// <summary>
-    /// Handles shield emitter taking damage from an intercepted ship-weapon hitscan beam.
-    /// </summary>
-    private void OnShieldHitscanDeflected(EntityUid uid, ShipShieldEmitterComponent component, ref ShieldHitscanDeflectedEvent args)
-    {
-        component.Damage += args.Damage;
-    }
-
-    private void BreakEmitterFromMeteorImpact(EntityUid uid)
-    {
-        if (!TryComp<ShipShieldEmitterComponent>(uid, out var emitter))
-            return;
-
-        emitter.Damage = Math.Max(emitter.Damage, emitter.DamageLimit);
-        emitter.Recharging = true;
-
-        var removed = emitter.Shielded is { } shielded
-            ? RemoveEmitterShield(uid, emitter, shielded)
-            : RemoveEmitterShield(uid, emitter);
-
-        if (removed)
-            _audio.PlayPvs(emitter.PowerDownSound, uid, emitter.PowerDownSound.Params);
-
-        if (TryComp<ApcPowerReceiverComponent>(uid, out var receiver))
-            AdjustEmitterLoad(uid, emitter, receiver);
     }
 
     private void OnExamined(EntityUid uid, ShipShieldEmitterComponent component, ExaminedEvent args)
@@ -128,39 +68,11 @@ public partial class ShipShieldsSystem
         return (float)Math.Clamp(Math.Pow(emitter.Damage, emitter.DamageExp) * emitter.PowerModifier, 0f, emitter.MaxDraw);
     }
 
-    private static float CalculateNormalLoad(ShipShieldEmitterComponent emitter)
-    {
-        return emitter.BaseDraw + CalculateLoadDamage(emitter);
-    }
-
-    private static float CalculateRechargeLoad(ShipShieldEmitterComponent emitter)
-    {
-        return emitter.BaseDraw + emitter.MaxDraw;
-    }
-
-    private static float CalculateRequestedLoad(ShipShieldEmitterComponent emitter)
-    {
-        return emitter.Recharging ? CalculateRechargeLoad(emitter) : CalculateNormalLoad(emitter);
-    }
-
-    private static float CalculateRechargeMultiplier(ShipShieldEmitterComponent emitter, ApcPowerReceiverComponent receiver)
-    {
-        if (!emitter.Recharging)
-            return 1f;
-
-        var rechargeLoad = CalculateRechargeLoad(emitter);
-        if (rechargeLoad <= 0f)
-            return emitter.UnpoweredBonus;
-
-        var suppliedFraction = Math.Clamp(receiver.PowerReceived / rechargeLoad, 0f, 1f);
-        return MathHelper.Lerp(1f, emitter.UnpoweredBonus, suppliedFraction);
-    }
-
     private void AdjustEmitterLoad(EntityUid uid, ShipShieldEmitterComponent? emitter = null, ApcPowerReceiverComponent? receiver = null)
     {
         if (!Resolve(uid, ref emitter, ref receiver))
             return;
 
-        receiver.Load = CalculateRequestedLoad(emitter);
+        receiver.Load = emitter.BaseDraw + CalculateLoadDamage(emitter);
     }
 }

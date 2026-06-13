@@ -1,16 +1,15 @@
 name: "Labels: Branch stable"
 
-concurrency:
-  group: labels
-  cancel-in-progress: false
-  queue: max
-
 on:
   pull_request_target:
     types:
       - opened
     branches:
       - 'stable'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   add_label:

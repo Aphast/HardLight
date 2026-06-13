@@ -52,26 +52,27 @@ namespace Content.Shared.Interaction
     [UsedImplicitly]
     public abstract partial class SharedInteractionSystem : EntitySystem
     {
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly IMapManager _mapManager = default!;
-        [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly ActionBlockerSystem _actionBlockerSystem = default!;
-        [Dependency] private readonly RotateToFaceSystem _rotateToFaceSystem = default!;
-        [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-        [Dependency] private readonly SharedPhysicsSystem _broadphase = default!;
-        [Dependency] private readonly SharedTransformSystem _transform = default!;
-        [Dependency] private readonly SharedVerbSystem _verbSystem = default!;
-        [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-        [Dependency] private readonly UseDelaySystem _useDelay = default!;
-        [Dependency] private readonly PullingSystem _pullSystem = default!;
-        [Dependency] private readonly InventorySystem _inventory = default!;
-        [Dependency] private readonly TagSystem _tagSystem = default!;
-        [Dependency] private readonly SharedUserInterfaceSystem _ui = default!;
-        [Dependency] private readonly SharedStrippableSystem _strippable = default!;
-        [Dependency] private readonly SharedPlayerRateLimitManager _rateLimit = default!;
-        [Dependency] private readonly ISharedChatManager _chat = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private IMapManager _mapManager = default!;
+        [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+        [Dependency] private ActionBlockerSystem _actionBlockerSystem = default!;
+        [Dependency] private RotateToFaceSystem _rotateToFaceSystem = default!;
+        [Dependency] private SharedContainerSystem _containerSystem = default!;
+        [Dependency] private SharedMapSystem _map = default!;
+        [Dependency] private SharedPhysicsSystem _broadphase = default!;
+        [Dependency] private SharedTransformSystem _transform = default!;
+        [Dependency] private SharedVerbSystem _verbSystem = default!;
+        [Dependency] private SharedPopupSystem _popupSystem = default!;
+        [Dependency] private UseDelaySystem _useDelay = default!;
+        [Dependency] private PullingSystem _pullSystem = default!;
+        [Dependency] private InventorySystem _inventory = default!;
+        [Dependency] private TagSystem _tagSystem = default!;
+        [Dependency] private SharedUserInterfaceSystem _ui = default!;
+        [Dependency] private SharedStrippableSystem _strippable = default!;
+        [Dependency] private SharedPlayerRateLimitManager _rateLimit = default!;
+        [Dependency] private ISharedChatManager _chat = default!;
 
-        [Dependency] private readonly INetManager _net = default!; // Mono
+        [Dependency] private INetManager _net = default!; // Mono
 
         private EntityQuery<IgnoreUIRangeComponent> _ignoreUiRangeQuery;
         private EntityQuery<FixturesComponent> _fixtureQuery;
@@ -109,9 +110,7 @@ namespace Content.Shared.Interaction
             _uiQuery = GetEntityQuery<ActivatableUIComponent>();
 
             SubscribeLocalEvent<BoundUserInterfaceCheckRangeEvent>(HandleUserInterfaceRangeCheck);
-
-            // TODO make this a broadcast event subscription again when engine has updated.
-            SubscribeLocalEvent<UserInterfaceComponent, BoundUserInterfaceMessageAttempt>(OnBoundInterfaceInteractAttempt);
+            SubscribeLocalEvent<BoundUserInterfaceMessageAttempt>(OnBoundInterfaceInteractAttempt);
 
             SubscribeAllEvent<InteractInventorySlotEvent>(HandleInteractInventorySlotEvent);
 
@@ -156,15 +155,13 @@ namespace Content.Shared.Interaction
         /// <summary>
         ///     Check that the user that is interacting with the BUI is capable of interacting and can access the entity.
         /// </summary>
-        private void OnBoundInterfaceInteractAttempt(Entity<UserInterfaceComponent> ent, ref BoundUserInterfaceMessageAttempt ev)
+        private void OnBoundInterfaceInteractAttempt(BoundUserInterfaceMessageAttempt ev)
         {
-            _uiQuery.TryComp(ev.Target, out var aUiComp);
+            _uiQuery.TryComp(ev.Target, out var uiComp);
             if (!_actionBlockerSystem.CanInteract(ev.Actor, ev.Target))
             {
                 // We permit ghosts to open uis unless explicitly blocked
-                if (ev.Message is not OpenBoundInterfaceMessage
-                    || !HasComp<GhostComponent>(ev.Actor)
-                    || aUiComp?.BlockSpectators == true)
+                if (ev.Message is not OpenBoundInterfaceMessage || !HasComp<GhostComponent>(ev.Actor) || uiComp?.BlockSpectators == true)
                 {
                     ev.Cancel();
                     return;
@@ -182,16 +179,16 @@ namespace Content.Shared.Interaction
                 return;
             }
 
-            if (aUiComp == null)
+            if (uiComp == null)
                 return;
 
-            if (aUiComp.SingleUser && aUiComp.CurrentSingleUser != null && aUiComp.CurrentSingleUser != ev.Actor)
+            if (uiComp.SingleUser && uiComp.CurrentSingleUser != null && uiComp.CurrentSingleUser != ev.Actor)
             {
                 ev.Cancel();
                 return;
             }
 
-            if (aUiComp.RequiresComplex && !_actionBlockerSystem.CanComplexInteract(ev.Actor))
+            if (uiComp.RequiresComplex && !_actionBlockerSystem.CanComplexInteract(ev.Actor))
                 ev.Cancel();
         }
 
@@ -587,11 +584,8 @@ namespace Content.Shared.Interaction
 
         protected bool ValidateInteractAndFace(EntityUid user, EntityCoordinates coordinates)
         {
-            if (!TryComp<TransformComponent>(user, out var userXform))
-                return false;
-
             // Verify user is on the same map as the entity they clicked on
-            if (_transform.GetMapId(coordinates) != userXform.MapID)
+            if (_transform.GetMapId(coordinates) != Transform(user).MapID)
                 return false;
 
             if (!HasComp<NoRotateOnInteractComponent>(user))
@@ -880,11 +874,12 @@ namespace Content.Shared.Interaction
         {
             HashSet<EntityUid> ignored = new();
 
-            if (_itemQuery.HasComp(target) && _physicsQuery.TryComp(target, out var physics) && physics.CanCollide)
+            // Mono - account for PickupStatic
+            if (_itemQuery.TryComp(target, out var item) && _physicsQuery.TryComp(target, out var physics) && (physics.CanCollide || item.PickupStatic))
             {
                 // If the target is an item, we ignore any colliding entities. Currently done so that if items get stuck
                 // inside of walls, users can still pick them up.
-                ignored.UnionWith(_broadphase.GetEntitiesIntersectingBody(target, (int) collisionMask, false, physics)); // Note: This also bypasses items underneath doors, which may be problematic if it'd cause undesirable behavior.
+                ignored.UnionWith(_broadphase.GetEntitiesIntersectingBody(target, (int) collisionMask, false, physics));
             }
             else if (_wallMountQuery.TryComp(target, out var wallMount))
             {
@@ -900,8 +895,8 @@ namespace Content.Shared.Interaction
                     ignoreAnchored = angleDelta < wallMount.Arc / 2 || Math.Tau - angleDelta < wallMount.Arc / 2;
                 }
 
-                if (ignoreAnchored && _mapManager.TryFindGridAt(targetCoords, out _, out var grid))
-                    ignored.UnionWith(grid.GetAnchoredEntities(targetCoords));
+                if (ignoreAnchored && _mapManager.TryFindGridAt(targetCoords, out var gridUid, out var grid))
+                    ignored.UnionWith(_map.GetAnchoredEntities((gridUid, grid), targetCoords));
             }
 
             Ignored combinedPredicate = e => e == target || (predicate?.Invoke(e) ?? false) || ignored.Contains(e);
@@ -1362,7 +1357,7 @@ namespace Content.Shared.Interaction
             if (Deleted(target))
                 return false;
 
-            if (!_containerSystem.TryGetContainingContainer(target, out var container))
+            if (!_containerSystem.TryGetContainingContainer((target, null, null), out var container))
                 return false;
 
             var wearer = container.Owner;

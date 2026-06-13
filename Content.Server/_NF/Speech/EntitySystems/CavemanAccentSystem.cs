@@ -1,18 +1,17 @@
-using Content.Server.NF.Speech.Components;
+using Content.Server._NF.Speech.Components;
 using Robust.Shared.Random;
 using Content.Server.Speech;
 using Content.Server.Speech.EntitySystems;
 using System.Linq;
 using Content.Server.Chat.Systems;
-using System;
 
 namespace Content.Server._NF.Speech.EntitySystems;
 
-public sealed class CavemanAccentSystem : EntitySystem
+public sealed partial class CavemanAccentSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ReplacementAccentSystem _replacement = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private ReplacementAccentSystem _replacement = default!;
+    [Dependency] private ChatSystem _chat = default!;
 
     public readonly string[] PunctuationStringsToRemove = { "'", "\"", ".", ",", "!", "?", ";", ":" }; // Leave hyphens
 
@@ -50,7 +49,7 @@ public sealed class CavemanAccentSystem : EntitySystem
 
             var modifiedWord = word;
 
-            if (actualLength > component.MaxWordLength)
+            if (actualLength > CavemanAccentComponent.MaxWordLength)
             {
                 modifiedWord = GetGrunt();
                 CapitalizeReplacement(word, ref modifiedWord);
@@ -136,7 +135,7 @@ public sealed class CavemanAccentSystem : EntitySystem
 
         if (int.TryParse(word, out num))
         {
-            num = Math.Max(0, num); //Negatives treated as zero.
+            num = int.Max(0, num); //Negatives treated as zero.
             if (num < CavemanAccentComponent.Numbers.Count)
             {
                 return Loc.GetString(CavemanAccentComponent.Numbers[num]);

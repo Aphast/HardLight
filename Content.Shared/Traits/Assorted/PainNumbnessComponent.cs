@@ -13,7 +13,4 @@ public sealed partial class PainNumbnessComponent : Component
     /// </summary>
     [DataField]
     public ProtoId<LocalizedDatasetPrototype> ForceSayNumbDataset = "ForceSayNumbDataset";
-
-    [DataField] // Hardlight
-    public bool Permanent = true;
 }

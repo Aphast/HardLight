@@ -16,9 +16,9 @@ namespace Content.Client._Goobstation.Research.UI;
 [GenerateTypedNameReferences]
 public sealed partial class FancyTechnologyInfoPanel : Control
 {
-    [Dependency] private readonly IEntityManager _ent = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly ILogManager _logManager = default!; // Frontier
+    [Dependency] private IEntityManager _ent = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private ILogManager _logManager = default!; // Frontier
 
     private ISawmill _sawmill = default!; // Frontier: added debug log
     public TechnologyPrototype Prototype;
@@ -45,11 +45,21 @@ public sealed partial class FancyTechnologyInfoPanel : Control
         }
         else if (proto.Icon != null)
         {
-            // Legacy SpriteSpecifier icon (rsi/state, texture, or entity prototype).
-            // Render via TextureRect using SpriteSystem.Frame0 so it works for all icon kinds.
-            TechnologyTexture.Visible = false;
-            TechnologyIconTexture.Texture = sprite.Frame0(proto.Icon);
-            TechnologyIconTexture.Visible = true;
+            // For backward compatibility, we need to handle SpriteSpecifier icons
+            //_sawmill.Warning($"Technology {proto.ID} uses legacy Icon field instead of EntityIcon. Consider migrating to EntityIcon for better performance.");
+
+            // For now, we'll need to handle this differently since EntityPrototypeView doesn't directly support SpriteSpecifier
+            // We can try to extract the entity from SpriteSpecifier if it's an EntityPrototype type
+            if (proto.Icon is SpriteSpecifier.EntityPrototype entityProtoSpec)
+            {
+                TechnologyTexture.SetPrototype(entityProtoSpec.EntityPrototypeId);
+            }
+            else
+            {
+                // For other SpriteSpecifier types, we'll need a different approach
+                // Since this is a complex conversion, we'll log this case for now
+                //_sawmill.Error($"Technology {proto.ID} uses unsupported Icon type. Please use EntityIcon field instead.");
+            }
         }
         else
         {

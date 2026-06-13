@@ -1,9 +1,8 @@
 using Robust.Shared.Random;
 using Content.Shared._EinsteinEngines.Silicon.Components;
-using Content.Server.Power.Components;
 using Content.Shared.Mobs.Systems;
 using Content.Server.Temperature.Components;
-using Content.Server.Atmos.Components;
+using Content.Shared.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Popups;
 using Content.Shared.Popups;
@@ -19,25 +18,24 @@ using Robust.Shared.Utility;
 using Content.Shared.CCVar;
 using Content.Shared.PowerCell.Components;
 using Content.Shared.Mind;
+using Content.Shared.Power.Components;
 using Content.Shared.Alert;
 using Content.Server._EinsteinEngines.Silicon.Death;
 using Content.Server._EinsteinEngines.Power.Components;
-using Content.Shared.Silicons.Borgs.Components; // HardLight
-using Content.Shared._HL.Traits.Physical; // HardLight
 
 namespace Content.Server._EinsteinEngines.Silicon.Charge;
 
-public sealed class SiliconChargeSystem : EntitySystem
+public sealed partial class SiliconChargeSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly FlammableSystem _flammable = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _moveMod = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IConfigurationManager _config = default!;
-    [Dependency] private readonly PowerCellSystem _powerCell = default!;
-    [Dependency] private readonly AlertsSystem _alerts = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private FlammableSystem _flammable = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private MovementSpeedModifierSystem _moveMod = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IConfigurationManager _config = default!;
+    [Dependency] private PowerCellSystem _powerCell = default!;
+    [Dependency] private AlertsSystem _alerts = default!;
     public override void Initialize()
     {
         base.Initialize();
@@ -83,11 +81,6 @@ public sealed class SiliconChargeSystem : EntitySystem
                 || !siliconComp.BatteryPowered)
                 continue;
 
-            // Ghosted/playerless silicon bodies should not keep processing charge loss.
-            if (TryComp<MindContainerComponent>(silicon, out var mindContComp)
-                && !mindContComp.HasMind)
-                continue;
-
             // Check if the Silicon is an NPC, and if so, follow the delay as specified in the CVAR.
             if (siliconComp.EntityType.Equals(SiliconType.Npc))
             {
@@ -110,15 +103,12 @@ public sealed class SiliconChargeSystem : EntitySystem
                 continue;
             }
 
-            var drainRate = siliconComp.DrainPerSecond;
+            // If the silicon ghosted or is SSD while still being powered, skip it.
+            if (TryComp<MindContainerComponent>(silicon, out var mindContComp)
+                && !mindContComp.HasMind)
+                continue;
 
-            // HardLight start: Size traits may specify borg-only battery draw scaling without affecting organic species.
-            if (HasComp<BorgChassisComponent>(silicon)
-                && TryComp<TraitCyborgPowerDrawModifierComponent>(silicon, out var drawModifier))
-            {
-                drainRate *= drawModifier.Multiplier;
-            }
-            // HardLight end
+            var drainRate = siliconComp.DrainPerSecond;
 
             // All multipliers will be subtracted by 1, and then added together, and then multiplied by the drain rate. This is then added to the base drain rate.
             // This is to stop exponential increases, while still allowing for less-than-one multipliers.
@@ -196,8 +186,9 @@ public sealed class SiliconChargeSystem : EntitySystem
             if (!_random.Prob(Math.Clamp(temperComp.CurrentTemperature / (upperThresh * 5), 0.001f, 0.9f)))
                 return hotTempMulti;
 
-            _flammable.AdjustFireStacks(silicon, Math.Clamp(siliconComp.FireStackMultiplier, -10, 10), flamComp);
-            _flammable.Ignite(silicon, silicon, flamComp);
+            // Goobstation: Replaced by KillOnOverheatSystem
+            //_flammable.AdjustFireStacks(silicon, Math.Clamp(siliconComp.FireStackMultiplier, -10, 10), flamComp);
+            //_flammable.Ignite(silicon, silicon, flamComp);
             return hotTempMulti;
         }
 

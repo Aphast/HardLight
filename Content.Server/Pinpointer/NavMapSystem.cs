@@ -13,7 +13,6 @@ using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Timing;
 using System.Diagnostics.CodeAnalysis;
-using Content.Shared.Warps;
 
 namespace Content.Server.Pinpointer;
 
@@ -22,13 +21,13 @@ namespace Content.Server.Pinpointer;
 /// </summary>
 public sealed partial class NavMapSystem : SharedNavMapSystem
 {
-    [Dependency] private readonly IAdminLogManager _adminLog = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedMapSystem _mapSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly ITileDefinitionManager _tileDefManager = default!;
+    [Dependency] private IAdminLogManager _adminLog = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedMapSystem _mapSystem = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private TurfSystem _turfSystem = default!;
 
     public const float CloseDistance = 15f;
     public const float FarDistance = 30f;
@@ -99,28 +98,47 @@ public sealed partial class NavMapSystem : SharedNavMapSystem
         return chunk;
     }
 
-    private void OnTileChanged(ref TileChangedEvent args)
+    private void OnTileChanged(ref TileChangedEvent ev)
     {
-        // Ensure we're operating on a grid with a NavMapComponent and MapGridComponent.
-        if (!_navQuery.TryComp(args.Entity, out var navMap) || !_gridQuery.TryComp(args.Entity, out var mapGrid))
+        if (!_navQuery.TryComp(ev.Entity, out var navMap))
             return;
 
-        foreach (var change in args.Changes)
+        foreach (var change in ev.Changes)
         {
+            if (!change.EmptyChanged)
+                continue;
+
             var tile = change.GridIndices;
             var chunkOrigin = SharedMapSystem.GetChunkIndices(tile, ChunkSize);
 
-            // Set the floor bit based on whether the new tile is space or not
-            var (newValue, chunk) = RefreshTileEntityContents(args.Entity, navMap, mapGrid, chunkOrigin, tile,
-                setFloor: !change.NewTile.IsSpace(_tileDefManager));
+            var chunk = EnsureChunk(navMap, chunkOrigin);
 
-            if (newValue == 0 && PruneEmpty((args.Entity, navMap), chunk))
-                continue;
+            // This could be easily replaced in the future to accommodate diagonal tiles
+            var relative = SharedMapSystem.GetChunkRelative(tile, ChunkSize);
+            ref var tileData = ref chunk.TileData[GetTileIndex(relative)];
 
-            // Mark chunk/component dirty for delta state
-            chunk.LastUpdate = _gameTiming.CurTick;
-            Dirty(args.Entity, navMap);
+            if (_turfSystem.IsSpace(change.NewTile))
+            {
+                tileData = 0;
+                if (PruneEmpty((ev.Entity, navMap), chunk))
+                    continue;
+            }
+            else
+            {
+                tileData = FloorMask;
+            }
+
+            DirtyChunk((ev.Entity, navMap), chunk);
         }
+    }
+
+    private void DirtyChunk(Entity<NavMapComponent> entity, NavMapChunk chunk)
+    {
+        if (chunk.LastUpdate == _gameTiming.CurTick)
+            return;
+
+        chunk.LastUpdate = _gameTiming.CurTick;
+        Dirty(entity);
     }
 
     private void OnAirtightChange(ref AirtightChanged args)
@@ -142,8 +160,7 @@ public sealed partial class NavMapSystem : SharedNavMapSystem
         if (newValue == 0 && PruneEmpty((gridUid, navMap), chunk))
             return;
 
-        chunk.LastUpdate = _gameTiming.CurTick;
-        Dirty(gridUid, navMap);
+        DirtyChunk((gridUid, navMap), chunk);
     }
 
     #endregion
@@ -280,14 +297,18 @@ public sealed partial class NavMapSystem : SharedNavMapSystem
                 continue;
 
             var directions = (int)airtight.AirBlockedDirection;
-            tileData |= directions << (int)category;
+            tileData |= directions << (int) category;
         }
 
         // Remove walls that intersect with doors (unless they can both physically fit on the same tile)
         // TODO NAVMAP why can this even happen?
         // Is this for blast-doors or something?
-        var shifted = (tileData & AirlockMask) >> SharedNavMapSystem.Directions;
-        tileData = tileData & ~shifted;
+
+        // Shift airlock bits over to the wall bits
+        var shiftedAirlockBits = (tileData & AirlockMask) >> ((int) NavMapChunkType.Airlock - (int) NavMapChunkType.Wall);
+
+        // And then mask door bits
+        tileData &= ~shiftedAirlockBits;
 
         return (tileData, chunk);
     }

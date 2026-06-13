@@ -17,13 +17,13 @@ namespace Content.Client.Administration.UI.Tabs.PlayerTab;
 [GenerateTypedNameReferences]
 public sealed partial class PlayerTab : Control
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IConfigurationManager _config = default!;
-    [Dependency] private readonly IPlayerManager _playerMan = default!;
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IConfigurationManager _config = default!;
+    [Dependency] private IPlayerManager _playerMan = default!;
 
     private const string ArrowUp = "↑";
     private const string ArrowDown = "↓";
-    private readonly Color _altColor = Color.FromHex("#292B38");
+    private readonly Color _altColor = Color.FromHex("#363636");
     private readonly Color _defaultColor = Color.FromHex("#2F2F3B");
     private readonly AdminSystem _adminSystem;
     private IReadOnlyList<PlayerInfo> _players = new List<PlayerInfo>();

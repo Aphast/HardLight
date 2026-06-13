@@ -8,16 +8,13 @@ public sealed class PipeColorVisualizerSystem : VisualizerSystem<PipeColorVisual
 {
     protected override void OnAppearanceChange(EntityUid uid, PipeColorVisualsComponent component, ref AppearanceChangeEvent args)
     {
-        if (args.Sprite == null
-            || !AppearanceSystem.TryGetData<Color>(uid, PipeColorVisuals.Color, out var color, args.Component)
-            || !args.Sprite.LayerMapTryGet(PipeVisualLayers.Pipe, out var layer)
-            || !args.Sprite.TryGetLayer(layer, out var spriteLayer))
+        if (TryComp<SpriteComponent>(uid, out var sprite)
+            && AppearanceSystem.TryGetData<Color>(uid, PipeColorVisuals.Color, out var color, args.Component))
         {
-            return;
+            // T-ray scanner / sub floor runs after this visualizer. Lets not bulldoze transparency.
+            var layer = sprite[PipeVisualLayers.Pipe];
+            layer.Color = color.WithAlpha(layer.Color.A);
         }
-
-        // T-ray scanner / sub floor runs after this visualizer. Lets not bulldoze transparency.
-        args.Sprite.LayerSetColor(layer, color.WithAlpha(spriteLayer.Color.A));
     }
 }
 

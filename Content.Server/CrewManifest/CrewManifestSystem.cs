@@ -1,38 +1,30 @@
 using System.Linq;
-using Content.Server.Access.Components; // Coyote
-using Content.Server.Access.Systems; // Coyote
 using Content.Server.Administration;
 using Content.Server.EUI;
-using Content.Server.Medical.SuitSensors; // Coyote
-using Content.Server.Station.Components;
 using Content.Server.Station.Systems;
 using Content.Server.StationRecords;
 using Content.Server.StationRecords.Systems;
-using Content.Shared._NF.Roles.Components; // HardLight
 using Content.Shared.Administration;
 using Content.Shared.CCVar;
 using Content.Shared.CrewManifest;
 using Content.Shared.GameTicking;
-using Content.Shared.Mind.Components; // HardLight
 using Content.Shared.Roles;
-using Content.Shared.SSDIndicator;
+using Content.Shared.Station.Components;
 using Content.Shared.StationRecords;
 using Robust.Shared.Configuration;
 using Robust.Shared.Console;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Utility;
 
 namespace Content.Server.CrewManifest;
 
-public sealed class CrewManifestSystem : EntitySystem
+public sealed partial class CrewManifestSystem : EntitySystem
 {
-    [Dependency] private readonly StationSystem _stationSystem = default!;
-    [Dependency] private readonly StationRecordsSystem _recordsSystem = default!;
-    [Dependency] private readonly EuiManager _euiManager = default!;
-    [Dependency] private readonly IConfigurationManager _configManager = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IdCardSystem _idCardSystem = default!; // Coyote
+    [Dependency] private StationSystem _stationSystem = default!;
+    [Dependency] private StationRecordsSystem _recordsSystem = default!;
+    [Dependency] private EuiManager _euiManager = default!;
+    [Dependency] private IConfigurationManager _configManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
 
     /// <summary>
     ///     Cached crew manifest entries. The alternative is to outright
@@ -48,13 +40,14 @@ public sealed class CrewManifestSystem : EntitySystem
         SubscribeLocalEvent<AfterGeneralRecordCreatedEvent>(AfterGeneralRecordCreated);
         SubscribeLocalEvent<RecordModifiedEvent>(OnRecordModified);
         SubscribeLocalEvent<RecordRemovedEvent>(OnRecordRemoved);
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestart);
         SubscribeNetworkEvent<RequestCrewManifestMessage>(OnRequestCrewManifest);
 
         SubscribeLocalEvent<CrewManifestViewerComponent, BoundUIClosedEvent>(OnBoundUiClose);
         SubscribeLocalEvent<CrewManifestViewerComponent, CrewManifestOpenUiMessage>(OpenEuiFromBui);
     }
 
-/*     private void OnRoundRestart(RoundRestartCleanupEvent ev)
+    private void OnRoundRestart(RoundRestartCleanupEvent ev)
     {
         foreach (var (_, euis) in _openEuis)
         {
@@ -66,7 +59,7 @@ public sealed class CrewManifestSystem : EntitySystem
 
         _openEuis.Clear();
         _cachedEntries.Clear();
-    } */
+    }
 
     private void OnRequestCrewManifest(RequestCrewManifestMessage message, EntitySessionEventArgs args)
     {
@@ -84,20 +77,20 @@ public sealed class CrewManifestSystem : EntitySystem
     // wrt the amount of players readied up.
     private void AfterGeneralRecordCreated(AfterGeneralRecordCreatedEvent ev)
     {
-        // BuildCrewManifest(); // coyote: NOP, we build on open
-        // UpdateEuis(ev.Key.OriginStation);
+        BuildCrewManifest(ev.Key.OriginStation);
+        UpdateEuis(ev.Key.OriginStation);
     }
 
     private void OnRecordModified(RecordModifiedEvent ev)
     {
-        // BuildCrewManifest(); // coyote: NOP, we build on open
-        // UpdateEuis(ev.Key.OriginStation);
+        BuildCrewManifest(ev.Key.OriginStation);
+        UpdateEuis(ev.Key.OriginStation);
     }
 
     private void OnRecordRemoved(RecordRemovedEvent ev)
     {
-        // BuildCrewManifest(); // coyote: NOP, we build on open
-        // UpdateEuis(ev.Key.OriginStation);
+        BuildCrewManifest(ev.Key.OriginStation);
+        UpdateEuis(ev.Key.OriginStation);
     }
 
     private void OnBoundUiClose(EntityUid uid, CrewManifestViewerComponent component, BoundUIClosedEvent ev)
@@ -119,9 +112,10 @@ public sealed class CrewManifestSystem : EntitySystem
     /// </summary>
     /// <param name="station">Entity uid of the station.</param>
     /// <returns>The name and crew manifest entries (unordered) of the station.</returns>
-    public CrewManifestEntries GetCrewManifest() // coyote: remove args, remove name
+    public (string name, CrewManifestEntries? entries) GetCrewManifest(EntityUid station)
     {
-        return BuildCrewManifest(); // coyote
+        var valid = _cachedEntries.TryGetValue(station, out var manifest);
+        return (valid ? MetaData(station).EntityName : string.Empty, valid ? manifest : null);
     }
 
     private void UpdateEuis(EntityUid station)
@@ -224,37 +218,22 @@ public sealed class CrewManifestSystem : EntitySystem
     /// <summary>
     ///     Builds the crew manifest for a station. Stores it in the cache afterwards.
     /// </summary>
-    private CrewManifestEntries BuildCrewManifest()
+    /// <param name="station"></param>
+    private void BuildCrewManifest(EntityUid station)
     {
-        var sensors = EntityQueryEnumerator<SuitSensorComponent>(); // Coyote
+        var iter = _recordsSystem.GetRecordsOfType<GeneralStationRecord>(station);
+
         var entries = new CrewManifestEntries();
+
         var entriesSort = new List<(JobPrototype? job, CrewManifestEntry entry)>();
-
-        while (sensors.MoveNext(out var uid, out var sensor)) // Coyote start
+        foreach (var recordObject in iter)
         {
-            if (sensor.User == null || TryComp<SSDIndicatorComponent>(sensor.User, out var indicator) && indicator.IsSSD)
-            {
-                continue;
-            }
-            var name = Loc.GetString("suit-sensor-component-unknown-name");
-            var jobTitle = Loc.GetString("suit-sensor-component-unknown-job");
+            var record = recordObject.Item2;
+            var entry = new CrewManifestEntry(record.Name, record.JobTitle, record.JobIcon, record.JobPrototype);
 
-            if (!_idCardSystem.TryFindIdCard(sensor.User.Value, out var card))
-                continue;
-
-            if (card.Comp.FullName != null)
-                name = card.Comp.FullName;
-
-            if (card.Comp.LocalizedJobTitle != null)
-                jobTitle = card.Comp.LocalizedJobTitle;
-
-            if (!TryComp<PresetIdCardComponent>(card, out var preset))
-                continue;
-
-            var entry = new CrewManifestEntry(name, jobTitle, card.Comp.JobIcon, preset.JobName!.Value);
-
-            entriesSort.Add((null, entry));
-        } // Coyote end
+            _prototypeManager.TryIndex(record.JobPrototype, out JobPrototype? job);
+            entriesSort.Add((job, entry));
+        }
 
         entriesSort.Sort((a, b) =>
         {
@@ -266,19 +245,18 @@ public sealed class CrewManifestSystem : EntitySystem
         });
 
         entries.Entries = entriesSort.Select(x => x.entry).ToArray();
-        // _cachedEntries[station] = entries; // coyote: causes problems
-        return entries; // coyote
+        _cachedEntries[station] = entries;
     }
 }
 
 [AdminCommand(AdminFlags.Admin)]
-public sealed class CrewManifestCommand : IConsoleCommand
+public sealed partial class CrewManifestCommand : IConsoleCommand
 {
     public string Command => "crewmanifest";
     public string Description => "Opens the crew manifest for the given station.";
     public string Help => $"Usage: {Command} <entity uid>";
 
-    [Dependency] private readonly IEntityManager _entityManager = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
 
     public CrewManifestCommand()
     {

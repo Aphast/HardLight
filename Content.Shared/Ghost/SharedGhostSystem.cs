@@ -1,7 +1,6 @@
 using Content.Shared.Emoting;
 using Content.Shared.Hands;
 using Content.Shared.Interaction.Events;
-using Content.Shared.InteractionVerbs.Events;
 using Content.Shared.Item;
 using Content.Shared.Popups;
 using Robust.Shared.Serialization;
@@ -12,9 +11,9 @@ namespace Content.Shared.Ghost
     /// System for the <see cref="GhostComponent"/>.
     /// Prevents ghosts from interacting when <see cref="GhostComponent.CanGhostInteract"/> is false.
     /// </summary>
-    public abstract class SharedGhostSystem : EntitySystem
+    public abstract partial class SharedGhostSystem : EntitySystem
     {
-        [Dependency] protected readonly SharedPopupSystem Popup = default!;
+        [Dependency] protected SharedPopupSystem Popup = default!;
 
         public override void Initialize()
         {
@@ -24,7 +23,6 @@ namespace Content.Shared.Ghost
             SubscribeLocalEvent<GhostComponent, EmoteAttemptEvent>(OnAttempt);
             SubscribeLocalEvent<GhostComponent, DropAttemptEvent>(OnAttempt);
             SubscribeLocalEvent<GhostComponent, PickupAttemptEvent>(OnAttempt);
-            SubscribeLocalEvent<GhostComponent, InteractionVerbAttemptEvent>(OnAttempt);
         }
 
         private void OnAttemptInteract(Entity<GhostComponent> ent, ref InteractionAttemptEvent args)
@@ -39,90 +37,26 @@ namespace Content.Shared.Ghost
                 args.Cancel();
         }
 
-        /// <summary>
-        /// Sets the ghost's time of death.
-        /// </summary>
-        public void SetTimeOfDeath(Entity<GhostComponent?> entity, TimeSpan value)
-        {
-            if (!Resolve(entity, ref entity.Comp))
-                return;
-
-            if (entity.Comp.TimeOfDeath == value)
-                return;
-
-            entity.Comp.TimeOfDeath = value;
-            Dirty(entity);
-        }
-
-        [Obsolete("Use the Entity<GhostComponent?> overload")]
         public void SetTimeOfDeath(EntityUid uid, TimeSpan value, GhostComponent? component)
-        {
-            SetTimeOfDeath((uid, component), value);
-        }
-
-        /// <summary>
-        /// Sets whether or not the ghost player is allowed to return to their original body.
-        /// </summary>
-        public void SetCanReturnToBody(Entity<GhostComponent?> entity, bool value)
-        {
-            if (!Resolve(entity, ref entity.Comp))
-                return;
-
-            if (entity.Comp.CanReturnToBody == value)
-                return;
-
-            entity.Comp.CanReturnToBody = value;
-            Dirty(entity);
-        }
-
-        [Obsolete("Use the Entity<GhostComponent?> overload")]
-        public void SetCanReturnToBody(EntityUid uid, bool value, GhostComponent? component = null)
-        {
-            SetCanReturnToBody((uid, component), value);
-        }
-
-        [Obsolete("Use the Entity<GhostComponent?> overload")]
-        public void SetCanReturnToBody(GhostComponent component, bool value)
-        {
-            SetCanReturnToBody((component.Owner, component), value);
-        }
-
-
-        /// <summary>
-        /// Sets whether the ghost is allowed to interact with other entities.
-        /// </summary>
-        public void SetCanGhostInteract(Entity<GhostComponent?> entity, bool value)
-        {
-            if (!Resolve(entity, ref entity.Comp))
-                return;
-
-            if (entity.Comp.CanGhostInteract == value)
-                return;
-
-            entity.Comp.CanGhostInteract = value;
-            Dirty(entity);
-        }
-
-        // Frontier: uncryo status (mirroring CanReturnToBody)
-        public void SetCanReturnFromCryo(EntityUid uid, bool value, GhostComponent? component = null)
         {
             if (!Resolve(uid, ref component))
                 return;
 
-            // HardLight start
-            if (component.CanReturnFromCryo == value)
+            component.TimeOfDeath = value;
+        }
+
+        public void SetCanReturnToBody(EntityUid uid, bool value, GhostComponent? component = null)
+        {
+            if (!Resolve(uid, ref component))
                 return;
 
-            component.CanReturnFromCryo = value;
-            Dirty(uid, component);
-            // HardLight end
+            component.CanReturnToBody = value;
         }
 
-        public void SetCanReturnFromCryo(GhostComponent component, bool value)
+        public void SetCanReturnToBody(GhostComponent component, bool value)
         {
-            SetCanReturnFromCryo(component.Owner, value, component); // HardLight
+            component.CanReturnToBody = value;
         }
-        // Frontier: uncryo status (mirroring CanReturnToBody)
     }
 
     /// <summary>

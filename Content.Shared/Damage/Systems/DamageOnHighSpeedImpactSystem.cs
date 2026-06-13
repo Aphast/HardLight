@@ -10,14 +10,14 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared.Damage.Systems;
 
-public sealed class DamageOnHighSpeedImpactSystem : EntitySystem
+public sealed partial class DamageOnHighSpeedImpactSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly IRobustRandom _robustRandom = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
-    [Dependency] private readonly SharedStunSystem _stun = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private IRobustRandom _robustRandom = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private SharedStunSystem _stun = default!;
 
     public override void Initialize()
     {
@@ -52,7 +52,7 @@ public sealed class DamageOnHighSpeedImpactSystem : EntitySystem
 
         _damageable.TryChangeDamage(uid, component.Damage * damageScale);
 
-        if (_gameTiming.IsFirstTimePredicted && component.SoundHit != null)
+        if (_gameTiming.IsFirstTimePredicted)
             _audio.PlayPvs(component.SoundHit, uid, AudioParams.Default.WithVariation(0.125f).WithVolume(-0.125f));
         _color.RaiseEffect(Color.Red, new List<EntityUid>() { uid }, Filter.Pvs(uid, entityManager: EntityManager));
     }

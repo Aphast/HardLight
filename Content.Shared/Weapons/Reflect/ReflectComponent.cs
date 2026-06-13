@@ -1,5 +1,6 @@
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
+using Robust.Shared.Serialization;
 
 namespace Content.Shared.Weapons.Reflect;
 
@@ -13,23 +14,35 @@ public sealed partial class ReflectComponent : Component
     /// <summary>
     /// What we reflect.
     /// </summary>
-    [ViewVariables(VVAccess.ReadWrite), DataField]
+    [ViewVariables(VVAccess.ReadWrite), DataField("reflects")]
     public ReflectType Reflects = ReflectType.Energy | ReflectType.NonEnergy;
 
     /// <summary>
     /// Probability for a projectile to be reflected.
     /// </summary>
-    [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
+    [DataField("reflectProb"), ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
     public float ReflectProb = 0.25f;
 
-    [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
+    [DataField("spread"), ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
     public Angle Spread = Angle.FromDegrees(45);
 
-    [DataField]
-    public SoundSpecifier? SoundOnReflect = new SoundPathSpecifier("/Audio/Weapons/Guns/Hits/laser_sear_wall.ogg", AudioParams.Default.WithVariation(0.05f));
+    [DataField("soundOnReflect")]
+    public SoundSpecifier? SoundOnReflect = new SoundPathSpecifier("/Audio/Weapons/Guns/Hits/laser_sear_wall.ogg");
+
+    // WD START
+    /// <summary>
+    /// How much damage does the reflecting item take on reflect?
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public float DamageOnReflectModifier;
+    // WD END
 }
 
-[Flags]
+/// <summary>
+/// Used for both the projectiles being reflected and the entities reflecting. If there is ever overlap between the
+/// reflection types, the projectile will be reflected.
+/// </summary>
+[Flags, Serializable, NetSerializable]
 public enum ReflectType : byte
 {
     None = 0,

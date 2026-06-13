@@ -41,19 +41,29 @@ public sealed partial record PolymorphConfiguration
     public EntProtoId Entity;
 
     /// <summary>
-    /// Additional entity to spawn when polymorphing/reverting.
-    /// Gets parented to the entity polymorphed into.
-    /// Useful for visual effects.
-    /// </summary>
-    [DataField(serverOnly: true)]
-    public EntProtoId? EffectProto;
-
-    /// <summary>
     /// The delay between the polymorph's uses in seconds
     /// Slightly weird as of right now.
     /// </summary>
     [DataField(serverOnly: true)]
     public int Delay = 60;
+
+    /// <summary>
+    /// Whether or not the target is polymorphed above critical status.
+    /// </summary>
+    [DataField(serverOnly: true)]
+    public bool PolymorphTheLiving = true;
+
+    /// <summary>
+    /// Whether or not the target is polymorphed below critical status but above dead status.
+    /// </summary>
+    [DataField(serverOnly: true)]
+    public bool PolymorphTheCritical = true;
+
+    /// <summary>
+    /// Whether or not the target is polymorphed while dead.
+    /// </summary>
+    [DataField(serverOnly: true)]
+    public bool PolymorphTheDead = false;
 
     /// <summary>
     /// The duration of the transformation in seconds
@@ -137,7 +147,7 @@ public sealed partial record PolymorphConfiguration
     [DataField]
     public SoundSpecifier? ExitPolymorphSound;
 
-    // Starlight start
+    // Einstein Engines - Language begin
     /// <summary>
     /// The exact names of components to copy over when this polymorph is applied.
     /// </summary>
@@ -148,19 +158,7 @@ public sealed partial record PolymorphConfiguration
         "LanguageSpeaker",
         "Grammar"
     };
-    // Starlight end
-
-    /// <summary>
-    ///     If not null, this popup will be displayed when being polymorphed into something.
-    /// </summary>
-    [DataField]
-    public LocId? PolymorphPopup = "polymorph-popup-generic";
-
-    /// <summary>
-    ///     If not null, this popup will be displayed when when being reverted from a polymorph.
-    /// </summary>
-    [DataField]
-    public LocId? ExitPolymorphPopup = "polymorph-revert-popup-generic";
+    // Einstein Engines - Language end
 }
 
 public enum PolymorphInventoryChange : byte

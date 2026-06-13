@@ -10,18 +10,21 @@ using Robust.Shared.Timing;
 using Robust.Shared.Audio;
 using Robust.Shared.Utility;
 using Content.Shared._NF.Shipyard.Prototypes; // Frontier
+using Content.Shared.FixedPoint; // Goob Station - Round End Screen
+using Content.Shared.Mobs; // Goob Station - Round End Screen
 
 namespace Content.Shared.GameTicking
 {
-    public abstract class SharedGameTicker : EntitySystem
+    public abstract partial class SharedGameTicker : EntitySystem
     {
-        [Dependency] private readonly IReplayRecordingManager _replay = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
+        [Dependency] private IReplayRecordingManager _replay = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
 
         // See ideally these would be pulled from the job definition or something.
         // But this is easier, and at least it isn't hardcoded.
         //TODO: Move these, they really belong in StationJobsSystem or a cvar.
-        public static readonly ProtoId<JobPrototype> FallbackOverflowJob = "Contractor"; // Frontier: Passenger<Contractor
+        [ValidatePrototypeId<JobPrototype>]
+        public const string FallbackOverflowJob = "Contractor"; // Frontier: Passenger<Contractor
 
         public const string FallbackOverflowJobName = "job-name-contractor"; // Frontier: job-name-passenger<job-name-contractor
 
@@ -176,16 +179,14 @@ namespace Content.Shared.GameTicking
     public sealed class StationDisplayInformation(
         LocId? stationSubtext,
         LocId? stationDescription,
-        ResPath? stationIcon,
-        int lobbySortOrder,
-        bool hiddenIfNoJobs
+        SpriteSpecifier? stationIcon,
+        int lobbySortOrder
         )
     {
         public LocId? StationSubtext { get; } = stationSubtext;
         public LocId? StationDescription { get; } = stationDescription;
-        public ResPath? StationIcon { get; } = stationIcon;
+        public SpriteSpecifier? StationIcon { get; } = stationIcon;
         public int LobbySortOrder { get; } = lobbySortOrder;
-        public bool HiddenIfNoJobs { get; } = hiddenIfNoJobs;
     }
 
     /// <summary>
@@ -247,6 +248,14 @@ namespace Content.Shared.GameTicking
             public bool Observer;
 
             public bool Connected;
+
+            #region Goob Station
+            public string? LastWords;
+
+            public MobState EntMobState;
+
+            public Dictionary<string, FixedPoint2> DamagePerGroup;
+            #endregion
         }
 
         public string GamemodeTitle { get; }

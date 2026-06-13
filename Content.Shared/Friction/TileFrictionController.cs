@@ -17,13 +17,13 @@ using Robust.Shared.Physics.Systems;
 
 namespace Content.Shared.Friction
 {
-    public sealed class TileFrictionController : VirtualController
+    public sealed partial class TileFrictionController : VirtualController
     {
-        [Dependency] private readonly IConfigurationManager _configManager = default!;
-        [Dependency] private readonly ITileDefinitionManager _tileDefinitionManager = default!;
-        [Dependency] private readonly SharedGravitySystem _gravity = default!;
-        [Dependency] private readonly SharedMoverController _mover = default!;
-        [Dependency] private readonly SharedMapSystem _map = default!;
+        [Dependency] private IConfigurationManager _configManager = default!;
+        [Dependency] private ITileDefinitionManager _tileDefinitionManager = default!;
+        [Dependency] private SharedGravitySystem _gravity = default!;
+        [Dependency] private SharedMoverController _mover = default!;
+        [Dependency] private SharedMapSystem _map = default!;
 
         private EntityQuery<TileFrictionModifierComponent> _frictionQuery;
         private EntityQuery<TransformComponent> _xformQuery;
@@ -55,13 +55,10 @@ namespace Content.Shared.Friction
         {
             base.UpdateBeforeSolve(prediction, frameTime);
 
-            // Iterate all awake physics bodies tracked by the shared physics system.
             foreach (var ent in PhysicsSystem.AwakeBodies)
             {
-                // Copy foreach iteration values to locals to avoid ref/out on iteration variable
                 var uid = ent.Owner;
-                var bodyRef = ent.Comp1;
-                ref var body = ref bodyRef;
+                var body = ent.Comp1;
 
                 // Only apply friction when it's not a mob (or the mob doesn't have control)
                 // We may want to instead only apply friction to dynamic entities and not mobs ever.
@@ -71,11 +68,7 @@ namespace Content.Shared.Friction
                 if (body.LinearVelocity.Equals(Vector2.Zero) && body.AngularVelocity.Equals(0f))
                     continue;
 
-                if (!_xformQuery.TryGetComponent(uid, out var xform))
-                {
-                    Log.Error($"Unable to get transform for {ToPrettyString(uid)} in tilefrictioncontroller");
-                    continue;
-                }
+                var xform = ent.Comp2;
 
                 float friction;
 

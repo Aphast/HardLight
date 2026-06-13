@@ -1,28 +1,5 @@
 # 20mm Cal Base
 
-- type: entity
-  id: 20mmBulletBase
-  parent: BaseBullet
-  abstract: true
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: Projectile
-    damage:
-      types:
-        Structural: 50
-        Blunt: 50
-        Piercing: 75
-  - type: ShipWeaponProjectile
-  - type: TimedDespawn
-    lifetime: 3
-  - type: PointLight
-    radius: 3.5
-    energy: 0.5
-  - type: RadarBlip
-    scale: 0.35
-    requireNoGrid: true
-    shape: triangle
-    visibleFromOtherGrids: true
 
 - type: entity
   id: 57mmCartridgeBase

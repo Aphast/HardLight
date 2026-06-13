@@ -21,9 +21,7 @@
     visualMultiplier: 2
   - type: RadarConsole
   - type: Computer
-    # VRS: EliteRadarCircuitboard not yet ported; substitute with the base
-    # RadarConsoleCircuitboard until the elite/station variants land.
-    board: RadarConsoleCircuitboard
+    board: EliteRadarCircuitboard
   - type: PointLight
     radius: 1.5
     energy: 1.6
@@ -40,6 +38,4 @@
     visualMultiplier: 4
   - type: RadarConsole
   - type: Computer
-    # VRS: StationRadarCircuitboard not yet ported; substitute with the base
-    # RadarConsoleCircuitboard.
-    board: RadarConsoleCircuitboard
+    board: StationRadarCircuitboard

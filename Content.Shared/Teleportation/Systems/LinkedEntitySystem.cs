@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Content.Shared.Teleportation.Components;
-using Robust.Shared.GameStates;
 
 namespace Content.Shared.Teleportation.Systems;
 
@@ -10,48 +9,16 @@ namespace Content.Shared.Teleportation.Systems;
 ///     This does not do anything on its own (outside of deleting entities that have 0 links, if that option is true)
 ///     Systems can do whatever they please with the linked entities, such as <see cref="SharedPortalSystem"/>.
 /// </summary>
-public sealed class LinkedEntitySystem : EntitySystem
+public sealed partial class LinkedEntitySystem : EntitySystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<LinkedEntityComponent, ComponentGetState>(OnGetState);
-        SubscribeLocalEvent<LinkedEntityComponent, ComponentHandleState>(OnHandleState);
         SubscribeLocalEvent<LinkedEntityComponent, ComponentShutdown>(OnLinkShutdown);
-    }
-
-    private void OnGetState(EntityUid uid, LinkedEntityComponent component, ref ComponentGetState args)
-    {
-        var linkedEntities = new HashSet<NetEntity>();
-
-        foreach (var linked in component.LinkedEntities)
-        {
-            if (TerminatingOrDeleted(linked) || !HasComp<MetaDataComponent>(linked))
-                continue;
-
-            linkedEntities.Add(GetNetEntity(linked));
-        }
-
-        args.State = new LinkedEntityComponentState(linkedEntities);
-    }
-
-    private void OnHandleState(EntityUid uid, LinkedEntityComponent component, ref ComponentHandleState args)
-    {
-        if (args.Current is not LinkedEntityComponentState state)
-            return;
-
-        component.LinkedEntities.Clear();
-        foreach (var linked in state.LinkedEntities)
-        {
-            if (!TryGetEntity(linked, out var linkedUid) || TerminatingOrDeleted(linkedUid))
-                continue;
-
-            component.LinkedEntities.Add(linkedUid.Value);
-        }
     }
 
     private void OnLinkShutdown(EntityUid uid, LinkedEntityComponent component, ComponentShutdown args)
@@ -122,37 +89,26 @@ public sealed class LinkedEntitySystem : EntitySystem
     public bool TryUnlink(EntityUid first, EntityUid second,
         LinkedEntityComponent? firstLink = null, LinkedEntityComponent? secondLink = null)
     {
-        var resolvedFirst = Resolve(first, ref firstLink, false);
-        var resolvedSecond = Resolve(second, ref secondLink, false);
-
-        if (!resolvedFirst && !resolvedSecond)
+        if (!Resolve(first, ref firstLink))
             return false;
 
-        var success = false;
+        if (!Resolve(second, ref secondLink))
+            return false;
 
-        if (resolvedFirst)
-        {
-            var firstComponent = firstLink!;
-            success |= firstComponent.LinkedEntities.Remove(second);
+        var success = firstLink.LinkedEntities.Remove(second)
+                      && secondLink.LinkedEntities.Remove(first);
 
-            _appearance.SetData(first, LinkedEntityVisuals.HasAnyLinks, firstComponent.LinkedEntities.Any());
-            Dirty(first, firstComponent);
+        _appearance.SetData(first, LinkedEntityVisuals.HasAnyLinks, firstLink.LinkedEntities.Any());
+        _appearance.SetData(second, LinkedEntityVisuals.HasAnyLinks, secondLink.LinkedEntities.Any());
 
-            if (firstComponent.LinkedEntities.Count == 0 && firstComponent.DeleteOnEmptyLinks)
-                QueueDel(first);
-        }
+        Dirty(first, firstLink);
+        Dirty(second, secondLink);
 
-        if (resolvedSecond)
-        {
-            var secondComponent = secondLink!;
-            success |= secondComponent.LinkedEntities.Remove(first);
+        if (firstLink.LinkedEntities.Count == 0 && firstLink.DeleteOnEmptyLinks)
+            QueueDel(first);
 
-            _appearance.SetData(second, LinkedEntityVisuals.HasAnyLinks, secondComponent.LinkedEntities.Any());
-            Dirty(second, secondComponent);
-
-            if (secondComponent.LinkedEntities.Count == 0 && secondComponent.DeleteOnEmptyLinks)
-                QueueDel(second);
-        }
+        if (secondLink.LinkedEntities.Count == 0 && secondLink.DeleteOnEmptyLinks)
+            QueueDel(second);
 
         return success;
     }

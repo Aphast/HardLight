@@ -28,7 +28,6 @@ entities:
     - type: MetaData
     - type: Transform
     - type: Map
-
     - type: Broadphase
     - type: OccluderTree
     - type: MapGrid
@@ -2685,7 +2684,6 @@ entities:
     - type: LoadedMap
     - type: SpreaderGrid
     - type: GridTree
-
     - type: GridPathfinding
 - proto: AirlockBrigGlassLocked
   entities:
@@ -11084,7 +11082,7 @@ entities:
     - type: Transform
       pos: 24.466219,48.441994
       parent: 588
-- proto: SpeedLoaderMagnum
+- proto: SpeedLoader45_magnumFMJ
   entities:
   - uid: 950
     components:

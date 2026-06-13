@@ -1,18 +1,27 @@
 ﻿using Content.Server.Carrying;
+using Content.Server.DoAfter;
+using Content.Server.Item;
 using Content.Server.Popups;
+using Content.Server.Storage.EntitySystems;
 using Content.Shared.Bed.Sleep;
+using Content.Shared.DoAfter;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Item;
+using Content.Shared.Item.PseudoItem;
 using Content.Shared.Nyanotrasen.Item.PseudoItem;
 using Content.Shared.Storage;
+using Content.Shared.Tag;
 using Content.Shared.Verbs;
 
 namespace Content.Server.Nyanotrasen.Item.PseudoItem;
 
-public sealed class PseudoItemSystem : SharedPseudoItemSystem
+public sealed partial class PseudoItemSystem : SharedPseudoItemSystem
 {
-    [Dependency] private readonly CarryingSystem _carrying = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
+    [Dependency] private StorageSystem _storage = default!;
+    [Dependency] private ItemSystem _item = default!;
+    [Dependency] private DoAfterSystem _doAfter = default!;
+    [Dependency] private CarryingSystem _carrying = default!;
+    [Dependency] private PopupSystem _popup = default!;
 
     public override void Initialize()
     {

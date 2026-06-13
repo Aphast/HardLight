@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Content.Shared.Voting;
@@ -30,19 +30,16 @@ namespace Content.Client.Voting
         bool CanCallStandardVote(StandardVoteType type, out TimeSpan whenCan);
         event Action<bool> CanCallVoteChanged;
         event Action CanCallStandardVotesChanged;
-        event Action<MsgVoteAuditResponse>? VoteAuditResponseReceived;
-        void RequestVoteAuditList();
-        void RequestVoteAuditInspect(int voteId);
     }
 
-    public sealed class VoteManager : IVoteManager
+    public sealed partial class VoteManager : IVoteManager
     {
-        [Dependency] private readonly IAudioManager _audio = default!;
-        [Dependency] private readonly IBaseClient _client = default!;
-        [Dependency] private readonly IClientConsoleHost _console = default!;
-        [Dependency] private readonly IClientNetManager _netManager = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly IResourceCache _res = default!;
+        [Dependency] private IAudioManager _audio = default!;
+        [Dependency] private IBaseClient _client = default!;
+        [Dependency] private IClientConsoleHost _console = default!;
+        [Dependency] private IClientNetManager _netManager = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private IResourceCache _res = default!;
 
         private readonly Dictionary<StandardVoteType, TimeSpan> _standardVoteTimeouts = new();
         private readonly Dictionary<int, ActiveVote> _votes = new();
@@ -69,27 +66,8 @@ namespace Content.Client.Voting
 
             _netManager.RegisterNetMessage<MsgVoteData>(ReceiveVoteData);
             _netManager.RegisterNetMessage<MsgVoteCanCall>(ReceiveVoteCanCall);
-            _netManager.RegisterNetMessage<MsgVoteAuditRequest>();
-            _netManager.RegisterNetMessage<MsgVoteAuditResponse>(ReceiveVoteAuditResponse);
 
             _client.RunLevelChanged += ClientOnRunLevelChanged;
-        }
-
-        public event Action<MsgVoteAuditResponse>? VoteAuditResponseReceived;
-
-        public void RequestVoteAuditList()
-        {
-            _netManager.ClientSendMessage(new MsgVoteAuditRequest { WantInspect = false });
-        }
-
-        public void RequestVoteAuditInspect(int voteId)
-        {
-            _netManager.ClientSendMessage(new MsgVoteAuditRequest { WantInspect = true, VoteId = voteId });
-        }
-
-        private void ReceiveVoteAuditResponse(MsgVoteAuditResponse msg)
-        {
-            VoteAuditResponseReceived?.Invoke(msg);
         }
 
         private void ClientOnRunLevelChanged(object? sender, RunLevelChangedEventArgs e)
@@ -209,11 +187,12 @@ namespace Content.Client.Voting
             existingVote.DisplayVotes = message.DisplayVotes;
             existingVote.TargetEntity = message.TargetEntity;
 
-            // Logger.GetSawmill(nameof(VoteManager)).($"{existingVote.StartTime}, {existingVote.EndTime}, {_gameTiming.RealTime}");
+            // Logger.Debug($"{existingVote.StartTime}, {existingVote.EndTime}, {_gameTiming.RealTime}");
 
             for (var i = 0; i < message.Options.Length; i++)
             {
                 existingVote.Entries[i].Votes = message.Options[i].votes;
+                existingVote.Entries[i].RealVotes = message.Options[i].realVotes; // Mono
             }
 
             if (@new && _popupContainer != null)
@@ -281,6 +260,7 @@ namespace Content.Client.Voting
         {
             public string Text { get; }
             public int Votes { get; set; }
+            public int RealVotes; // Mono
 
             public VoteEntry(string text)
             {
@@ -289,4 +269,3 @@ namespace Content.Client.Voting
         }
     }
 }
-

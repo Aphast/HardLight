@@ -1,4 +1,3 @@
-using Content.Server._NF.PacifiedZone;
 using Content.Server.Administration.Logs;
 using Content.Server.Damage.Components;
 using Content.Server.Weapons.Ranged.Systems;
@@ -17,14 +16,14 @@ using Robust.Shared.Player;
 
 namespace Content.Server.Damage.Systems
 {
-    public sealed class DamageOtherOnHitSystem : EntitySystem
+    public sealed partial class DamageOtherOnHitSystem : EntitySystem
     {
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly GunSystem _guns = default!;
-        [Dependency] private readonly DamageableSystem _damageable = default!;
-        [Dependency] private readonly DamageExamineSystem _damageExamine = default!;
-        [Dependency] private readonly SharedCameraRecoilSystem _sharedCameraRecoil = default!;
-        [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private GunSystem _guns = default!;
+        [Dependency] private DamageableSystem _damageable = default!;
+        [Dependency] private DamageExamineSystem _damageExamine = default!;
+        [Dependency] private SharedCameraRecoilSystem _sharedCameraRecoil = default!;
+        [Dependency] private SharedColorFlashEffectSystem _color = default!;
 
         public override void Initialize()
         {
@@ -36,10 +35,6 @@ namespace Content.Server.Damage.Systems
         private void OnDoHit(EntityUid uid, DamageOtherOnHitComponent component, ThrowDoHitEvent args)
         {
             if (TerminatingOrDeleted(args.Target))
-                return;
-
-            // Hardlight: Pacifists can't hurt with throws
-            if (args.User != null && (TryComp<PacifiedComponent>(args.User, out _) || TryComp<PacifiedByZoneComponent>(args.User, out _)))
                 return;
 
             var dmg = _damageable.TryChangeDamage(args.Target, component.Damage * _damageable.UniversalThrownDamageModifier, component.IgnoreResistances, origin: args.Component.Thrower);
@@ -71,7 +66,7 @@ namespace Content.Server.Damage.Systems
         /// </summary>
         private void OnAttemptPacifiedThrow(Entity<DamageOtherOnHitComponent> ent, ref AttemptPacifiedThrowEvent args)
         {
-            // args.Cancel("pacified-cannot-throw"); // Hardlight: NOP
+            args.Cancel("pacified-cannot-throw");
         }
     }
 }

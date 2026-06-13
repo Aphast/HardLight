@@ -18,14 +18,14 @@ using Robust.Shared.Timing;
 
 namespace Content.Server._RMC14.Weapons.Ranged.Prediction;
 
-public sealed class GunPredictionSystem : SharedGunPredictionSystem
+public sealed partial class GunPredictionSystem : SharedGunPredictionSystem
 {
-    [Dependency] private readonly IConfigurationManager _config = default!;
-    [Dependency] private readonly GunSystem _gun = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedProjectileSystem _projectile = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
+    [Dependency] private IConfigurationManager _config = default!;
+    [Dependency] private GunSystem _gun = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedProjectileSystem _projectile = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private TransformSystem _transform = default!;
 
     private readonly Dictionary<(Guid, int), EntityUid> _predicted = new();
     private readonly List<(PredictedProjectileHitEvent Event, ICommonSession Player)> _predictedHits = new();
@@ -63,7 +63,7 @@ public sealed class GunPredictionSystem : SharedGunPredictionSystem
         SubscribeLocalEvent<PredictedProjectileServerComponent, PreventCollideEvent>(OnPredictedPreventCollide);
 
         Subs.CVar(_config, RMCCVars.RMCGunPredictionPreventCollision, v => _preventCollision = v, true);
-        Subs.CVar(_config, RMCCVars.RMCGunPredictionLogHits, v => _logHits = v, false);
+        Subs.CVar(_config, RMCCVars.RMCGunPredictionLogHits, v => _logHits = v, true);
         Subs.CVar(_config, RMCCVars.RMCGunPredictionCoordinateDeviation, v => _coordinateDeviation = v, true);
         Subs.CVar(_config, RMCCVars.RMCGunPredictionLowestCoordinateDeviation, v => _lowestCoordinateDeviation = v, true);
         Subs.CVar(_config, RMCCVars.RMCGunPredictionAabbEnlargement, v => _aabbEnlargement = v, true);

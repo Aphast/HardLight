@@ -1,25 +1,6 @@
 # 90mm Base
 
 - type: entity
-  id: 90mmBulletBase
-  name: shell
-  parent: BaseBulletTrigger
-  abstract: true
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: TimedDespawn
-    lifetime: 3
-  - type: PointLight
-    radius: 3.5
-    energy: 0.5
-  - type: ShipWeaponProjectile
-  - type: RadarBlip
-    scale: 1
-    requireNoGrid: true
-    shape: triangle
-    visibleFromOtherGrids: true
-
-- type: entity
   id: 90mmBulletArmorPiercing
   parent: 90mmBulletExplosiveBase
   categories: [ HideSpawnMenu ]

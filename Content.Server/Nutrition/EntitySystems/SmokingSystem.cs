@@ -15,7 +15,6 @@ using Content.Shared.Nutrition.Components;
 using Content.Shared.Smoking;
 using Content.Shared.Temperature;
 using Robust.Server.GameObjects;
-using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using System.Linq;
 using Content.Shared.Atmos;
@@ -24,22 +23,26 @@ namespace Content.Server.Nutrition.EntitySystems
 {
     public sealed partial class SmokingSystem : EntitySystem
     {
-        [Dependency] private readonly ReactiveSystem _reactiveSystem = default!;
-        [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-        [Dependency] private readonly BloodstreamSystem _bloodstreamSystem = default!;
-        [Dependency] private readonly AtmosphereSystem _atmos = default!;
-        [Dependency] private readonly TransformSystem _transformSystem = default!;
-        [Dependency] private readonly InventorySystem _inventorySystem = default!;
-        [Dependency] private readonly ClothingSystem _clothing = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly SharedItemSystem _items = default!;
-        [Dependency] private readonly SharedContainerSystem _container = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-        [Dependency] private readonly ForensicsSystem _forensics = default!;
+        [Dependency] private ReactiveSystem _reactiveSystem = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+        [Dependency] private BloodstreamSystem _bloodstreamSystem = default!;
+        [Dependency] private AtmosphereSystem _atmos = default!;
+        [Dependency] private TransformSystem _transformSystem = default!;
+        [Dependency] private InventorySystem _inventorySystem = default!;
+        [Dependency] private ClothingSystem _clothing = default!;
+        [Dependency] private SharedItemSystem _items = default!;
+        [Dependency] private SharedContainerSystem _container = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
+        [Dependency] private ForensicsSystem _forensics = default!;
 
         private const float UpdateTimer = 3f;
 
         private float _timer;
+
+        /// <summary>
+        ///     We keep a list of active smokables, because iterating all existing smokables would be dumb.
+        /// </summary>
+        private readonly HashSet<EntityUid> _active = new();
 
         public override void Initialize()
         {
@@ -62,7 +65,7 @@ namespace Content.Server.Nutrition.EntitySystems
         public void SetSmokableState(EntityUid uid, SmokableState state, SmokableComponent? smokable = null,
             AppearanceComponent? appearance = null, ClothingComponent? clothing = null)
         {
-            if (!Resolve(uid, ref smokable, ref appearance, ref clothing) || smokable.State == state)
+            if (!Resolve(uid, ref smokable, ref appearance, ref clothing))
                 return;
 
             smokable.State = state;
@@ -80,17 +83,17 @@ namespace Content.Server.Nutrition.EntitySystems
 
             if (state == SmokableState.Lit)
             {
-                EnsureComp<BurningComponent>(uid);
-                _audio.PlayPvs(smokable.LightSound, uid);
                 var igniteEvent = new IgnitedEvent();
                 RaiseLocalEvent(uid, ref igniteEvent);
+
+                _active.Add(uid);
             }
             else
             {
-                RemComp<BurningComponent>(uid);
-                _audio.PlayPvs(smokable.SnuffSound, uid);
-                var extinguishEvent = new ExtinguishedEvent();
-                RaiseLocalEvent(uid, ref extinguishEvent);
+                var igniteEvent = new ExtinguishedEvent();
+                RaiseLocalEvent(uid, ref igniteEvent);
+
+                _active.Remove(uid);
             }
         }
 
@@ -101,7 +104,7 @@ namespace Content.Server.Nutrition.EntitySystems
 
         private void OnSmokableShutdownEvent(Entity<SmokableComponent> entity, ref ComponentShutdown args)
         {
-            RemComp<BurningComponent>(entity);
+            _active.Remove(entity);
         }
 
         private void OnSmokeableEquipEvent(Entity<SmokableComponent> entity, ref GotEquippedEvent args)
@@ -119,12 +122,18 @@ namespace Content.Server.Nutrition.EntitySystems
             if (_timer < UpdateTimer)
                 return;
 
-            var query = EntityQueryEnumerator<BurningComponent, SmokableComponent>();
-            while (query.MoveNext(out var uid, out _, out var smokable))
+            // TODO Use an "active smoke" component instead, EntityQuery over that.
+            foreach (var uid in _active.ToArray())
             {
+                if (!TryComp(uid, out SmokableComponent? smokable))
+                {
+                    _active.Remove(uid);
+                    continue;
+                }
+
                 if (!_solutionContainerSystem.TryGetSolution(uid, smokable.Solution, out var soln, out var solution))
                 {
-                    SetSmokableState(uid, SmokableState.Unlit, smokable);
+                    _active.Remove(uid);
                     continue;
                 }
 

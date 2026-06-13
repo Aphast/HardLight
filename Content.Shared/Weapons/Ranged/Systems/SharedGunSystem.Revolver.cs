@@ -267,6 +267,7 @@ public partial class SharedGunSystem
                 return false;
             }
 
+            // Rotate around until we've covered the whole cylinder or there are no more unspent bullets to transfer.
             for (var i = 0; i < component.Capacity && ev.Ammo.Count > 0; i++) // Frontier: speedloader partial reload fix
             {
                 var index = (component.CurrentIndex + i) % component.Capacity;
@@ -301,11 +302,6 @@ public partial class SharedGunSystem
             return true;
         }
 
-        var ammoEntity = ExtractSingleAmmoForInsert(uid, Transform(revolverUid).Coordinates);
-
-        if (ammoEntity == null)
-            return false;
-
         // Try to insert the entity directly.
         for (var i = 0; i < component.Capacity; i++)
         {
@@ -317,9 +313,9 @@ public partial class SharedGunSystem
                 continue;
             }
 
-            component.AmmoSlots[index] = ammoEntity.Value;
-            Containers.Insert(ammoEntity.Value, component.AmmoContainer);
-            SetChamber(index, component, ammoEntity.Value);
+            component.AmmoSlots[index] = uid;
+            Containers.Insert(uid, component.AmmoContainer);
+            SetChamber(index, component, uid);
             Audio.PlayPredicted(component.SoundInsert, revolverUid, user);
             Popup(Loc.GetString("gun-revolver-insert"), revolverUid, user);
             UpdateRevolverAppearance(revolverUid, component);
@@ -452,9 +448,7 @@ public partial class SharedGunSystem
             else
             {
                 component.AmmoSlots[i] = null;
-                if (TryComp(slot.Value, out TransformComponent? _))
-                    Containers.Remove(slot.Value, component.AmmoContainer);
-
+                Containers.Remove(slot.Value, component.AmmoContainer);
                 component.Chambers[i] = null;
 
                 if (!_netManager.IsClient)

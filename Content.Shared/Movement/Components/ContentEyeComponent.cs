@@ -1,5 +1,4 @@
 using System.Numerics;
-using Content.Shared._HL.Traits.Physical.Systems; // HardLight
 using Content.Shared.Movement.Systems;
 using Robust.Shared.GameStates;
 
@@ -8,7 +7,7 @@ namespace Content.Shared.Movement.Components;
 /// <summary>
 /// Holds SS14 eye data not relevant for engine, e.g. lerp targets.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState, Access(typeof(SharedContentEyeSystem), typeof(SharedTraitZoomModifierSystem))] // HardLight: Added typeof(SharedTraitZoomModifierSystem)
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState, Access(typeof(SharedContentEyeSystem))]
 public sealed partial class ContentEyeComponent : Component
 {
     /// <summary>

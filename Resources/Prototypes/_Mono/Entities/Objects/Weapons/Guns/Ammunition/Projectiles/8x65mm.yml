@@ -7,16 +7,29 @@
   - type: Projectile
     damage:
       types:
-        Piercing: 35
+        Piercing: 27.5
+    armorPenetration: 0.65
 
 - type: entity
-  id: Bullet8x65mmImprovised
-  name: bullet (8x65mm improvised)
-  parent: BaseBullet
+  id: Bullet8x65mmSKRPractice
+  name: bullet (8x65mm SKR practice)
+  parent: BaseBulletPractice
   categories: [ HideSpawnMenu ]
   components:
   - type: Projectile
     damage:
       types:
-        Piercing: 19
-        Blunt: 19
+        Blunt: 3
+
+- type: entity
+  id: Bullet8x65mmSKRIncendiary
+  parent: BaseBulletIncendiary
+  name: bullet (8x65mm SKR incendiary)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Projectile
+    damage:
+      types:
+        Piercing: 15
+        Heat: 10
+    armorPenetration: 0.65

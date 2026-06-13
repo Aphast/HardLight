@@ -1,11 +1,10 @@
 using System.Linq;
 using Content.Server.Administration.Logs;
-using Content.Server.Fluids.Components;
+using Content.Server.Atmos.EntitySystems;
 using Content.Server.Chemistry.TileReactions;
 using Content.Server.DoAfter;
 using Content.Server.Fluids.Components;
 using Content.Server.Spreader;
-using Content.Shared.ActionBlocker;
 using Content.Shared.Chemistry;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.Components.SolutionManager;
@@ -28,7 +27,6 @@ using Content.Shared.StepTrigger.Components;
 using Content.Shared.StepTrigger.Systems;
 using Robust.Server.Audio;
 using Robust.Shared.Collections;
-using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Player;
@@ -43,34 +41,35 @@ namespace Content.Server.Fluids.EntitySystems;
 /// </summary>
 public sealed partial class PuddleSystem : SharedPuddleSystem
 {
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ITileDefinitionManager _tileDefMan = default!;
-    [Dependency] private readonly AudioSystem _audio = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly ReactiveSystem _reactive = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
-    [Dependency] private readonly SharedPopupSystem _popups = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly StepTriggerSystem _stepTrigger = default!;
-    [Dependency] private readonly SpeedModifierContactsSystem _speedModContacts = default!;
-    [Dependency] private readonly TileFrictionController _tile = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private ReactiveSystem _reactive = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private SharedPopupSystem _popups = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private StepTriggerSystem _stepTrigger = default!;
+    [Dependency] private SpeedModifierContactsSystem _speedModContacts = default!;
+    [Dependency] private TileFrictionController _tile = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private AtmosphereSystem _atmos = default!;
+    [Dependency] private TurfSystem _turf = default!;
 
-    private static readonly ProtoId<ReagentPrototype> Blood = "Blood";
+    [ValidatePrototypeId<ReagentPrototype>]
+    private const string Blood = "Blood";
 
-    private static readonly ProtoId<ReagentPrototype> Slime = "Slime";
+    [ValidatePrototypeId<ReagentPrototype>]
+    private const string Slime = "Slime";
 
-    private static readonly ProtoId<ReagentPrototype> CopperBlood = "CopperBlood";
+    [ValidatePrototypeId<ReagentPrototype>]
+    private const string CopperBlood = "CopperBlood";
 
-    private static readonly ProtoId<ReagentPrototype> SynthBlood = "SynthBlood"; // HardLight
-
-    private static string[] _standoutReagents = [Blood, Slime, CopperBlood, SynthBlood]; // HardLight: SynthBlood
+    private static string[] _standoutReagents = [Blood, Slime, CopperBlood];
 
     // Using local deletion queue instead of the standard queue so that we can easily "undelete" if a puddle
     // loses & then gains reagents in a single tick.
@@ -91,7 +90,6 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
         _puddleQuery = GetEntityQuery<PuddleComponent>();
 
         // Shouldn't need re-anchoring.
-        SubscribeLocalEvent<PuddleComponent, ComponentInit>(OnPuddleInit);
         SubscribeLocalEvent<PuddleComponent, AnchorStateChangedEvent>(OnAnchorChanged);
         SubscribeLocalEvent<PuddleComponent, SolutionContainerChangedEvent>(OnSolutionUpdate);
         SubscribeLocalEvent<PuddleComponent, SpreadNeighborsEvent>(OnPuddleSpread);
@@ -272,12 +270,12 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
         base.Update(frameTime);
         foreach (var ent in _deletionQueue)
         {
+            UpdateFlammability(ent, null);
             Del(ent);
         }
 
         _deletionQueue.Clear();
 
-        TickDecay();
         TickEvaporation();
     }
 
@@ -293,6 +291,7 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
         }
 
         _deletionQueue.Remove(entity);
+        UpdateFlammability((entity.Owner, entity.Comp), args.Solution);
         UpdateSlip((entity, entity.Comp), args.Solution);
         UpdateSlow(entity, args.Solution);
         UpdateEvaporation(entity, args.Solution);
@@ -336,6 +335,18 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
 
         _appearance.SetData(uid, PuddleVisuals.CurrentVolume, volume.Float(), appearance);
         _appearance.SetData(uid, PuddleVisuals.SolutionColor, color, appearance);
+    }
+    private void UpdateFlammability(Entity<PuddleComponent?> entity, Solution? solution)
+    {
+        if (solution is null)
+        {
+            _atmos.SetPuddleFlammabilityAtTile(entity.Owner, 0);
+            return;
+        }
+
+        var flammability = solution.GetSolutionFlammability(_prototypeManager);
+        _atmos.SetPuddleFlammabilityAtTile(entity.Owner, flammability);
+
     }
 
     private void UpdateSlip(Entity<PuddleComponent> entity, Solution solution)
@@ -496,7 +507,6 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
         }
 
         _solutionContainerSystem.AddSolution(puddleComponent.Solution.Value, addedSolution);
-        ResetPuddleDecay(puddleUid);
 
         if (checkForOverflow && IsOverflowing(puddleUid, puddleComponent))
         {
@@ -644,7 +654,7 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
         }
 
         // If space return early, let that spill go out into the void
-        if (tileRef.Tile.IsEmpty || tileRef.IsSpace(_tileDefMan))
+        if (tileRef.Tile.IsEmpty || _turf.IsSpace(tileRef))
         {
             puddleUid = EntityUid.Invalid;
             return false;

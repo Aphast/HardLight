@@ -42,8 +42,11 @@ public sealed partial class RadioChannelPrototype : IPrototype
     /// </summary>
     [DataField, ViewVariables]
     public bool ShowFrequency = false;
-
-    [DataField, ViewVariables]
-    public bool RestrictToSharedFaction = false;
     // End Frontier
+    
+    /// <summary>
+    /// Maximum distance in meters this channel can transmit. If 0 or null, range is unlimited except by map boundaries.
+    /// </summary>
+    [DataField("maxRange"), ViewVariables]
+    public float? MaxRange = null;
 }

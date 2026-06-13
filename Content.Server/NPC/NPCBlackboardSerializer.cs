@@ -6,20 +6,11 @@ using Robust.Shared.Serialization.Markdown.Mapping;
 using Robust.Shared.Serialization.Markdown.Validation;
 using Robust.Shared.Serialization.TypeSerializers.Interfaces;
 using Robust.Shared.Utility;
-using System.Globalization;
 
 namespace Content.Server.NPC;
 
 public sealed class NPCBlackboardSerializer : ITypeReader<NPCBlackboard, MappingDataNode>, ITypeCopier<NPCBlackboard>
 {
-    private static readonly HashSet<string> SimpleBoolKeys = new(StringComparer.OrdinalIgnoreCase)
-    {
-        NPCBlackboard.NavClimb,
-        NPCBlackboard.NavInteract,
-        NPCBlackboard.NavPry,
-        NPCBlackboard.NavSmash,
-    };
-
     public ValidationNode Validate(ISerializationManager serializationManager, MappingDataNode node,
         IDependencyCollection dependencies, ISerializationContext? context = null)
     {
@@ -32,20 +23,11 @@ public sealed class NPCBlackboardSerializer : ITypeReader<NPCBlackboard, Mapping
 
         foreach (var data in node)
         {
-            // Normalize key for resilient matching
-            var key = data.Key?.Trim() ?? string.Empty;
+            var key = data.Key;
 
             if (data.Value.Tag == null)
             {
-                // Allow plain booleans for common navigation toggles.
-                if (SimpleBoolKeys.Contains(key))
-                {
-                    validated.Add(serializationManager.ValidateNode<bool>(data.Value, context));
-                    continue;
-                }
-
-                // Fallback: accept untagged scalars as strings to avoid hard failures during validation.
-                validated.Add(serializationManager.ValidateNode<string>(data.Value, context));
+                validated.Add(new ErrorNode(node.GetKeyNode(key), $"Unable to validate {key}'s type"));
                 continue;
             }
 
@@ -78,56 +60,10 @@ public sealed class NPCBlackboardSerializer : ITypeReader<NPCBlackboard, Mapping
 
         foreach (var data in node)
         {
-            // Normalize key for resilient matching
-            var key = data.Key?.Trim() ?? string.Empty;
+            var key = data.Key;
 
             if (data.Value.Tag == null)
-            {
-                // Support plain booleans for common navigation toggles.
-                if (SimpleBoolKeys.Contains(key))
-                {
-                    var bbBool = serializationManager.Read<bool>(data.Value, hookCtx, context);
-                    value.SetValue(key, bbBool);
-                    continue;
-                }
-
-                // Attempt to gracefully coerce common primitive scalar types.
-                if (data.Value is Robust.Shared.Serialization.Markdown.Value.ValueDataNode vNode)
-                {
-                    var text = vNode.Value;
-                    if (!string.IsNullOrEmpty(text))
-                    {
-                        // Try boolean first
-                        if (bool.TryParse(text, out var b))
-                        {
-                            value.SetValue(key, b);
-                            continue;
-                        }
-
-                        // Then numeric types
-                        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
-                        {
-                            value.SetValue(key, i);
-                            continue;
-                        }
-
-                        if (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var f))
-                        {
-                            value.SetValue(key, f);
-                            continue;
-                        }
-
-                        // Fallback to string
-                        value.SetValue(key, text);
-                        continue;
-                    }
-                }
-
-                // Final fallback: read as string via serializer (may return empty string)
-                var bbString = serializationManager.Read<string?>(data.Value, hookCtx, context) ?? string.Empty;
-                value.SetValue(key, bbString);
-                continue;
-            }
+                throw new NullReferenceException($"Found null tag for {key}");
 
             var typeString = data.Value.Tag[6..];
 

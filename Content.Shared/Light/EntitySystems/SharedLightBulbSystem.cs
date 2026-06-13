@@ -5,10 +5,10 @@ using Robust.Shared.Audio.Systems;
 
 namespace Content.Shared.Light.EntitySystems;
 
-public abstract class SharedLightBulbSystem : EntitySystem
+public abstract partial class SharedLightBulbSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
 
     public override void Initialize()
     {
@@ -22,7 +22,8 @@ public abstract class SharedLightBulbSystem : EntitySystem
     private void OnInit(EntityUid uid, LightBulbComponent bulb, ComponentInit args)
     {
         // update default state of bulbs
-        UpdateAppearance(uid, bulb);
+        SetColor(uid, bulb.Color, bulb);
+        SetState(uid, bulb.State, bulb);
     }
 
     private void HandleLand(EntityUid uid, LightBulbComponent bulb, ref LandEvent args)

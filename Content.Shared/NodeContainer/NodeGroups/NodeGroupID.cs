@@ -16,9 +16,4 @@ public enum NodeGroupID : byte
     /// <seealso cref="Content.Server.Power.Generation.Teg.TegSystem"/>
     /// <seealso cref="Content.Server.Power.Generation.Teg.TegNodeGroup"/>
     Teg,
-
-    /// <summary>
-    /// Group used for plumbing (reagent fluid ducts).
-    /// </summary>
-    Plumbing, // Starlight Plumbing System
 }

@@ -20,17 +20,9 @@ public sealed partial class PolymorphableComponent : Component
     [ViewVariables(VVAccess.ReadOnly)]
     public TimeSpan? LastPolymorphEnd = null;
 
-    /// <summary>
+        /// <summary>
     /// The polymorphs that the entity starts out being able to do.
     /// </summary>
     [DataField]
     public List<ProtoId<PolymorphPrototype>>? InnatePolymorphs;
-
-    // //#region Starlight
-    // /// <summary>
-    // /// if the old parent body allready had the Uncryoable component meaning it should not be removed when de-polymorphing them
-    // /// <see cref="UncryoableComponent"/>
-    // /// </summary>
-    // public bool HadUncryoable = false;
-    // //#endregion Starlight
 }

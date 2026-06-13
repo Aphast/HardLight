@@ -15,14 +15,14 @@ using JetBrains.Annotations;
 using Robust.Shared.EntitySerialization.Systems;
 
 namespace Content.Server.GridPreloader;
-public sealed class GridPreloaderSystem : SharedGridPreloaderSystem
+public sealed partial class GridPreloaderSystem : SharedGridPreloaderSystem
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly MapSystem _map = default!;
-    [Dependency] private readonly MapLoaderSystem _mapLoader = default!;
-    [Dependency] private readonly MetaDataSystem _meta = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
+    [Dependency] private MapSystem _map = default!;
+    [Dependency] private MapLoaderSystem _mapLoader = default!;
+    [Dependency] private MetaDataSystem _meta = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
     /// <summary>
     /// Whether the preloading CVar is set or not.
@@ -33,20 +33,20 @@ public sealed class GridPreloaderSystem : SharedGridPreloaderSystem
     {
         base.Initialize();
 
-        /* SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestart); */
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestart);
         SubscribeLocalEvent<PostGameMapLoad>(OnPostGameMapLoad);
 
         Subs.CVar(_cfg, CCVars.PreloadGrids, value => PreloadingEnabled = value, true);
     }
 
-/*     private void OnRoundRestart(RoundRestartCleanupEvent ev)
+    private void OnRoundRestart(RoundRestartCleanupEvent ev)
     {
         var ent = GetPreloaderEntity();
         if (ent == null)
             return;
 
         Del(ent.Value.Owner);
-    } */
+    }
 
     private void OnPostGameMapLoad(PostGameMapLoad ev)
     {

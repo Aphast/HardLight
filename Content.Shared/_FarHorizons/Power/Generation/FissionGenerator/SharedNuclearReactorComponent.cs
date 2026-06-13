@@ -1,10 +1,3 @@
-// SPDX-FileCopyrightText: 2025 jhrushbe <capnmerry@gmail.com>
-// SPDX-FileCopyrightText: 2025 rottenheadphones <juaelwe@outlook.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
-//
-// SPDX-License-Identifier: CC-BY-NC-SA-3.0
-
-
 using Robust.Shared.Serialization;
 
 namespace Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
@@ -27,7 +20,6 @@ public sealed class NuclearReactorBuiState : BoundUserInterfaceState
 
     public float ReactorTemp = 0;
     public float ReactorRads = 0;
-    public float ReactorRadsMax = 0;
     public float ReactorTherm = 0;
     public float ControlRodActual = 0;
     public float ControlRodSet = 0;

@@ -6,7 +6,7 @@ using Content.Shared.Interaction;
 using Content.Shared.Ninja.Components;
 using Content.Shared.Ninja.Systems;
 using Content.Shared.Popups;
-using Robust.Shared.Audio;
+using Content.Shared.Power.Components;
 using Robust.Shared.Audio.Systems;
 
 namespace Content.Server.Ninja.Systems;
@@ -14,12 +14,12 @@ namespace Content.Server.Ninja.Systems;
 /// <summary>
 /// Handles the doafter and power transfer when draining.
 /// </summary>
-public sealed class BatteryDrainerSystem : SharedBatteryDrainerSystem
+public sealed partial class BatteryDrainerSystem : SharedBatteryDrainerSystem
 {
-    [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private BatterySystem _battery = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     public override void Initialize()
     {
@@ -54,7 +54,8 @@ public sealed class BatteryDrainerSystem : SharedBatteryDrainerSystem
             MovementThreshold = 0.5f,
             BreakOnMove = true,
             CancelDuplicate = false,
-            AttemptFrequency = AttemptFrequency.StartAndEnd
+            AttemptFrequency = AttemptFrequency.StartAndEnd,
+            MultiplyDelay = false, // Goobstation
         };
 
         _doAfter.TryStartDoAfter(doAfterArgs);
@@ -106,6 +107,6 @@ public sealed class BatteryDrainerSystem : SharedBatteryDrainerSystem
         _popup.PopupEntity(Loc.GetString("battery-drainer-success", ("battery", target)), uid, uid);
 
         // repeat the doafter until battery is full
-        return !_battery.IsFull(comp.BatteryUid.Value, battery);
+        return !_battery.IsFull(ent, battery);
     }
 }

@@ -30,13 +30,13 @@ namespace Content.Shared.Bed.Sleep;
 
 public sealed partial class SleepingSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly SharedActionsSystem _actionsSystem = default!;
-    [Dependency] private readonly BlindableSystem _blindableSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedEmitSoundSystem _emitSound = default!;
-    [Dependency] private readonly StatusEffectsSystem _statusEffectsSystem = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private SharedActionsSystem _actionsSystem = default!;
+    [Dependency] private BlindableSystem _blindableSystem = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedEmitSoundSystem _emitSound = default!;
+    [Dependency] private StatusEffectsSystem _statusEffectsSystem = default!;
 
     public static readonly EntProtoId SleepActionId = "ActionSleep";
     public static readonly EntProtoId WakeActionId = "ActionWake";
@@ -106,12 +106,7 @@ public sealed partial class SleepingSystem : EntitySystem
             _statusEffectsSystem.TryRemoveStatusEffect(ent.Owner, "KnockedDown");
 
             EnsureComp<StunnedComponent>(ent);
-            
-            // The entity will not fall over  if they are buckled. I think this could be written better.
-            if (!EntityManager.TryGetComponent(ent, out BuckleComponent? buckleComp) || !buckleComp.Buckled)
-            {
-                EnsureComp<KnockedDownComponent>(ent);
-            }
+            EnsureComp<KnockedDownComponent>(ent);
 
             if (TryComp<SleepEmitSoundComponent>(ent, out var sleepSound))
             {
@@ -218,17 +213,18 @@ public sealed partial class SleepingSystem : EntitySystem
     /// </summary>
     private void OnDamageChanged(Entity<SleepingComponent> ent, ref DamageChangedEvent args)
     {
-        if (!args.DamageIncreased || args.DamageDelta == null)
+        if (args.DamageDelta == null)
             return;
 
-        /* Shitmed Change Start - Surgery needs this, sorry! If the nocturine gamers get too feisty
-        I'll probably just increase the threshold */
+        var totalChange = args.DamageDelta.GetTotal();
+        if (totalChange == 0)
+            return;
 
-        if (args.DamageDelta.GetTotal() >= ent.Comp.WakeThreshold
+        // Wake up if either damage or healing exceeds the threshold
+        if ((totalChange > 0 || -totalChange > 0) && 
+            (totalChange >= ent.Comp.WakeThreshold || -totalChange >= ent.Comp.WakeThreshold)
             && !HasComp<ForcedSleepingComponent>(ent))
             TryWaking((ent, ent.Comp));
-
-        // Shitmed Change End
     }
 
     /// <summary>

@@ -10,23 +10,21 @@ using Content.Shared.EntityEffects;
 using Content.Shared.FixedPoint;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Mobs.Systems;
-using Content.Server.Mobs.Components; // HardLight
 using Robust.Shared.Collections;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
-using Content.Server._Funkystation.Genetics.Mutations.Components;
 
 namespace Content.Server.Body.Systems
 {
-    public sealed class MetabolizerSystem : EntitySystem
+    public sealed partial class MetabolizerSystem : EntitySystem
     {
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
-        [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+        [Dependency] private MobStateSystem _mobStateSystem = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
 
         private EntityQuery<OrganComponent> _organQuery;
         private EntityQuery<SolutionContainerManagerComponent> _solutionQuery;
@@ -70,9 +68,6 @@ namespace Content.Server.Body.Systems
             Entity<MetabolizerComponent> ent,
             ref ApplyMetabolicMultiplierEvent args)
         {
-            if (!float.IsFinite(args.Multiplier) || args.Multiplier == 0f)
-                return;
-
             // TODO REFACTOR THIS
             // This will slowly drift over time due to floating point errors.
             // Instead, raise an event with the base rates and allow modifiers to get applied to it.
@@ -158,20 +153,6 @@ namespace Content.Server.Body.Systems
                     continue;
 
                 var mostToRemove = FixedPoint2.Zero;
-
-                // Funkystation - Genetics
-                // Chemical resistance mutation - completely ignore selected chem metabolism
-                var bodyUid = ent.Comp2?.Body ?? solutionEntityUid.Value;
-
-                if (TryComp<ChemicalResistanceComponent>(bodyUid, out var resistance) && resistance.Reagents.Contains(reagent.Prototype))
-                {
-                    var removeAmount = FixedPoint2.Min(resistance.PurgeAmount, quantity);
-                    solution.RemoveReagent(reagent, removeAmount);
-                    reagents += 1;
-                    continue; // Skip normal metabolism and effects
-                }
-                // Funkystation - end of genetics changes
-
                 if (proto.Metabolisms is null)
                 {
                     if (ent.Comp1.RemoveEmpty)
@@ -197,49 +178,23 @@ namespace Content.Server.Body.Systems
                     if (!proto.Metabolisms.TryGetValue(group.Id, out var entry))
                         continue;
 
-                    var rate = entry.MetabolismRate * (float) group.MetabolismRateModifier;
-                    if (rate <= FixedPoint2.Zero)
-                        continue;
+                    var rate = entry.MetabolismRate * group.MetabolismRateModifier;
 
-                    var rateFloat = (float) rate;
-                    if (!float.IsFinite(rateFloat) || rateFloat <= 0f)
-                        continue;
+                    // Remove $rate, as long as there's enough reagent there to actually remove that much
+                    mostToRemove = FixedPoint2.Clamp(rate, 0, quantity);
 
-                    mostToRemove = FixedPoint2.Min(rate, quantity);
-                    if (mostToRemove <= FixedPoint2.Zero)
-                        continue;
-
-                    // Frontier: skip applying effects in metabolism
-                    if (group.SkipEffects)
-                        continue;
-                    // End Frontier
-
-                    float scale = (float) mostToRemove / rateFloat;
-                    if (!float.IsFinite(scale) || scale <= 0f)
-                        continue;
-
-                    // HardLight start: Check if the entity is a Synth and scale effects accordingly when dead
-                    var actualEntity = ent.Comp2?.Body ?? solutionEntityUid.Value;
-                    var isSynth = HasComp<HLSynthComponent>(actualEntity);
+                    float scale = (float) mostToRemove / (float) rate;
 
                     // if it's possible for them to be dead, and they are,
-                    // then we shouldn't process any effects (unless they're a synth),
-                    // but should probably still remove reagents
-                    var isDead = false;
-                    if (TryComp<MobStateComponent>(actualEntity, out var state))
+                    // then we shouldn't process any effects, but should probably
+                    // still remove reagents
+                    if (TryComp<MobStateComponent>(solutionEntityUid.Value, out var state))
                     {
-                        isDead = _mobStateSystem.IsDead(actualEntity, state);
-                        if (!proto.WorksOnTheDead && !isSynth && isDead)
+                        if (!proto.WorksOnTheDead && _mobStateSystem.IsDead(solutionEntityUid.Value, state))
                             continue;
                     }
 
-                    if (isSynth && isDead && !proto.WorksOnTheDead)
-                        scale *= 0.75f;
-
-                    if (!float.IsFinite(scale) || scale <= 0f)
-                        continue;
-                    // HardLight end
-
+                    var actualEntity = ent.Comp2?.Body ?? solutionEntityUid.Value;
                     var args = new EntityEffectReagentArgs(actualEntity, EntityManager, ent, solution, mostToRemove, proto, null, scale);
 
                     // do all effects, if conditions apply

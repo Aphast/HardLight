@@ -1,3 +1,4 @@
+using Content.Shared._Mono.Company;
 using Content.Shared.Access;
 using Content.Shared.Guidebook;
 using Content.Shared.Players.PlayTimeTracking;
@@ -47,22 +48,17 @@ namespace Content.Shared.Roles
         /// <summary>
         ///     Requirements for the job.
         /// </summary>
-        [DataField, Access(typeof(SharedRoleSystem), Other = AccessPermissions.None)]
+        [DataField, Access(typeof(SharedRoleSystem))]
         public HashSet<JobRequirement>? Requirements;
 
-        // Frontier: alternate requirement sets
-        /// <summary>
-        /// Alternate sets of requirements - one must be matched in order to spawn as this job.
-        /// </summary>
-        [DataField, Access(typeof(SharedRoleSystem), Other = AccessPermissions.None)]
-        public Dictionary<string, HashSet<JobRequirement>>? AlternateRequirementSets;
-        // End Frontier: alternate requirement sets
+        [DataField, Access(typeof(SharedRoleSystem))] // Frontier
+        public Dictionary<string, HashSet<JobRequirement>>? AlternateRequirementSets; // Frontier: sets of requirements - one must be matched in order to
 
         /// <summary>
         ///     When true - the station will have anouncement about arrival of this player.
         /// </summary>
         [DataField("joinNotifyCrew")]
-        public bool JoinNotifyCrew { get; private set; } = true;
+        public bool JoinNotifyCrew { get; private set; } = false;
 
         /// <summary>
         ///     When true - the player will recieve a message about importancy of their job.
@@ -84,6 +80,13 @@ namespace Content.Shared.Roles
         public bool HideConsoleVisibility { get; private set; } = false;
 
         /// <summary>
+        ///     Mono - Assigns company to the player on spawn.
+        /// </summary>
+        [DataField]
+        public ProtoId<CompanyPrototype> AssignedCompany { get; private set; } = "None";
+
+
+        /// <summary>
         ///     Should the selected traits be applied for this job?
         /// </summary>
         [DataField]
@@ -103,7 +106,7 @@ namespace Content.Shared.Roles
         /// Nyano/DV: For e.g. prisoners, they'll never use their latejoin spawner.
         /// </summary>
         [DataField("alwaysUseSpawner")]
-        public bool AlwaysUseSpawner { get; private set; } = false; // HardLight: true<false; why was this true?
+        public bool AlwaysUseSpawner { get; private set; } = false;
 
         /// <summary>
         ///     The "weight" or importance of this job. If this number is large, the job system will assign this job

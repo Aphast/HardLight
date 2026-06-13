@@ -13,12 +13,11 @@ namespace Content.Shared.Humanoid.Markings
         HeadSide,
         Snout,
         Chest,
-        UndergarmentTop,
-        UndergarmentBottom,
-        Genital,
         Arms,
         Legs,
+        Wings, // For IPC wings porting from SimpleStation
         Tail,
+        TailExtras, // Starlight - Resomi Extra Tail Customisation
         Overlay
     }
 
@@ -36,11 +35,6 @@ namespace Content.Shared.Humanoid.Markings
                 HumanoidVisualLayers.HeadSide => MarkingCategories.HeadSide,
                 HumanoidVisualLayers.Snout => MarkingCategories.Snout,
                 HumanoidVisualLayers.Chest => MarkingCategories.Chest,
-                HumanoidVisualLayers.UndergarmentTop => MarkingCategories.UndergarmentTop,
-                HumanoidVisualLayers.UndergarmentBottom => MarkingCategories.UndergarmentBottom,
-                HumanoidVisualLayers.Penis => MarkingCategories.Genital,
-                HumanoidVisualLayers.Genital => MarkingCategories.Genital,
-                HumanoidVisualLayers.Breasts => MarkingCategories.Genital,
                 HumanoidVisualLayers.RArm => MarkingCategories.Arms,
                 HumanoidVisualLayers.LArm => MarkingCategories.Arms,
                 HumanoidVisualLayers.RHand => MarkingCategories.Arms,
@@ -49,6 +43,8 @@ namespace Content.Shared.Humanoid.Markings
                 HumanoidVisualLayers.RLeg => MarkingCategories.Legs,
                 HumanoidVisualLayers.LFoot => MarkingCategories.Legs,
                 HumanoidVisualLayers.RFoot => MarkingCategories.Legs,
+                HumanoidVisualLayers.Wings => MarkingCategories.Wings, //For IPC wings porting from SimpleStation
+                HumanoidVisualLayers.TailExtras => MarkingCategories.TailExtras, // Starlight - Resomi Extra Tail Customisation
                 HumanoidVisualLayers.Tail => MarkingCategories.Tail,
                 HumanoidVisualLayers.RArmExtension => MarkingCategories.Arms, // Frontier: species-specific layer
                 HumanoidVisualLayers.LArmExtension => MarkingCategories.Arms, // Frontier: species-specific layer

@@ -35,7 +35,13 @@ public sealed partial class MaterialStorageComponent : Component
     /// Whether or not to drop contained materials when deconstructed.
     /// </summary>
     [DataField]
-    public bool DropOnDeconstruct = false;
+    public bool DropOnDeconstruct = true;
+
+    /// <summary>
+    /// Mono - Whether or not to drop contained materials when destroyed.
+    /// </summary>
+    [DataField]
+    public bool DropOnDestroy = true;
 
     /// <summary>
     /// Whitelist generated on runtime for what specific materials can be inserted into this entity.
@@ -65,8 +71,8 @@ public sealed partial class MaterialStorageComponent : Component
     /// <summary>
     /// Whether the storage can eject the materials stored within it
     /// </summary>
-    [DataField, AutoNetworkedField]
-    public bool CanEjectStoredMaterials = false;
+    [DataField]
+    public bool CanEjectStoredMaterials = true;
 }
 
 [Serializable, NetSerializable]
@@ -92,6 +98,7 @@ public readonly record struct GetStoredMaterialsEvent(Entity<MaterialStorageComp
 /// <param name="LocalOnly">An optional specifier. Non-local sources (silo, etc.) should not consume materials when this is false.</param>
 [ByRefEvent]
 public readonly record struct ConsumeStoredMaterialsEvent(Entity<MaterialStorageComponent> Entity, Dictionary<ProtoId<MaterialPrototype>, int> Materials, bool LocalOnly);
+
 
 /// <summary>
 /// event raised on the materialStorage when a material entity is inserted into it.

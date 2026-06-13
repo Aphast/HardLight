@@ -16,6 +16,8 @@ using Content.Shared.Standing;
 using Content.Shared.Storage.Components;
 using Content.Shared.Stunnable;
 using Content.Shared.Throwing;
+using Content.Shared.Vehicle.Components;
+using Content.Shared.Verbs;
 using Content.Shared.Whitelist;
 using Robust.Shared.Containers;
 using Robust.Shared.GameStates;
@@ -24,7 +26,6 @@ using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
-using Content.Shared._HL.Buckle;
 
 namespace Content.Shared.Buckle;
 
@@ -32,7 +33,7 @@ public abstract partial class SharedBuckleSystem
 {
     public static ProtoId<AlertCategoryPrototype> BuckledAlertCategory = "Buckled";
 
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
     private void InitializeBuckle()
     {
@@ -62,7 +63,9 @@ public abstract partial class SharedBuckleSystem
     }
 
     private void OnBuckleComponentShutdown(Entity<BuckleComponent> ent, ref ComponentShutdown args)
-        => Unbuckle(ent!, null);
+    {
+        Unbuckle(ent!, null);
+    }
 
     #region Pulling
 
@@ -138,7 +141,7 @@ public abstract partial class SharedBuckleSystem
         }
 
         var delta = (xform.LocalPosition - strapComp.BuckleOffset).LengthSquared();
-        if (delta > 1e-5)
+        if (delta > strapComp.UnbuckleDistanceSquared) // Frontier: 1e-5<strapComp.UnbuckleDistanceSquared
             Unbuckle(buckle, (strapUid, strapComp), null);
     }
 
@@ -158,24 +161,22 @@ public abstract partial class SharedBuckleSystem
 
     private void OnBuckleDownAttempt(EntityUid uid, BuckleComponent component, DownAttemptEvent args)
     {
-        // Floof - check if the strap requires the entity to be downed. If so, permit it.
-        if (component.BuckledTo is { } strap
-            && TryComp<StrapComponent>(strap, out var strapComp)
-            && strapComp.Position == StrapPosition.Down)
-            return;
-
         if (component.Buckled)
             args.Cancel();
     }
 
     private void OnBuckleStandAttempt(EntityUid uid, BuckleComponent component, StandAttemptEvent args)
     {
-        // Floof - check if the strap requires the entity to be standing. If so, permit it.
-        if (component.BuckledTo is { } strap
-            && TryComp<StrapComponent>(strap, out var strapComp)
-            && strapComp.Position == StrapPosition.Stand)
-            return;
+        //Let entities stand back up while on vehicles so that they can be knocked down when slept/stunned
+        //This prevents an exploit that allowed people to become partially invulnerable to stuns
+        //while on vehicles
 
+        if (component.BuckledTo != null)
+        {
+            var buckle = component.BuckledTo;
+            if (TryComp<VehicleComponent>(buckle, out _))
+                return;
+        }
         if (component.Buckled)
             args.Cancel();
     }
@@ -188,12 +189,9 @@ public abstract partial class SharedBuckleSystem
 
     private void OnBuckleUpdateCanMove(EntityUid uid, BuckleComponent component, UpdateCanMoveEvent args)
     {
-        // HL, allow vehicle movement
-        if (HasComp<HLAllowStrapMovementComponent>(component.BuckledTo))
-            return;
-
-        if (component.Buckled)
-            args.Cancel();
+        if (component.Buckled && // Umbra
+            !HasComp<VehicleComponent>(component.BuckledTo)) // buckle+vehicle shitcode // Umbra
+            args.Cancel(); // Umbra
     }
 
     public bool IsBuckled(EntityUid uid, BuckleComponent? component = null)
@@ -380,21 +378,22 @@ public abstract partial class SharedBuckleSystem
         SetBuckledTo(buckle, strap!);
         Appearance.SetData(strap, StrapVisuals.State, true);
         Appearance.SetData(buckle, BuckleVisuals.Buckled, true);
+
         _rotationVisuals.SetHorizontalAngle(buckle.Owner, strap.Comp.Rotation);
 
         var xform = Transform(buckle);
         var coords = new EntityCoordinates(strap, strap.Comp.BuckleOffset);
-
         _transform.SetCoordinates(buckle, xform, coords, rotation: Angle.Zero);
+
         _joints.SetRelay(buckle, strap);
 
         switch (strap.Comp.Position)
         {
             case StrapPosition.Stand:
-                _standing.Stand(buckle);
+                _standing.Stand(buckle, force: true);
                 break;
             case StrapPosition.Down:
-                _standing.Down(buckle, false, false);
+                _standing.Down(buckle, false, false, force: true);
                 break;
         }
 
@@ -472,7 +471,7 @@ public abstract partial class SharedBuckleSystem
         var buckleXform = Transform(buckle);
         var oldBuckledXform = Transform(strap);
 
-        if (buckleXform.ParentUid == strap.Owner && !Terminating(buckleXform.ParentUid))
+        if (buckleXform.ParentUid == strap.Owner && !Terminating(buckleXform.ParentUid) && !Terminating(buckle))
         {
             _transform.PlaceNextTo((buckle, buckleXform), (strap.Owner, oldBuckledXform));
             buckleXform.ActivelyLerping = false;

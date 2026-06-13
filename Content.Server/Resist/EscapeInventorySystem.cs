@@ -1,39 +1,42 @@
 using Content.Server.Popups;
 using Content.Shared.Storage.Components;
+using Content.Shared.Storage;
+using Content.Server.Carrying; // Carrying system from Nyanotrasen.
+using Content.Shared.Inventory;
+using Content.Shared.Hands.EntitySystems;
+using Content.Server.Storage.Components;
 using Content.Shared.ActionBlocker;
 using Content.Shared.DoAfter;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory;
 using Content.Shared.Movement.Events;
+using Content.Shared.Movement.Systems;
 using Content.Shared.Resist;
 using Content.Shared.Storage;
 using Robust.Shared.Containers;
-using Content.Shared.Carrying;
-using Content.Server.Carrying; // Frontier
-using Content.Shared.Actions; // Frontier
-using Robust.Shared.Prototypes; // Frontier
-using Content.Shared.Movement.Systems; // Frontier
-using Content.Server.FloofStation;
-using Content.Shared.Contests;
-using Content.Shared.FloofStation; // Floofstation
+using Content.Server.Storage.Components;
+using Content.Server.Carrying;
+using Content.Shared.Actions;
+using Content.Shared.Movement.Systems;
+using Robust.Shared.Prototypes;
 
 namespace Content.Server.Resist;
 
-public sealed class EscapeInventorySystem : EntitySystem
+public sealed partial class EscapeInventorySystem : EntitySystem
 {
-    [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlockerSystem = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-    [Dependency] private readonly CarryingSystem _carryingSystem = default!; // Carrying system from Nyanotrasen.
-    [Dependency] private readonly SharedActionsSystem _actions = default!; // Frontier: escape actions
-    [Dependency] private readonly ContestsSystem _contests = default!;
+    [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private ActionBlockerSystem _actionBlockerSystem = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private CarryingSystem _carryingSystem = default!; // Carrying system from Nyanotrasen.
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private  EntityManager _entityManager = default!;
 
     // Frontier - cancel inventory escape
-    private readonly EntProtoId _escapeCancelAction = "ActionCancelEscape";
-    [Dependency] private readonly VoreSystem _vore = default!;
+    [ValidatePrototypeId<EntityPrototype>]
+    private readonly string _escapeCancelAction = "ActionCancelEscape";
 
     /// <summary>
     /// You can't escape the hands of an entity this many times more massive than you.
@@ -55,8 +58,7 @@ public sealed class EscapeInventorySystem : EntitySystem
         if (!args.HasDirectionalMovement)
             return;
 
-        if (!_containerSystem.TryGetContainingContainer((uid, null, null), out var container)
-            || !_actionBlockerSystem.CanInteract(uid, container.Owner))
+        if (!_containerSystem.TryGetContainingContainer((uid, null, null), out var container) || !_actionBlockerSystem.CanInteract(uid, container.Owner))
             return;
 
         if (args.OldMovement == MoveButtons.None || args.OldMovement == MoveButtons.Walk)
@@ -72,15 +74,7 @@ public sealed class EscapeInventorySystem : EntitySystem
         // Contested
         if (_handsSystem.IsHolding(container.Owner, uid, out _))
         {
-            var disadvantage = _contests.MassContest(container.Owner, uid, rangeFactor: 3f);
-            AttemptEscape(uid, container.Owner, component, disadvantage);
-            return;
-        }
-
-        // Vore - Floofstation
-        if (HasComp<VoredComponent>(uid))
-        {
-            AttemptEscape(uid, container.Owner, component, 5f);
+            AttemptEscape(uid, container.Owner, component);
             return;
         }
 
@@ -139,16 +133,17 @@ public sealed class EscapeInventorySystem : EntitySystem
         RemoveCancelAction(uid, component); // Frontier
     }
 
-    // Frontier: escape actions
+    // Frontier
     private void RemoveCancelAction(EntityUid uid, CanEscapeInventoryComponent component)
     {
         if (component.EscapeCancelAction is not { Valid: true })
-            return;
+         return;
 
         _actions.RemoveAction(uid, component.EscapeCancelAction);
         component.EscapeCancelAction = null;
     }
 
+    // Frontier
     private void OnCancelEscape(EntityUid uid, CanEscapeInventoryComponent component, EscapeInventoryCancelActionEvent args)
     {
         if (component.DoAfter != null)
@@ -156,5 +151,4 @@ public sealed class EscapeInventorySystem : EntitySystem
 
         RemoveCancelAction(uid, component);
     }
-    // End Frontier: escape actions
 }

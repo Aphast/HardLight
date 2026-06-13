@@ -25,6 +25,6 @@ namespace Content.Server.Bed.Components
 
         public TimeSpan NextHealTime = TimeSpan.Zero; //Next heal
 
-        public EntityUid? SleepAction;
+        [DataField] public EntityUid? SleepAction;
     }
 }

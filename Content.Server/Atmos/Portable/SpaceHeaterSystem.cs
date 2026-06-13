@@ -13,13 +13,13 @@ using Robust.Server.GameObjects;
 
 namespace Content.Server.Atmos.Portable;
 
-public sealed class SpaceHeaterSystem : EntitySystem
+public sealed partial class SpaceHeaterSystem : EntitySystem
 {
-    [Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly PowerReceiverSystem _power = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
+    [Dependency] private AtmosphereSystem _atmosphereSystem = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private PowerReceiverSystem _power = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
 
     public override void Initialize()
     {
@@ -77,11 +77,6 @@ public sealed class SpaceHeaterSystem : EntitySystem
             var environment = _atmosphereSystem.GetContainingMixture(uid, args.Grid, args.Map);
             if (environment == null)
                 return;
-
-            // Frontier: functional cutoff
-            if (environment.Temperature >= spaceHeater.MaxFunctionalTemperature)
-                thermoMachine.Cp = 0;
-            // End Frontier
 
             if (environment.Temperature <= thermoMachine.TargetTemperature - (thermoMachine.TemperatureTolerance + spaceHeater.AutoModeSwitchThreshold))
             {

@@ -1,4 +1,4 @@
-﻿using Content.Shared.Random;
+using Content.Shared.Random;
 using Content.Shared.Research.Prototypes;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
@@ -20,5 +20,5 @@ public sealed partial class TechnologyDiskComponent : Component
     /// A weighted random prototype for how rare each tier should be.
     /// </summary>
     [DataField]
-    public ProtoId<WeightedRandomPrototype> TierWeightPrototype = "TechDiskTierWeights";
+    public ProtoId<WeightedRandomPrototype> TierWeightPrototype = "TechDiskTierWeightsNormal";
 }

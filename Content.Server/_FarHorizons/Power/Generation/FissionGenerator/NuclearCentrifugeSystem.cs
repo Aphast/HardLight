@@ -1,14 +1,8 @@
-// SPDX-FileCopyrightText: 2025 jhrushbe <capnmerry@gmail.com>
-// SPDX-FileCopyrightText: 2025 rottenheadphones <juaelwe@outlook.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
-//
-// SPDX-License-Identifier: CC-BY-NC-SA-3.0
-
+using Content.Server.Popups;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Stack;
 using Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
 using Content.Shared.Interaction;
-using Content.Shared.Popups;
 using Content.Shared.Power;
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
@@ -19,13 +13,13 @@ namespace Content.Server._FarHorizons.Power.Generation.FissionGenerator;
 // CC-BY-NC-SA-3.0
 // https://github.com/goonstation/goonstation/blob/ff86b044/code/obj/nuclearreactor/centrifuge.dm
 
-public sealed class NuclearCentrifugeSystem : EntitySystem
+public sealed partial class NuclearCentrifugeSystem : EntitySystem
 {
-    [Dependency] private readonly EntityManager _entityManager = default!;
-    [Dependency] private readonly StackSystem _stackSystem = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
+    [Dependency] private EntityManager _entityManager = default!;
+    [Dependency] private StackSystem _stackSystem = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
 
     private readonly float _threshold = 1f;
     private float _accumulator = 0f;
@@ -97,13 +91,13 @@ public sealed class NuclearCentrifugeSystem : EntitySystem
 
         if (!_entityManager.TryGetComponent<ReactorPartComponent>(args.Used, out var ReactorPart) || !ReactorPart.HasRodType(ReactorPartComponent.RodTypes.FuelRod))
         {
-            _popupSystem.PopupEntity(Loc.GetString("nuclear-centrifuge-wrong-item", ("item", args.Used)), uid);
+            _popupSystem.PopupEntity(Loc.GetString("nuclear-centrifuge-wrong-item", ("item", args.Used)), args.User, args.User);
             return;
         }
 
         if (ReactorPart.Properties == null || ReactorPart.Properties.FissileIsotopes < 0.1)
         {
-            _popupSystem.PopupEntity(Loc.GetString("nuclear-centrifuge-unfit-item", ("item", args.Used)), uid);
+            _popupSystem.PopupEntity(Loc.GetString("nuclear-centrifuge-unfit-item", ("item", args.Used)), args.User, args.User);
             return;
         }
 

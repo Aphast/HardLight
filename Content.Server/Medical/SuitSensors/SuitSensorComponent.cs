@@ -83,14 +83,14 @@ public sealed partial class SuitSensorComponent : Component
     /// <summary>
     /// The previous mode of the suit. This is used to restore the state when an EMP effect ends.
     /// </summary>
-    [DataField, ViewVariables]
+    [DataField, AutoNetworkedField, ViewVariables]
     public SuitSensorMode PreviousMode = SuitSensorMode.SensorOff;
 
     /// <summary>
     ///  The previous locked status of the controls.  This is used to restore the state when an EMP effect ends.
     ///  This keeps prisoner jumpsuits/internal implants from becoming unlocked after an EMP.
     /// </summary>
-    [DataField, ViewVariables]
+    [DataField, AutoNetworkedField, ViewVariables]
     public bool PreviousControlsLocked = false;
 
     /// <summary>
@@ -98,4 +98,10 @@ public sealed partial class SuitSensorComponent : Component
     /// </summary>
     [DataField]
     public bool Jammed;
+
+    /// <summary>
+    ///     Monolith: variable checking if the suits IFF signature is enabled.
+    /// </summary>
+    [DataField]
+    public bool IFFSignatureEnabled = false;
 }

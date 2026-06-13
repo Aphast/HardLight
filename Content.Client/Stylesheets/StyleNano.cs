@@ -14,31 +14,57 @@ using Robust.Client.ResourceManagement;
 using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.UserInterface.CustomControls;
-using Robust.Shared.Graphics;
 using static Robust.Client.UserInterface.StylesheetHelpers;
 
 namespace Content.Client.Stylesheets
 {
     public static class ResCacheExtension
     {
+        // Goobstation - ZH text support start
         public static Font NotoStack(this IResourceCache resCache, string variation = "Regular", int size = 10, bool display = false)
         {
-            var ds = display ? "Display" : "";
+            var ds = "";
             var sv = variation.StartsWith("Bold", StringComparison.Ordinal) ? "Bold" : "Regular";
+
+            if (variation == "Mono-Regular")
+            {
+                ds = "Mono";
+                sv = "Regular";
+            }
+            else
+            {
+                ds = display ? "Display" : "";
+            }
+
             return resCache.GetFont
             (
                 // Ew, but ok
                 new[]
                 {
-                    $"/Fonts/NotoSans{ds}/NotoSans{ds}-{variation}.ttf",
+                    $"/Fonts/NotoSans{ds}/NotoSans{ds}-{sv}.ttf",
                     $"/Fonts/NotoSans/NotoSansSymbols-{sv}.ttf",
-                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf"
+                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf",
+                    "/Fonts/NotoSans/NotoSansSC-Regular.ttf",
                 },
                 size
             );
-
         }
-
+        public static Font NotoStack2ElectricBoogaloo(this IResourceCache resCache, string path = "/Fonts/NotoSans/NotoSans-Regular.ttf", int size = 10)
+        {
+            return resCache.GetFont
+            (
+                // Ew, but ok
+                new[]
+                {
+                    path,
+                    $"/Fonts/NotoSans/NotoSansSymbols-Regular.ttf",
+                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf",
+                    "/Fonts/NotoSans/NotoSansSC-Regular.ttf",
+                },
+                size
+            );
+        }
+        // Goobstation - ZH text support end
     }
     // STLYE SHEETS WERE A MISTAKE. KILL ALL OF THIS WITH FIRE
     public sealed class StyleNano : StyleBase
@@ -68,10 +94,6 @@ namespace Content.Client.Stylesheets
         public const string StyleClassStorageButton = "storageButton";
         public const string StyleClassInset = "Inset";
 
-        public const string StyleClassConsoleHeading = "ConsoleHeading";
-        public const string StyleClassConsoleSubHeading = "ConsoleSubHeading";
-        public const string StyleClassConsoleText = "ConsoleText";
-
         public const string StyleClassSliderRed = "Red";
         public const string StyleClassSliderGreen = "Green";
         public const string StyleClassSliderBlue = "Blue";
@@ -93,29 +115,29 @@ namespace Content.Client.Stylesheets
         public const string StyleClassPopupMessageLarge = "PopupMessageLarge";
         public const string StyleClassPopupMessageLargeCaution = "PopupMessageLargeCaution";
 
-        public static readonly Color PanelDark = Color.FromHex("#1E201E");
+        public static readonly Color PanelDark = Color.FromHex("#1E1E1E");
 
-        public static readonly Color NanoGold = Color.FromHex("#A88B5E");
+        public static readonly Color NanoGold = Color.FromHex("#bdbdbd");
         public static readonly Color GoodGreenFore = Color.FromHex("#31843E");
         public static readonly Color ConcerningOrangeFore = Color.FromHex("#A5762F");
         public static readonly Color DangerousRedFore = Color.FromHex("#BB3232");
         public static readonly Color DisabledFore = Color.FromHex("#5A5A5A");
 
-        public static readonly Color ButtonColorDefault = Color.FromHex("#464B46");
+        public static readonly Color ButtonColorDefault = Color.FromHex("#363636");
         public static readonly Color ButtonColorDefaultRed = Color.FromHex("#D43B3B");
-        public static readonly Color ButtonColorHovered = Color.FromHex("#575B57");
+        public static readonly Color ButtonColorHovered = Color.FromHex("#878787");
         public static readonly Color ButtonColorHoveredRed = Color.FromHex("#DF6B6B");
-        public static readonly Color ButtonColorPressed = Color.FromHex("#3e6c45");
-        public static readonly Color ButtonColorDisabled = Color.FromHex("#303331");
+        public static readonly Color ButtonColorPressed = Color.FromHex("#212121");
+        public static readonly Color ButtonColorDisabled = Color.FromHex("#1B1D1F");
 
         public static readonly Color ButtonColorCautionDefault = Color.FromHex("#ab3232");
         public static readonly Color ButtonColorCautionHovered = Color.FromHex("#cf2f2f");
-        public static readonly Color ButtonColorCautionPressed = Color.FromHex("#3e6c45");
+        public static readonly Color ButtonColorCautionPressed = Color.FromHex("#212121");
         public static readonly Color ButtonColorCautionDisabled = Color.FromHex("#602a2a");
 
-        public static readonly Color ButtonColorGoodDefault = Color.FromHex("#3E6C45");
-        public static readonly Color ButtonColorGoodHovered = Color.FromHex("#31843E");
-        public static readonly Color ButtonColorGoodDisabled = Color.FromHex("#164420");
+        public static readonly Color ButtonColorGoodDefault = Color.FromHex("#28B03D");
+        public static readonly Color ButtonColorGoodHovered = Color.FromHex("#1CB834");
+        public static readonly Color ButtonColorGoodDisabled = Color.FromHex("#0B541B");
 
         //NavMap
         public static readonly Color PointRed = Color.FromHex("#B02E26");
@@ -124,23 +146,20 @@ namespace Content.Client.Stylesheets
 
         // Context menu button colors
         public static readonly Color ButtonColorContext = Color.FromHex("#1119");
-        public static readonly Color ButtonColorContextHover = Color.DarkGray;
-        public static readonly Color ButtonColorContextPressed = Color.LightSlateGray;
+        public static readonly Color ButtonColorContextHover = Color.FromHex("#4a4a4a");
+        public static readonly Color ButtonColorContextPressed = Color.FromHex("#888888");
         public static readonly Color ButtonColorContextDisabled = Color.Black;
 
         // Examine button colors
         public static readonly Color ExamineButtonColorContext = Color.Transparent;
-        public static readonly Color ExamineButtonColorContextHover = Color.DarkGray;
-        public static readonly Color ExamineButtonColorContextPressed = Color.LightSlateGray;
+        public static readonly Color ExamineButtonColorContextHover = Color.FromHex("#4a4a4a");
+        public static readonly Color ExamineButtonColorContextPressed = Color.FromHex("#888888");
         public static readonly Color ExamineButtonColorContextDisabled = Color.FromHex("#5A5A5A");
 
-        // UI Panel colors
-        public static readonly Color PanelColorDark = Color.FromHex("#1F1F1F");
-
         // Fancy Tree elements
-        public static readonly Color FancyTreeEvenRowColor = Color.FromHex("#252725");
+        public static readonly Color FancyTreeEvenRowColor = Color.FromHex("#242424");
         public static readonly Color FancyTreeOddRowColor = FancyTreeEvenRowColor * new Color(0.8f, 0.8f, 0.8f);
-        public static readonly Color FancyTreeSelectedRowColor = new Color(55, 59, 55);
+        public static readonly Color FancyTreeSelectedRowColor = new Color(63, 63, 63);
 
         //Used by the APC and SMES menus
         public const string StyleClassPowerStateNone = "PowerStateNone";
@@ -153,48 +172,14 @@ namespace Content.Client.Stylesheets
 
         //Background
         public const string StyleClassBackgroundBaseDark = "PanelBackgroundBaseDark";
+        public const string StyleClassBackgroundBaseLight = "PanelBackgroundBaseLight"; // Goob Station
 
         //Buttons
         public const string StyleClassCrossButtonRed = "CrossButtonRed";
         public const string StyleClassButtonColorRed = "ButtonColorRed";
         public const string StyleClassButtonColorGreen = "ButtonColorGreen";
 
-        public static readonly Color ChatBackgroundColor = Color.FromHex("#25252ADD");
-
-        // DeltaV - AAC button variables
-        public static readonly string CommandButtonClass = "CommandButton";
-        public static readonly string EngineeringButtonClass = "EngineeringButton";
-        public static readonly string EpistemicsButtonClass = "EpistemicsButton";
-        public static readonly string JusticeButtonClass = "JusticeButton";
-        public static readonly string LogisticsButtonClass = "LogisticsButton";
-        public static readonly string MedicalButtonClass = "MedicalButton";
-        public static readonly string SecurityButtonClass = "SecurityButton";
-        public static readonly string ServiceButtonClass = "ServiceButton";
-        public static readonly string LewdButtonClass = "LewdButton"; // HL
-
-        // DeltaV - AAC button colors
-        public static readonly Color CommandButtonColorDefault = Color.FromHex("#404A58");
-        public static readonly Color CommandColorHovered = Color.FromHex("#4F587B");
-        public static readonly Color EngineeringButtonColorDefault = Color.FromHex("#77684B");
-        public static readonly Color EngineeringColorHovered = Color.FromHex("#776D71");
-        public static readonly Color EpistemicsButtonColorDefault = Color.FromHex("#6F5973");
-        public static readonly Color EpistemicsColorHovered = Color.FromHex("#71638E");
-        public static readonly Color LogisticsButtonColorDefault = Color.FromHex("#61503A");
-        public static readonly Color LogisticsColorHovered = Color.FromHex("#675C64");
-        public static readonly Color JusticeButtonColorDefault = Color.FromHex("#4F3D4C");
-        public static readonly Color JusticeColorHovered = Color.FromHex("#5C4B5A");
-        public static readonly Color MedicalButtonColorDefault = Color.FromHex("#49687D");
-        public static readonly Color MedicalColorHovered = Color.FromHex("#556E95");
-        public static readonly Color SecurityButtonColorDefault = Color.FromHex("#724449");
-        public static readonly Color SecurityColorHovered = Color.FromHex("#745370");
-        public static readonly Color ServiceButtonColorDefault = Color.FromHex("#607952");
-        public static readonly Color ServiceColorHovered = Color.FromHex("#667A76");
-        // End DeltaV
-
-        // HL
-        public static readonly Color LewdButtonColorDefault = Color.FromHex("#9345a8");
-        public static readonly Color LewdButtonColorHovered = Color.FromHex("#9654a8");
-        // End HL
+        public static readonly Color ChatBackgroundColor = Color.FromHex("#2B2B2BDD");
 
         //Bwoink
         public const string StyleClassPinButtonPinned = "pinButtonPinned";
@@ -221,11 +206,7 @@ namespace Content.Client.Stylesheets
             var notoSansBold16 = resCache.NotoStack(variation: "Bold", size: 16);
             var notoSansBold18 = resCache.NotoStack(variation: "Bold", size: 18);
             var notoSansBold20 = resCache.NotoStack(variation: "Bold", size: 20);
-            var notoSansMono = resCache.GetFont("/EngineFonts/NotoSans/NotoSansMono-Regular.ttf", size: 12);
-            var robotoMonoBold11 = resCache.GetFont("/Fonts/RobotoMono/RobotoMono-Bold.ttf", size: 11);
-            var robotoMonoBold12 = resCache.GetFont("/Fonts/RobotoMono/RobotoMono-Bold.ttf", size: 12);
-            var robotoMonoBold14 = resCache.GetFont("/Fonts/RobotoMono/RobotoMono-Bold.ttf", size: 14);
-
+            var notoSansMono = resCache.NotoStack2ElectricBoogaloo("/EngineFonts/NotoSans/NotoSansMono-Regular.ttf", size: 12); // Goobstation - ZH text support
             var windowHeaderTex = resCache.GetTexture("/Textures/Interface/Nano/window_header.png");
             var windowHeader = new StyleBoxTexture
             {
@@ -391,16 +372,6 @@ namespace Content.Client.Stylesheets
             chatFilterButton.SetPatchMargin(StyleBox.Margin.All, 5);
             chatFilterButton.SetPadding(StyleBox.Margin.All, 2);
 
-            var outputPanelScrollDownButtonTex = resCache.GetTexture("/Textures/Interface/Nano/rounded_button_half_bordered.svg.96dpi.png");
-            var outputPanelScrollDownButton = new StyleBoxTexture
-            {
-                Texture = outputPanelScrollDownButtonTex,
-            };
-            outputPanelScrollDownButton.SetPatchMargin(StyleBox.Margin.All, 5);
-            outputPanelScrollDownButton.SetPadding(StyleBox.Margin.All, 2);
-            outputPanelScrollDownButton.SetPadding(StyleBox.Margin.Top, 0);
-            outputPanelScrollDownButton.SetPadding(StyleBox.Margin.Bottom, 0);
-
             var smallButtonTex = resCache.GetTexture("/Textures/Interface/Nano/button_small.svg.96dpi.png");
             var smallButtonBase = new StyleBoxTexture
             {
@@ -460,60 +431,9 @@ namespace Content.Client.Stylesheets
             };
             progressBarForeground.SetContentMarginOverride(StyleBox.Margin.Vertical, 14.5f);
 
-            // Monotone (unfilled)
-            var monotoneButton = new StyleBoxTexture
-            {
-                Texture = resCache.GetTexture("/Textures/Interface/Nano/Monotone/monotone_button.svg.96dpi.png"),
-            };
-            monotoneButton.SetPatchMargin(StyleBox.Margin.All, 11);
-            monotoneButton.SetPadding(StyleBox.Margin.All, 1);
-            monotoneButton.SetContentMarginOverride(StyleBox.Margin.Vertical, 2);
-            monotoneButton.SetContentMarginOverride(StyleBox.Margin.Horizontal, 14);
-
-            var monotoneButtonOpenLeft = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = resCache.GetTexture("/Textures/Interface/Nano/Monotone/monotone_button_open_left.svg.96dpi.png"),
-            };
-
-            var monotoneButtonOpenRight = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = resCache.GetTexture("/Textures/Interface/Nano/Monotone/monotone_button_open_right.svg.96dpi.png"),
-            };
-
-            var monotoneButtonOpenBoth = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = resCache.GetTexture("/Textures/Interface/Nano/Monotone/monotone_button_open_both.svg.96dpi.png"),
-            };
-
-            // Monotone (filled)
-            var monotoneFilledButton = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = buttonTex,
-            };
-
-            var monotoneFilledButtonOpenLeft = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = new AtlasTexture(buttonTex, UIBox2.FromDimensions(new Vector2(10, 0), new Vector2(14, 24))),
-            };
-            monotoneFilledButtonOpenLeft.SetPatchMargin(StyleBox.Margin.Left, 0);
-
-            var monotoneFilledButtonOpenRight = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = new AtlasTexture(buttonTex, UIBox2.FromDimensions(new Vector2(0, 0), new Vector2(14, 24))),
-            };
-            monotoneFilledButtonOpenRight.SetPatchMargin(StyleBox.Margin.Right, 0);
-
-            var monotoneFilledButtonOpenBoth = new StyleBoxTexture(monotoneButton)
-            {
-                Texture = new AtlasTexture(buttonTex, UIBox2.FromDimensions(new Vector2(10, 0), new Vector2(3, 24))),
-            };
-            monotoneFilledButtonOpenBoth.SetPatchMargin(StyleBox.Margin.Horizontal, 0);
-
             // CheckBox
             var checkBoxTextureChecked = resCache.GetTexture("/Textures/Interface/Nano/checkbox_checked.svg.96dpi.png");
             var checkBoxTextureUnchecked = resCache.GetTexture("/Textures/Interface/Nano/checkbox_unchecked.svg.96dpi.png");
-            var monotoneCheckBoxTextureChecked = resCache.GetTexture("/Textures/Interface/Nano/Monotone/monotone_checkbox_checked.svg.96dpi.png");
-            var monotoneCheckBoxTextureUnchecked = resCache.GetTexture("/Textures/Interface/Nano/Monotone/monotone_checkbox_unchecked.svg.96dpi.png");
 
             // Tooltip box
             var tooltipTexture = resCache.GetTexture("/Textures/Interface/Nano/tooltip.png");
@@ -546,7 +466,7 @@ namespace Content.Client.Stylesheets
             var itemListItemBackgroundDisabled = new StyleBoxFlat { BackgroundColor = new Color(10, 10, 12) };
             itemListItemBackgroundDisabled.SetContentMarginOverride(StyleBox.Margin.Vertical, 2);
             itemListItemBackgroundDisabled.SetContentMarginOverride(StyleBox.Margin.Horizontal, 4);
-            var itemListItemBackground = new StyleBoxFlat { BackgroundColor = new Color(55, 55, 68) };
+            var itemListItemBackground = new StyleBoxFlat { BackgroundColor = new Color(54, 54, 54) };
             itemListItemBackground.SetContentMarginOverride(StyleBox.Margin.Vertical, 2);
             itemListItemBackground.SetContentMarginOverride(StyleBox.Margin.Horizontal, 4);
             var itemListItemBackgroundTransparent = new StyleBoxFlat { BackgroundColor = Color.Transparent };
@@ -602,7 +522,7 @@ namespace Content.Client.Stylesheets
             var sliderForeBox = new StyleBoxTexture
             {
                 Texture = sliderOutlineTex,
-                Modulate = Color.FromHex("#494949")
+                Modulate = Color.FromHex("#363636")
             };
 
             var sliderGrabBox = new StyleBoxTexture
@@ -620,12 +540,12 @@ namespace Content.Client.Stylesheets
             var sliderFillBlue = new StyleBoxTexture(sliderFillBox) { Modulate = Color.Blue };
             var sliderFillWhite = new StyleBoxTexture(sliderFillBox) { Modulate = Color.White };
 
-            var boxFont13 = resCache.GetFont("/Fonts/Boxfont-round/Boxfont Round.ttf", 13);
+            var boxFont13 = resCache.NotoStack2ElectricBoogaloo("/Fonts/Boxfont-round/Boxfont Round.ttf", 13); // Goobstation - ZH text support
 
             var insetBack = new StyleBoxTexture
             {
                 Texture = buttonTex,
-                Modulate = Color.FromHex("#202023"),
+                Modulate = Color.FromHex("#292929"),
             };
             insetBack.SetPatchMargin(StyleBox.Margin.All, 10);
 
@@ -939,19 +859,19 @@ namespace Content.Client.Stylesheets
 
                 Element<ContainerButton>().Class(ListContainer.StyleClassListContainerButton)
                     .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, new Color(55, 59, 55)),
+                    .Prop(Control.StylePropertyModulateSelf, new Color(65, 65, 65)),
 
                 Element<ContainerButton>().Class(ListContainer.StyleClassListContainerButton)
                     .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, new Color(75, 79, 75)),
+                    .Prop(Control.StylePropertyModulateSelf, new Color(78, 78, 78)),
 
                 Element<ContainerButton>().Class(ListContainer.StyleClassListContainerButton)
                     .Pseudo(ContainerButton.StylePseudoClassPressed)
-                    .Prop(Control.StylePropertyModulateSelf, new Color(75, 79, 75)),
+                    .Prop(Control.StylePropertyModulateSelf, new Color(78, 78, 78)),
 
                 Element<ContainerButton>().Class(ListContainer.StyleClassListContainerButton)
                     .Pseudo(ContainerButton.StylePseudoClassDisabled)
-                    .Prop(Control.StylePropertyModulateSelf, new Color(10, 12, 10)),
+                    .Prop(Control.StylePropertyModulateSelf, new Color(10, 10, 12)),
 
                 // Main menu: Make those buttons bigger.
                 new StyleRule(new SelectorChild(
@@ -1046,17 +966,6 @@ namespace Content.Client.Stylesheets
                 new StyleRule(new SelectorElement(typeof(BoxContainer), new [] { CheckBox.StyleClassCheckBox }, null, null), new[]
                 {
                     new StyleProperty(BoxContainer.StylePropertySeparation, 10),
-                }),
-
-                // MonotoneCheckBox
-                new StyleRule(new SelectorElement(typeof(TextureRect), new [] { MonotoneCheckBox.StyleClassMonotoneCheckBox }, null, null), new[]
-                {
-                    new StyleProperty(TextureRect.StylePropertyTexture, monotoneCheckBoxTextureUnchecked),
-                }),
-
-                new StyleRule(new SelectorElement(typeof(TextureRect), new [] { MonotoneCheckBox.StyleClassMonotoneCheckBox, CheckBox.StyleClassCheckBoxChecked }, null, null), new[]
-                {
-                    new StyleProperty(TextureRect.StylePropertyTexture, monotoneCheckBoxTextureChecked),
                 }),
 
                 // Tooltip
@@ -1163,7 +1072,7 @@ namespace Content.Client.Stylesheets
                 new StyleRule(new SelectorElement(typeof(ItemList), null, null, null), new[]
                 {
                     new StyleProperty(ItemList.StylePropertyBackground,
-                        new StyleBoxFlat {BackgroundColor = new Color(32, 36, 32)}),
+                        new StyleBoxFlat {BackgroundColor = new Color(37, 37, 37)}),
                     new StyleProperty(ItemList.StylePropertyItemBackground,
                         itemListItemBackground),
                     new StyleProperty(ItemList.StylePropertyDisabledItemBackground,
@@ -1200,10 +1109,10 @@ namespace Content.Client.Stylesheets
                 new StyleRule(new SelectorElement(typeof(Tree), null, null, null), new[]
                 {
                     new StyleProperty(Tree.StylePropertyBackground,
-                        new StyleBoxFlat {BackgroundColor = new Color(32, 36, 32)}),
+                        new StyleBoxFlat {BackgroundColor = new Color(37, 37, 37)}),
                     new StyleProperty(Tree.StylePropertyItemBoxSelected, new StyleBoxFlat
                     {
-                        BackgroundColor = new Color(55, 57, 55),
+                        BackgroundColor = new Color(70, 70, 70),
                         ContentMarginLeftOverride = 4
                     })
                 }),
@@ -1256,22 +1165,6 @@ namespace Content.Client.Stylesheets
                         new StyleProperty(Label.StylePropertyFont, notoSans12),
                         new StyleProperty(Label.StylePropertyFontColor, Color.DarkGray),
                     }),
-
-                // Console text
-                new StyleRule(new SelectorElement(typeof(Label), new[] {StyleClassConsoleText}, null, null), new[]
-                {
-                    new StyleProperty(Label.StylePropertyFont, robotoMonoBold11)
-                }),
-
-                new StyleRule(new SelectorElement(typeof(Label), new[] {StyleClassConsoleSubHeading}, null, null), new[]
-                {
-                    new StyleProperty(Label.StylePropertyFont, robotoMonoBold12)
-                }),
-
-                new StyleRule(new SelectorElement(typeof(Label), new[] {StyleClassConsoleHeading}, null, null), new[]
-                {
-                    new StyleProperty(Label.StylePropertyFont, robotoMonoBold14)
-                }),
 
                 // Big Button
                 new StyleRule(new SelectorChild(
@@ -1372,64 +1265,6 @@ namespace Content.Client.Stylesheets
                         new StyleProperty(Label.StylePropertyFont, notoSansDisplayBold14),
                     }),
 
-                // MonotoneButton (unfilled)
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), null, null, null),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneButton),
-                    }),
-
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), new[] { ButtonOpenLeft }, null, null),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneButtonOpenLeft),
-                    }),
-
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), new[] { ButtonOpenRight }, null, null),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneButtonOpenRight),
-                    }),
-
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), new[] { ButtonOpenBoth }, null, null),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneButtonOpenBoth),
-                    }),
-
-                // MonotoneButton (filled)
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), null, null, new[] { Button.StylePseudoClassPressed }),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneFilledButton),
-                    }),
-
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), new[] { ButtonOpenLeft }, null, new[] { Button.StylePseudoClassPressed }),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneFilledButtonOpenLeft),
-                    }),
-
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), new[] { ButtonOpenRight }, null, new[] { Button.StylePseudoClassPressed }),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneFilledButtonOpenRight),
-                    }),
-
-                new StyleRule(
-                    new SelectorElement(typeof(MonotoneButton), new[] { ButtonOpenBoth }, null, new[] { Button.StylePseudoClassPressed }),
-                    new[]
-                    {
-                        new StyleProperty(Button.StylePropertyStyleBox, monotoneFilledButtonOpenBoth),
-                    }),
-
                 // NanoHeading
 
                 new StyleRule(
@@ -1505,7 +1340,6 @@ namespace Content.Client.Stylesheets
                 {
                     new StyleProperty(Button.StylePropertyStyleBox, chatChannelButton),
                 }),
-
                 // chat filter button
                 new StyleRule(new SelectorElement(typeof(ContainerButton), new[] {StyleClassChatFilterOptionButton}, null, null), new[]
                 {
@@ -1527,11 +1361,6 @@ namespace Content.Client.Stylesheets
                 {
                     new StyleProperty(Control.StylePropertyModulateSelf, ButtonColorDisabled),
                 }),
-
-                // output panel scroll button
-                Element<Button>()
-                    .Class(OutputPanel.StyleClassOutputPanelScrollDownButton)
-                    .Prop(Button.StylePropertyStyleBox, outputPanelScrollDownButton),
 
                 // OptionButton
                 new StyleRule(new SelectorElement(typeof(OptionButton), null, null, null), new[]
@@ -1567,7 +1396,7 @@ namespace Content.Client.Stylesheets
                 }),
 
                 Element<PanelContainer>().Class(OptionButton.StyleClassOptionsBackground)
-                    .Prop(PanelContainer.StylePropertyPanel, new StyleBoxFlat(Color.FromHex("#25252A"))),
+                    .Prop(PanelContainer.StylePropertyPanel, new StyleBoxFlat(Color.FromHex("#292929"))),
 
                 new StyleRule(new SelectorElement(typeof(PanelContainer), new []{ ClassHighDivider}, null, null), new []
                 {
@@ -1589,15 +1418,15 @@ namespace Content.Client.Stylesheets
                 // Different Background shapes ---
                 Element<PanelContainer>().Class(ClassAngleRect)
                     .Prop(PanelContainer.StylePropertyPanel, BaseAngleRect)
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#252725")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#292929")),
 
                 Element<PanelContainer>().Class("BackgroundOpenRight")
                     .Prop(PanelContainer.StylePropertyPanel, BaseButtonOpenRight)
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#25252A")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#292929")),
 
                 Element<PanelContainer>().Class("BackgroundOpenLeft")
                     .Prop(PanelContainer.StylePropertyPanel, BaseButtonOpenLeft)
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#25252A")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#292929")),
                 // ---
 
                 // Dividers
@@ -1616,7 +1445,7 @@ namespace Content.Client.Stylesheets
 
                 Element<PanelContainer>().Class("WindowHeadingBackground")
                     .Prop("panel", new StyleBoxTexture(BaseButtonOpenLeft) { Padding = default })
-                    .Prop(Control.StylePropertyModulateSelf, PanelColorDark),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#191919")),
 
                 Element<PanelContainer>().Class("WindowHeadingBackgroundLight")
                     .Prop("panel", new StyleBoxTexture(BaseButtonOpenLeft) { Padding = default }),
@@ -1624,7 +1453,7 @@ namespace Content.Client.Stylesheets
                 // Window Header Help Button
                 Element<TextureButton>().Class(FancyWindow.StyleClassWindowHelpButton)
                     .Prop(TextureButton.StylePropertyTexture, resCache.GetTexture("/Textures/Interface/Nano/help.png"))
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#4B596A")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#8C8C8C")),
 
                 Element<TextureButton>().Class(FancyWindow.StyleClassWindowHelpButton).Pseudo(ContainerButton.StylePseudoClassHover)
                     .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#7F3636")),
@@ -1635,20 +1464,20 @@ namespace Content.Client.Stylesheets
                 //The lengths you have to go through to change a background color smh
                 Element<PanelContainer>().Class("PanelBackgroundBaseDark")
                     .Prop("panel", new StyleBoxTexture(BaseButtonOpenBoth) { Padding = default })
-                    .Prop(Control.StylePropertyModulateSelf, PanelColorDark),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#212121")),
+
+                Element<PanelContainer>().Class("PanelBackgroundBaseLight") // Goob Station
+                    .Prop("panel", new StyleBoxTexture(BaseButtonOpenBoth) { Padding = default })
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#2d2d39")),
 
                 Element<PanelContainer>().Class("PanelBackgroundLight")
                     .Prop("panel", new StyleBoxTexture(BaseButtonOpenBoth) { Padding = default })
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#2F2F3B")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#454545")),
 
                 // Window Footer
                 Element<TextureRect>().Class("NTLogoDark")
                     .Prop(TextureRect.StylePropertyTexture, resCache.GetTexture("/Textures/Interface/Nano/ntlogo.svg.png"))
                     .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#757575")),
-
-                Element<TextureRect>().Class("PirateLogoDark") // Frontier
-                    .Prop(TextureRect.StylePropertyTexture, resCache.GetTexture("/Textures/_NF/Interface/Pirate/piratelogo.png")) // Frontier
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#757575")), // Frontier
 
                 Element<Label>().Class("WindowFooterText")
                     .Prop(Label.StylePropertyFont, notoSans8)
@@ -1664,10 +1493,6 @@ namespace Content.Client.Stylesheets
 
                 Element<TextureButton>().Class("CrossButtonRed").Pseudo(TextureButton.StylePseudoClassHover)
                     .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#753131")),
-
-                //
-                Element<TextureButton>().Class("Refresh")
-                    .Prop(TextureButton.StylePropertyTexture, resCache.GetTexture("/Textures/Interface/Nano/circular_arrow.svg.96dpi.png")),
                 // ---
 
                 // Profile Editor
@@ -1774,7 +1599,7 @@ namespace Content.Client.Stylesheets
                 //PDA - Backgrounds
                 Element<PanelContainer>().Class("PdaContentBackground")
                     .Prop(PanelContainer.StylePropertyPanel, BaseButtonOpenBoth)
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#252725")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#262626")),
 
                 Element<PanelContainer>().Class("PdaBackground")
                     .Prop(PanelContainer.StylePropertyPanel, BaseButtonOpenBoth)
@@ -1782,13 +1607,13 @@ namespace Content.Client.Stylesheets
 
                 Element<PanelContainer>().Class("PdaBackgroundRect")
                     .Prop(PanelContainer.StylePropertyPanel, BaseAngleRect)
-                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#717059")),
+                    .Prop(Control.StylePropertyModulateSelf, Color.FromHex("#6e6e6e")),
 
                 Element<PanelContainer>().Class("PdaBorderRect")
                     .Prop(PanelContainer.StylePropertyPanel, AngleBorderRect),
 
                 Element<PanelContainer>().Class("BackgroundDark")
-                    .Prop(PanelContainer.StylePropertyPanel, new StyleBoxFlat(Color.FromHex("#252725"))),
+                    .Prop(PanelContainer.StylePropertyPanel, new StyleBoxFlat(Color.FromHex("#242424"))),
 
                 //PDA - Buttons
                 Element<PdaSettingsButton>().Pseudo(ContainerButton.StylePseudoClassNormal)
@@ -1908,99 +1733,6 @@ namespace Content.Client.Stylesheets
                     .Prop(TextureButton.StylePropertyTexture, resCache.GetTexture("/Textures/_Shitmed/Interface/Targeting/Doll/mouth_hover.png")),
                 // Shitmed Change End
 
-                // DeltaV - AAC button styles
-                Element<ContainerButton>()
-                    .Class(CommandButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, CommandButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(CommandButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, CommandColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(EngineeringButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, EngineeringButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(EngineeringButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, EngineeringColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(EpistemicsButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, EpistemicsButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(EpistemicsButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, EpistemicsColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(LogisticsButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, LogisticsButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(LogisticsButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, LogisticsColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(MedicalButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, MedicalButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(MedicalButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, MedicalColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(SecurityButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, SecurityButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(SecurityButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, SecurityColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(ServiceButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, ServiceButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(ServiceButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, ServiceColorHovered),
-
-                Element<ContainerButton>()
-                    .Class(JusticeButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, JusticeButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(JusticeButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, JusticeColorHovered),
-                // End DeltaV
-                // Start HL
-                Element<ContainerButton>()
-                    .Class(LewdButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassNormal)
-                    .Prop(Control.StylePropertyModulateSelf, LewdButtonColorDefault),
-
-                Element<ContainerButton>()
-                    .Class(LewdButtonClass)
-                    .Pseudo(ContainerButton.StylePseudoClassHover)
-                    .Prop(Control.StylePropertyModulateSelf, LewdButtonColorHovered),
-                // End HL
-
                 // Silicon law edit ui
                 Element<Label>().Class(SiliconLawContainer.StyleClassSiliconLawPositionLabel)
                     .Prop(Label.StylePropertyFontColor, NanoGold),
@@ -2033,10 +1765,6 @@ namespace Content.Client.Stylesheets
                     {
                         Modulate = ButtonColorGoodDefault
                     }),
-
-                Element<PanelContainer>()
-                    .Class(StyleClassInset)
-                    .Prop(PanelContainer.StylePropertyPanel, insetBack),
             }).ToList());
         }
     }

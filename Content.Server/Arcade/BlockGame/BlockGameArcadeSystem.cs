@@ -1,18 +1,18 @@
+using Content.Server.Power.Components;
 using Content.Shared.UserInterface;
-using Content.Server.Advertise.EntitySystems;
-using Content.Shared.Advertise.Components;
+using Content.Server.Advertise;
+using Content.Server.Advertise.Components;
 using Content.Shared.Arcade;
 using Content.Shared.Power;
 using Robust.Server.GameObjects;
-using Robust.Shared.Random; // Coyote
+using Robust.Shared.Player;
 
 namespace Content.Server.Arcade.BlockGame;
 
-public sealed class BlockGameArcadeSystem : EntitySystem
+public sealed partial class BlockGameArcadeSystem : EntitySystem
 {
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly SpeakOnUIClosedSystem _speakOnUIClosed = default!;
-    [Dependency] private readonly IRobustRandom _random = default!; // Coyote
+    [Dependency] private UserInterfaceSystem _uiSystem = default!;
+    [Dependency] private SpeakOnUIClosedSystem _speakOnUIClosed = default!;
 
     public override void Initialize()
     {
@@ -28,19 +28,6 @@ public sealed class BlockGameArcadeSystem : EntitySystem
             subs.Event<BlockGameMessages.BlockGamePlayerActionMessage>(OnPlayerAction);
         });
     }
-
-    // Coyote start
-    public void OnGameOver(EntityUid uid, BlockGameArcadeComponent? arcade = null, TransformComponent? xform = null, int points = 0)
-    {
-        if (!Resolve(uid, ref arcade, ref xform))
-            return;
-
-        for (int rewards = 0; rewards < points / 1000; rewards++)
-        {
-            EntityManager.SpawnEntity(_random.Pick(arcade.PossibleRewards), xform.Coordinates);
-        }
-    }
-    // Coyote end
 
     public override void Update(float frameTime)
     {

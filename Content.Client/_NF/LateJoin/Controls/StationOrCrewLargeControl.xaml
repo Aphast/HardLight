@@ -9,9 +9,17 @@
                            VerticalExpand="True">
     <PanelContainer.PanelOverride>
         <!-- Using PanelBackgroundLight adds padding left and right, so we manually set background color -->
-        <graphics:StyleBoxFlat BackgroundColor="#2F2F3B"/>
+        <graphics:StyleBoxFlat BackgroundColor="#303030"/>
     </PanelContainer.PanelOverride>
-    <BoxContainer Orientation="Vertical" VerticalExpand="True" Margin="8">
+    <PanelContainer VerticalExpand="True" HorizontalExpand="True" Margin="6 6 6 6">
+        <PanelContainer.PanelOverride>
+            <graphics:StyleBoxFlat BorderThickness="3" BorderColor="#35434d" BackgroundColor="#141414"/>
+        </PanelContainer.PanelOverride>
+        <PanelContainer VerticalExpand="True" HorizontalExpand="True" Margin="0 0 0 0">
+            <PanelContainer.PanelOverride>
+                <graphics:StyleBoxFlat BorderThickness="3" BorderColor="#262626" BackgroundColor="#111111"/>
+            </PanelContainer.PanelOverride>
+    <BoxContainer Orientation="Vertical" VerticalExpand="True" Margin="1 1">
 
         <Button Name="StationButton"
                 Access="Public"
@@ -19,7 +27,8 @@
                 MinHeight="100"
                 TextAlign="Center"
                 Margin="4"
-                StyleIdentifier="mainMenu">
+                StyleIdentifier="mainMenu"
+                StyleClasses="ButtonSquare">
 
             <BoxContainer Orientation="Vertical" VerticalExpand="True" Margin="0 4 0 4">
                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
@@ -37,14 +46,14 @@
                                  MaxSize="30 30"
                                  Stretch="KeepAspectCentered" />
                 </BoxContainer>
-                <customControls:HSeparator SeparatorColor="#A3875A" StyleClasses="LowDivider" Margin="0 0 36 0" />
+                <customControls:HSeparator SeparatorColor="#BABABA" StyleClasses="LowDivider" Margin="0 0 36 0" />
 
                 <RichTextLabel Text="{Loc 'frontier-lobby-station-subtext'}" />
 
                 <Label Name="NoStationsAvailableLabel"
                        Text="{Loc 'frontier-lobby-no-stations-available'}"
                        Margin="0 4 0 4"
-                       FontColorOverride="{xNamespace:Static maths:Color.OrangeRed}" />
+                       FontColorOverride="{xNamespace:Static maths:Color.Red}" />
             </BoxContainer>
         </Button>
 
@@ -54,7 +63,8 @@
                 MinHeight="100"
                 TextAlign="Center"
                 Margin="4 0 4 4"
-                StyleIdentifier="mainMenu">
+                StyleIdentifier="mainMenu"
+                StyleClasses="ButtonSquare">
 
             <BoxContainer Orientation="Vertical" VerticalExpand="True" Margin="0 4 0 4">
                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
@@ -72,16 +82,18 @@
                                  MaxSize="30 30"
                                  Stretch="KeepAspectCentered" />
                 </BoxContainer>
-                <customControls:HSeparator SeparatorColor="#A3875A" StyleClasses="LowDivider" Margin="0 0 36 0" />
+                <customControls:HSeparator SeparatorColor="#BABABA" StyleClasses="LowDivider" Margin="0 0 36 0" />
 
                 <RichTextLabel Text="{Loc 'frontier-lobby-crew-subtext'}" />
 
                 <Label Name="NoCrewsAvailableLabel"
                        Text="{Loc 'frontier-lobby-no-crews-available'}"
                        Margin="0 4 0 4"
-                       FontColorOverride="{xNamespace:Static maths:Color.OrangeRed}" />
+                       FontColorOverride="{xNamespace:Static maths:Color.Red}" />
             </BoxContainer>
         </Button>
     </BoxContainer>
+        </PanelContainer>
+    </PanelContainer>
 
 </controls:StationOrCrewLargeControl>

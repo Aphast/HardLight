@@ -9,7 +9,6 @@ using Content.Server.Database;
 using Content.Server.GameTicking;
 using Content.Server.Preferences.Managers;
 using Content.Shared.CCVar;
-using Content.Shared._FS.CCVar; // Floofstation
 using Content.Shared._NF.CCVar; // Frontier
 using Content.Shared.GameTicking;
 using Content.Shared.Players.PlayTimeTracking;
@@ -21,7 +20,6 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Player;
 using Robust.Shared.Timing;
 using Content.Server._NF.Auth; // Frontier
-using Content.Server._FS.DiscordAuth; // Floofstation
 
 /*
  * TODO: Remove baby jail code once a more mature gateway process is established. This code is only being issued as a stopgap to help with potential tiding in the immediate future.
@@ -54,20 +52,19 @@ namespace Content.Server.Connection
     /// </summary>
     public sealed partial class ConnectionManager : IConnectionManager
     {
-        [Dependency] private readonly IPlayerManager _plyMgr = default!;
-        [Dependency] private readonly IServerNetManager _netMgr = default!;
-        [Dependency] private readonly IServerDbManager _db = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly ILocalizationManager _loc = default!;
-        [Dependency] private readonly ServerDbEntryManager _serverDbEntry = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly ILogManager _logManager = default!;
-        [Dependency] private readonly IChatManager _chatManager = default!;
-        [Dependency] private readonly IHttpClientHolder _http = default!;
-        [Dependency] private readonly IAdminManager _adminManager = default!;
-        [Dependency] private readonly MiniAuthManager _authManager = default!; //Frontier
-        [Dependency] private readonly DiscordAuthManager _discordAuthManager = default!; // Floofstation
+        [Dependency] private IPlayerManager _plyMgr = default!;
+        [Dependency] private IServerNetManager _netMgr = default!;
+        [Dependency] private IServerDbManager _db = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private ILocalizationManager _loc = default!;
+        [Dependency] private ServerDbEntryManager _serverDbEntry = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private ILogManager _logManager = default!;
+        [Dependency] private IChatManager _chatManager = default!;
+        [Dependency] private IHttpClientHolder _http = default!;
+        [Dependency] private IAdminManager _adminManager = default!;
+        [Dependency] private MiniAuthManager _authManager = default!; //Frontier
 
         private ISawmill _sawmill = default!;
         private readonly Dictionary<NetUserId, TimeSpan> _temporaryBypasses = [];
@@ -210,7 +207,7 @@ namespace Content.Server.Connection
          * TODO: Jesus H Christ what is this utter mess of a function
          * TODO: Break this apart into is constituent steps.
          */
-        private async Task<(ConnectionDenyReason, string, List<BanDef>? bansHit)?> ShouldDeny(
+        private async Task<(ConnectionDenyReason, string, List<ServerBanDef>? bansHit)?> ShouldDeny(
             NetConnectingArgs e)
         {
             // Check if banned.
@@ -231,7 +228,7 @@ namespace Content.Server.Connection
                 return (ConnectionDenyReason.NoHwid, Loc.GetString("hwid-required"), null);
             }
 
-            var bans = await _db.GetBansAsync(addr, userId, hwId, modernHwid, includeUnbanned: false);
+            var bans = await _db.GetServerBansAsync(addr, userId, hwId, modernHwid, includeUnbanned: false);
             if (bans.Count > 0)
             {
                 var firstBan = bans[0];
@@ -323,20 +320,6 @@ namespace Content.Server.Connection
             {
                 return (ConnectionDenyReason.Full, Loc.GetString("soft-player-cap-full"), null);
             }
-
-            if (_cfg.GetCVar(FSCCVars.DiscordAuthEnabled) && _cfg.GetCVar(CCVars.WhitelistEnabled))
-             {
-                 if (await _discordAuthManager.IsVerified(userId) == false)
-                     return null;
-
-                 if (adminData is not null)
-                     return null;
-
-                 if (await _discordAuthManager.IsWhitelisted(userId) || await _db.GetWhitelistStatusAsync(userId))
-                     return null;
-
-                 return (ConnectionDenyReason.Whitelist, Loc.GetString("not-whitelisted"), null);
-             }
 
             // Checks for whitelist IF it's enabled AND the user isn't an admin. Admins are always allowed.
             if (_cfg.GetCVar(CCVars.WhitelistEnabled) && !wasInGame && adminData is null) // Frontier: allow users who joined before panic bunker was enforced to reconnect

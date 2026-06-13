@@ -15,7 +15,7 @@ namespace Content.Shared.Chemistry.Components
     /// </summary>
     [Serializable, NetSerializable]
     [DataDefinition]
-    public sealed partial class Solution : IEnumerable<ReagentQuantity>, ISerializationHooks, IRobustCloneable<Solution>
+    public sealed partial class Solution : IEnumerable<ReagentQuantity>, ISerializationHooks
     {
         // This is a list because it is actually faster to add and remove reagents from
         // a list than a dictionary, though contains-reagent checks are slightly slower,
@@ -174,7 +174,6 @@ namespace Content.Shared.Chemistry.Components
             Volume = solution.Volume;
             MaxVolume = solution.MaxVolume;
             Temperature = solution.Temperature;
-            CanReact = solution.CanReact;
             _heatCapacity = solution._heatCapacity;
             _heatCapacityDirty = solution._heatCapacityDirty;
             _heatCapacityUpdateCounter = solution._heatCapacityUpdateCounter;
@@ -1010,6 +1009,33 @@ namespace Content.Shared.Chemistry.Components
                 mixColor = Color.InterpolateBetween(mixColor, proto.SubstanceColor, interpolateValue);
             }
             return mixColor;
+        }
+
+        public int GetSolutionFlammability(IPrototypeManager? protoMan)
+        {
+            IoCManager.Resolve(ref protoMan);
+            float solutionFlammability = 0;
+            foreach (var (reagent, quantity) in Contents)
+            {
+                solutionFlammability += protoMan.Index<ReagentPrototype>(reagent.Prototype).Flammability * (float)quantity;
+            }
+            return (int)MathF.Floor(solutionFlammability);
+        }
+
+        public void BurnFlammableReagents(float fraction, IPrototypeManager? protoMan)
+        {
+            IoCManager.Resolve(ref protoMan);
+            var newSoln = new Solution(this);
+            foreach (var (reagent, quantity) in Contents)
+            {
+                var quantityToBurn = Math.Ceiling(((float)quantity *
+                                                   (fraction * protoMan.Index<ReagentPrototype>(reagent.Prototype)
+                                                       .Flammability)) / 0.5) * 0.5; // Ceiling to nearest 0.5u
+                newSoln.RemoveReagent(reagent, quantityToBurn);
+            }
+            Contents = newSoln.Contents;
+            DebugTools.Assert(Volume >= newSoln.Volume);
+            Volume = newSoln.Volume;
         }
 
         #region Enumeration

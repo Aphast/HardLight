@@ -16,29 +16,29 @@ using Robust.Shared.Containers;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
+using Content.Server.Materials.Components; // Frontier
+using Content.Server._Mono.VendingMachine; // Mono
 using System.Linq;
 using Content.Shared.Research.Prototypes;
-using Content.Server._NF.Cargo.Components; // Frontier
-using Content.Server.Materials.Components; // Frontier
 
 namespace Content.Server.Cargo.Systems;
 
 /// <summary>
 /// This handles calculating the price of items, and implements two basic methods of pricing materials.
 /// </summary>
-public sealed class PricingSystem : EntitySystem
+public sealed partial class PricingSystem : EntitySystem
 {
-    [Dependency] private readonly IComponentFactory _factory = default!;
-    [Dependency] private readonly IConsoleHost _consoleHost = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly BodySystem _bodySystem = default!;
-    [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private IConsoleHost _consoleHost = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private BodySystem _bodySystem = default!;
+    [Dependency] private MobStateSystem _mobStateSystem = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private VendingMachinePurchaseSystem _vendingPurchase = default!; // Mono
 
     /// <inheritdoc/>
     public override void Initialize()
     {
-        SubscribeLocalEvent<MobPriceComponent, PriceCalculationEvent>(CalculateMobPrice); // Frontier
+        SubscribeLocalEvent<MobPriceComponent, PriceCalculationEvent>(CalculateMobPrice);
 
         _consoleHost.RegisterCommand("appraisegrid",
             "Calculates the total value of the given grids.",
@@ -104,7 +104,7 @@ public sealed class PricingSystem : EntitySystem
         var totalPartsPresent = partList.Sum(_ => 1);
         var totalParts = partList.Count;
 
-        var partRatio = totalPartsPresent / (double)totalParts;
+        var partRatio = totalPartsPresent / (double) totalParts;
         var partPenalty = component.Price * (1 - partRatio) * component.MissingBodyPartPenalty;
 
         args.Price += (component.Price - partPenalty) * (_mobStateSystem.IsAlive(uid, state) ? 1.0 : component.DeathPenalty) * (HasComp<LabGrownComponent>(uid) ? 1.0 : component.LabGrownPenalty); // Frontier - LabGrown
@@ -126,7 +126,7 @@ public sealed class PricingSystem : EntitySystem
                     continue;
 
                 // TODO check ReagentData for price information?
-                price += (float)quantity * reagentProto.PricePerUnit;
+                price += (float) quantity * reagentProto.PricePerUnit;
             }
         }
 
@@ -145,7 +145,7 @@ public sealed class PricingSystem : EntitySystem
                     continue;
 
                 // TODO check ReagentData for price information?
-                price += (float)quantity * reagentProto.PricePerUnit;
+                price += (float) quantity * reagentProto.PricePerUnit;
             }
         }
 
@@ -246,67 +246,19 @@ public sealed class PricingSystem : EntitySystem
     /// This fires off an event to calculate the price.
     /// Calculating the price of an entity that somehow contains itself will likely hang.
     /// </remarks>
-    public double GetPrice(
-        EntityUid uid,
-        bool includeContents = true,
-        Func<EntityUid, bool>? predicate = null,
-        bool allowSideEffects = true) // Frontier - Add optional predicate
+    public double GetPrice(EntityUid uid, bool includeContents = true)
     {
-        var price = 0.0;
-        AccumulatePrice(uid, ref price, includeContents, predicate, allowSideEffects);
-        return price;
-    }
-
-    /// <summary>
-    /// Checks whether a grid's appraisal exceeds a threshold while avoiding cleanup-time pricing side effects.
-    /// </summary>
-    public bool AppraiseGridExceeds(EntityUid grid, double maxPrice, Func<EntityUid, bool>? predicate = null)
-    {
-        if (maxPrice < 0)
-            return true;
-
-        var xform = Transform(grid);
-        var price = 0.0;
-        var enumerator = xform.ChildEnumerator;
-        while (enumerator.MoveNext(out var child))
-        {
-            if (predicate is not null && !predicate(child))
-                continue;
-
-            price += GetPrice(child, true, predicate, allowSideEffects: false);
-            if (price > maxPrice)
-                return true;
-        }
-
-        return false;
-    }
-
-    private void AccumulatePrice(
-        EntityUid uid,
-        ref double price,
-        bool includeContents = true,
-        Func<EntityUid, bool>? predicate = null,
-        bool allowSideEffects = true)
-    {
-        if (predicate is not null && !predicate(uid))
-            return;
-
-        var ev = new PriceCalculationEvent
-        {
-            Price = 0, // Structs doesnt initialize doubles when called by constructor.
-            AllowSideEffects = allowSideEffects,
-        };
+        var ev = new PriceCalculationEvent();
+        ev.Price = 0; // Structs doesnt initialize doubles when called by constructor.
         RaiseLocalEvent(uid, ref ev);
 
-        price += ev.Price;
-
         if (ev.Handled)
-            return;
+            return ev.Price;
 
+        var price = ev.Price;
         //TODO: Add an OpaqueToAppraisal component or similar for blocking the recursive descent into containers, or preventing material pricing.
         // DO NOT FORGET TO UPDATE ESTIMATED PRICING
         price += GetMaterialsPrice(uid);
-
         price += GetSolutionsPrice(uid);
 
         // Can't use static price with stackprice
@@ -314,17 +266,97 @@ public sealed class PricingSystem : EntitySystem
         price += GetStackPrice(uid);
 
         if (oldPrice.Equals(price))
+        {
             price += GetStaticPrice(uid);
+        }
 
         if (includeContents && TryComp<ContainerManagerComponent>(uid, out var containers))
         {
             foreach (var container in containers.Containers.Values)
             {
                 foreach (var ent in container.ContainedEntities)
-                    AccumulatePrice(ent, ref price, includeContents, predicate, allowSideEffects);
+                {
+                    price += GetPrice(ent);
+                }
             }
         }
+
+        return price;
     }
+
+    /// <summary>
+    /// Mono: Appraises an entity with vending machine discounts applied if applicable.
+    /// This method should be used by cargo systems when selling items.
+    /// </summary>
+    /// <param name="uid">The entity to appraise</param>
+    /// <param name="currentGrid">The grid where the entity is being sold</param>
+    /// <param name="includeContents">Whether to include contained entities</param>
+    /// <returns>The price with vending machine discount applied if applicable</returns>
+    public double GetPriceWithVendingDiscount(EntityUid uid, EntityUid currentGrid, bool includeContents = true)
+    {
+        var ev = new PriceCalculationEvent();
+        ev.Price = 0;
+        RaiseLocalEvent(uid, ref ev);
+
+        if (ev.Handled)
+            return ev.Price;
+
+        var price = ev.Price;
+        price += GetMaterialsPrice(uid);
+        price += GetSolutionsPrice(uid);
+
+        // Can't use static price with stackprice
+        var oldPrice = price;
+        price += GetStackPrice(uid);
+
+        if (oldPrice.Equals(price))
+        {
+            // Use the vending machine discount version of static price
+            price += GetStaticPriceWithVendingDiscount(uid, currentGrid);
+        }
+
+        if (includeContents && TryComp<ContainerManagerComponent>(uid, out var containers))
+        {
+            foreach (var container in containers.Containers.Values)
+            {
+                foreach (var ent in container.ContainedEntities)
+                {
+                    price += GetPriceWithVendingDiscount(ent, currentGrid);
+                }
+            }
+        }
+
+        return price;
+    }
+
+    // Begin Frontier - GetPrice variant that uses predicate
+    /// <summary>
+    /// Appraises an entity, returning its price. Respects predicate - an entity that is excluded will be removed from the
+    /// </summary>
+    /// <param name="uid">The entity to appraise.</param>
+    /// <param name="includeContents">Whether to examine its contents.</param>
+    /// <param name="predicate">An optional predicate that controls whether or not the entity or its children are counted toward the total.</param>
+    /// <returns>The price of the entity.</returns>
+    public double GetPriceConditional(EntityUid uid, bool includeContents = true, Func<EntityUid, bool>? predicate = null)
+    {
+        if (predicate is not null && !predicate(uid))
+            return 0.0;
+
+        var price = GetPrice(uid, false);
+
+        if (includeContents && TryComp<ContainerManagerComponent>(uid, out var containers))
+        {
+            foreach (var container in containers.Containers.Values)
+            {
+                foreach (var ent in container.ContainedEntities)
+                {
+                    price += GetPriceConditional(ent, true, predicate);
+                }
+            }
+        }
+        return price;
+    }
+    // End Frontier - GetPrice variant that uses predicate
 
     private double GetMaterialsPrice(EntityUid uid)
     {
@@ -347,15 +379,15 @@ public sealed class PricingSystem : EntitySystem
     {
         double price = 0;
 
-        if (prototype.Components.ContainsKey(_factory.GetComponentName(typeof(MaterialComponent))) &&
-            prototype.Components.TryGetValue(_factory.GetComponentName(typeof(PhysicalCompositionComponent)), out var composition))
+        if (prototype.Components.ContainsKey(Factory.GetComponentName<MaterialComponent>()) &&
+            prototype.Components.TryGetValue(Factory.GetComponentName<PhysicalCompositionComponent>(), out var composition))
         {
-            var compositionComp = (PhysicalCompositionComponent)composition.Component;
+            var compositionComp = (PhysicalCompositionComponent) composition.Component;
             var matPrice = GetMaterialPrice(compositionComp);
 
-            if (prototype.Components.TryGetValue(_factory.GetComponentName(typeof(StackComponent)), out var stackProto))
+            if (prototype.Components.TryGetValue(Factory.GetComponentName<StackComponent>(), out var stackProto))
             {
-                matPrice *= ((StackComponent)stackProto.Component).Count;
+                matPrice *= ((StackComponent) stackProto.Component).Count;
             }
 
             price += matPrice;
@@ -380,9 +412,9 @@ public sealed class PricingSystem : EntitySystem
     {
         var price = 0.0;
 
-        if (prototype.Components.TryGetValue(_factory.GetComponentName(typeof(SolutionContainerManagerComponent)), out var solManager))
+        if (prototype.Components.TryGetValue(Factory.GetComponentName<SolutionContainerManagerComponent>(), out var solManager))
         {
-            var solComp = (SolutionContainerManagerComponent)solManager.Component;
+            var solComp = (SolutionContainerManagerComponent) solManager.Component;
             price += GetSolutionPrice(solComp);
         }
 
@@ -407,12 +439,12 @@ public sealed class PricingSystem : EntitySystem
     {
         var price = 0.0;
 
-        if (prototype.Components.TryGetValue(_factory.GetComponentName(typeof(StackPriceComponent)), out var stackpriceProto) &&
-            prototype.Components.TryGetValue(_factory.GetComponentName(typeof(StackComponent)), out var stackProto) &&
-            !prototype.Components.ContainsKey(_factory.GetComponentName(typeof(MaterialComponent))))
+        if (prototype.Components.TryGetValue(Factory.GetComponentName<StackPriceComponent>(), out var stackpriceProto) &&
+            prototype.Components.TryGetValue(Factory.GetComponentName<StackComponent>(), out var stackProto) &&
+            !prototype.Components.ContainsKey(Factory.GetComponentName<MaterialComponent>()))
         {
-            var stackPrice = (StackPriceComponent)stackpriceProto.Component;
-            var stack = (StackComponent)stackProto.Component;
+            var stackPrice = (StackPriceComponent) stackpriceProto.Component;
+            var stack = (StackComponent) stackProto.Component;
             price += stack.Count * stackPrice.Price;
         }
 
@@ -431,13 +463,33 @@ public sealed class PricingSystem : EntitySystem
         return price;
     }
 
+    /// <summary>
+    /// Mono: Gets the static price with vending machine discounts applied if applicable.
+    /// This method should be used by cargo systems when selling items.
+    /// </summary>
+    /// <param name="uid">The entity to price</param>
+    /// <param name="currentGrid">The grid where the entity is being sold</param>
+    /// <returns>The price with vending machine discount applied if applicable</returns>
+    public double GetStaticPriceWithVendingDiscount(EntityUid uid, EntityUid currentGrid)
+    {
+        // Check if this entity has a vending machine discount
+        var discountPrice = _vendingPurchase.GetVendingMachineDiscountPrice(uid, currentGrid);
+        if (discountPrice.HasValue)
+        {
+            return discountPrice.Value;
+        }
+
+        // Fall back to normal static price
+        return GetStaticPrice(uid);
+    }
+
     private double GetStaticPrice(EntityPrototype prototype)
     {
         var price = 0.0;
 
-        if (prototype.Components.TryGetValue(_factory.GetComponentName(typeof(StaticPriceComponent)), out var staticProto))
+        if (prototype.Components.TryGetValue(Factory.GetComponentName<StaticPriceComponent>(), out var staticProto))
         {
-            var staticPrice = (StaticPriceComponent)staticProto.Component;
+            var staticPrice = (StaticPriceComponent) staticProto.Component;
             price += staticPrice.Price;
         }
 
@@ -451,15 +503,15 @@ public sealed class PricingSystem : EntitySystem
         var price = 0.0;
 
         // Prefer static price to stack price component, take the first positive value read.
-        if (prototype.Components.TryGetValue(_factory.GetComponentName(typeof(StaticPriceComponent)), out var staticProto))
+        if (prototype.Components.TryGetValue(Factory.GetComponentName(typeof(StaticPriceComponent)), out var staticProto))
         {
-            var staticComp = (StaticPriceComponent)staticProto.Component;
+            var staticComp = (StaticPriceComponent) staticProto.Component;
             if (staticComp.VendPrice > 0.0)
                 price += staticComp.VendPrice;
         }
-        if (price == 0.0 && prototype.Components.TryGetValue(_factory.GetComponentName(typeof(StackPriceComponent)), out var stackProto))
+        if (price == 0.0 && prototype.Components.TryGetValue(Factory.GetComponentName(typeof(StackPriceComponent)), out var stackProto))
         {
-            var stackComp = (StackPriceComponent)stackProto.Component;
+            var stackComp = (StackPriceComponent) stackProto.Component;
             if (stackComp.VendPrice > 0.0)
                 price += stackComp.VendPrice;
         }
@@ -482,13 +534,12 @@ public sealed class PricingSystem : EntitySystem
         var enumerator = xform.ChildEnumerator;
         while (enumerator.MoveNext(out var child))
         {
-            if (predicate is not null && !predicate(child))
-                continue;
-
-            var subPrice = 0.0;
-            AccumulatePrice(child, ref subPrice, true, predicate);
-            price += subPrice;
-            afterPredicate?.Invoke(child, subPrice);
+            if (predicate is null || predicate(child))
+            {
+                var subPrice = GetPriceConditional(child, true, predicate); // Frontier: GetPrice<GetPriceConditional, add true, predicate
+                price += subPrice;
+                afterPredicate?.Invoke(child, subPrice);
+            }
         }
 
         return price;
@@ -505,11 +556,6 @@ public record struct PriceCalculationEvent()
     /// The total price of the entity.
     /// </summary>
     public double Price = 0;
-
-    /// <summary>
-    /// Whether price handlers are allowed to mutate state while calculating a price.
-    /// </summary>
-    public bool AllowSideEffects = true;
 
     /// <summary>
     /// Whether this event was already handled.

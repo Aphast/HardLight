@@ -1,4 +1,5 @@
-using Content.Server._Common.Consent; // Consent system
+using Content.Server._Mono.Company; // Mono
+using Content.Server._Mono.MonoCoins; // Mono
 using Content.Server._NF.Auth;
 using Content.Server.Acz;
 using Content.Server.Administration;
@@ -8,6 +9,7 @@ using Content.Server.Afk;
 using Content.Server.Chat.Managers;
 using Content.Server.Connection;
 using Content.Server.Database;
+using Content.Server.Discord.DiscordLink;
 using Content.Server.EUI;
 using Content.Server.GameTicking;
 using Content.Server.GhostKick;
@@ -35,8 +37,6 @@ using Robust.Shared.ContentPack;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
-using Content.Server._FS.DiscordAuth; // Floofstation
-using Content.Server.Shuttles;
 
 namespace Content.Server.Entry
 {
@@ -108,7 +108,6 @@ namespace Content.Server.Entry
                 IoCManager.Resolve<IAdminLogManager>().Initialize();
                 IoCManager.Resolve<IConnectionManager>().Initialize();
                 _dbManager.Init();
-                IoCManager.Resolve<IServerConsentManager>().Initialize(); // Consent system
                 IoCManager.Resolve<IServerPreferencesManager>().Init();
                 IoCManager.Resolve<INodeGroupFactory>().Initialize();
                 IoCManager.Resolve<ContentNetworkResourceManager>().Initialize();
@@ -116,8 +115,6 @@ namespace Content.Server.Entry
                 IoCManager.Resolve<ServerInfoManager>().Initialize();
                 IoCManager.Resolve<ServerApi>().Initialize();
                 IoCManager.Resolve<MiniAuthManager>();
-                IoCManager.Resolve<DiscordAuthManager>().Initialize(); // Floofstation
-                IoCManager.Resolve<ServerIdentityService>().Initialize();
 
                 _voteManager.Initialize();
                 _updateManager.Initialize();
@@ -154,8 +151,14 @@ namespace Content.Server.Entry
                 IoCManager.Resolve<IAdminManager>().Initialize();
                 IoCManager.Resolve<IAfkManager>().Initialize();
                 IoCManager.Resolve<RulesManager>().Initialize();
+
+                IoCManager.Resolve<DiscordLink>().Initialize();
+                IoCManager.Resolve<DiscordChatLink>().Initialize();
+
                 _euiManager.Initialize();
 
+                IoCManager.Resolve<CompanyManager>().Initialize(); // Mono
+                IoCManager.Resolve<MonoCoinsManager>().Initialize(); // Mono
                 IoCManager.Resolve<IGameMapManager>().Initialize();
                 IoCManager.Resolve<IEntitySystemManager>().GetEntitySystem<GameTicker>().PostInitialize();
                 IoCManager.Resolve<IBanManager>().Initialize();
@@ -192,6 +195,9 @@ namespace Content.Server.Entry
             _playTimeTracking?.Shutdown();
             _dbManager?.Shutdown();
             IoCManager.Resolve<ServerApi>().Shutdown();
+
+            IoCManager.Resolve<DiscordLink>().Shutdown();
+            IoCManager.Resolve<DiscordChatLink>().Shutdown();
         }
 
         private static void LoadConfigPresets(IConfigurationManager cfg, IResourceManager res, ISawmill sawmill)

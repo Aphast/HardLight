@@ -13,11 +13,11 @@ namespace Content.Shared.Toilet.Systems
     /// Handles sprite changes for both toilet seat up and down as well as for lid open and closed. Handles interactions with hidden stash
     /// </summary>
 
-    public abstract class SharedToiletSystem : EntitySystem
+    public abstract partial class SharedToiletSystem : EntitySystem
     {
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private SharedAudioSystem _audio = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
 
         public override void Initialize()
         {
@@ -33,13 +33,15 @@ namespace Content.Shared.Toilet.Systems
             if (_random.Prob(0.5f))
                 component.ToggleSeat = true;
 
-            // Frontier: selectively clog toilets, unclogged toilets don't get free stuff
-            if (TryComp<PlungerUseComponent>(uid, out var plunger))
+            if (_random.Prob(0.3f))
             {
-                plunger.NeedsPlunger = _random.Prob(component.ClogProbability);
-                plunger.Plunged = !plunger.NeedsPlunger;
+                TryComp<PlungerUseComponent>(uid, out var plunger);
+
+                if (plunger == null)
+                    return;
+
+                plunger.NeedsPlunger = true;
             }
-            // End Frontier
 
             UpdateAppearance(uid);
             Dirty(uid, component);

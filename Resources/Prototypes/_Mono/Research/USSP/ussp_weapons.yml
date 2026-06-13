@@ -1,0 +1,44 @@
+- type: technology
+  id: UsspMediumGuns
+  name: research-technology-ussp-guns-medium
+  entityIcon: WeaponRifleAK502
+  discipline: UsspWeapons
+  tier: 2
+  cost: 35000
+  recipeUnlocks:
+  - WeaponRifleAK502USSP
+  - WeaponRevolverMatebaUSSP
+  technologyPrerequisites:
+  - UniversalMaterialResearchT1
+  position: 12, 2
+
+- type: technology
+  id: UsspAk410
+  name: research-technology-ussp-guns-ak410
+  entityIcon: WeaponRifleAK410
+  discipline: UsspWeapons
+  tier: 2
+  cost: 25000
+  recipeUnlocks:
+  - WeaponRifleAK410USSP
+  - AmmoBox762x39mmSubsonic
+  technologyPrerequisites:
+  - UsspMediumGuns
+  - UniversalMaterialResearchT2
+  position: 12, 8
+
+- type: technology
+  id: UsspAdvancedGuns
+  name: research-technology-ussp-guns-advanced
+  entityIcon: WeaponDP29
+  discipline: UsspWeapons
+  tier: 3
+  cost: 80000
+  recipeUnlocks:
+  - WeaponDP29USSP
+  - MagazineDP29
+  - WeaponShotgunBigLeadyUSSP
+  technologyPrerequisites:
+  - UsspMediumGuns
+  - UniversalMaterialResearchT3
+  position: 12, 13

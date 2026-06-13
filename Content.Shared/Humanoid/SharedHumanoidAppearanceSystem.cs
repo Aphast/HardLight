@@ -1,7 +1,6 @@
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Content.Shared._NF.Cloning;
 using Content.Shared.CCVar;
 using Content.Shared.Decals;
 using Content.Shared.Examine;
@@ -17,11 +16,11 @@ using Robust.Shared.GameObjects.Components.Localization;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Serialization;
 using Robust.Shared.Serialization.Manager;
 using Robust.Shared.Serialization.Markdown;
 using Robust.Shared.Utility;
 using YamlDotNet.RepresentationModel;
+using Content.Shared.Sprite;
 
 namespace Content.Shared.Humanoid;
 
@@ -34,18 +33,17 @@ namespace Content.Shared.Humanoid;
 ///     you still need a local copy so that players can set up their
 ///     characters.
 /// </summary>
-public abstract class SharedHumanoidAppearanceSystem : EntitySystem
+public abstract partial class SharedHumanoidAppearanceSystem : EntitySystem
 {
-    [Dependency] private readonly IConfigurationManager _cfgManager = default!;
-    [Dependency] private readonly INetManager _netManager = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly ISerializationManager _serManager = default!;
-    [Dependency] private readonly MarkingManager _markingManager = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IConfigurationManager _cfgManager = default!;
+    [Dependency] private INetManager _netManager = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private ISerializationManager _serManager = default!;
+    [Dependency] private MarkingManager _markingManager = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
 
-    public static readonly ProtoId<SpeciesPrototype> DefaultSpecies = "Human";
-
-    // Visual keys are defined top-level in HumanoidVisuals enum.
+    [ValidatePrototypeId<SpeciesPrototype>]
+    public const string DefaultSpecies = "Human";
 
     public override void Initialize()
     {
@@ -112,10 +110,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
     private void OnExamined(EntityUid uid, HumanoidAppearanceComponent component, ExaminedEvent args)
     {
         var identity = Identity.Entity(uid, EntityManager);
-        var speciesRep = !string.IsNullOrWhiteSpace(component.CustomSpecies)
-            ? component.CustomSpecies
-            : GetSpeciesRepresentation(component.Species);
-        var species = speciesRep.ToLower();
+        var species = GetSpeciesRepresentation(component.Species).ToLower();
         var age = GetAgeRepresentation(component.Species, component.Age);
 
         // WWDP EDIT
@@ -165,7 +160,6 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         targetHumanoid.Species = sourceHumanoid.Species;
         targetHumanoid.SkinColor = sourceHumanoid.SkinColor;
         targetHumanoid.EyeColor = sourceHumanoid.EyeColor;
-        targetHumanoid.EyeGlowing = sourceHumanoid.EyeGlowing; //starlight
         targetHumanoid.Age = sourceHumanoid.Age;
         targetHumanoid.Height = sourceHumanoid.Height;
         targetHumanoid.Width = sourceHumanoid.Width;
@@ -174,15 +168,15 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         targetHumanoid.MarkingSet = new(sourceHumanoid.MarkingSet);
 
         targetHumanoid.Gender = sourceHumanoid.Gender;
-        targetHumanoid.CustomSpecies = sourceHumanoid.CustomSpecies;
         if (TryComp<GrammarComponent>(target, out var grammar))
             grammar.Gender = sourceHumanoid.Gender;
 
         // Apply scaling (height and width)
         if (sourceHumanoid.Height != 1.0f || sourceHumanoid.Width != 1.0f)
         {
+            var scaleVisuals = EnsureComp<ScaleVisualsComponent>(target);
             var appearance = EnsureComp<AppearanceComponent>(target);
-            _appearance.SetData(target, HumanoidVisuals.Scale, new Vector2(sourceHumanoid.Width, sourceHumanoid.Height), appearance);
+            _appearance.SetData(target, ScaleVisuals.Scale, new Vector2(sourceHumanoid.Width, sourceHumanoid.Height), appearance);
         }
 
         Dirty(target, targetHumanoid);
@@ -221,7 +215,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         ref bool dirty)
     {
 #if DEBUG
-        if (source is { } s)
+        if (source is {} s)
         {
             DebugTools.AssertNotEqual(s, SlotFlags.NONE);
             // Check that only a single bit in the bitflag is set
@@ -232,7 +226,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
 
         if (visible)
         {
-            if (source is not { } slot)
+            if (source is not {} slot)
             {
                 dirty |= ent.Comp.PermanentlyHidden.Remove(layer);
             }
@@ -316,33 +310,6 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         if (sync)
             Dirty(uid, humanoid);
     }
-
-    // Starlight - Start
-    /// <summary>
-    ///     Sets the eye color of this humanoid mob.
-    /// </summary>
-    /// <param name="uid">The humanoid mob's UID.</param>
-    /// <param name="eyeColor">Eye color to set on the humanoid mob.</param>
-    /// <param name="sync">Whether to synchronize this to the humanoid mob, or not.</param>
-    /// <param name="verify">Whether to verify the eye color can be set on this humanoid or not</param>
-    /// <param name="humanoid">Humanoid component of the entity</param>
-    public virtual void SetEyeColor(EntityUid uid, Color eyeColor, bool sync = true, bool verify = true, HumanoidAppearanceComponent? humanoid = null)
-    {
-        if (!Resolve(uid, ref humanoid))
-            return;
-
-        if (!_proto.TryIndex<SpeciesPrototype>(humanoid.Species, out var species))
-            return;
-
-        if (verify && !EyeColor.VerifyEyeColor(species.EyeColoration, eyeColor))
-            eyeColor = EyeColor.ValidEyeColor(species.EyeColoration, eyeColor);
-
-        humanoid.EyeColor = eyeColor;
-
-        if (sync)
-            Dirty(uid, humanoid);
-    }
-    // Starlight - End
 
     /// <summary>
     ///     Sets the base layer ID of this humanoid mob. A humanoid mob's 'base layer' is
@@ -430,15 +397,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
 
         SetSpecies(uid, profile.Species, false, humanoid);
         SetSex(uid, profile.Sex, false, humanoid);
-        // Preserve an optional custom species display string from the profile for examine-only purposes.
-        humanoid.CustomSpecies = string.IsNullOrEmpty(profile.CustomSpecies) ? null : profile.CustomSpecies;
         humanoid.EyeColor = profile.Appearance.EyeColor;
-        humanoid.EyeGlowing = profile.Appearance.EyeGlowing; //starlight
-
-        SetEyeColor(uid, humanoid.EyeColor, false); // Starlight
-
-        var ev = new EyeColorInitEvent(); //starlight
-        RaiseLocalEvent(uid, ref ev); //starlight
 
         SetSkinColor(uid, profile.Appearance.SkinColor, false);
 
@@ -452,7 +411,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
             {
                 if (!prototype.ForcedColoring)
                 {
-                    AddMarking(uid, marking.MarkingId, marking.MarkingColors, marking.IsGlowing, false); //starlight
+                    AddMarking(uid, marking.MarkingId, marking.MarkingColors, false);
                 }
                 else
                 {
@@ -471,13 +430,13 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         if (_markingManager.Markings.TryGetValue(profile.Appearance.HairStyleId, out var hairPrototype) &&
             _markingManager.CanBeApplied(profile.Species, profile.Sex, hairPrototype, _proto))
         {
-            AddMarking(uid, profile.Appearance.HairStyleId, profile.Appearance.HairGlowing, hairColor, false); //starlight
+            AddMarking(uid, profile.Appearance.HairStyleId, hairColor, false);
         }
 
         if (_markingManager.Markings.TryGetValue(profile.Appearance.FacialHairStyleId, out var facialHairPrototype) &&
             _markingManager.CanBeApplied(profile.Species, profile.Sex, facialHairPrototype, _proto))
         {
-            AddMarking(uid, profile.Appearance.FacialHairStyleId, profile.Appearance.FacialHairGlowing, facialHairColor, false); //starlight
+            AddMarking(uid, profile.Appearance.FacialHairStyleId, facialHairColor, false);
         }
 
         humanoid.MarkingSet.EnsureSpecies(profile.Species, profile.Appearance.SkinColor, _markingManager, _proto);
@@ -491,7 +450,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
                 profile.Appearance.EyeColor,
                 humanoid.MarkingSet
             );
-            AddMarking(uid, marking.MarkingId, markingColors, marking.IsGlowing, false); //starlight
+            AddMarking(uid, marking.MarkingId, markingColors, false);
         }
 
         EnsureDefaultMarkings(uid, humanoid);
@@ -509,8 +468,9 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
         // Apply scaling (height and width)
         if (profile.Appearance.Height != 1.0f || profile.Appearance.Width != 1.0f)
         {
+            var scaleVisuals = EnsureComp<ScaleVisualsComponent>(uid);
             var appearance = EnsureComp<AppearanceComponent>(uid);
-            _appearance.SetData(uid, HumanoidVisuals.Scale, new Vector2(profile.Appearance.Width, profile.Appearance.Height), appearance);
+            _appearance.SetData(uid, ScaleVisuals.Scale, new Vector2(profile.Appearance.Width, profile.Appearance.Height), appearance);
         }
 
         RaiseLocalEvent(uid, new ProfileLoadFinishedEvent()); // Shitmed Change
@@ -526,7 +486,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
     /// <param name="sync">Whether to immediately sync this marking or not</param>
     /// <param name="forced">If this marking was forced (ignores marking points)</param>
     /// <param name="humanoid">Humanoid component of the entity</param>
-    public void AddMarking(EntityUid uid, string marking, bool isGlowing, Color? color = null, bool sync = true, bool forced = false, HumanoidAppearanceComponent? humanoid = null) //starlight
+    public void AddMarking(EntityUid uid, string marking, Color? color = null, bool sync = true, bool forced = false, HumanoidAppearanceComponent? humanoid = null)
     {
         if (!Resolve(uid, ref humanoid)
             || !_markingManager.Markings.TryGetValue(marking, out var prototype))
@@ -543,8 +503,6 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
                 markingObject.SetColor(i, color.Value);
             }
         }
-
-        markingObject.IsGlowing = isGlowing; //starlight
 
         humanoid.MarkingSet.AddBack(prototype.MarkingCategory, markingObject);
 
@@ -567,11 +525,10 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
     /// <param name="uid">Humanoid mob's UID</param>
     /// <param name="marking">Marking ID to use</param>
     /// <param name="colors">Colors to apply against this marking's set of sprites.</param>
-    /// <param name="isGlowing">Whether this marking should glow or not.</param>
     /// <param name="sync">Whether to immediately sync this marking or not</param>
     /// <param name="forced">If this marking was forced (ignores marking points)</param>
     /// <param name="humanoid">Humanoid component of the entity</param>
-    public void AddMarking(EntityUid uid, string marking, IReadOnlyList<Color> colors, bool isGlowing, bool sync = true, bool forced = false, HumanoidAppearanceComponent? humanoid = null) //starlight
+    public void AddMarking(EntityUid uid, string marking, IReadOnlyList<Color> colors, bool sync = true, bool forced = false, HumanoidAppearanceComponent? humanoid = null)
     {
         if (!Resolve(uid, ref humanoid)
             || !_markingManager.Markings.TryGetValue(marking, out var prototype))
@@ -579,68 +536,11 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
             return;
         }
 
-        var markingObject = new Marking(marking, colors, isGlowing) //starlight
-        {
-            Forced = forced
-        };
+        var markingObject = new Marking(marking, colors);
+        markingObject.Forced = forced;
         humanoid.MarkingSet.AddBack(prototype.MarkingCategory, markingObject);
 
-        if (prototype.BodyPart == HumanoidVisualLayers.Penis
-            && humanoid.MarkingSet.TryGetCategory(MarkingCategories.UndergarmentBottom, out var undies))
-        {
-            // If we're wearing underwear, hide the penis.
-            if (undies.Any(undie => !humanoid.HiddenMarkings.Contains(undie.MarkingId)))
-                humanoid.HiddenMarkings.Add(marking);
-        }
-
-        if (prototype.MarkingCategory == MarkingCategories.UndergarmentBottom
-            && humanoid.MarkingSet.TryGetCategory(MarkingCategories.Genital, out var genitals))
-        {
-            // If we have a penis, hide it.
-            foreach (var genital in genitals)
-            {
-                if (!_markingManager.Markings.TryGetValue(genital.MarkingId, out var genitalProto))
-                    continue;
-                if (genitalProto.BodyPart == HumanoidVisualLayers.Penis)
-                    humanoid.HiddenMarkings.Add(genital.MarkingId);
-            }
-        }
-
         if (sync)
-            Dirty(uid, humanoid);
-    }
-
-    /// <summary>
-    ///     Sets the visibility of a specific marking on this humanoid.
-    /// </summary>
-    /// <param name="uid">Humanoid entity UID (owner of the appearance component).</param>
-    /// <param name="humanoid">The appearance component.</param>
-    /// <param name="markingId">The marking prototype ID.</param>
-    /// <param name="visible">True to show the marking, false to hide it.</param>
-    public virtual void SetMarkingVisibility(EntityUid uid, HumanoidAppearanceComponent? humanoid, string markingId, bool visible)
-    {
-        if (!Resolve(uid, ref humanoid))
-            return;
-
-        // Only toggle if the marking actually exists on this humanoid.
-        var hasMarking = humanoid.MarkingSet.Markings.Values
-            .SelectMany(list => list)
-            .Any(m => m.MarkingId == markingId);
-
-        if (!hasMarking)
-            return;
-
-        var dirty = false;
-        if (visible)
-        {
-            dirty |= humanoid.HiddenMarkings.Remove(markingId);
-        }
-        else
-        {
-            dirty |= humanoid.HiddenMarkings.Add(markingId);
-        }
-
-        if (dirty)
             Dirty(uid, humanoid);
     }
 

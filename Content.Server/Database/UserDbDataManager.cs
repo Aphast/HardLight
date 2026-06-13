@@ -1,6 +1,5 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using Content.Server._Common.Consent;
 using Content.Server.Preferences.Managers;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
@@ -16,10 +15,10 @@ namespace Content.Server.Database;
 /// Actual loading code is handled by separate managers such as <see cref="IServerPreferencesManager"/>.
 /// This manager is simply a centralized "is loading done" controller for other code to rely on.
 /// </remarks>
-public sealed class UserDbDataManager : IPostInjectInit
+public sealed partial class UserDbDataManager : IPostInjectInit
 {
-    [Dependency] private readonly ILogManager _logManager = default!;
-    [Dependency] private readonly IServerConsentManager _consent = default!; // Consent system
+    [Dependency] private IServerPreferencesManager _prefs = default!;
+    [Dependency] private ILogManager _logManager = default!;
 
     private readonly Dictionary<NetUserId, UserData> _users = new();
     private readonly List<OnLoadPlayer> _onLoadPlayer = [];
@@ -47,24 +46,14 @@ public sealed class UserDbDataManager : IPostInjectInit
     {
         _users.Remove(session.UserId, out var data);
         if (data == null)
-        {
-            _sawmill.Warning($"Did not have cached data in ClientDisconnect for user {session}.");
-            return;
-        }
+            throw new InvalidOperationException("Did not have cached data in ClientDisconnect!");
 
         data.Cancel.Cancel();
         data.Cancel.Dispose();
 
-        foreach (var onDisconnect in _onPlayerDisconnect.ToArray())
+        foreach (var onDisconnect in _onPlayerDisconnect)
         {
-            try
-            {
-                onDisconnect(session);
-            }
-            catch (Exception e)
-            {
-                _sawmill.Error($"OnPlayerDisconnect callback failed for {session}: {e}");
-            }
+            onDisconnect(session);
         }
     }
 
@@ -76,18 +65,16 @@ public sealed class UserDbDataManager : IPostInjectInit
         try
         {
             var tasks = new List<Task>();
-            foreach (var action in _onLoadPlayer.ToArray())
+            foreach (var action in _onLoadPlayer)
             {
                 tasks.Add(action(session, cancel));
             }
-
-            tasks.Add(_consent.LoadData(session, cancel)); // Consent system
 
             await Task.WhenAll(tasks);
 
             cancel.ThrowIfCancellationRequested();
 
-            foreach (var action in _onFinishLoad.ToArray())
+            foreach (var action in _onFinishLoad)
             {
                 action(session);
             }
@@ -108,10 +95,7 @@ public sealed class UserDbDataManager : IPostInjectInit
             _sawmill.Error($"Load of user data failed: {e}");
 
             // Kick them from server, since something is hosed. Let them try again I guess.
-            var reason = e is UserDbLoadException userDbLoad
-                ? userDbLoad.UserMessage
-                : "Loading of server user data failed, this is a bug.";
-            session.Channel.Disconnect(reason);
+            session.Channel.Disconnect("Loading of server user data failed, this is a bug.");
 
             // We throw a OperationCanceledException so users of WaitLoadComplete() always see cancellation here.
             throw new OperationCanceledException("Load of user data cancelled due to unknown error");
@@ -165,17 +149,6 @@ public sealed class UserDbDataManager : IPostInjectInit
     }
 
     private sealed record UserData(CancellationTokenSource Cancel, Task Task);
-
-    public sealed class UserDbLoadException : Exception
-    {
-        public string UserMessage { get; }
-
-        public UserDbLoadException(string userMessage, Exception? innerException = null)
-            : base(userMessage, innerException)
-        {
-            UserMessage = userMessage;
-        }
-    }
 
     public delegate Task OnLoadPlayer(ICommonSession player, CancellationToken cancel);
 

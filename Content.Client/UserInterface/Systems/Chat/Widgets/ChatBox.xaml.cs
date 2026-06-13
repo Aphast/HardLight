@@ -48,11 +48,11 @@ public partial class ChatBox : UIWidget
         ChatInput.ChannelSelector.OnChannelSelect += OnChannelSelect;
         ChatInput.FilterButton.Popup.OnChannelFilter += OnChannelFilter;
         ChatInput.FilterButton.Popup.OnNewHighlights += OnNewHighlights;
-        ChatInput.FilterButton.Popup.OnRadioFilterChanged += OnRadioFilterChanged;
 
         _controller = UserInterfaceManager.GetUIController<ChatUIController>();
         _controller.MessageAdded += OnMessageAdded;
         _controller.HighlightsUpdated += OnHighlightsUpdated;
+        _controller.AutoFillUpdated += OnAutoFillUpdated;
         _controller.RegisterChat(this);
 
         // WD EDIT START
@@ -73,14 +73,6 @@ public partial class ChatBox : UIWidget
     {
         Logger.DebugS("chat", $"{msg.Channel}: {msg.Message}");
         if (!ChatInput.FilterButton.Popup.IsActive(msg.Channel))
-        {
-            return;
-        }
-
-        // HardLight: client-side radio channel filter
-        if (msg.Channel == ChatChannel.Radio
-            && msg.RadioChannelId != null
-            && !ChatInput.FilterButton.Popup.IsRadioChannelVisible(msg.RadioChannelId))
         {
             return;
         }
@@ -114,11 +106,6 @@ public partial class ChatBox : UIWidget
         } // WD EDIT END
     }
 
-    private void OnHighlightsUpdated(string highlights)
-    {
-        ChatInput.FilterButton.Popup.UpdateHighlights(highlights);
-    }
-
     private void OnChannelSelect(ChatSelectChannel channel)
     {
         _controller.UpdateSelectedChannel(this);
@@ -149,19 +136,19 @@ public partial class ChatBox : UIWidget
         }
     }
 
-    // HardLight: repopulate when a radio sub-channel filter changes
-    private void OnRadioFilterChanged()
-    {
-        Contents.Clear();
-        foreach (var message in _controller.History)
-        {
-            OnMessageAdded(message.Item2);
-        }
-    }
-
     private void OnNewHighlights(string highlighs)
     {
         _controller.UpdateHighlights(highlighs);
+    }
+
+    private void OnHighlightsUpdated(string highlights)
+    {
+        ChatInput.FilterButton.Popup.UpdateHighlights(highlights);
+    }
+
+    private void OnAutoFillUpdated(string autoFillKeywords)
+    {
+        ChatInput.FilterButton.Popup.UpdateAutoFill(autoFillKeywords);
     }
 
     public void AddLine(string message, Color color, int repeat = 0) // WD EDIT

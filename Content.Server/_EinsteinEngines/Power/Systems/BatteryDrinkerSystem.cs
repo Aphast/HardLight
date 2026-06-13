@@ -1,7 +1,7 @@
 using System.Linq;
-using Content.Server.Power.Components;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.DoAfter;
+using Content.Shared.Power.Components;
 using Content.Shared.PowerCell.Components;
 using Content.Shared._EinsteinEngines.Silicon;
 using Content.Shared.Verbs;
@@ -18,14 +18,16 @@ using Content.Server._EinsteinEngines.Silicon;
 
 namespace Content.Server._EinsteinEngines.Power;
 
-public sealed class BatteryDrinkerSystem : EntitySystem
+public sealed partial class BatteryDrinkerSystem : EntitySystem
 {
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SiliconChargeSystem _silicon = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private ItemSlotsSystem _slots = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private BatterySystem _battery = default!;
+    [Dependency] private SiliconChargeSystem _silicon = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private PowerCellSystem _powerCell = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
 
     public override void Initialize()
     {
@@ -80,7 +82,8 @@ public sealed class BatteryDrinkerSystem : EntitySystem
             Broadcast = false,
             DistanceThreshold = 1.35f,
             RequireCanInteract = true,
-            CancelDuplicate = false
+            CancelDuplicate = false,
+            MultiplyDelay = false, // Goobstation
         };
 
         _doAfter.TryStartDoAfter(args);

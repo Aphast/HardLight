@@ -1,5 +1,4 @@
 using Content.Server.Atmos.Components;
-using Content.Shared._HL.Body.Components;
 using Content.Server.Body.Components;
 using Content.Server.Chat;
 using Content.Server.Chat.Managers;
@@ -8,6 +7,7 @@ using Content.Server.Humanoid;
 using Content.Server.IdentityManagement;
 using Content.Server.Inventory;
 using Content.Server.Mind;
+using Content.Server.Mind.Commands;
 using Content.Server.NPC;
 using Content.Server.NPC.HTN;
 using Content.Server.NPC.Systems;
@@ -29,6 +29,7 @@ using Content.Shared.NPC.Systems;
 using Content.Shared.Nutrition.AnimalHusbandry;
 using Content.Shared.Nutrition.Components;
 using Content.Shared.Popups;
+using Content.Shared.Roles;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Zombies;
 using Content.Shared.Prying.Components;
@@ -39,8 +40,6 @@ using Content.Shared.Roles;
 using Content.Shared.Tag;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
-using Content.Server._Starlight.Language; // Starlight-edit: Languages
-using Content.Shared._Starlight.Language.Components; // Starlight-edit: Languages
 
 namespace Content.Server.Zombies;
 
@@ -52,24 +51,23 @@ namespace Content.Server.Zombies;
 /// </remarks>
 public sealed partial class ZombieSystem
 {
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly IChatManager _chatMan = default!;
-    [Dependency] private readonly SharedCombatModeSystem _combat = default!;
-    [Dependency] private readonly NpcFactionSystem _faction = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly HumanoidAppearanceSystem _humanoidAppearance = default!;
-    [Dependency] private readonly IdentitySystem _identity = default!;
-    [Dependency] private readonly ServerInventorySystem _inventory = default!;
-    [Dependency] private readonly MindSystem _mind = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _movementSpeedModifier = default!;
-    [Dependency] private readonly NPCSystem _npc = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
-    [Dependency] private readonly NameModifierSystem _nameMod = default!;
-    [Dependency] private readonly ISharedPlayerManager _player = default!;
-    [Dependency] private readonly LanguageSystem _language = default!; // Starlight-edit: Languages
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private IChatManager _chatMan = default!;
+    [Dependency] private SharedCombatModeSystem _combat = default!;
+    [Dependency] private NpcFactionSystem _faction = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private HumanoidAppearanceSystem _humanoidAppearance = default!;
+    [Dependency] private IdentitySystem _identity = default!;
+    [Dependency] private ServerInventorySystem _inventory = default!;
+    [Dependency] private MindSystem _mind = default!;
+    [Dependency] private MovementSpeedModifierSystem _movementSpeedModifier = default!;
+    [Dependency] private NPCSystem _npc = default!;
+    [Dependency] private TagSystem _tag = default!;
+    [Dependency] private SharedRoleSystem _roles = default!;
+    [Dependency] private ISharedPlayerManager _player = default!;
 
     private static readonly ProtoId<TagPrototype> InvalidForGlobalSpawnSpellTag = "InvalidForGlobalSpawnSpell";
-    private static readonly ProtoId<TagPrototype> CannotSuicideTag = "CannotSuicide";
+
     /// <summary>
     /// Handles an entity turning into a zombie when they die or go into crit
     /// </summary>
@@ -117,21 +115,12 @@ public sealed partial class ZombieSystem
         RemComp<LegsParalyzedComponent>(target);
         RemComp<ComplexInteractionComponent>(target);
 
-        // Starlight start: Add Zombie Language - Starlight
-        EnsureComp<LanguageKnowledgeComponent>(target, out var knowledge);
-        _language.CaptureCache((target, knowledge));
-        RemComp<UniversalLanguageSpeakerComponent>(target);
-        EnsureComp<LanguageSpeakerComponent>(target, out var speaker);
-        EnsureComp<RestoreLanguageCacheOnCloneComponent>(target);
+        //funny voice
+        var accentType = "zombie";
+        if (TryComp<ZombieAccentOverrideComponent>(target, out var accent))
+            accentType = accent.Accent;
 
-        knowledge.Speaks.Clear();
-        knowledge.Understands.Clear();
-
-        speaker.SpokenLanguages.Clear();
-        speaker.UnderstoodLanguages.Clear();
-
-        _language.AddLanguage(target, "Zombie");
-        // Starlight end
+        EnsureComp<ReplacementAccentComponent>(target).Accent = accentType;
 
         //This is needed for stupid entities that fuck up combat mode component
         //in an attempt to make an entity not attack. This is the easiest way to do it.
@@ -149,16 +138,6 @@ public sealed partial class ZombieSystem
         melee.Range = 1.2f;
         melee.Angle = 0.0f;
         melee.HitSound = zombiecomp.BiteSound;
-
-        DirtyFields(target, melee, null, fields:
-        [
-            nameof(MeleeWeaponComponent.Animation),
-            nameof(MeleeWeaponComponent.WideAnimation),
-            nameof(MeleeWeaponComponent.AltDisarm),
-            nameof(MeleeWeaponComponent.Range),
-            nameof(MeleeWeaponComponent.Angle),
-            nameof(MeleeWeaponComponent.HitSound),
-        ]);
 
         if (mobState.CurrentState == MobState.Alive)
         {
@@ -193,7 +172,17 @@ public sealed partial class ZombieSystem
             _humanoidAppearance.SetBaseLayerId(target, HumanoidVisualLayers.Snout, zombiecomp.BaseLayerExternal, humanoid: huApComp);
 
             //This is done here because non-humanoids shouldn't get baller damage
-            melee.Damage = zombiecomp.DamageOnBite;
+            //lord forgive me for the hardcoded damage
+            DamageSpecifier dspec = new()
+            {
+                DamageDict = new()
+                {
+                    { "Slash", 13 },
+                    { "Piercing", 7 },
+                    { "Structural", 10 }
+                }
+            };
+            melee.Damage = dspec;
 
             // humanoid zombies get to pry open doors and shit
             var pryComp = EnsureComp<PryingComponent>(target);
@@ -212,27 +201,19 @@ public sealed partial class ZombieSystem
         //This makes it so the zombie doesn't take bloodloss damage.
         //NOTE: they are supposed to bleed, just not take damage
         _bloodstream.SetBloodLossThreshold(target, 0f);
-        // HardLight: Swap to zombie blood directly. Using BloodSolutionModifierComponent here
-        // triggers its startup logic immediately on add, which applies the default
-        // ClearExisting=true before we can configure it and wipes the bloodstream.
-        if (TryComp<BloodstreamComponent>(target, out var zombieBloodstream))
-        {
-            _bloodstream.ChangeBloodReagent(target, zombiecomp.NewBloodReagent, zombieBloodstream, storeOriginalBloodReagent: false);
-        }
-
-        RemComp<BloodSolutionModifierComponent>(target);
-
-        //Should prevent instances of zombies using comms for information they shouldnt be able to have.
-        //_inventory.TryUnequip(target, "ears", true, true); Starlight-edit: Languages
+        //Give them zombie blood
+        _bloodstream.ChangeBloodReagent(target, zombiecomp.NewBloodReagent);
 
         //This is specifically here to combat insuls, because frying zombies on grilles is funny as shit.
         _inventory.TryUnequip(target, "gloves", true, true);
+        //Should prevent instances of zombies using comms for information they shouldnt be able to have.
+        _inventory.TryUnequip(target, "ears", true, true);
 
         //popup
         _popup.PopupEntity(Loc.GetString("zombie-transform", ("target", target)), target, PopupType.LargeCaution);
 
         //Make it sentient if it's an animal or something
-        _mind.MakeSentient(target);
+        MakeSentientCommand.MakeSentient(target, EntityManager);
 
         //Make the zombie not die in the cold. Good for space zombies
         if (TryComp<TemperatureComponent>(target, out var tempComp))
@@ -261,7 +242,7 @@ public sealed partial class ZombieSystem
         if (hasMind && mind != null && _player.TryGetSessionById(mind.UserId, out var session))
         {
             //Zombie role for player manifest
-            _role.MindAddRole(mindId, "MindRoleZombie", mind: null, silent: true);
+            _roles.MindAddRole(mindId, "MindRoleZombie", mind: null, silent: true);
 
             //Greeting message for new bebe zombers
             _chatMan.DispatchServerMessage(session, Loc.GetString("zombie-infection-greeting"));
@@ -307,6 +288,5 @@ public sealed partial class ZombieSystem
         //Need to prevent them from getting an item, they have no hands.
         // Also prevents them from becoming a Survivor. They're undead.
         _tag.AddTag(target, InvalidForGlobalSpawnSpellTag);
-        _tag.AddTag(target, CannotSuicideTag);
     }
 }

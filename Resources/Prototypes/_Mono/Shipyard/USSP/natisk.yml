@@ -1,11 +1,14 @@
+#Author: Starch(!)
+
 - type: vessel
   id: Natisk
   parent: BaseVesselAntag
   name: NCS Natisk
   description: A tank with a layer of reinforced walls under its exterior hull, ensuring its able to send out obscene amounts of firepower.
-  price: 63500
+  price: 53500
   category: Medium
-  group: USSP # HardLight
+  group: Ussp
+  access: Mercenary
   shuttlePath: /Maps/_Mono/Shuttles/USSP/natisk.yml
   guidebookPage: Null
   class:
@@ -23,13 +26,11 @@
       stationProto: StandardFrontierVessel
       components:
         - type: StationNameSetup
-          mapNameTemplate: 'Natisk USSP{1}'
+          mapNameTemplate: 'Natisk MIL{1}'
           nameGenerator:
             !type:NanotrasenNameGenerator
             prefixCreator: '14'
         - type: StationJobs
           availableJobs:
-            USSPSergeant: [0, 0]
-            USSPCorporal: [0, 0]
-            USSPMedic: [0, 0]
-            USSPRifleman: [0, 0]
+            Mercenary: [ 0, 0 ]
+            Pilot: [ 0, 0 ]

@@ -9,7 +9,6 @@ using Content.Shared.Nutrition.Components;
 using Content.Shared.Nutrition.EntitySystems;
 using Content.Shared.Nutrition.Prototypes;
 using Content.Shared.Popups;
-using Content.Shared.Storage.Components;
 using Content.Shared.Tag;
 using Robust.Server.GameObjects;
 using Robust.Shared.Prototypes;
@@ -17,16 +16,16 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Nutrition.EntitySystems;
 
-public sealed class FoodSequenceSystem : SharedFoodSequenceSystem
+public sealed partial class FoodSequenceSystem : SharedFoodSequenceSystem
 {
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainer = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private TagSystem _tag = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private TransformSystem _transform = default!;
 
     public override void Initialize()
     {
@@ -127,13 +126,6 @@ public sealed class FoodSequenceSystem : SharedFoodSequenceSystem
         {
             if (user is not null)
                 _popup.PopupEntity(Loc.GetString("food-sequence-no-space"), start, user.Value);
-            return false;
-        }
-
-        // Prevents plushies with items hidden in them from being added to prevent deletion of items
-        // If more of these types of checks need to be added, this should be changed to an event or something.
-        if (TryComp<SecretStashComponent>(element, out var stashComponent) && stashComponent.ItemContainer.Count != 0)
-        {
             return false;
         }
 

@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Numerics;
-using Content.Server._NF.CryoSleep; // Frontier
 using Content.Server.Administration.Logs;
 using Content.Server.Administration.Managers; // Frontier
 using Content.Server.Cargo.Systems; // Frontier
@@ -20,6 +19,7 @@ using Content.Shared.Eye;
 using Content.Shared.FixedPoint;
 using Content.Shared.Follower;
 using Content.Shared.Ghost;
+using Content.Shared.GhostTypes;
 using Content.Shared.Mind;
 using Content.Shared.Mind.Components;
 using Content.Shared.Mobs;
@@ -27,60 +27,57 @@ using Content.Shared.Mobs.Components;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Movement.Events;
 using Content.Shared.Movement.Systems;
-using Content.Shared.NameModifier.EntitySystems;
 using Content.Shared.Popups;
 using Content.Shared.Storage.Components;
 using Content.Shared.Tag;
-using Content.Shared.Warps;
 using Robust.Server.GameObjects;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
 using Robust.Shared.Map;
-using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Systems;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
+using Content.Server.Preferences.Managers;
 
 namespace Content.Server.Ghost
 {
-    public sealed class GhostSystem : SharedGhostSystem
+    public sealed partial class GhostSystem : SharedGhostSystem
     {
-        [Dependency] private readonly SharedActionsSystem _actions = default!;
-        [Dependency] private readonly IAdminLogManager _adminLog = default!;
-        [Dependency] private readonly SharedEyeSystem _eye = default!;
-        [Dependency] private readonly FollowerSystem _followerSystem = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly JobSystem _jobs = default!;
-        [Dependency] private readonly EntityLookupSystem _lookup = default!;
-        [Dependency] private readonly MindSystem _minds = default!;
-        [Dependency] private readonly MobStateSystem _mobState = default!;
-        [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-        [Dependency] private readonly ISharedPlayerManager _player = default!;
-        [Dependency] private readonly TransformSystem _transformSystem = default!;
-        [Dependency] private readonly VisibilitySystem _visibilitySystem = default!;
-        [Dependency] private readonly MetaDataSystem _metaData = default!;
-        [Dependency] private readonly MobThresholdSystem _mobThresholdSystem = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IConfigurationManager _configurationManager = default!;
-        [Dependency] private readonly IChatManager _chatManager = default!;
-        [Dependency] private readonly SharedMindSystem _mind = default!;
-        [Dependency] private readonly GameTicker _gameTicker = default!;
-        [Dependency] private readonly DamageableSystem _damageable = default!;
-        [Dependency] private readonly SharedPopupSystem _popup = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly TagSystem _tag = default!;
-        [Dependency] private readonly NameModifierSystem _nameMod = default!;
-        [Dependency] private readonly IAdminManager _admin = default!; // Frontier
-        [Dependency] private readonly CryoSleepSystem _cryo = default!; // Frontier
+        [Dependency] private SharedActionsSystem _actions = default!;
+        [Dependency] private IAdminLogManager _adminLog = default!;
+        [Dependency] private SharedEyeSystem _eye = default!;
+        [Dependency] private FollowerSystem _followerSystem = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private JobSystem _jobs = default!;
+        [Dependency] private EntityLookupSystem _lookup = default!;
+        [Dependency] private MindSystem _minds = default!;
+        [Dependency] private MobStateSystem _mobState = default!;
+        [Dependency] private SharedPhysicsSystem _physics = default!;
+        [Dependency] private ISharedPlayerManager _player = default!;
+        [Dependency] private TransformSystem _transformSystem = default!;
+        [Dependency] private VisibilitySystem _visibilitySystem = default!;
+        [Dependency] private MetaDataSystem _metaData = default!;
+        [Dependency] private MobThresholdSystem _mobThresholdSystem = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IConfigurationManager _configurationManager = default!;
+        [Dependency] private IChatManager _chatManager = default!;
+        [Dependency] private SharedMindSystem _mind = default!;
+        [Dependency] private GameTicker _gameTicker = default!;
+        [Dependency] private DamageableSystem _damageable = default!;
+        [Dependency] private SharedPopupSystem _popup = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private TagSystem _tag = default!;
+        [Dependency] private IAdminManager _admin = default!; // Frontier
+        [Dependency] private IServerPreferencesManager _preferencesManager = default!;
+        [Dependency] private GhostSpriteStateSystem _ghostState = default!;
 
         private EntityQuery<GhostComponent> _ghostQuery;
         private EntityQuery<PhysicsComponent> _physicsQuery;
 
         private static readonly ProtoId<TagPrototype> AllowGhostShownByEventTag = "AllowGhostShownByEvent";
-        private static readonly ProtoId<DamageTypePrototype> AsphyxiationId = "Asphyxiation";
 
         public override void Initialize()
         {
@@ -114,6 +111,8 @@ namespace Content.Server.Ghost
             SubscribeLocalEvent<RoundEndTextAppendEvent>(_ => MakeVisible(true));
             SubscribeLocalEvent<ToggleGhostVisibilityToAllEvent>(OnToggleGhostVisibilityToAll);
 
+            SubscribeLocalEvent<GhostComponent, MindAddedMessage>(OnMindAdded);
+
             SubscribeLocalEvent<GhostComponent, GetVisMaskEvent>(OnGhostVis);
         }
 
@@ -123,7 +122,6 @@ namespace Content.Server.Ghost
             if (ent.Comp.LifeStage <= ComponentLifeStage.Running)
             {
                 args.VisibilityMask |= (int)VisibilityFlags.Ghost;
-                args.VisibilityMask |= (int)VisibilityFlags.PsionicInvisibility;
             }
         }
 
@@ -277,16 +275,6 @@ namespace Content.Server.Ghost
             if (Deleted(uid) || Terminating(uid))
                 return;
 
-            // HardLight: Pre-delete physics cleanup
-            // A ghost can still be present in the current physics island tick after mind detach.
-            // Make it inert before QueueDel so stale body entries cannot trigger transform-missing exceptions.
-            if (_physicsQuery.TryComp(uid, out var physics))
-            {
-                _physics.SetLinearVelocity(uid, Vector2.Zero, body: physics);
-                _physics.SetCanCollide(uid, false, dirty: false, body: physics);
-                _physics.TrySetBodyType(uid, Robust.Shared.Physics.BodyType.Static, body: physics);
-            }
-
             QueueDel(uid);
         }
 
@@ -385,7 +373,7 @@ namespace Content.Server.Ghost
         {
             _adminLog.Add(LogType.GhostWarp, $"{ToPrettyString(uid)} ghost warped to {ToPrettyString(target)}");
 
-            if ((TryComp(target, out WarpPointComponent? warp) && warp.Follow) || HasComp<MobStateComponent>(target))
+            if ((TryComp(target, out WarpPointComponent? warp) && warp.Follow) || HasComp<MobStateComponent>(target) || HasComp<GhostComponent>(target))
             {
                 _followerSystem.StartFollowingEntity(uid, target);
                 return;
@@ -537,7 +525,7 @@ namespace Content.Server.Ghost
             if (spawnPosition?.IsValid(EntityManager) != true)
                 return false;
 
-            var mapUid = _transformSystem.GetMap(spawnPosition.Value);
+            var mapUid = spawnPosition?.GetMapUid(EntityManager);
             var gridUid = spawnPosition?.EntityId;
             // Test if the map is being deleted
             if (mapUid == null || TerminatingOrDeleted(mapUid.Value))
@@ -574,6 +562,11 @@ namespace Content.Server.Ghost
             var ghost = SpawnAtPosition(GameTicker.ObserverPrototypeName, spawnPosition.Value);
             var ghostComponent = Comp<GhostComponent>(ghost);
 
+            if (TryComp<GhostSpriteStateComponent>(ghost, out var state))  // If more TryComps are added this should be turned into an event
+            {
+                _ghostState.SetGhostSprite((ghost, state), mind);
+            }
+
             // Try setting the ghost entity name to either the character name or the player name.
             // If all else fails, it'll default to the default entity prototype name, "observer".
             // However, that should rarely happen.
@@ -584,11 +577,10 @@ namespace Content.Server.Ghost
 
             if (mind.Comp.TimeOfDeath.HasValue)
             {
-                SetTimeOfDeath((ghost, ghostComponent), mind.Comp.TimeOfDeath!.Value);
+                SetTimeOfDeath(ghost, mind.Comp.TimeOfDeath!.Value, ghostComponent);
             }
 
-            SetCanReturnToBody((ghost, ghostComponent), canReturn);
-            SetCanReturnFromCryo(ghostComponent, mind.Comp.UserId != null ? _cryo.HasCryosleepingBody(mind.Comp.UserId.Value) : false); // Frontier
+            SetCanReturnToBody(ghostComponent, canReturn);
 
             if (canReturn)
                 _minds.Visit(mind.Owner, ghost, mind.Comp);
@@ -596,10 +588,51 @@ namespace Content.Server.Ghost
                 _minds.TransferTo(mind.Owner, ghost, mind: mind.Comp);
             Log.Debug($"Spawned ghost \"{ToPrettyString(ghost)}\" for {mind.Comp.CharacterName}.");
 
-            // we changed the entity name above
-            // we have to call this after the mind has been transferred since some mind roles modify the ghost's name
-            _nameMod.RefreshNameModifiers(ghost);
+            // Apply admin OOC color to the ghost if the player has one
+            ApplyAdminOOCColor(ghost, mind.Owner);
+
             return ghost;
+        }
+
+        /// <summary>
+        /// Applies the admin OOC color to a ghost entity if the player has one set
+        /// </summary>
+        /// <param name="ghostEntity">The ghost entity to apply the color to</param>
+        /// <param name="mindId">The mind ID of the player</param>
+        public void ApplyAdminOOCColor(EntityUid ghostEntity, EntityUid mindId) // Mono
+        {
+            if (!_player.TryGetSessionByEntity(ghostEntity, out var session))
+                return;
+
+            // Only apply admin OOC color if the player is actually an admin
+            if (!_admin.IsAdmin(session))
+                return;
+
+            if (!_preferencesManager.TryGetCachedPreferences(session.UserId, out var prefs))
+                return;
+
+            // Only apply the color if it's not transparent (the default)
+            if (prefs.AdminOOCColor == Color.Transparent)
+                return;
+
+            // Make the color slightly transparent for ghosts
+            var ghostColor = prefs.AdminOOCColor;
+
+            if (TryComp<GhostComponent>(ghostEntity, out var ghostComp))
+            {
+                ghostComp.Color = ghostColor;
+                Dirty(ghostEntity, ghostComp);
+            }
+        }
+
+        private void OnMindAdded(EntityUid uid, GhostComponent component, MindAddedMessage args)
+        {
+            // When a mind is added to a ghost, check if the player has an admin OOC color
+            // and apply it to the ghost if they do
+            if (args.Mind == default)
+                return;
+
+            ApplyAdminOOCColor(uid, args.Mind);
         }
 
         public bool OnGhostAttempt(EntityUid mindId, bool canReturnGlobal, bool viaCommand = false, bool forced = false, MindComponent? mind = null)
@@ -680,7 +713,7 @@ namespace Content.Server.Ghost
                         dealtDamage = playerDeadThreshold - damageable.TotalDamage;
                     }
 
-                    DamageSpecifier damage = new(_prototypeManager.Index(AsphyxiationId), dealtDamage);
+                    DamageSpecifier damage = new(_prototypeManager.Index<DamageTypePrototype>("Asphyxiation"), dealtDamage);
 
                     _damageable.TryChangeDamage(playerEntity, damage, true);
                 }

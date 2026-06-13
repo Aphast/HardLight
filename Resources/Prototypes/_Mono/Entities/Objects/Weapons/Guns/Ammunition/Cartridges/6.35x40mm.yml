@@ -1,7 +1,8 @@
 - type: entity
   id: BaseCartridge635x40mmCaseless
   name: cartridge (.25 rifle)
-  parent: [ BaseCartridge, BaseC3SyndicateContrabandNoValue ] # Frontier: BaseSecurityContraband<BaseC3SyndicateContraband
+  parent: BaseCartridge
+  description: Developed during corporate wars for subsonic weapons to keep a low-profile during operations.
   abstract: true
   components:
   - type: Tag
@@ -12,7 +13,7 @@
     deleteOnSpawn: true
   - type: Sprite
     noRot: false
-    sprite: Objects/Weapons/Guns/Ammunition/Casings/ammo_casing.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Casings/caseless_ammo_casing.rsi
     layers:
     - state: base
       map: ["enum.AmmoVisualLayers.Base"]
@@ -49,5 +50,6 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#dbdbdb"
 

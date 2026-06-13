@@ -1,21 +1,24 @@
-# VRS: Ported from Triad_Sector — grid modifier presets for derelict hull decay simulation.
-# Note: WallT2/T3/T4 tier entries omitted; VRS uses vanilla wall types only.
-
 - type: gridModifier
   id: DegradedHull
   modifiers:
   - !type:GridModEntityReplace
     comp: Occluder
     data:
-    - chance: 0.35
-      toReplace: WallReinforced
-      replaceWith: WallSolid
     - chance: 0.25
-      toReplace: WallSolid
-      replaceWith: Girder
-    - chance: 0.15
-      toReplace: WallPlastitanium
+      whitelist:
+        tags:
+        - WallT2
+      replaceWith: WallSolid
+    - chance: 0.6
+      whitelist:
+        tags:
+        - WallT3
       replaceWith: WallReinforced
+    - chance: 1
+      whitelist:
+        tags:
+        - WallT4
+      replaceWith: WallPlastitanium
 
 - type: gridModifier
   id: DestroyedHull
@@ -26,11 +29,25 @@
     - chance: 0.7
       toReplace: WallSolid
       replaceWith: Girder
-    - chance: 0.5
-      toReplace: WallReinforced
+    - chance: 0.25
+      whitelist:
+        tags:
+        - WallT2
+      replaceWith: ReinforcedGirder
+    - chance: 0.4
+      whitelist:
+        tags:
+        - WallT2
       replaceWith: WallSolid
     - chance: 0.8
-      toReplace: WallPlastitanium
+      whitelist:
+        tags:
+        - WallT3
+      replaceWith: WallReinforced
+    - chance: 1
+      whitelist:
+        tags:
+        - WallT4
       replaceWith: WallReinforced
 
 - type: gridModifier
@@ -43,8 +60,15 @@
       toReplace: WallSolid
       replaceWith: WallReinforced
     - chance: 0.45
-      toReplace: WallReinforced
+      whitelist:
+        tags:
+        - WallT2
       replaceWith: WallPlastitanium
+    - chance: 0.25
+      whitelist:
+        tags:
+        - WallT3
+      replaceWith: WallPlastitaniumCapital
 
 - type: gridModifier
   id: DamagedThrusters
@@ -57,3 +81,4 @@
         components:
         - Thruster
       replaceWith: MachineFrameDestroyed
+

@@ -10,7 +10,6 @@ using Robust.Client.UserInterface.XAML;
 using Robust.Shared.Utility;
 using Robust.Client.UserInterface.RichText;
 using Content.Client.UserInterface.RichText;
-using Robust.Client.UserInterface;
 using Robust.Shared.Input;
 
 namespace Content.Client.Paper.UI
@@ -18,8 +17,8 @@ namespace Content.Client.Paper.UI
     [GenerateTypedNameReferences]
     public sealed partial class PaperWindow : BaseWindow
     {
-        [Dependency] private readonly IInputManager _inputManager = default!;
-        [Dependency] private readonly IResourceCache _resCache = default!;
+        [Dependency] private IInputManager _inputManager = default!;
+        [Dependency] private IResourceCache _resCache = default!;
 
         [ViewVariables]
         private static Color DefaultTextColor = new(25, 25, 25);
@@ -40,16 +39,17 @@ namespace Content.Client.Paper.UI
         // we're able to resize this UI or not. Default to everything enabled:
         private DragMode _allowedResizeModes = ~DragMode.None;
 
-        private readonly Type[] _allowedTags;
-
-        private void OnFormClicked(int index, int maxLen)
-        {
-            OpenFormDialog(index, maxLen);
-        }
+        private readonly Type[] _allowedTags = new Type[] {
+            typeof(BoldItalicTag),
+            typeof(BoldTag),
+            typeof(BulletTag),
+            typeof(ColorTag),
+            typeof(HeadingTag),
+            typeof(ItalicTag),
+            typeof(MonoTag)
+        };
 
         public event Action<string>? OnSaved;
-        public event Action? Typing; // DeltaV
-        public event Action? SubmitPressed; // DeltaV
 
         private int _MaxInputLength = -1;
         public int MaxInputLength
@@ -70,19 +70,6 @@ namespace Content.Client.Paper.UI
             IoCManager.InjectDependencies(this);
             RobustXamlLoader.Load(this);
 
-            _allowedTags = new Type[] {
-                typeof(BoldItalicTag),
-                typeof(BoldTag),
-                typeof(BulletTag),
-                typeof(ColorTag),
-                typeof(HeadingTag),
-                typeof(ItalicTag),
-                typeof(MonoTag),
-                typeof(FormTag)
-            };
-
-            FormTag.OnFormClicked += OnFormClicked;
-
             // We can't configure the RichTextLabel contents from xaml, so do it here:
             BlankPaperIndicator.SetMessage(Loc.GetString("paper-ui-blank-page-message"), null, DefaultTextColor);
 
@@ -91,14 +78,12 @@ namespace Content.Client.Paper.UI
 
             Input.OnKeyBindDown += args => // Solution while TextEdit don't have events
             {
-                Typing?.Invoke(); // DeltaV
                 if (args.Function == EngineKeyFunctions.MultilineTextSubmit)
                 {
                     // SaveButton is disabled when we hit the max input limit. Just check
                     // that flag instead of trying to calculate the input length again
                     if (!SaveButton.Disabled)
                     {
-                        SubmitPressed?.Invoke(); // DeltaV
                         RunOnSaved();
                         args.Handle();
                     }
@@ -231,8 +216,6 @@ namespace Content.Client.Paper.UI
             if (WrittenTextLabel.TryGetStyleProperty<Font>("font", out var font))
             {
                 float fontLineHeight = font.GetLineHeight(1.0f);
-                FormTag.FontLineHeight = fontLineHeight;
-
                 // This positions the texture so the font baseline is on the bottom:
                 _paperContentTex.ExpandMarginTop = font.GetDescent(UIScale);
                 // And this scales the texture so that it's a single text line:
@@ -262,17 +245,13 @@ namespace Content.Client.Paper.UI
         /// </summary>
         public void Populate(PaperComponent.PaperBoundUserInterfaceState state)
         {
-            _currentRawText = state.Text;
             bool isEditing = state.Mode == PaperComponent.PaperAction.Write;
             bool wasEditing = InputContainer.Visible;
             InputContainer.Visible = isEditing;
             EditButtons.Visible = isEditing;
 
-            FormTag.Enabled = !isEditing && state.StampedBy.Count == 0;
-
             var msg = new FormattedMessage();
-            var textWithIndices = InjectFormIndices(state.Text);
-            msg.AddMarkupPermissive(textWithIndices);
+            msg.AddMarkupPermissive(state.Text);
 
             // For premade documents, we want to be able to edit them rather than
             // replace them.
@@ -350,14 +329,6 @@ namespace Content.Client.Paper.UI
             return mode & _allowedResizeModes;
         }
 
-        private string _currentRawText = "";
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            FormTag.OnFormClicked -= OnFormClicked;
-        }
-
         private void RunOnSaved()
         {
             // Prevent further saving while text processing still in
@@ -383,133 +354,6 @@ namespace Content.Client.Paper.UI
                 FillStatus.Text = "";
                 SaveButton.Disabled = false;
             }
-        }
-
-        public void OpenFormDialog(int formIndex, int maxLen)
-        {
-            var window = new DefaultWindow
-            {
-                Title = Loc.GetString("Fill form"),
-                Resizable = false,
-            };
-
-            var vbox = new BoxContainer
-            {
-                Orientation = BoxContainer.LayoutOrientation.Vertical,
-                Margin = new Thickness(10)
-            };
-
-            var edit = new LineEdit
-            {
-                MinSize = new Vector2(200, 0),
-            };
-
-            var hbox = new BoxContainer
-            {
-                Orientation = BoxContainer.LayoutOrientation.Horizontal,
-                HorizontalAlignment = Control.HAlignment.Right
-            };
-
-            var ok = new Button { Text = Loc.GetString("paper-form-dialog-ok") };
-            var cancel = new Button { Text = Loc.GetString("paper-form-dialog-cancel") };
-
-            void Submit()
-            {
-                var resultText = edit.Text;
-                if (resultText.Length > maxLen)
-                    resultText = resultText.Substring(0, maxLen);
-
-                if (!string.IsNullOrEmpty(resultText))
-                {
-                    var newText = ReplaceNthFormTag(_currentRawText, formIndex, resultText);
-                    OnSaved?.Invoke(newText);
-                }
-                window.Close();
-            }
-
-            ok.OnPressed += _ => Submit();
-            cancel.OnPressed += _ => window.Close();
-            edit.OnTextEntered += _ => Submit();
-
-            hbox.AddChild(ok);
-            hbox.AddChild(cancel);
-            vbox.AddChild(edit);
-            vbox.AddChild(hbox);
-            window.Contents.AddChild(vbox);
-
-            window.OpenCentered();
-            edit.GrabKeyboardFocus();
-        }
-
-        private static string ReplaceNthFormTag(string text, int index, string replacement)
-        {
-            const string formTag = "[form";
-            var currentIndex = 0;
-            var pos = 0;
-
-            while (pos < text.Length)
-            {
-                var tagStart = text.IndexOf(formTag, pos);
-                if (tagStart == -1) break;
-
-                var tagEnd = text.IndexOf(']', tagStart);
-                if (tagEnd == -1) break;
-
-                if (currentIndex == index)
-                {
-                    return text.Substring(0, tagStart) + replacement + text.Substring(tagEnd + 1);
-                }
-
-                currentIndex++;
-                pos = tagEnd + 1;
-            }
-
-            return text;
-        }
-
-        private static string InjectFormIndices(string text)
-        {
-            const string formTag = "[form";
-            var currentIndex = 0;
-            var pos = 0;
-            var sb = new System.Text.StringBuilder();
-
-            while (pos < text.Length)
-            {
-                var tagStart = text.IndexOf(formTag, pos);
-                if (tagStart == -1)
-                {
-                    sb.Append(text.Substring(pos));
-                    break;
-                }
-
-                sb.Append(text.Substring(pos, tagStart - pos));
-
-                var tagEnd = text.IndexOf(']', tagStart);
-                if (tagEnd == -1)
-                {
-                    sb.Append(text.Substring(tagStart));
-                    break;
-                }
-
-                var tagContent = text.Substring(tagStart, tagEnd - tagStart);
-                if (tagContent.Contains(" i="))
-                {
-                    // Already has index? Should not happen but let's be safe.
-                    sb.Append(tagContent);
-                }
-                else
-                {
-                    sb.Append(tagContent);
-                    sb.Append($" i={currentIndex}");
-                }
-                sb.Append(']');
-
-                currentIndex++;
-                pos = tagEnd + 1;
-            }
-
-            return sb.ToString();
         }
     }
 }

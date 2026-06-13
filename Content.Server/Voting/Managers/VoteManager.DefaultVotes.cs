@@ -6,12 +6,12 @@ using Content.Server.Administration.Managers;
 using Content.Server.Discord.WebhookMessages;
 using Content.Server.GameTicking;
 using Content.Server.GameTicking.Presets;
-using Content.Server.Maps;
 using Content.Server.Roles;
 using Content.Server.RoundEnd;
 using Content.Shared.CCVar;
 using Content.Shared.Chat;
 using Content.Shared.Database;
+using Content.Shared.Maps;
 using Content.Shared.Players;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Voting;
@@ -24,10 +24,10 @@ namespace Content.Server.Voting.Managers
 {
     public sealed partial class VoteManager
     {
-        [Dependency] private readonly IPlayerLocator _locator = default!;
-        [Dependency] private readonly ILogManager _logManager = default!;
-        [Dependency] private readonly IBanManager _bans = default!;
-        [Dependency] private readonly VoteWebhooks _voteWebhooks = default!;
+        [Dependency] private IPlayerLocator _locator = default!;
+        [Dependency] private ILogManager _logManager = default!;
+        [Dependency] private IBanManager _bans = default!;
+        [Dependency] private VoteWebhooks _voteWebhooks = default!;
 
         private VotingSystem? _votingSystem;
         private RoleSystem? _roleSystem;
@@ -233,7 +233,9 @@ namespace Content.Server.Voting.Managers
 
             foreach (var (k, v) in presets)
             {
-                options.Options.Add((Loc.GetString(v), k));
+                options.Options.Add((Loc.GetString(v.Name), k));
+                if (v.Weight != 1f)
+                    options.Weights.Add(k, v.Weight);
             }
 
             WirePresetVoteInitiator(options, initiator);
@@ -247,13 +249,13 @@ namespace Content.Server.Voting.Managers
                 {
                     picked = (string) _random.Pick(args.Winners);
                     _chatManager.DispatchServerAnnouncement(
-                        Loc.GetString("ui-vote-gamemode-tie", ("picked", Loc.GetString(presets[picked]))));
+                        Loc.GetString("ui-vote-gamemode-tie", ("picked", Loc.GetString(presets[picked].Name))));
                 }
                 else
                 {
                     picked = (string) args.Winner;
                     _chatManager.DispatchServerAnnouncement(
-                        Loc.GetString("ui-vote-gamemode-win", ("winner", Loc.GetString(presets[picked]))));
+                        Loc.GetString("ui-vote-gamemode-win", ("winner", Loc.GetString(presets[picked].Name))));
                 }
                 _adminLogger.Add(LogType.Vote, LogImpact.Medium, $"Preset vote finished: {picked}");
                 var ticker = _entityManager.EntitySysManager.GetEntitySystem<GameTicker>();
@@ -263,13 +265,7 @@ namespace Content.Server.Voting.Managers
 
         private void CreateMapVote(ICommonSession? initiator)
         {
-            // Exclude the map currently being played so it can't win twice in a row
-            var currentMap = _gameMapManager.GetSelectedMap();
-            var eligible = _gameMapManager
-                .CurrentlyEligibleMaps()
-                .Where(m => currentMap == null || m.ID != currentMap.ID);
-
-            var maps = eligible.ToDictionary(map => map, map => map.MapName);
+            var maps = _gameMapManager.CurrentlyEligibleMaps().ToDictionary(map => map, map => map.MapName);
 
             var alone = _playerManager.PlayerCount == 1 && initiator != null;
             var options = new VoteOptions
@@ -312,17 +308,9 @@ namespace Content.Server.Voting.Managers
                 var ticker = _entityManager.EntitySysManager.GetEntitySystem<GameTicker>();
                 if (ticker.CanUpdateMap())
                 {
-                    // Use SelectMap instead of TrySelectMapIfEligible to honor the vote result
-                    // regardless of preset restrictions - democracy should override game rules
-                    if (_gameMapManager.CheckMapExists(picked.ID))
+                    if (_gameMapManager.TrySelectMapIfEligible(picked.ID))
                     {
-                        _gameMapManager.SelectMap(picked.ID);
                         ticker.UpdateInfoText();
-                    }
-                    else
-                    {
-                        _adminLogger.Add(LogType.Vote, LogImpact.High, $"Voted map {picked.ID} does not exist! Map selection failed.");
-                        _chatManager.DispatchServerAnnouncement($"Error: Voted map '{picked.MapName}' is invalid and could not be selected.");
                     }
                 }
                 else
@@ -385,7 +373,14 @@ namespace Content.Server.Voting.Managers
             }
             var targetUid = located.UserId;
             var targetHWid = located.LastHWId;
-            var targetIP = located.LastAddress;
+            (IPAddress, int)? targetIP = null;
+
+            if (located.LastAddress is not null)
+            {
+                targetIP = located.LastAddress.AddressFamily is AddressFamily.InterNetwork
+                    ? (located.LastAddress, 32) // People with ipv4 addresses get a /32 address so we ban that
+                    : (located.LastAddress, 64); // This can only be an ipv6 address. People with ipv6 address should get /64 addresses so we ban that.
+            }
 
             if (!_playerManager.TryGetSessionById(located.UserId, out ICommonSession? targetSession))
             {
@@ -551,15 +546,7 @@ namespace Content.Server.Voting.Managers
 
                         uint minutes = (uint)_cfg.GetCVar(CCVars.VotekickBanDuration);
 
-                        var banInfo = new CreateServerBanInfo(Loc.GetString("votekick-ban-reason", ("reason", reason)));
-                        banInfo.AddUser(targetUid, target);
-                        banInfo.AddHWId(targetHWid);
-                        banInfo.AddAddress(targetIP);
-                        banInfo.WithSeverity(severity);
-                        if (minutes > 0)
-                            banInfo.WithMinutes(minutes);
-
-                        _bans.CreateServerBan(banInfo);
+                        _bans.CreateServerBan(targetUid, target, null, targetIP, targetHWid, minutes, severity, Loc.GetString("votekick-ban-reason", ("reason", reason)));
                     }
                 }
                 else
@@ -600,9 +587,9 @@ namespace Content.Server.Voting.Managers
             DirtyCanCallVoteAll();
         }
 
-        private Dictionary<string, string> GetGamePresets()
+        private Dictionary<string, (string Name, float Weight)> GetGamePresets() // Mono - add weight
         {
-            var presets = new Dictionary<string, string>();
+            var presets = new Dictionary<string, (string, float)>();
 
             foreach (var preset in _prototypeManager.EnumeratePrototypes<GamePresetPrototype>())
             {
@@ -615,7 +602,7 @@ namespace Content.Server.Voting.Managers
                 if(_playerManager.PlayerCount > (preset.MaxPlayers ?? int.MaxValue))
                     continue;
 
-                presets[preset.ID] = preset.ModeTitle;
+                presets[preset.ID] = (preset.ModeTitle, preset.Weight);
             }
             return presets;
         }

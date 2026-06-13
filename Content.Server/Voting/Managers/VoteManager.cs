@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -28,26 +28,23 @@ namespace Content.Server.Voting.Managers
 {
     public sealed partial class VoteManager : IVoteManager
     {
-        [Dependency] private readonly IServerNetManager _netManager = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly IGameTiming _timing = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly IChatManager _chatManager = default!;
-        [Dependency] private readonly IAdminManager _adminMgr = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IGameMapManager _gameMapManager = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly ISharedPlaytimeManager _playtimeManager = default!;
+        [Dependency] private IServerNetManager _netManager = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private IGameTiming _timing = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
+        [Dependency] private IChatManager _chatManager = default!;
+        [Dependency] private IAdminManager _adminMgr = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IGameMapManager _gameMapManager = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private ISharedPlaytimeManager _playtimeManager = default!;
 
         private int _nextVoteId = 1;
-        private const int VoteHistoryLimit = 25;
 
         private readonly Dictionary<int, VoteReg> _votes = new();
         private readonly Dictionary<int, VoteHandle> _voteHandles = new();
-        private readonly Dictionary<int, VoteHistoryEntry> _historicalVotes = new();
-        private readonly Queue<int> _historicalVoteOrder = new();
 
         private readonly Dictionary<StandardVoteType, TimeSpan> _standardVoteTimeout = new();
         private readonly Dictionary<NetUserId, TimeSpan> _voteTimeout = new();
@@ -59,8 +56,6 @@ namespace Content.Server.Voting.Managers
             _netManager.RegisterNetMessage<MsgVoteData>();
             _netManager.RegisterNetMessage<MsgVoteCanCall>();
             _netManager.RegisterNetMessage<MsgVoteMenu>(ReceiveVoteMenu);
-            _netManager.RegisterNetMessage<MsgVoteAuditRequest>(ReceiveVoteAuditRequest);
-            _netManager.RegisterNetMessage<MsgVoteAuditResponse>();
 
             _playerManager.PlayerStatusChanged += PlayerManagerOnPlayerStatusChanged;
             _adminMgr.OnPermsChanged += AdminPermsChanged;
@@ -149,7 +144,7 @@ namespace Content.Server.Voting.Managers
             var remQueue = new RemQueue<int>();
             foreach (var v in _votes.Values)
             {
-                // Logger.GetSawmill(nameof(VoteManager)).($"{_timing.ServerTime}");
+                // Logger.Debug($"{_timing.ServerTime}");
                 if (_timing.RealTime >= v.EndTime)
                     EndVote(v);
 
@@ -211,7 +206,8 @@ namespace Content.Server.Voting.Managers
         {
             var id = _nextVoteId++;
 
-            var entries = options.Options.Select(o => new VoteEntry(o.data, o.text)).ToArray();
+            // Mono - added weight
+            var entries = options.Options.Select(o => new VoteEntry(o.data, o.text, options.Weights.TryGetValue(o.data, out var weight) ? weight : 1f)).ToArray();
 
             var start = _timing.RealTime;
             var end = start + options.Duration;
@@ -291,11 +287,12 @@ namespace Content.Server.Voting.Managers
                 msg.DisplayVotes = true;
             }
 
-            msg.Options = new (ushort votes, string name)[v.Entries.Length];
+            msg.Options = new (ushort votes, string name, ushort realVotes)[v.Entries.Length];
             for (var i = 0; i < msg.Options.Length; i++)
             {
                 ref var entry = ref v.Entries[i];
-                msg.Options[i] = (msg.DisplayVotes ? (ushort) entry.Votes : (ushort) 0, entry.Text);
+                var votes = msg.DisplayVotes ? (ushort) entry.Votes : (ushort) 0; // Mono
+                msg.Options[i] = (votes, entry.Text, (ushort) (votes * entry.Weight)); // Mono - account for weight
             }
 
             player.Channel.SendMessage(msg);
@@ -399,7 +396,7 @@ namespace Content.Server.Voting.Managers
 
             // Find winner or stalemate.
             var winners = v.Entries
-                .GroupBy(e => e.Votes)
+                .GroupBy(e => e.Votes * e.Weight) // Mono - add weight
                 .OrderByDescending(g => g.Key)
                 .First()
                 .Select(e => e.Data)
@@ -412,7 +409,6 @@ namespace Content.Server.Voting.Managers
             }
 
             v.Finished = true;
-            AddHistoricalVote(v);
             v.Dirty = true;
             var args = new VoteFinishedEventArgs(winners.Length == 1 ? winners[0] : null, winners, voteTally);
             v.OnFinished?.Invoke(_voteHandles[v.Id], args);
@@ -426,41 +422,9 @@ namespace Content.Server.Voting.Managers
 
             v.Cancelled = true;
             v.Finished = true;
-            AddHistoricalVote(v);
             v.Dirty = true;
             v.OnCancelled?.Invoke(_voteHandles[v.Id]);
             DirtyCanCallVoteAll();
-        }
-
-        private void AddHistoricalVote(VoteReg vote)
-        {
-            var snapshot = new VoteHistoryEntry
-            {
-                Id = vote.Id,
-                Title = vote.Title,
-                InitiatorText = vote.InitiatorText,
-                Cancelled = vote.Cancelled,
-                OptionTexts = vote.Entries.Select(entry => entry.Text).ToArray(),
-                CastVotes = vote.CastVotes
-                    .Select(pair => new VoteHistoryCastEntry
-                    {
-                        PlayerName = pair.Key.Name,
-                        UserId = pair.Key.UserId,
-                        OptionId = pair.Value,
-                    })
-                    .OrderBy(entry => entry.PlayerName, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(entry => entry.UserId)
-                    .ToArray(),
-            };
-
-            _historicalVotes[vote.Id] = snapshot;
-            _historicalVoteOrder.Enqueue(vote.Id);
-
-            while (_historicalVoteOrder.Count > VoteHistoryLimit)
-            {
-                var expiredId = _historicalVoteOrder.Dequeue();
-                _historicalVotes.Remove(expiredId);
-            }
         }
 
         public bool CheckVoterEligibility(ICommonSession player, VoterEligibility eligibility)
@@ -496,27 +460,11 @@ namespace Content.Server.Voting.Managers
 
         public IEnumerable<IVoteHandle> ActiveVotes => _voteHandles.Values;
 
-        public IEnumerable<VoteHistoryEntry> HistoricalVotes => _historicalVoteOrder
-            .Reverse()
-            .Select(id => _historicalVotes[id]);
-
         public bool TryGetVote(int voteId, [NotNullWhen(true)] out IVoteHandle? vote)
         {
             if (_voteHandles.TryGetValue(voteId, out var vHandle))
             {
                 vote = vHandle;
-                return true;
-            }
-
-            vote = default;
-            return false;
-        }
-
-        public bool TryGetHistoricalVote(int voteId, [NotNullWhen(true)] out VoteHistoryEntry? vote)
-        {
-            if (_historicalVotes.TryGetValue(voteId, out var history))
-            {
-                vote = history;
                 return true;
             }
 
@@ -590,12 +538,15 @@ namespace Content.Server.Voting.Managers
             public object Data;
             public string Text;
             public int Votes;
+            public float Weight; // Mono
 
-            public VoteEntry(object data, string text)
+            public VoteEntry(object data, string text,
+                float weight = 1f) // Mono
             {
                 Data = data;
                 Text = text;
                 Votes = 0;
+                Weight = weight; // Mono
             }
         }
 
@@ -624,7 +575,6 @@ namespace Content.Server.Voting.Managers
             public IReadOnlyDictionary<ICommonSession, int> CastVotes => _reg.CastVotes;
 
             public IReadOnlyDictionary<object, int> VotesPerOption { get; }
-            public IReadOnlyList<string> OptionTexts { get; }
 
             public event VoteFinishedEventHandler? OnFinished
             {
@@ -644,7 +594,6 @@ namespace Content.Server.Voting.Managers
                 _reg = reg;
 
                 VotesPerOption = new VoteDict(reg);
-                OptionTexts = reg.Entries.Select(entry => entry.Text).ToArray();
             }
 
             public bool IsValidOption(int optionId)
@@ -720,70 +669,5 @@ namespace Content.Server.Voting.Managers
         }
 
         #endregion
-
-        private void ReceiveVoteAuditRequest(MsgVoteAuditRequest message)
-        {
-            var session = _playerManager.GetSessionByChannel(message.MsgChannel);
-            if (!_adminMgr.HasAdminFlag(session, AdminFlags.Moderator))
-                return;
-
-            var resp = new MsgVoteAuditResponse();
-
-            if (!message.WantInspect)
-            {
-                resp.IsInspect = false;
-                var entries = new List<VoteAuditEntry>();
-                foreach (var vote in ActiveVotes.OrderByDescending(v => v.Id).Take(15))
-                    entries.Add(new VoteAuditEntry { Id = vote.Id, Title = vote.Title, Initiator = vote.InitiatorText, Status = "ACTIVE" });
-                foreach (var vote in HistoricalVotes.Take(15))
-                    entries.Add(new VoteAuditEntry { Id = vote.Id, Title = vote.Title, Initiator = vote.InitiatorText, Status = vote.Cancelled ? "CANCELLED" : "FINISHED" });
-                resp.Votes = entries.ToArray();
-            }
-            else
-            {
-                resp.IsInspect = true;
-                if (TryGetVote(message.VoteId, out var activeVote))
-                {
-                    resp.InspectId = activeVote.Id;
-                    resp.InspectTitle = activeVote.Title;
-                    resp.InspectInitiator = activeVote.InitiatorText;
-                    resp.InspectStatus = "ACTIVE";
-                    var optMap = new Dictionary<int, List<string>>();
-                    for (var i = 0; i < activeVote.OptionTexts.Count; i++)
-                        optMap[i] = new List<string>();
-                    foreach (var (player, optId) in activeVote.CastVotes)
-                        if (optMap.TryGetValue(optId, out var list))
-                            list.Add(player.Name);
-                    resp.Options = activeVote.OptionTexts.Select((t, i) =>
-                        new VoteAuditOption { Text = t, Voters = optMap[i].OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToArray() }).ToArray();
-                }
-                else if (TryGetHistoricalVote(message.VoteId, out var histVote))
-                {
-                    resp.InspectId = histVote.Id;
-                    resp.InspectTitle = histVote.Title;
-                    resp.InspectInitiator = histVote.InitiatorText;
-                    resp.InspectStatus = histVote.Cancelled ? "CANCELLED" : "FINISHED";
-                    var optMap = new Dictionary<int, List<string>>();
-                    for (var i = 0; i < histVote.OptionTexts.Count; i++)
-                        optMap[i] = new List<string>();
-                    foreach (var cast in histVote.CastVotes)
-                        if (optMap.TryGetValue(cast.OptionId, out var list))
-                            list.Add(cast.PlayerName);
-                    resp.Options = histVote.OptionTexts.Select((t, i) =>
-                        new VoteAuditOption { Text = t, Voters = optMap[i].OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToArray() }).ToArray();
-                }
-                else
-                {
-                    resp.InspectId = message.VoteId;
-                    resp.InspectTitle = "Vote not found";
-                    resp.InspectInitiator = string.Empty;
-                    resp.InspectStatus = "UNKNOWN";
-                    resp.Options = Array.Empty<VoteAuditOption>();
-                }
-            }
-
-            _netManager.ServerSendMessage(resp, message.MsgChannel);
-        }
-
     }
 }

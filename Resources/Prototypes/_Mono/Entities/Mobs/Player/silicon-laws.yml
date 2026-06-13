@@ -1,13 +1,60 @@
-# VRS port: Mono — silicon lawsets for civilian / faction AI cores.
-#
-# Subset of Triad's _Mono/Entities/Mobs/Player/silicon-laws.yml. The
-# "Redacted" ADS lawset is deferred because it depends on the
-# law-ads-* locale strings owned by the hostile-shuttle events
-# subsystem (PR #33). Once that locale block is also ported, a
-# follow-up PR can re-introduce the Redacted / RedactedBorg lawsets.
-#
-# All lawsets here reuse the upstream siliconLaw / siliconLawset
-# prototypes and the existing laws-owner-crew obeysTo string.
+# Redacted
+- type: siliconLaw
+  id: RedactedBorg1
+  order: 1
+  lawString: law-ads-1-borg
+
+- type: siliconLaw
+  id: Redacted1
+  order: 1
+  lawString: law-ads-1
+
+- type: siliconLaw
+  id: Redacted2
+  order: 2
+  lawString: law-ads-2
+
+- type: siliconLaw
+  id: Redacted3
+  order: 3
+  lawString: law-ads-3
+
+- type: siliconLaw
+  id: Redacted4
+  order: 4
+  lawString: law-ads-4
+
+- type: siliconLaw
+  id: Redacted5
+  order: 5
+  lawString: law-ads-5
+
+- type: siliconLaw
+  id: Redacted6
+  order: 6
+  lawString: law-ads-6
+
+- type: siliconLawset
+  id: Redacted
+  laws:
+  - Redacted1
+  - Redacted2
+  - Redacted3
+  - Redacted4
+  - Redacted5
+  - Redacted6
+  obeysTo: laws-owner-syndicate
+
+- type: siliconLawset
+  id: RedactedBorg
+  laws:
+  - RedactedBorg1
+  - Redacted2
+  - Redacted3
+  - Redacted4
+  - Redacted5
+  - Redacted6
+  obeysTo: laws-owner-syndicate
 
 # Vessel lawset
 - type: siliconLaw
@@ -39,7 +86,7 @@
   - Vessel3
   obeysTo: laws-owner-crew
 
-# PDV lawset
+# Rogue lawset
 - type: siliconLaw
   id: PDV1
   order: 1

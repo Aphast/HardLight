@@ -9,25 +9,21 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Content.Shared.EntityTable.EntitySelectors;
 using Content.Shared.EntityTable;
-using Content.Server.Mind; // Frontier
-using Content.Server._NF.Roles.Systems; // Frontier
+using Content.Server.Station.Systems; // Frontier
+using Content.Server.Station.Components; // Frontier
 
-using Content.Server.Psionics.Glimmer;
-using Content.Shared.Psionics.Glimmer;
 namespace Content.Server.StationEvents;
 
-public sealed class EventManagerSystem : EntitySystem
+public sealed partial class EventManagerSystem : EntitySystem
 {
-    [Dependency] private readonly IConfigurationManager _configurationManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly EntityTableSystem _entityTable = default!;
-    [Dependency] public readonly GameTicker GameTicker = default!;
-    [Dependency] private readonly RoundEndSystem _roundEnd = default!;
-    [Dependency] private readonly JobTrackingSystem _jobs = default!; // Frontier
-    [Dependency] private readonly GlimmerSystem _glimmerSystem = default!; //Nyano - Summary: pulls in the glimmer system.
-
+    [Dependency] private IConfigurationManager _configurationManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private EntityTableSystem _entityTable = default!;
+    [Dependency] public GameTicker GameTicker = default!;
+    [Dependency] private RoundEndSystem _roundEnd = default!;
+    [Dependency] private StationJobsSystem _stationJobs = default!; // Frontier
 
     public bool EventsEnabled { get; private set; }
     private void SetEnabled(bool value) => EventsEnabled = value;
@@ -285,41 +281,17 @@ public sealed class EventManagerSystem : EntitySystem
             return false;
         }
 
-        // Frontier: require jobs to run event
+        // Frontier: require jobs to run event - TODO: actually count jobs, compare vs. numJobs
         foreach (var (jobProtoId, numJobs) in stationEvent.RequiredJobs)
         {
-            if (_jobs.GetNumberOfActiveRoles(jobProtoId, false) < numJobs)
-                return false;
-        }
-        // End Frontier
-
-        if (_roundEnd.IsRoundEndRequested() && !stationEvent.OccursDuringRoundEnd)
-        {
-            return false;
-        }
-
-        // Nyano - Summary: - Begin modified code block: check for glimmer events.
-        // This could not be cleanly done anywhere else.
-        if (_configurationManager.GetCVar(CCVars.GlimmerEnabled) &&
-            prototype.TryGetComponent<GlimmerEventComponent>(out var glimmerEvent) &&
-            (_glimmerSystem.Glimmer < glimmerEvent.MinimumGlimmer ||
-            _glimmerSystem.Glimmer > glimmerEvent.MaximumGlimmer))
-        {
-            return false;
-        }
-        // Nyano - End modified code block.
-
-        // Frontier: Check max players
-        if (playerCount > stationEvent.MaximumPlayers)
-        {
-            return false;
-        }
-
-        // Frontier: require jobs to run event
-        foreach (var (jobProtoId, numJobs) in stationEvent.RequiredJobs)
-        {
-            if (_jobs.GetNumberOfActiveRoles(jobProtoId, false) < numJobs)
-                return false;
+            var jobPrototype = _prototype.Index(jobProtoId);
+            var query = EntityQueryEnumerator<StationJobsComponent>();
+            while (query.MoveNext(out var station, out var comp))
+            {
+                // If a job slot is open, nobody has the job, or the player with the job should be leaving.
+                if (_stationJobs.TryGetJobSlot(station, jobPrototype, out var slots, comp) && slots >= 1)
+                    return false;
+            }
         }
         // End Frontier
 

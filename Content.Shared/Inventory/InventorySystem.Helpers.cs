@@ -7,7 +7,7 @@ namespace Content.Shared.Inventory;
 
 public partial class InventorySystem
 {
-    [Dependency] private readonly SharedStorageSystem _storageSystem = default!;
+    [Dependency] private SharedStorageSystem _storageSystem = default!;
 
     /// <summary>
     /// Yields all entities in hands or inventory slots with the specific flags.
@@ -138,5 +138,18 @@ public partial class InventorySystem
 
         //Try insert into hands, or drop on the floor
         _handsSystem.PickupOrDrop(entity, itemToSpawn, false);
+    }
+
+    // Goobstation
+    public bool TryGetContainingEntity(Entity<TransformComponent?, MetaDataComponent?> entity, [NotNullWhen(true)] out EntityUid? containingEntity)
+    {
+        if (!_containerSystem.TryGetContainingContainer(entity, out var container) || !HasComp<InventoryComponent>(container.Owner))
+        {
+            containingEntity = null;
+            return false;
+        }
+
+        containingEntity = container.Owner;
+        return true;
     }
 }

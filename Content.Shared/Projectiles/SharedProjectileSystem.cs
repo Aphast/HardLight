@@ -1,31 +1,3 @@
-// SPDX-FileCopyrightText: 2021 Vera Aguilera Puerto
-// SPDX-FileCopyrightText: 2021 metalgearsloth
-// SPDX-FileCopyrightText: 2022 wrexbe
-// SPDX-FileCopyrightText: 2023 AJCM-git
-// SPDX-FileCopyrightText: 2023 DrSmugleaf
-// SPDX-FileCopyrightText: 2023 KP
-// SPDX-FileCopyrightText: 2023 Kara
-// SPDX-FileCopyrightText: 2023 Leon Friedrich
-// SPDX-FileCopyrightText: 2023 Pieter-Jan Briers
-// SPDX-FileCopyrightText: 2023 PixelTK
-// SPDX-FileCopyrightText: 2023 Slava0135
-// SPDX-FileCopyrightText: 2023 deltanedas
-// SPDX-FileCopyrightText: 2023 deltanedas <@deltanedas:kde.org>
-// SPDX-FileCopyrightText: 2024 Arendian
-// SPDX-FileCopyrightText: 2024 Cojoke
-// SPDX-FileCopyrightText: 2024 Dakamakat
-// SPDX-FileCopyrightText: 2024 Nemanja
-// SPDX-FileCopyrightText: 2024 nikthechampiongr
-// SPDX-FileCopyrightText: 2024 slarticodefast
-// SPDX-FileCopyrightText: 2025 Ark
-// SPDX-FileCopyrightText: 2025 Ed
-// SPDX-FileCopyrightText: 2025 ScarKy0
-// SPDX-FileCopyrightText: 2025 SlamBamActionman
-// SPDX-FileCopyrightText: 2025 Whatstone
-// SPDX-FileCopyrightText: 2025 ark1368
-//
-// SPDX-License-Identifier: MPL-2.0
-
 using System.Numerics;
 using Content.Shared._RMC14.Weapons.Ranged.Prediction;
 using Content.Shared.Administration.Logs;
@@ -43,7 +15,6 @@ using Content.Shared.Inventory;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Movement.Events; // Mono
 using Content.Shared.Throwing;
-using Content.Shared.Tag;
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Systems;
 using Robust.Shared.Audio.Systems;
@@ -61,6 +32,10 @@ using Robust.Shared.Threading;
 using System.Collections.Concurrent;
 using Robust.Shared.Timing;
 using Content.Shared._Mono;
+using Content.Shared.Tag;
+using Robust.Shared.Configuration;
+using Content.Shared._Mono.CCVar;
+using Robust.Shared;
 
 namespace Content.Shared.Projectiles;
 
@@ -68,21 +43,21 @@ public abstract partial class SharedProjectileSystem : EntitySystem
 {
     public const string ProjectileFixture = "projectile";
 
-
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
-    [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedGunSystem _guns = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedCameraRecoilSystem _sharedCameraRecoil = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
-    private static readonly string GunCanAimShooterTag = "GunCanAimShooter";
-
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly INetManager _net = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private DamageableSystem _damageableSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedGunSystem _guns = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedCameraRecoilSystem _sharedCameraRecoil = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private TagSystem _tag = default!;
+    [Dependency] private IParallelManager _parallel = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private IConfigurationManager _cfg = default!; // Mono
 
     // Cache of projectiles waiting for collision checks
     private readonly ConcurrentQueue<(EntityUid Uid, ProjectileComponent Component, EntityUid Target)> _pendingCollisionChecks = new();
@@ -92,55 +67,54 @@ public abstract partial class SharedProjectileSystem : EntitySystem
     private TimeSpan _lastBatchProcess;
     private readonly TimeSpan _processingInterval = TimeSpan.FromMilliseconds(16); // ~60Hz
 
+    private float _minRaycastVelocity; // Mono
+    private bool _adaptiveRaycasting; // Mono
+    private const int BasePhysicsTickrate = 60; // Mono
+    private int _physicsTickrate; // Mono
+
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<ProjectileComponent, StartCollideEvent>(OnStartCollide);
         SubscribeLocalEvent<ProjectileComponent, PreventCollideEvent>(PreventCollision);
+        SubscribeLocalEvent<EmbeddableProjectileComponent, PreventCollideEvent>(EmbeddablePreventCollision); // Goobstation - Crawl Fix
         SubscribeLocalEvent<EmbeddableProjectileComponent, ProjectileHitEvent>(OnEmbedProjectileHit);
         SubscribeLocalEvent<EmbeddableProjectileComponent, ThrowDoHitEvent>(OnEmbedThrowDoHit);
         SubscribeLocalEvent<EmbeddableProjectileComponent, ActivateInWorldEvent>(OnEmbedActivate);
         SubscribeLocalEvent<EmbeddableProjectileComponent, RemoveEmbeddedProjectileEvent>(OnEmbedRemove);
-        SubscribeLocalEvent<EmbeddableProjectileComponent, ComponentShutdown>(OnEmbeddableCompShutdown);
-        SubscribeLocalEvent<EmbeddableProjectileComponent, PreventCollideEvent>(EmbeddablePreventCollision);
 
         SubscribeLocalEvent<EmbeddedContainerComponent, EntityTerminatingEvent>(OnEmbeddableTermination);
-        // Subscribe to ensure MetaDataComponent on projectile entities for networking
-        SubscribeLocalEvent<ProjectileComponent, ComponentStartup>(OnProjectileMetaStartup);
-
-        // HardLight: record the origin grid so ship-gun shells can phase through their own ship.
-        SubscribeLocalEvent<Content.Shared._Mono.ProjectileGridPhaseComponent, ComponentStartup>(OnProjectileGridPhaseStartup);
 
         // Mono
         SubscribeLocalEvent<ProjectileComponent, TileFrictionEvent>(OnTileFriction);
+
+        Subs.CVar(_cfg, MonoCVars.ProjectileRaycastSpeedThreshold, value => _minRaycastVelocity = value, true);
+        Subs.CVar(_cfg, MonoCVars.ProjectileAdaptiveRaycastThreshold, value => _adaptiveRaycasting = value, true);
+        Subs.CVar(_cfg, CVars.TargetMinimumTickrate, value => _physicsTickrate = value, true);
+        // Mono End
     }
 
     /// <summary>
-    /// HardLight: record the origin grid so the projectile can phase through it for its whole flight.
+    /// Mono: Handles whether a projectile is raycasted based off projectile speed.
     /// </summary>
-    private void OnProjectileGridPhaseStartup(EntityUid uid, Content.Shared._Mono.ProjectileGridPhaseComponent component, ComponentStartup args)
+    /// <param name="speed"></param>
+    /// <returns></returns>
+    public bool ShouldRaycastProjectile(float speed)
     {
-        component.SourceGrid = Transform(uid).GridUid;
-    }
+        if (_adaptiveRaycasting && speed > _minRaycastVelocity * (_physicsTickrate / BasePhysicsTickrate))
+            return true;
+        else if (speed > _minRaycastVelocity)
+            return true;
 
-    /// <summary>
-    /// Ensures that a MetaDataComponent exists on projectiles for network serialization.
-    /// </summary>
-    private void OnProjectileMetaStartup(EntityUid uid, ProjectileComponent component, ComponentStartup args)
-    {
-        // Check if the entity still exists before trying to add a component
-        if (!EntityManager.EntityExists(uid))
-            return;
-
-        EnsureComp<MetaDataComponent>(uid);
+        return false;
     }
 
     private void OnStartCollide(EntityUid uid, ProjectileComponent component, ref StartCollideEvent args)
     {
         // This is so entities that shouldn't get a collision are ignored.
         if (args.OurFixtureId != ProjectileFixture || !args.OtherFixture.Hard
-            || component.DamagedEntity || component.ProjectileSpent || component is { Weapon: null, OnlyCollideWhenShot: true })
+            || component.ProjectileSpent || component is { Weapon: null, OnlyCollideWhenShot: true })
             return;
 
         ProjectileCollide((uid, component, args.OurBody), args.OtherEntity);
@@ -154,13 +128,6 @@ public abstract partial class SharedProjectileSystem : EntitySystem
     public virtual DamageSpecifier? ProjectileCollide(Entity<ProjectileComponent, PhysicsComponent> projectile, EntityUid target, MapCoordinates? collisionCoordinates, bool predicted = false)
     {
         var (uid, component, ourBody) = projectile;
-        if (projectile.Comp1.DamagedEntity)
-        {
-            if (_net.IsServer && component.DeleteOnCollide)
-                QueueDel(uid);
-
-            return null;
-        }
 
         // it's here so this check is only done once before possible hit
         var attemptEv = new ProjectileReflectAttemptEvent(uid, component, false);
@@ -176,6 +143,14 @@ public abstract partial class SharedProjectileSystem : EntitySystem
         if (ev.Handled)
             return null;
 
+        if (projectile.Comp1.ProjectileSpent)
+        {
+            if (_net.IsServer && component.DeleteOnCollide)
+                QueueDel(uid);
+
+            return null;
+        }
+
         var coordinates = collisionCoordinates != null
             ? _transform.ToCoordinates(collisionCoordinates.Value)
             : Transform(projectile).Coordinates;
@@ -188,7 +163,8 @@ public abstract partial class SharedProjectileSystem : EntitySystem
                 ev.Damage,
                 component.IgnoreResistances,
                 origin: component.Shooter,
-                tool: uid) ?? new DamageSpecifier();
+                tool: uid,
+                armorPenetration: component.ArmorPenetration) ?? new DamageSpecifier();
         }
         else
         {
@@ -222,23 +198,21 @@ public abstract partial class SharedProjectileSystem : EntitySystem
             var shooterName = ToPrettyString(shooterOrWeapon);
             var targetName = ToPrettyString(target);
             var damageAmount = modifiedDamage.GetTotal();
-            /* _adminLogger.Add(LogType.BulletHit,
+            _adminLogger.Add(LogType.BulletHit,
                 HasComp<ActorComponent>(target) ? LogImpact.Extreme : LogImpact.High,
-                $"Projectile {projectileName:projectile} shot by {shooterName:source} hit {targetName:target} and dealt {damageAmount:damage} damage"); */
+                $"Projectile {projectileName:projectile} shot by {shooterName:source} hit {targetName:target} and dealt {damageAmount:damage} damage");
         }
 
         if (!deleted)
         {
             _guns.PlayImpactSound(target, modifiedDamage, component.SoundHit, component.ForceSound, filter, projectile);
-            _sharedCameraRecoil.KickCamera(target, direction);
+            _sharedCameraRecoil.KickCamera(target, float.IsNaN(direction.X) ? Vector2.Zero : direction);
         }
 
-        component.DamagedEntity = true;
         Dirty(uid, component);
-
-        if (!predicted && component.DeleteOnCollide && (_net.IsServer || IsClientSide(uid)))
+        if (!predicted && component.DeleteOnCollide && component.ProjectileSpent && (_net.IsServer || IsClientSide(uid)))
             QueueDel(uid);
-        else if (_net.IsServer && component.DeleteOnCollide)
+        else if (_net.IsServer && component.DeleteOnCollide && component.ProjectileSpent)
         {
             var predictedComp = EnsureComp<PredictedProjectileHitComponent>(uid);
             predictedComp.Origin = _transform.GetMoverCoordinates(coordinates);
@@ -311,10 +285,47 @@ public abstract partial class SharedProjectileSystem : EntitySystem
         // Clear processed set for next batch
         _processedProjectiles.Clear();
 
-        // Process collisions (currently sequential, parallel processing removed due to missing job implementation)
-        foreach (var (uid, component, target) in collisionChecks)
+        // Process collisions in parallel if enough work to justify it
+        if (collisionChecks.Count >= MinProjectilesForParallel)
         {
-            CheckShieldCollision(uid, component, target);
+            ProcessCollisionsParallel(collisionChecks);
+        }
+        else
+        {
+            // Process sequentially for small batches
+            foreach (var (uid, component, target) in collisionChecks)
+            {
+                CheckShieldCollision(uid, component, target);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Process collision checks in parallel
+    /// </summary>
+    private void ProcessCollisionsParallel(List<(EntityUid Uid, ProjectileComponent Component, EntityUid Target)> checks)
+    {
+        var results = new ConcurrentDictionary<EntityUid, bool>();
+
+        // Create job for parallel processing
+        var job = new ProjectileCollisionJob
+        {
+            ParentSystem = this,
+            ProjectileChecks = checks,
+            CollisionResults = results
+        };
+
+        // Process in parallel
+        _parallel.ProcessNow(job, checks.Count);
+
+        // Apply results
+        foreach (var (uid, shouldCancel) in results)
+        {
+            if (shouldCancel && TryComp<PhysicsComponent>(uid, out var physics))
+            {
+                _physics.SetLinearVelocity(uid, Vector2.Zero, body: physics);
+                RemComp<ProjectileComponent>(uid);
+            }
         }
     }
 
@@ -356,18 +367,14 @@ public abstract partial class SharedProjectileSystem : EntitySystem
 
     private void OnEmbedRemove(Entity<EmbeddableProjectileComponent> embeddable, ref RemoveEmbeddedProjectileEvent args)
     {
-        if (args.Cancelled)
+        // Whacky prediction issues.
+        if (args.Cancelled || _net.IsClient)
             return;
 
         EmbedDetach(embeddable, embeddable.Comp, args.User);
 
         // try place it in the user's hand
         _hands.TryPickupAnyHand(args.User, embeddable);
-    }
-
-    private void OnEmbeddableCompShutdown(Entity<EmbeddableProjectileComponent> embeddable, ref ComponentShutdown arg)
-    {
-        EmbedDetach(embeddable, embeddable.Comp);
     }
 
     private void OnEmbedThrowDoHit(Entity<EmbeddableProjectileComponent> embeddable, ref ThrowDoHitEvent args)
@@ -425,26 +432,19 @@ public abstract partial class SharedProjectileSystem : EntitySystem
         if (!Resolve(uid, ref component))
             return;
 
-        if (component.EmbeddedIntoUid is not null)
-        {
-            if (TryComp<EmbeddedContainerComponent>(component.EmbeddedIntoUid.Value, out var embeddedContainer))
-            {
-                embeddedContainer.EmbeddedObjects.Remove(uid);
-                Dirty(component.EmbeddedIntoUid.Value, embeddedContainer);
-                if (embeddedContainer.EmbeddedObjects.Count == 0)
-                    RemCompDeferred<EmbeddedContainerComponent>(component.EmbeddedIntoUid.Value);
-            }
-        }
-
-        if (component.DeleteOnRemove && _net.IsServer)
+        if (component.DeleteOnRemove)
         {
             QueueDel(uid);
             return;
         }
 
+        if (component.EmbeddedIntoUid is not null)
+        {
+            if (TryComp<EmbeddedContainerComponent>(component.EmbeddedIntoUid.Value, out var embeddedContainer))
+                embeddedContainer.EmbeddedObjects.Remove(uid);
+        }
+
         var xform = Transform(uid);
-        if (TerminatingOrDeleted(xform.GridUid) && TerminatingOrDeleted(xform.MapUid))
-            return;
         TryComp<PhysicsComponent>(uid, out var physics);
         _physics.SetBodyType(uid, BodyType.Dynamic, body: physics, xform: xform);
         _transform.AttachToGridOrMap(uid, xform);
@@ -489,21 +489,30 @@ public abstract partial class SharedProjectileSystem : EntitySystem
 
     private void PreventCollision(EntityUid uid, ProjectileComponent component, ref PreventCollideEvent args)
     {
-        if (component.IgnoreShooter && (args.OtherEntity == component.Shooter || args.OtherEntity == component.Weapon))
-        {
-            args.Cancelled = true;
-        }
+        // Goobstation - Crawling fix
+        if (TryComp<RequireProjectileTargetComponent>(args.OtherEntity, out var requireTarget) && requireTarget.IgnoreThrow && requireTarget.Active)
+            return;
 
-        // HardLight: ship-gun shells phase through every entity on their origin grid (hull, shield,
-        // turrets) for their whole flight, so they never collide with / get slowed by their own ship.
-        if (TryComp<Content.Shared._Mono.ProjectileGridPhaseComponent>(uid, out var phaseComp)
-            && phaseComp.SourceGrid is { } sourceGrid
-            && Transform(args.OtherEntity).GridUid == sourceGrid)
+        if (component.IgnoreShooter && (args.OtherEntity == component.Shooter || args.OtherEntity == component.Weapon))
         {
             args.Cancelled = true;
             return;
         }
 
+        // Get transforms once for subsequent checks to avoid repeated calls
+        var projectileXform = Transform(uid);
+        var targetXform = Transform(args.OtherEntity);
+
+        // Add collision check to queue for batch processing if we have enough
+        if (_pendingCollisionChecks.Count >= MinProjectilesForParallel / 2)
+        {
+            _pendingCollisionChecks.Enqueue((uid, component, args.OtherEntity));
+
+            // Assume collision for now - if shield check passes, we'll handle it in the batch process
+            return;
+        }
+
+        // For low volume, process immediately
         // Check if any shield system wants to prevent collision
         var ev = new ProjectileCollisionAttemptEvent(uid, args.OtherEntity);
         RaiseLocalEvent(ref ev);
@@ -515,24 +524,25 @@ public abstract partial class SharedProjectileSystem : EntitySystem
         }
 
         // Check if target and projectile are on different maps/z-levels
-        var projectileXform = Transform(uid);
-        var targetXform = Transform(args.OtherEntity);
         if (projectileXform.MapID != targetXform.MapID)
         {
             args.Cancelled = true;
             return;
         }
 
-            if ((component.Shooter == args.OtherEntity || component.Weapon == args.OtherEntity) &&
+        // Define the tag constant
+        const string GunCanAimShooterTag = "GunCanAimShooter";
+
+        if ((component.Shooter == args.OtherEntity || component.Weapon == args.OtherEntity) &&
             component.Weapon != null && _tag.HasTag(component.Weapon.Value, GunCanAimShooterTag) &&
-            TryComp<TargetedProjectileComponent>(uid, out var targeted) && EntityManager.GetEntity(targeted.Target) == args.OtherEntity)
+            TryComp(uid, out TargetedProjectileComponent? targeted) && targeted.Target == args.OtherEntity)
             return;
     }
 
     // Goobstation - Crawling fix
     private void EmbeddablePreventCollision(EntityUid uid, EmbeddableProjectileComponent component, ref PreventCollideEvent args)
     {
-        if (TryComp<RequireProjectileTargetComponent>(args.OtherEntity, out var requireTarget) && requireTarget?.Active == true)
+        if (TryComp<RequireProjectileTargetComponent>(args.OtherEntity, out var requireTarget) && requireTarget.IgnoreThrow && requireTarget.Active)
             args.Cancelled = true;
     }
 
@@ -552,7 +562,7 @@ public abstract partial class SharedProjectileSystem : EntitySystem
     }
 
     [Serializable, NetSerializable]
-    private sealed partial class RemoveEmbeddedProjectileEvent : DoAfterEvent
+    public sealed partial class RemoveEmbeddedProjectileEvent : DoAfterEvent
     {
         public override DoAfterEvent Clone() => this;
     }
@@ -584,6 +594,11 @@ public record struct ProjectileReflectAttemptEvent(EntityUid ProjUid, Projectile
 public record struct ProjectileHitEvent(DamageSpecifier Damage, EntityUid Target, EntityUid? Shooter = null, bool Handled = false);
 
 /// <summary>
+/// Mono - raised when a projectile is spent
+/// </summary>
+public record struct ProjectileSpentEvent();
+
+/// <summary>
 /// Raised when a projectile is about to collide with an entity, allowing systems to prevent the collision
 /// </summary>
 [ByRefEvent]
@@ -593,4 +608,30 @@ public record struct ProjectileCollisionAttemptEvent(EntityUid Projectile, Entit
     /// Whether the collision should be cancelled
     /// </summary>
     public bool Cancelled = false;
+}
+
+// Parallel job implementation for processing projectile collisions
+public class ProjectileCollisionJob : IParallelRobustJob
+{
+    public SharedProjectileSystem ParentSystem = default!;
+    public List<(EntityUid Uid, ProjectileComponent Component, EntityUid Target)> ProjectileChecks = default!;
+    public ConcurrentDictionary<EntityUid, bool> CollisionResults = default!;
+
+    // Process a reasonable number of projectiles in each thread
+    public int BatchSize => 16; // Hardcoded value instead of ProjectileBatchSize
+    public int MinimumBatchParallel => 2;
+
+    public void Execute(int index)
+    {
+        if (index >= ProjectileChecks.Count)
+            return;
+
+        var (uid, component, target) = ProjectileChecks[index];
+
+        // Check if shield prevents collision
+        bool cancelled = ParentSystem.CheckShieldCollision(uid, component, target);
+
+        // Store result
+        CollisionResults[uid] = cancelled;
+    }
 }

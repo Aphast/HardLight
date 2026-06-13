@@ -13,19 +13,20 @@ namespace Content.Client.Shuttles.UI;
 public sealed partial class ShuttleConsoleWindow : FancyWindow,
     IComputerWindow<ShuttleBoundUserInterfaceState>
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
 
     private ShuttleConsoleMode _mode = ShuttleConsoleMode.Nav;
 
     public event Action<MapCoordinates, Angle>? RequestFTL;
     public event Action<NetEntity, Angle>? RequestBeaconFTL;
-    public event Action<NetEntity, Angle>? RequestStationFTL;
-    public event Action? ActivateExpeditionDisk;
-    public event Action? EndExpedition;
-    public event Action? ActivateWEP; // HL
+
+    // Mono
+    public event Action<MapCoordinates, Angle>? RequestAutopilot;
 
     public event Action<NetEntity, NetEntity>? DockRequest;
     public event Action<NetEntity>? UndockRequest;
+    public event Action<List<NetEntity>>? UndockAllRequest;
+    public event Action<List<NetEntity>, bool>? ToggleFTLLockRequest;
 
     public ShuttleConsoleWindow()
     {
@@ -57,9 +58,10 @@ public sealed partial class ShuttleConsoleWindow : FancyWindow,
             RequestBeaconFTL?.Invoke(ent, angle);
         };
 
-        MapContainer.RequestStationFTL += (ent, angle) =>
+        // Mono
+        MapContainer.RequestAutopilot += (coords, angle) =>
         {
-            RequestStationFTL?.Invoke(ent, angle);
+            RequestAutopilot?.Invoke(coords, angle);
         };
 
         DockContainer.DockRequest += (entity, netEntity) =>
@@ -72,9 +74,15 @@ public sealed partial class ShuttleConsoleWindow : FancyWindow,
             UndockRequest?.Invoke(entity);
         };
 
-        NavContainer.ActivateExpeditionDisk += () => ActivateExpeditionDisk?.Invoke();
-        NavContainer.EndExpedition += () => EndExpedition?.Invoke();
-        NavContainer.ActivateWEP += () => ActivateWEP?.Invoke(); // HL
+        DockContainer.UndockAllRequest += dockEntities =>
+        {
+            UndockAllRequest?.Invoke(dockEntities);
+        };
+
+        DockContainer.ToggleFTLLockRequest += (dockEntities, enabled) =>
+        {
+            ToggleFTLLockRequest?.Invoke(dockEntities, enabled);
+        };
 
         NfInitialize(); // Frontier Initialization for the ShuttleConsoleWindow
     }
@@ -157,7 +165,7 @@ public sealed partial class ShuttleConsoleWindow : FancyWindow,
         MapContainer.SetShuttle(coordinates?.EntityId);
         MapContainer.SetConsole(owner);
 
-        NavContainer.UpdateState(cState.NavState, cState.ExpeditionDiskState, cState.WepActive, cState.WepCooldownExpiry); // HL
+        NavContainer.UpdateState(cState.NavState);
         MapContainer.UpdateState(cState.MapState);
         DockContainer.UpdateState(coordinates?.EntityId, cState.DockState);
     }

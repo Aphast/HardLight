@@ -18,16 +18,16 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Implants;
 
-public abstract class SharedImplanterSystem : EntitySystem
+public abstract partial class SharedImplanterSystem : EntitySystem
 {
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly ItemSlotsSystem _itemSlots = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-    [Dependency] private readonly SharedUserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private ItemSlotsSystem _itemSlots = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private DamageableSystem _damageableSystem = default!;
+    [Dependency] private SharedUserInterfaceSystem _uiSystem = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
 
     public override void Initialize()
     {
@@ -255,7 +255,7 @@ public abstract class SharedImplanterSystem : EntitySystem
                 }
                 else
                 {
-                    DrawCatastrophicFailure(implanter, component, user);
+                    DrawFailure(implanter, target, user);
                 }
             }
 
@@ -264,7 +264,7 @@ public abstract class SharedImplanterSystem : EntitySystem
         }
         else
         {
-            DrawCatastrophicFailure(implanter, component, user);
+            DrawFailure(implanter, target, user);
         }
     }
 
@@ -287,12 +287,10 @@ public abstract class SharedImplanterSystem : EntitySystem
         RaiseLocalEvent(target, ref ev);
     }
 
-    private void DrawCatastrophicFailure(EntityUid implanter, ImplanterComponent component, EntityUid user)
+    private void DrawFailure(EntityUid implant, EntityUid target, EntityUid user) // Mono - removed backfire
     {
-        _damageableSystem.TryChangeDamage(user, component.DeimplantFailureDamage, ignoreResistances: true, origin: implanter);
-        var userName = Identity.Entity(user, EntityManager);
-        var failedCatastrophicallyMessage = Loc.GetString("implanter-draw-failed-catastrophically", ("user", userName));
-        _popup.PopupEntity(failedCatastrophicallyMessage, user, PopupType.MediumCaution);
+        var failedMessage = Loc.GetString("implanter-draw-failed");
+        _popup.PopupEntity(failedMessage, target, user);
     }
 
     private void ImplantMode(EntityUid uid, ImplanterComponent component)
@@ -371,6 +369,22 @@ public sealed class AddImplantAttemptEvent : CancellableEntityEventArgs
         Implanter = implanter;
     }
 }
+
+
+[Serializable, NetSerializable]
+public sealed class DeimplantBuiState : BoundUserInterfaceState
+{
+    public readonly string? Implant;
+
+    public Dictionary<string, string> ImplantList;
+
+    public DeimplantBuiState(string? implant, Dictionary<string, string> implantList)
+    {
+        Implant = implant;
+        ImplantList = implantList;
+    }
+}
+
 
 /// <summary>
 /// Change the chosen implanter in the UI.

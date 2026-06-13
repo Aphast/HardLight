@@ -10,7 +10,7 @@ namespace Content.Shared.Throwing
         ///     The entity that threw <see cref="Thrown"/>.
         /// </summary>
         public EntityUid? User { get; }
-        // End Nyano code.
+        // End Nyano code. 
         public readonly EntityUid Thrown;
         public readonly EntityUid Target;
         public ThrownItemComponent Component;
@@ -39,7 +39,7 @@ namespace Content.Shared.Throwing
     /// </summary>
     public sealed class ThrowDoHitEvent : ThrowEvent
     {
-        public ThrowDoHitEvent(EntityUid? user, EntityUid thrown, EntityUid target, ThrownItemComponent component) : base(user, thrown, target, component) //Nyano - Summary: User added.
+        public ThrowDoHitEvent(EntityUid thrown, EntityUid target, ThrownItemComponent component) : base(null, thrown, target, component) //Nyano - Summary: User added.
         {
         }
     }

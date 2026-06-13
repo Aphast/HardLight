@@ -39,6 +39,7 @@ public sealed partial class DungeonJob : Job<List<Dungeon>>
     private readonly EntityLookupSystem _lookup;
     private readonly TagSystem _tags;
     private readonly TileSystem _tile;
+    private readonly TurfSystem _turf;
     private readonly SharedMapSystem _maps;
     private readonly SharedTransformSystem _transform;
 
@@ -55,7 +56,7 @@ public sealed partial class DungeonJob : Job<List<Dungeon>>
     private readonly EntityCoordinates? _targetCoordinates;
 
     private readonly ISawmill _sawmill;
-    private readonly string _genID; // Frontier: add ID
+    private readonly string _genId; // Frontier: add ID
 
     public DungeonJob(
         ISawmill sawmill,
@@ -68,6 +69,7 @@ public sealed partial class DungeonJob : Job<List<Dungeon>>
         DungeonSystem dungeon,
         EntityLookupSystem lookup,
         TileSystem tile,
+        TurfSystem turf,
         SharedTransformSystem transform,
         DungeonConfig gen,
         MapGridComponent grid,
@@ -88,6 +90,7 @@ public sealed partial class DungeonJob : Job<List<Dungeon>>
         _dungeon = dungeon;
         _lookup = lookup;
         _tile = tile;
+        _turf = turf;
         _tags = _entManager.System<TagSystem>();
         _maps = _entManager.System<SharedMapSystem>();
         _transform = transform;
@@ -101,7 +104,7 @@ public sealed partial class DungeonJob : Job<List<Dungeon>>
         _seed = seed;
         _position = position;
         _targetCoordinates = targetCoordinates;
-        _genID = genID; // Frontier
+        _genId = genID; // Frontier
     }
 
     /// <summary>
@@ -147,7 +150,7 @@ public sealed partial class DungeonJob : Job<List<Dungeon>>
 
     protected override async Task<List<Dungeon>?> Process()
     {
-        _sawmill.Info($"Generating dungeon {_genID} with seed {_seed} on {_entManager.ToPrettyString(_gridUid)}"); // Frontier: _gen<_genID
+        _sawmill.Info($"Generating dungeon {_genId} with seed {_seed} on {_entManager.ToPrettyString(_gridUid)}"); // Frontier: _gen<_genId
         _grid.CanSplit = false;
         var random = new Random(_seed);
         var position = (_position + random.NextPolarVector2(_gen.MinOffset, _gen.MaxOffset)).Floored();

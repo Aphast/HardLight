@@ -1,5 +1,7 @@
+using System.Linq;
 using Content.Shared.Light.Components;
 using Content.Shared.Light.EntitySystems;
+using Content.Shared.Maps;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
@@ -9,15 +11,16 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared.Weather;
 
-public abstract class SharedWeatherSystem : EntitySystem
+public abstract partial class SharedWeatherSystem : EntitySystem
 {
-    [Dependency] protected readonly IGameTiming Timing = default!;
-    [Dependency] protected readonly IMapManager MapManager = default!;
-    [Dependency] protected readonly IPrototypeManager ProtoMan = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedMapSystem _mapSystem = default!;
-    [Dependency] private readonly SharedRoofSystem _roof = default!;
+    [Dependency] protected IGameTiming Timing = default!;
+    [Dependency] protected IMapManager MapManager = default!;
+    [Dependency] protected IPrototypeManager ProtoMan = default!;
+    [Dependency] private ITileDefinitionManager _tileDefManager = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedMapSystem _mapSystem = default!;
+    [Dependency] private SharedRoofSystem _roof = default!;
 
     private EntityQuery<BlockWeatherComponent> _blockQuery;
 
@@ -25,7 +28,9 @@ public abstract class SharedWeatherSystem : EntitySystem
     {
         base.Initialize();
         _blockQuery = GetEntityQuery<BlockWeatherComponent>();
+
         SubscribeLocalEvent<WeatherComponent, EntityUnpausedEvent>(OnWeatherUnpaused);
+        SubscribeLocalEvent<WeatherComponent, ComponentShutdown>(OnWeatherRemoved);
     }
 
     private void OnWeatherUnpaused(EntityUid uid, WeatherComponent component, ref EntityUnpausedEvent args)
@@ -44,10 +49,12 @@ public abstract class SharedWeatherSystem : EntitySystem
         if (tileRef.Tile.IsEmpty)
             return true;
 
-        if (Resolve(uid, ref roofComp, false) && _roof.IsWeatherOccluding((uid, grid, roofComp), tileRef.GridIndices))
+        if (Resolve(uid, ref roofComp, false) && _roof.IsRooved((uid, grid, roofComp), tileRef.GridIndices))
             return false;
 
-        if (HasComp<ImplicitRoofComponent>(uid))
+        var tileDef = (ContentTileDefinition) _tileDefManager[tileRef.Tile.TypeId];
+
+        if (!tileDef.Weather)
             return false;
 
         var anchoredEntities = _mapSystem.GetAnchoredEntitiesEnumerator(uid, grid, tileRef.GridIndices);
@@ -135,9 +142,9 @@ public abstract class SharedWeatherSystem : EntitySystem
                     var elapsed = Timing.CurTime - startTime;
 
                     if (elapsed < WeatherComponent.StartupTime)
-                    {
                         SetState(uid, WeatherState.Starting, comp, weather, weatherProto);
-                    }
+                    else
+                        SetState(uid, WeatherState.Running, comp, weather, weatherProto);
                 }
 
                 // Run whatever code we need.
@@ -207,15 +214,15 @@ public abstract class SharedWeatherSystem : EntitySystem
         Dirty(uid, component);
     }
 
-    protected virtual void EndWeather(EntityUid uid, WeatherComponent component, string proto)
+    protected virtual WeatherData? EndWeather(EntityUid uid, WeatherComponent component, ProtoId<WeatherPrototype> proto)
     {
         if (!component.Weather.TryGetValue(proto, out var data))
-            return;
+            return null;
 
-        _audio.Stop(data.Stream);
-        data.Stream = null;
         component.Weather.Remove(proto);
         Dirty(uid, component);
+
+        return data;
     }
 
     protected virtual bool SetState(EntityUid uid, WeatherState state, WeatherComponent component, WeatherData weather, WeatherPrototype weatherProto)
@@ -227,6 +234,8 @@ public abstract class SharedWeatherSystem : EntitySystem
         Dirty(uid, component);
         return true;
     }
+
+    private void OnWeatherRemoved(Entity<WeatherComponent> weatherEnt, ref ComponentShutdown args) => weatherEnt.Comp.Weather.ToList().ForEach(w => EndWeather(weatherEnt.Owner, weatherEnt.Comp, w.Key));
 
     [Serializable, NetSerializable]
     protected sealed class WeatherComponentState : ComponentState

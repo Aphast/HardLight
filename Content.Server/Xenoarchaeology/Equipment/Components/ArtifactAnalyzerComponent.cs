@@ -15,9 +15,23 @@ public sealed partial class ArtifactAnalyzerComponent : Component
 {
     /// <summary>
     /// How long it takes to analyze an artifact
+	  /// MONO: Changed AnalyisDuration >> BaseAnalysisDuration
     /// </summary>
-    [DataField("analysisDuration", customTypeSerializer: typeof(TimespanSerializer))]
-    public TimeSpan AnalysisDuration = TimeSpan.FromSeconds(30);
+    [DataField("baseanalysisDuration", customTypeSerializer: typeof(TimespanSerializer))]
+    public TimeSpan BaseAnalysisDuration = TimeSpan.FromSeconds(10); // Mono 30 > 10
+	
+	/// <summary>
+    /// MONO: Machine part handler for upgradeable analysis duration
+    /// </summary>
+	
+	[DataField("partRatingDurationMultiplier")]
+	public float PartRatingDurationMultiplier = 0.75f;
+	
+	[DataField("machinePartDuration")]
+	public string MachinePartDuration = "Capacitor";
+	
+	[ViewVariables(VVAccess.ReadWrite)]
+	public TimeSpan AnalysisDuration;
 
     /// <summary>
     /// The corresponding console entity.
@@ -42,16 +56,5 @@ public sealed partial class ArtifactAnalyzerComponent : Component
     [ViewVariables(VVAccess.ReadWrite)]
     public int? LastAnalyzerPointValue;
     #endregion
-    
-    // Machine Part Properties for upgrades
-    [DataField("machinePartExtractRatio", customTypeSerializer: typeof(PrototypeIdSerializer<MachinePartPrototype>))]
-    public string MachinePartExtractRatio = "Manipulator";
-    
-    [DataField]
-    public float ExtractRatio = 1.0f;
-    
-    [DataField]
-    public float PartRatingExtractRatioMultiplier = 1.5f;
-    
     public float OriginalLoad { get; set; } = 0; // Frontier
 }

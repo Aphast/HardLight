@@ -1,15 +1,13 @@
 - type: technology
   id: MercArmementAdvanced
   name: research-technology-merc-armement-advanced
-  icon:
-    sprite: _Mono/Objects/Weapons/Guns/SMGs/vector.rsi
-    state: icon
-  entityIcon: WeaponSubMachineGunWt550
+  entityIcon: WeaponLMGRatel
   discipline: Arsenal
   tier: 2
   cost: 25000
   recipeUnlocks:
   - WeaponLMGRatel
+  - WeaponRifleIroh
   - WeaponShotgunBigBuddy
   technologyPrerequisites:
   - MercArmementSimple
@@ -19,9 +17,6 @@
 - type: technology
   id: MercArmementSimple
   name: research-technology-merc-armement-simple
-  icon:
-    sprite: _Mono/Objects/Weapons/Guns/SMGs/vector.rsi
-    state: icon
   entityIcon: WeaponSubMachineGunVector9x19mm
   discipline: Arsenal
   tier: 2
@@ -36,26 +31,36 @@
   - WeaponSubMachineGunWt550
   - WeaponRiflePrometheus
   - WeaponRifleVulcanFCMC
-  - WeaponShotgunKammerer
+  - WeaponShotgunKammererNF
   technologyPrerequisites:
   - BasicParts
   position: 2, 1
-  
+
 - type: technology
   id: AdvancedMeleeCombatOptions
   name: research-technology-advanced-melee-combat-options
-  icon:
-    sprite: _Mono/Objects/Weapons/Melee/radax.rsi
-    state: icon
   entityIcon: WeaponRadAx
   discipline: Arsenal
   tier: 3
   cost: 15000
   recipeUnlocks:
-  - WeaponRadAx
+  - WeaponRadAx # Monolith
   - HardlightShield
   - WeaponShockMaul
   technologyPrerequisites:
   - AdvancedRiotControl
   - SuperParts
-  position: 5, 2
+  position: 4, 2
+
+- type: technology
+  id: DroneResearch
+  name: research-technology-drones-1
+  entityIcon: ShipVoucherTsfT0
+  discipline: Arsenal
+  tier: 3
+  cost: 15000
+  recipeUnlocks:
+  - BalorDroneVoucherMerc
+  technologyPrerequisites:
+  - UniversalMaterialResearchT1
+  position: 9, -2

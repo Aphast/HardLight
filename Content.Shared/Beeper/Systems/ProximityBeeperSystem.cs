@@ -10,9 +10,9 @@ namespace Content.Shared.Beeper.Systems;
 /// <summary>
 /// This handles controlling a beeper from proximity detector events.
 /// </summary>
-public sealed class ProximityBeeperSystem : EntitySystem
+public sealed partial class ProximityBeeperSystem : EntitySystem
 {
-    [Dependency] private readonly BeeperSystem _beeper = default!;
+    [Dependency] private BeeperSystem _beeper = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -31,12 +31,7 @@ public sealed class ProximityBeeperSystem : EntitySystem
             return;
         }
 
-        // Frontier: minimum range for beeper
-        if (args.Distance <= proxBeeper.MinRange)
-            _beeper.SetIntervalScaling(owner, 0, beeper);
-        else
-            _beeper.SetIntervalScaling(owner, (args.Distance - proxBeeper.MinRange) / (args.Detector.Range - proxBeeper.MinRange), beeper);
-        // End Frontier
+        _beeper.SetIntervalScaling(owner, args.Distance / args.Detector.Range, beeper);
         _beeper.SetMute(owner, false, beeper);
     }
 

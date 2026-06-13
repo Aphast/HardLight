@@ -1,7 +1,11 @@
-loadout-group-tsfmc-weapon = primary weapon
-loadout-group-tsfmc-magazine = magazine
-
-loadout-group-mercenary-weapon = primary weapon
-loadout-group-mercenary-pistol = sidearm
-loadout-group-mercenary-magazine = magazine
-loadout-group-contractor-id = identification
+loadout-group-weapon = firearm
+loadout-group-weapon-civilian = self-defense weapon
+loadout-group-pistol = sidearm
+loadout-group-magazine = ammunition
+loadout-group-pistol-magazine = sidearm ammunition
+loadout-group-special-gun = special gun
+loadout-group-contractor-balaclava = balaclava
+loadout-group-ussp-jumpsuit = USSP Jumpsuit
+loadout-group-ussp-head = USSP Headgear
+loadout-group-ussp-outerclothing = USSP Outerclothing
+loadout-group-ussp-backpack = USSP Backpack

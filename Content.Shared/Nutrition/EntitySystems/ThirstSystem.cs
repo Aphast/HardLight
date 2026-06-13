@@ -14,20 +14,23 @@ using System.Diagnostics.CodeAnalysis;
 namespace Content.Shared.Nutrition.EntitySystems;
 
 [UsedImplicitly]
-public sealed class ThirstSystem : EntitySystem
+public sealed partial class ThirstSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly AlertsSystem _alerts = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _movement = default!;
-    [Dependency] private readonly SharedJetpackSystem _jetpack = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private AlertsSystem _alerts = default!;
+    [Dependency] private MovementSpeedModifierSystem _movement = default!;
+    [Dependency] private SharedJetpackSystem _jetpack = default!;
 
-    private static readonly ProtoId<SatiationIconPrototype> ThirstIconOverhydratedId = "ThirstIconOverhydrated";
+    [ValidatePrototypeId<SatiationIconPrototype>]
+    private const string ThirstIconOverhydratedId = "ThirstIconOverhydrated";
 
-    private static readonly ProtoId<SatiationIconPrototype> ThirstIconThirstyId = "ThirstIconThirsty";
+    [ValidatePrototypeId<SatiationIconPrototype>]
+    private const string ThirstIconThirstyId = "ThirstIconThirsty";
 
-    private static readonly ProtoId<SatiationIconPrototype> ThirstIconParchedId = "ThirstIconParched";
+    [ValidatePrototypeId<SatiationIconPrototype>]
+    private const string ThirstIconParchedId = "ThirstIconParched";
 
     public override void Initialize()
     {
@@ -46,16 +49,12 @@ public sealed class ThirstSystem : EntitySystem
             component.CurrentThirst = _random.Next(
                 (int) component.ThirstThresholds[ThirstThreshold.Thirsty] + 10,
                 (int) component.ThirstThresholds[ThirstThreshold.Okay] - 1);
-
-            DirtyField(uid, component, nameof(ThirstComponent.CurrentThirst));
         }
         component.NextUpdateTime = _timing.CurTime;
         component.CurrentThirstThreshold = GetThirstThreshold(component, component.CurrentThirst);
         component.LastThirstThreshold = ThirstThreshold.Okay; // TODO: Potentially change this -> Used Okay because no effects.
         // TODO: Check all thresholds make sense and throw if they don't.
         UpdateEffects(uid, component);
-
-        DirtyFields(uid, component, null, nameof(ThirstComponent.NextUpdateTime), nameof(ThirstComponent.CurrentThirstThreshold), nameof(ThirstComponent.LastThirstThreshold));
 
         TryComp(uid, out MovementSpeedModifierComponent? moveMod);
             _movement.RefreshMovementSpeedModifiers(uid, moveMod);
@@ -104,7 +103,7 @@ public sealed class ThirstSystem : EntitySystem
             component.ThirstThresholds[ThirstThreshold.OverHydrated]
         );
 
-        DirtyField(uid, component, nameof(ThirstComponent.CurrentThirst));
+        EntityManager.DirtyField(uid, component, nameof(ThirstComponent.CurrentThirst));
     }
 
     private bool IsMovementThreshold(ThirstThreshold threshold)
@@ -164,9 +163,6 @@ public sealed class ThirstSystem : EntitySystem
         {
             _alerts.ClearAlertCategory(uid, component.ThirstyCategory);
         }
-
-        DirtyField(uid, component, nameof(ThirstComponent.LastThirstThreshold));
-        DirtyField(uid, component, nameof(ThirstComponent.ActualDecayRate));
 
         switch (component.CurrentThirstThreshold)
         {

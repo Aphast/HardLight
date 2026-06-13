@@ -1,4 +1,3 @@
-using System.Linq;
 using Content.Server.Access.Systems;
 using Content.Server.Administration.Logs;
 using Content.Server.CriminalRecords.Systems;
@@ -20,15 +19,16 @@ namespace Content.Server.IdentityManagement;
 /// <summary>
 ///     Responsible for updating the identity of an entity on init or clothing equip/unequip.
 /// </summary>
-public sealed class IdentitySystem : SharedIdentitySystem
+public sealed partial class IdentitySystem : SharedIdentitySystem
 {
-    [Dependency] private readonly IdCardSystem _idCard = default!;
-    [Dependency] private readonly IAdminLogManager _adminLog = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly HumanoidAppearanceSystem _humanoid = default!;
-    [Dependency] private readonly CriminalRecordsConsoleSystem _criminalRecordsConsole = default!;
-    [Dependency] private readonly GrammarSystem _grammarSystem = default!;
+    [Dependency] private IdCardSystem _idCard = default!;
+    [Dependency] private IAdminLogManager _adminLog = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private HumanoidAppearanceSystem _humanoid = default!;
+    [Dependency] private CriminalRecordsConsoleSystem _criminalRecordsConsole = default!;
+    [Dependency] private GrammarSystem _grammarSystem = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!; // Goobstation - Update component state on component toggle
 
     private HashSet<EntityUid> _queuedIdentityUpdates = new();
 
@@ -43,32 +43,24 @@ public sealed class IdentitySystem : SharedIdentitySystem
         SubscribeLocalEvent<IdentityComponent, WearerMaskToggledEvent>((uid, _, _) => QueueIdentityUpdate(uid));
         SubscribeLocalEvent<IdentityComponent, EntityRenamedEvent>((uid, _, _) => QueueIdentityUpdate(uid));
         SubscribeLocalEvent<IdentityComponent, MapInitEvent>(OnMapInit);
+
+        SubscribeLocalEvent<IdentityBlockerComponent, ComponentInit>(BlockerUpdateIdentity); // Goobstation - Update component state on component toggle
+        SubscribeLocalEvent<IdentityBlockerComponent, ComponentRemove>(BlockerUpdateIdentity); // Goobstation - Update component state on component toggle
     }
 
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
 
-        if (_queuedIdentityUpdates.Count == 0)
-            return;
-
-        var queuedUpdates = _queuedIdentityUpdates.ToArray();
-        _queuedIdentityUpdates.Clear();
-
-        foreach (var ent in queuedUpdates)
+        foreach (var ent in _queuedIdentityUpdates)
         {
-            try
-            {
-                if (!TryComp<IdentityComponent>(ent, out var identity))
-                    continue;
+            if (!TryComp<IdentityComponent>(ent, out var identity))
+                continue;
 
-                UpdateIdentityInfo(ent, identity);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to update identity info for {ToPrettyString(ent)}: {ex}");
-            }
+            UpdateIdentityInfo(ent, identity);
         }
+
+        _queuedIdentityUpdates.Clear();
     }
 
     // This is where the magic happens
@@ -109,13 +101,6 @@ public sealed class IdentitySystem : SharedIdentitySystem
         if (identity.IdentityEntitySlot.ContainedEntity is not { } ident)
             return;
 
-        if (TerminatingOrDeleted(uid)
-            || TerminatingOrDeleted(ident)
-            || !TryComp<MetaDataComponent>(ident, out _))
-        {
-            return;
-        }
-
         var representation = GetIdentityRepresentation(uid);
         var name = GetIdentityName(uid, representation);
 
@@ -132,7 +117,7 @@ public sealed class IdentitySystem : SharedIdentitySystem
 
             // If presumed name is null and we're using that, we set proper noun to be false ("the old woman")
             if (name != representation.TrueName && representation.PresumedName == null)
-                _grammarSystem.SetProperNoun((ident, identityGrammar), false);
+                _grammarSystem.SetProperNoun((uid, grammar), false);
 
             Dirty(ident, identityGrammar);
         }
@@ -203,6 +188,17 @@ public sealed class IdentitySystem : SharedIdentitySystem
 
         // If it didn't find a job, that's fine.
         return new(trueName, gender, ageString, presumedName, presumedJob);
+    }
+
+    // Goobstation - Update component state on component toggle
+    private void BlockerUpdateIdentity(EntityUid uid, IdentityBlockerComponent component, EntityEventArgs args)
+    {
+        var target = uid;
+
+        if (_inventorySystem.TryGetContainingEntity(uid, out var containing))
+            target = containing.Value;
+
+        QueueIdentityUpdate(target);
     }
 
     #endregion

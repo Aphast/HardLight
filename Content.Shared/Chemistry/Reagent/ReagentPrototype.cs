@@ -6,12 +6,10 @@ using Content.Shared.Administration.Logs;
 using Content.Shared.Body.Prototypes;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.Reaction;
-using Content.Shared.Contraband;
 using Content.Shared.EntityEffects;
 using Content.Shared.Database;
 using Content.Shared.Nutrition;
 using Content.Shared.Prototypes;
-using Content.Shared.Roles;
 using Content.Shared.Slippery;
 using Robust.Shared.Audio;
 using Robust.Shared.Map;
@@ -58,25 +56,6 @@ namespace Content.Shared.Chemistry.Reagent
 
         [ViewVariables(VVAccess.ReadOnly)]
         public string LocalizedPhysicalDescription => Loc.GetString(PhysicalDescription);
-
-        /// <summary>
-        ///     The degree of contraband severity this reagent is considered to have.
-        ///     If AllowedDepartments or AllowedJobs are set, they take precedent and override this value.
-        /// </summary>
-        [DataField]
-        public ProtoId<ContrabandSeverityPrototype>? ContrabandSeverity = null;
-
-        /// <summary>
-        ///     Which departments is this reagent restricted to, if any?
-        /// </summary>
-        [DataField]
-        public HashSet<ProtoId<DepartmentPrototype>> AllowedDepartments = new();
-
-        /// <summary>
-        ///     Which jobs is this reagent restricted to, if any?
-        /// </summary>
-        [DataField]
-        public HashSet<ProtoId<JobPrototype>> AllowedJobs = new();
 
         /// <summary>
         ///     Is this reagent recognizable to the average spaceman (water, welding fuel, ketchup, etc)?
@@ -140,27 +119,6 @@ namespace Content.Shared.Chemistry.Reagent
         public bool Absorbent = false;
 
         /// <summary>
-        /// HardLight: If set, this reagent will immediately convert into the specified reagent
-        /// when contained somewhere that does not preserve spoilage-sensitive reagents.
-        /// </summary>
-        [DataField]
-        public ProtoId<ReagentPrototype>? SpoilsInto;
-
-        /// <summary>
-        /// HardLight: How long this reagent can remain in an invalid storage context before spoiling.
-        /// Zero means it spoils immediately.
-        /// </summary>
-        [DataField]
-        public TimeSpan SpoilTime = TimeSpan.Zero;
-
-        /// <summary>
-        /// HardLight: Whether containers marked as preserving spoilage-sensitive reagents prevent this reagent from spoiling.
-        /// Synth bodies still count as valid hosts regardless.
-        /// </summary>
-        [DataField]
-        public bool PreservedBySpoilageContainers = true;
-
-        /// <summary>
         /// How easily this reagent becomes fizzy when aggitated.
         /// 0 - completely flat, 1 - fizzes up when nudged.
         /// </summary>
@@ -186,6 +144,12 @@ namespace Content.Shared.Chemistry.Reagent
         /// </summary>
         [DataField]
         public bool WorksOnTheDead;
+        
+        /// <summary>
+        /// How likely is this reagent to set on fire?
+        /// </summary>
+        [DataField]
+        public int Flammability = 0;
 
         [DataField(serverOnly: true)]
         public FrozenDictionary<ProtoId<MetabolismGroupPrototype>, ReagentEffectsEntry>? Metabolisms;
@@ -204,9 +168,6 @@ namespace Content.Shared.Chemistry.Reagent
 
         [DataField]
         public SoundSpecifier FootstepSound = new SoundCollectionSpecifier("FootstepWater", AudioParams.Default.WithVolume(6));
-
-        [DataField]
-        public bool IsNourishing; // The Den
 
         public FixedPoint2 ReactionTile(TileRef tile, FixedPoint2 reactVolume, IEntityManager entityManager, List<ReagentData>? data)
         {

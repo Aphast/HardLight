@@ -1,4 +1,4 @@
-<tabs:GraphicsTab xmlns="https://spacestation14.io"
+﻿<tabs:GraphicsTab xmlns="https://spacestation14.io"
           xmlns:tabs="clr-namespace:Content.Client.Options.UI.Tabs"
           xmlns:ui="clr-namespace:Content.Client.Options.UI">
     <BoxContainer Orientation="Vertical">
@@ -32,9 +32,6 @@
                 <!-- Misc -->
                 <Label Text="{Loc 'ui-options-misc-label'}" StyleClasses="LabelKeyText"/>
                 <CheckBox Name="FpsCounterCheckBox" Text="{Loc 'ui-options-fps-counter'}" />
-                <CheckBox Name="ShowStructureSmoothingCheckBox" Text="{Loc 'ui-options-show-structure-smoothing'}" />
-                <CheckBox Name="ShowCyborgSubtypesCheckBox" Text="{Loc 'ui-options-show-cyborg-subtypes'}" />
-                <CheckBox Name="ShowAphrodisiacEffectsCheckBox" Text="{Loc 'ui-options-show-aphrodisiac-effects'}" />
             </BoxContainer>
         </ScrollContainer>
         <ui:OptionsTabControlRow Name="Control" Access="Public" />

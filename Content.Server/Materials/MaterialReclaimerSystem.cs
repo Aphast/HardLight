@@ -3,6 +3,7 @@ using Content.Server.Administration.Logs;
 using Content.Server.Fluids.EntitySystems;
 using Content.Server.Ghost;
 using Content.Server.Popups;
+using Content.Shared.Repairable;
 using Content.Server.Stack;
 using Content.Server.Wires;
 using Content.Shared.Body.Systems;
@@ -19,32 +20,29 @@ using Content.Shared.Materials;
 using Content.Shared.Mind;
 using Content.Shared.Nutrition.EntitySystems;
 using Content.Shared.Power;
-using Content.Shared.Repairable;
-using Content.Shared.Stacks;
 using Robust.Server.GameObjects;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 using System.Linq;
-using Content.Shared.Humanoid;
 
 namespace Content.Server.Materials;
 
 /// <inheritdoc/>
-public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
+public sealed partial class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
 {
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly GhostSystem _ghostSystem = default!;
-    [Dependency] private readonly MaterialStorageSystem _materialStorage = default!;
-    [Dependency] private readonly OpenableSystem _openable = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
-    [Dependency] private readonly SharedBodySystem _body = default!; //bobby
-    [Dependency] private readonly PuddleSystem _puddle = default!;
-    [Dependency] private readonly StackSystem _stack = default!;
-    [Dependency] private readonly SharedMindSystem _mind = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private GhostSystem _ghostSystem = default!;
+    [Dependency] private MaterialStorageSystem _materialStorage = default!;
+    [Dependency] private OpenableSystem _openable = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainer = default!;
+    [Dependency] private SharedBodySystem _body = default!; //bobby
+    [Dependency] private PuddleSystem _puddle = default!;
+    [Dependency] private StackSystem _stack = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -200,15 +198,11 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
 
         var xform = Transform(uid);
 
-        // Frontier: industrial reagent grinder shouldn't process materials, it processes reagents and double counts the results.
-        if (component.ProcessMaterials)
-            SpawnMaterialsFromComposition(uid, item, completion * component.Efficiency, xform: xform);
-        // End Frontier
+        SpawnMaterialsFromComposition(uid, item, completion * component.Efficiency, xform: xform);
 
         if (CanGib(uid, item, component))
         {
-            var logImpact = HasComp<HumanoidAppearanceComponent>(item) ? LogImpact.Extreme : LogImpact.Medium;
-            _adminLogger.Add(LogType.Gib, logImpact, $"{ToPrettyString(item):victim} was gibbed by {ToPrettyString(uid):entity} ");
+            _adminLogger.Add(LogType.Gib, LogImpact.Extreme, $"{ToPrettyString(item):victim} was gibbed by {ToPrettyString(uid):entity} ");
             SpawnChemicalsFromComposition(uid, item, completion, false, component, xform);
             _body.GibBody(item, true);
             _appearance.SetData(uid, RecyclerVisuals.Bloody, true);
@@ -234,13 +228,9 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
         if (!Resolve(item, ref composition, false))
             return;
 
-        var stackCount = 1;
-        if (TryComp<StackComponent>(item, out var materialStackComp))
-            stackCount = materialStackComp.Count;
-
         foreach (var (material, amount) in composition.MaterialComposition)
         {
-            var outputAmount = (int) (amount * efficiency * stackCount);
+            var outputAmount = (int) (amount * efficiency);
             _materialStorage.TryChangeMaterialAmount(reclaimer, material, outputAmount, storage);
         }
 
@@ -252,9 +242,9 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
                 out var materialOverflow);
             var amountConsumed = storedAmount - materialOverflow;
             _materialStorage.TryChangeMaterialAmount(reclaimer, storedMaterial, -amountConsumed, storage);
-            foreach (var stackEnt in stacks)
+            foreach (var stack in stacks)
             {
-                _stack.TryMergeToContacts(stackEnt);
+                _stack.TryMergeToContacts(stack);
             }
         }
     }
@@ -272,10 +262,6 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
 
         efficiency *= reclaimerComponent.Efficiency;
 
-        var stackCount = 1;
-        if (TryComp<StackComponent>(item, out var materialStackComp))
-            stackCount = materialStackComp.Count;
-
         var totalChemicals = new Solution();
 
         if (Resolve(item, ref composition, false))
@@ -283,7 +269,7 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
             foreach (var (key, value) in composition.ChemicalComposition)
             {
                 // TODO use ReagentQuantity
-                totalChemicals.AddReagent(key, value * efficiency * stackCount, false);
+                totalChemicals.AddReagent(key, value * efficiency, false);
             }
         }
 
@@ -293,12 +279,13 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
         if (reclaimerComponent.UseOldSolutionLogic &&
             TryComp<SolutionContainerManagerComponent>(item, out var solutionContainer))
         {
-            var solutionScale = efficiency * stackCount;
             foreach (var (_, soln) in _solutionContainer.EnumerateSolutions((item, solutionContainer)))
             {
                 var solution = soln.Comp.Solution;
-                solution.ScaleSolution(solutionScale); // Scale in situ, entity will be destroyed.
-                totalChemicals.AddSolution(solution, _prototype);
+                foreach (var quantity in solution.Contents)
+                {
+                    totalChemicals.AddReagent(quantity.Reagent.Prototype, quantity.Quantity * efficiency, false);
+                }
             }
         }
         // End Frontier: use old material reclaimer code
@@ -307,10 +294,6 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
             // Are we a recycler? Only use drainable solution.
             if (_solutionContainer.TryGetDrainableSolution(item, out _, out var drainableSolution))
             {
-                // Frontier: respect stacks and efficiency
-                var solutionScale = efficiency * stackCount;
-                drainableSolution.ScaleSolution(solutionScale); // Scale in situ, entity will be destroyed.
-                // End Frontier
                 totalChemicals.AddSolution(drainableSolution, _prototype);
             }
         }
@@ -319,10 +302,6 @@ public sealed class MaterialReclaimerSystem : SharedMaterialReclaimerSystem
             // Are we an industrial reagent grinder? Use extractable solution.
             if (_solutionContainer.TryGetExtractableSolution(item, out _, out var extractableSolution))
             {
-                // Frontier: respect stacks and efficiency
-                var solutionScale = efficiency * stackCount;
-                extractableSolution.ScaleSolution(solutionScale); // Scale in situ, entity will be destroyed.
-                // End Frontier
                 totalChemicals.AddSolution(extractableSolution, _prototype);
             }
         }

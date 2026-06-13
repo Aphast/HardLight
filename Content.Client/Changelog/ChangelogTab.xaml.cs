@@ -17,8 +17,8 @@ namespace Content.Client.Changelog;
 [GenerateTypedNameReferences]
 public sealed partial class ChangelogTab : Control
 {
-    [Dependency] private readonly ChangelogManager _changelog = default!;
-    [Dependency] private readonly IResourceCache _resourceCache = default!;
+    [Dependency] private ChangelogManager _changelog = default!;
+    [Dependency] private IResourceCache _resourceCache = default!;
 
     public bool AdminOnly;
 
@@ -131,13 +131,13 @@ public sealed partial class ChangelogTab : Control
                     Margin = new Thickness(6, 0, 0, 0),
                 };
                 authorLabel.SetMessage(
-                    FormattedMessage.FromMarkupOrThrow(Loc.GetString("changelog-author-changed", ("author", FormattedMessage.EscapeText(author)))));
+                    FormattedMessage.FromMarkupOrThrow(Loc.GetString("changelog-author-changed", ("author", author))));
                 ChangelogBody.AddChild(authorLabel);
 
                 foreach (var change in groupedEntry.SelectMany(c => c.Changes))
                 {
                     var text = new RichTextLabel();
-                    text.SetMessage(FormattedMessage.FromUnformatted(change.Message));
+                    text.SetMessage(FormattedMessage.FromMarkupOrThrow(change.Message));
                     ChangelogBody.AddChild(new BoxContainer
                     {
                         Orientation = LayoutOrientation.Horizontal,

@@ -50,7 +50,7 @@ public sealed class ObjectiveLimitSystem : EntitySystem
     /// </summary>
     public bool HasObjective(EntityUid mindId, string proto, MindComponent? mind = null)
     {
-        if (!Resolve(mindId, ref mind, false))
+        if (!Resolve(mindId, ref mind))
             return false;
 
         foreach (var objective in mind.Objectives)

@@ -1,7 +1,8 @@
 - type: entity
   id: BaseCartridge762x39mm
-  name: cartridge (762x39mm FMJ)
-  parent: [ BaseCartridge, BaseC1Contraband ] # Frontier: BaseSecurityContraband<BaseC1Contraband
+  name: cartridge (7.62x39mm FMJ)
+  parent: BaseCartridge
+  description: Originating from over 400 years ago, this round has seen use in the rifles of multiple militias and militaries alike.
   abstract: true
   components:
   - type: Tag
@@ -10,9 +11,8 @@
     - Cartridge762x39mmFMJ
   - type: CartridgeAmmo
     proto: Bullet762x39mmFMJ
-    deleteOnSpawn: true
   - type: Sprite
-    sprite: Objects/Weapons/Guns/Ammunition/Casings/ammo_casing.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Casings/rifle_ammo_casing_steel.rsi
     layers:
     - state: base
       map: ["enum.AmmoVisualLayers.Base"]
@@ -23,7 +23,7 @@
 
 - type: entity
   id: Cartridge762x39mmFMJ
-  name: cartridge (762x39mm FMJ)
+  name: cartridge (7.62x39mm FMJ)
   parent: BaseCartridge762x39mm
   components:
   - type: CartridgeAmmo
@@ -31,7 +31,7 @@
 
 - type: entity
   id: Cartridge762x39mmPractice
-  name: cartridge (762x39mm practice)
+  name: cartridge (7.62x39mm practice)
   parent: BaseCartridge762x39mm
   components:
   - type: CartridgeAmmo
@@ -41,11 +41,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#dbdbdb"
 
 - type: entity
   id: Cartridge762x39mmIncendiary
-  name: cartridge (762x39mm incendiary)
+  name: cartridge (7.62x39mm incendiary)
   parent: BaseCartridge762x39mm
   components:
   - type: CartridgeAmmo
@@ -55,11 +56,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#ff6e52"
 
 - type: entity
   id: Cartridge762x39mmUranium
-  name: cartridge (762x39mm uranium)
+  name: cartridge (7.62x39mm uranium)
   parent: BaseCartridge762x39mm
   components:
   - type: CartridgeAmmo
@@ -69,11 +71,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#65fe08"
 
 - type: entity
   id: Cartridge762x39mmRubber
-  name: cartridge (762x39mm rubber)
+  name: cartridge (7.62x39mm rubber)
   parent: BaseCartridge762x39mm
   components:
   - type: CartridgeAmmo
@@ -83,11 +86,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#43c4f7"
 
 - type: entity
   id: Cartridge762x39mmSubsonic
-  name: cartridge (762x39mm subsonic)
+  name: cartridge (7.62x39mm subsonic)
   parent: BaseCartridge762x39mm
   components:
   - type: Tag
@@ -102,4 +106,54 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#00f8ff"
+
+# Mono AP syst
+#anti-flesh:
+- type: entity
+  id: Cartridge762x39mmHP
+  name: cartridge (7.62x39mm hollow-point)
+  parent: BaseCartridge762x39mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet762x39mmHP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#90EE90"
+
+- type: entity
+  id: Cartridge762x39mmRIP
+  name: cartridge (7.62x39mm RIP)
+  parent: BaseCartridge762x39mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet762x39mmRIP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#C04000"
+
+#armor-piercing:
+
+- type: entity
+  id: Cartridge762x39mmPlasteelAP
+  name: cartridge (7.62x39mm AP)
+  parent: BaseCartridge762x39mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet762x39mmPlasteelAP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#888888"

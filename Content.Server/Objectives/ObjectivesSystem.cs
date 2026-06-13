@@ -12,39 +12,29 @@ using Robust.Shared.Random;
 using System.Linq;
 using System.Text;
 using Content.Server.Objectives.Commands;
-using Content.Shared.CCVar;
 using Content.Shared.Prototypes;
 using Content.Shared.Roles.Jobs;
 using Robust.Server.Player;
-using Robust.Shared.Configuration;
 using Robust.Shared.Utility;
-using Content.Shared._NF.CCVar; // Frontier
 
 namespace Content.Server.Objectives;
 
-public sealed class ObjectivesSystem : SharedObjectivesSystem
+public sealed partial class ObjectivesSystem : SharedObjectivesSystem
 {
-    [Dependency] private readonly GameTicker _gameTicker = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly EmergencyShuttleSystem _emergencyShuttle = default!;
-    [Dependency] private readonly SharedJobSystem _job = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
+    [Dependency] private GameTicker _gameTicker = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private EmergencyShuttleSystem _emergencyShuttle = default!;
+    [Dependency] private SharedJobSystem _job = default!;
 
     private IEnumerable<string>? _objectives;
-
-    private bool _showGreentext;
-    private bool _showObjectives; // Frontier: hide objectives
 
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<RoundEndTextAppendEvent>(OnRoundEndText);
-
-        Subs.CVar(_cfg, CCVars.GameShowGreentext, value => _showGreentext = value, true);
-        Subs.CVar(_cfg, NFCCVars.GameShowObjectives, value => _showObjectives = value, true); // Frontier
 
         _prototypeManager.PrototypesReloaded += CreateCompletions;
     }
@@ -61,16 +51,12 @@ public sealed class ObjectivesSystem : SharedObjectivesSystem
     /// </summary>
     private void OnRoundEndText(RoundEndTextAppendEvent ev)
     {
-        // Frontier: hide objectives
-        if (!_showObjectives)
-            return;
-
         // go through each gamerule getting data for the roundend summary.
         var summaries = new Dictionary<string, Dictionary<string, List<(EntityUid, string)>>>();
         var query = EntityQueryEnumerator<GameRuleComponent>();
         while (query.MoveNext(out var uid, out var gameRule))
         {
-            if (!_gameTicker.IsGameRuleActive(uid, gameRule))
+            if (!_gameTicker.IsGameRuleAdded(uid, gameRule))
                 continue;
 
             var info = new ObjectivesTextGetInfoEvent(new List<(EntityUid, string)>(), string.Empty);
@@ -176,11 +162,7 @@ public sealed class ObjectivesSystem : SharedObjectivesSystem
                     totalObjectives++;
 
                     agentSummary.Append("- ");
-                    if (!_showGreentext)
-                    {
-                        agentSummary.AppendLine(objectiveTitle);
-                    }
-                    else if (progress > 0.99f)
+                    if (progress > 0.99f)
                     {
                         agentSummary.AppendLine(Loc.GetString(
                             "objectives-objective-success",
@@ -250,7 +232,7 @@ public sealed class ObjectivesSystem : SharedObjectivesSystem
     /// </summary>
     private bool IsInCustody(EntityUid mindId, MindComponent? mind = null)
     {
-        if (mind == null && !TryComp(mindId, out mind))
+        if (!Resolve(mindId, ref mind))
             return false;
 
         // Ghosting will not save you
@@ -262,8 +244,7 @@ public sealed class ObjectivesSystem : SharedObjectivesSystem
                    && _emergencyShuttle.IsTargetEscaping(originalEntity.Value);
         }
 
-         return originalEntityInCustody || (mind.OwnedEntity != null
-             && TryComp<CuffableComponent>(mind.OwnedEntity, out var cuffed) && cuffed.CuffedHandCount > 0
+        return originalEntityInCustody || (TryComp<CuffableComponent>(mind.OwnedEntity, out var cuffed) && cuffed.CuffedHandCount > 0
                && _emergencyShuttle.IsTargetEscaping(mind.OwnedEntity.Value));
     }
 

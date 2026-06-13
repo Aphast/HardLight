@@ -5,9 +5,9 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Localizations
 {
-    public sealed class ContentLocalizationManager
+    public sealed partial class ContentLocalizationManager
     {
-        [Dependency] private readonly ILocalizationManager _loc = default!;
+        [Dependency] private ILocalizationManager _loc = default!;
 
         // If you want to change your codebase's language, do it here.
         private const string Culture = "en-US";
@@ -31,7 +31,6 @@ namespace Content.Shared.Localizations
             _loc.AddFunction(culture, "PRESSURE", FormatPressure);
             _loc.AddFunction(culture, "POWERWATTS", FormatPowerWatts);
             _loc.AddFunction(culture, "POWERJOULES", FormatPowerJoules);
-            // NOTE: ENERGYWATTHOURS() still takes a value in joules, but formats as watt-hours.
             _loc.AddFunction(culture, "ENERGYWATTHOURS", FormatEnergyWattHours);
             _loc.AddFunction(culture, "UNITS", FormatUnits);
             _loc.AddFunction(culture, "TOSTRING", args => FormatToString(culture, args));

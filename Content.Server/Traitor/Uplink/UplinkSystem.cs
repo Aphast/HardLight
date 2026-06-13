@@ -13,16 +13,17 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Server.Traitor.Uplink;
 
-public sealed class UplinkSystem : EntitySystem
+public sealed partial class UplinkSystem : EntitySystem
 {
-    [Dependency] private readonly InventorySystem _inventorySystem = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly StoreSystem _store = default!;
-    [Dependency] private readonly SharedSubdermalImplantSystem _subdermalImplant = default!;
-    [Dependency] private readonly SharedMindSystem _mind = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private StoreSystem _store = default!;
+    [Dependency] private SharedSubdermalImplantSystem _subdermalImplant = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
 
-    public static readonly ProtoId<CurrencyPrototype> TelecrystalCurrencyPrototype = new("Telecrystal");
+    [ValidatePrototypeId<CurrencyPrototype>]
+    public const string TelecrystalCurrencyPrototype = "Telecrystal";
     private const string FallbackUplinkImplant = "UplinkImplant";
     private const string FallbackUplinkCatalog = "UplinkUplinkImplanter";
 

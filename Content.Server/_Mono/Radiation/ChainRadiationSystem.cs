@@ -1,20 +1,18 @@
 using Content.Server.Explosion.EntitySystems;
 using Content.Server.Radiation.Components;
 using Content.Server.Radiation.Events;
+using Content.Server.Radiation.Systems;
+using Content.Shared.Explosion.Components;
 using Content.Shared.Radiation.Components;
 
 namespace Content.Server._Mono.Radiation;
 
-/// <summary>
-/// Cascading-radiation reactor: as the entity receives radiation it emits more,
-/// and once a threshold is exceeded it explodes (and tries to drag any nearby
-/// chain-radiation entities into the same explosion). Ported from Mono.
-/// </summary>
-public sealed class ChainRadiationSystem : EntitySystem
+public sealed partial class ChainRadiationSystem : EntitySystem
 {
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly ExplosionSystem _explosion = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private ExplosionSystem _explosion = default!;
+    [Dependency] private RadiationSystem _radiation = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
     public override void Initialize()
     {
@@ -49,16 +47,12 @@ public sealed class ChainRadiationSystem : EntitySystem
 
     private void Explode(Entity<ChainRadiationComponent> ent)
     {
-        // VRS: ExplosiveComponent has been locked to SharedExplosionSystem access, so
-        // mutate parameters via QueueExplosion directly instead of writing to the
-        // component as Mono originally did.
-        _explosion.QueueExplosion(
-            ent,
-            ent.Comp.ExplosionType,
-            ent.Comp.TotalIntensity,
-            ent.Comp.IntensitySlope,
-            ent.Comp.MaxIntensity);
+        var explosive = EnsureComp<ExplosiveComponent>(ent);
 
-        QueueDel(ent.Owner);
+        explosive.TotalIntensity = ent.Comp.TotalIntensity;
+        explosive.IntensitySlope = ent.Comp.IntensitySlope;
+        explosive.MaxIntensity = ent.Comp.MaxIntensity;
+
+        _explosion.TriggerExplosive(ent, explosive);
     }
 }

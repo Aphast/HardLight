@@ -1,6 +1,7 @@
 using System.Linq;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Components;
+using Content.Shared.Mobs;
 using Content.Shared.Stacks;
 using Content.Shared.Whitelist;
 using JetBrains.Annotations;
@@ -15,14 +16,14 @@ namespace Content.Shared.Materials;
 /// This handles storing materials and modifying their amounts
 /// <see cref="MaterialStorageComponent"/>
 /// </summary>
-public abstract class SharedMaterialStorageSystem : EntitySystem
+public abstract partial class SharedMaterialStorageSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
-    [Dependency] private readonly SharedStackSystem _sharedStackSystem = default!; // Frontier
+    [Dependency] private SharedStackSystem _sharedStackSystem = default!; // Frontier
 
     /// <summary>
     /// Default volume for a sheet if the material's entity prototype has no material composition.
@@ -86,7 +87,8 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
     /// <param name="localOnly"></param>
     /// <returns>The volume of the material</returns>
     [PublicAPI]
-    public int GetMaterialAmount(EntityUid uid, MaterialPrototype material, MaterialStorageComponent? component = null, bool localOnly = false)
+    public int GetMaterialAmount(EntityUid uid, MaterialPrototype material, MaterialStorageComponent? component = null,
+        bool localOnly = false)
     {
         return GetMaterialAmount(uid, material.ID, component, localOnly);
     }
@@ -99,7 +101,8 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
     /// <param name="component"></param>
     /// <param name="localOnly"></param>
     /// <returns>The volume of the material</returns>
-    public int GetMaterialAmount(EntityUid uid, string material, MaterialStorageComponent? component = null, bool localOnly = false)
+    public int GetMaterialAmount(EntityUid uid, string material, MaterialStorageComponent? component = null,
+        bool localOnly = false)
     {
         if (!Resolve(uid, ref component))
             return 0; //you have nothing
@@ -120,7 +123,6 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
         return GetStoredMaterials((uid, component), localOnly).Values.Sum();
     }
 
-    // TODO: Revisit this if we ever decide to do things with storage limits. As it stands, the feature is unused.
     /// <summary>
     /// Tests if a specific amount of volume will fit in the storage.
     /// </summary>
@@ -159,7 +161,8 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
     /// <param name="component"></param>
     /// <param name="localOnly"></param>
     /// <returns>If the amount can be changed</returns>
-    public bool CanChangeMaterialAmount(EntityUid uid, string materialId, int volume, MaterialStorageComponent? component = null, bool localOnly = false)
+    public bool CanChangeMaterialAmount(EntityUid uid, string materialId, int volume, MaterialStorageComponent? component = null,
+        bool localOnly = false)
     {
         if (!Resolve(uid, ref component))
             return false;
@@ -191,7 +194,6 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
 
         if (!CanTakeVolume(entity, inVolume, entity.Comp))
             return false;
-
         foreach (var (material, amount) in materials)
         {
             if (!IsMaterialWhitelisted(entity, material))
@@ -219,10 +221,8 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
     {
         if (!Resolve(uid, ref component))
             return false;
-
         if (!CanChangeMaterialAmount(uid, materialId, volume, component, localOnly))
             return false;
-
         var changeEv = new ConsumeStoredMaterialsEvent((uid, component), new() {{materialId, volume}}, localOnly);
         RaiseLocalEvent(uid, ref changeEv);
         var remaining = changeEv.Materials.Values.First();
@@ -257,7 +257,6 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
     {
         return TryChangeMaterialAmount(entity, materials.Select(p => (new ProtoId<MaterialPrototype>(p.Key), p.Value)).ToDictionary(), localOnly);
     }
-
     /// <summary>
     /// Changes the amount of a specific material in the storage.
     /// Still respects the filters in place.
@@ -326,35 +325,6 @@ public abstract class SharedMaterialStorageSystem : EntitySystem
         var curAmount = GetMaterialAmount(uid, materialId, component);
         var delta = volume - curAmount;
         return TryChangeMaterialAmount(uid, materialId, delta, component);
-    }
-
-    public virtual bool CanInsertMaterialEntity(
-
-        EntityUid toInsert,
-        EntityUid receiver,
-        MaterialStorageComponent? storage = null,
-        MaterialComponent? material = null,
-        PhysicalCompositionComponent? composition = null
-    )
-    {
-        if (!Resolve(receiver, ref storage)
-            || !Resolve(toInsert, ref material, ref composition, false)
-            || _whitelistSystem.IsWhitelistFail(storage.Whitelist, toInsert)
-            || HasComp<UnremoveableComponent>(toInsert))
-            return false;
-
-        // Material Whitelist checked implicitly by CanChangeMaterialAmount();
-
-        var multiplier = TryComp<StackComponent>(toInsert, out var stackComponent) ? stackComponent.Count : 1;
-        var totalVolume = 0;
-        foreach (var (mat, vol) in composition.MaterialComposition)
-        {
-            if (!CanChangeMaterialAmount(receiver, mat, vol * multiplier, storage))
-                return false;
-            totalVolume += vol * multiplier;
-        }
-
-        return CanTakeVolume(receiver, totalVolume, storage);
     }
 
     /// <summary>

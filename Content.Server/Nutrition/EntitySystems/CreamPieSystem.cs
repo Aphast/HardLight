@@ -19,14 +19,14 @@ using Robust.Shared.Player;
 namespace Content.Server.Nutrition.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class CreamPieSystem : SharedCreamPieSystem
+    public sealed partial class CreamPieSystem : SharedCreamPieSystem
     {
-        [Dependency] private readonly SharedSolutionContainerSystem _solutions = default!;
-        [Dependency] private readonly PuddleSystem _puddle = default!;
-        [Dependency] private readonly ItemSlotsSystem _itemSlots = default!;
-        [Dependency] private readonly TriggerSystem _trigger = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly PopupSystem _popup = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutions = default!;
+        [Dependency] private PuddleSystem _puddle = default!;
+        [Dependency] private ItemSlotsSystem _itemSlots = default!;
+        [Dependency] private TriggerSystem _trigger = default!;
+        [Dependency] private SharedAudioSystem _audio = default!;
+        [Dependency] private PopupSystem _popup = default!;
 
         public override void Initialize()
         {
@@ -93,16 +93,13 @@ namespace Content.Server.Nutrition.EntitySystems
 
         protected override void CreamedEntity(EntityUid uid, CreamPiedComponent creamPied, ThrowHitByEvent args)
         {
-            _popup.PopupEntity(Loc.GetString("cream-pied-component-on-hit-by-message",
-                                            ("thrown", Identity.Entity(args.Thrown, EntityManager))),
-                                            uid, args.Target);
-
-            var otherPlayers = Filter.PvsExcept(uid);
-
-            _popup.PopupEntity(Loc.GetString("cream-pied-component-on-hit-by-message-others",
-                                            ("owner", Identity.Entity(uid, EntityManager)),
-                                            ("thrown", Identity.Entity(args.Thrown, EntityManager))),
-                                            uid, otherPlayers, false);
+            _popup.PopupEntity(Loc.GetString("cream-pied-component-on-hit-by-message", ("thrower", args.Thrown)), uid, args.Target);
+            var otherPlayers = Filter.Empty().AddPlayersByPvs(uid);
+            if (TryComp<ActorComponent>(args.Target, out var actor))
+            {
+                otherPlayers.RemovePlayer(actor.PlayerSession);
+            }
+            _popup.PopupEntity(Loc.GetString("cream-pied-component-on-hit-by-message-others", ("owner", Identity.Name(uid, EntityManager)), ("thrower", args.Thrown)), uid, otherPlayers, false);
         }
 
         private void OnRejuvenate(Entity<CreamPiedComponent> entity, ref RejuvenateEvent args)

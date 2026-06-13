@@ -9,12 +9,12 @@ using Robust.Shared.Timing;
 
 namespace Content.Client.Flash
 {
-    public sealed class FlashOverlay : Overlay
+    public sealed partial class FlashOverlay : Overlay
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly IGameTiming _timing = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
+        [Dependency] private IGameTiming _timing = default!;
 
         private readonly SharedFlashSystem _flash;
         private readonly StatusEffectsSystem _statusSys;
@@ -27,12 +27,10 @@ namespace Content.Client.Flash
         public FlashOverlay()
         {
             IoCManager.InjectDependencies(this);
-            _shader = _prototypeManager.Index(FlashedEffectShaderId).InstanceUnique();
+            _shader = _prototypeManager.Index<ShaderPrototype>("FlashedEffect").InstanceUnique();
             _flash = _entityManager.System<SharedFlashSystem>();
             _statusSys = _entityManager.System<StatusEffectsSystem>();
         }
-
-    private static readonly ProtoId<ShaderPrototype> FlashedEffectShaderId = "FlashedEffect";
 
         protected override void FrameUpdate(FrameEventArgs args)
         {

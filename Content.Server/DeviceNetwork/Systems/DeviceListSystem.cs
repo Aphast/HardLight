@@ -8,11 +8,9 @@ using Robust.Shared.Map.Events;
 namespace Content.Server.DeviceNetwork.Systems;
 
 [UsedImplicitly]
-public sealed class DeviceListSystem : SharedDeviceListSystem
+public sealed partial class DeviceListSystem : SharedDeviceListSystem
 {
-    [Dependency] private readonly NetworkConfiguratorSystem _configurator = default!;
-    private float _cleanupAccumulator;
-    private const float CleanupInterval = 1f;
+    [Dependency] private NetworkConfiguratorSystem _configurator = default!;
 
     public override void Initialize()
     {
@@ -21,23 +19,6 @@ public sealed class DeviceListSystem : SharedDeviceListSystem
         SubscribeLocalEvent<DeviceListComponent, BeforeBroadcastAttemptEvent>(OnBeforeBroadcast);
         SubscribeLocalEvent<DeviceListComponent, BeforePacketSentEvent>(OnBeforePacketSent);
         SubscribeLocalEvent<BeforeSerializationEvent>(OnMapSave);
-    }
-
-    public override void Update(float frameTime)
-    {
-        base.Update(frameTime);
-
-        _cleanupAccumulator += frameTime;
-        if (_cleanupAccumulator < CleanupInterval)
-            return;
-
-        _cleanupAccumulator = 0f;
-
-        var enumerator = AllEntityQuery<DeviceListComponent>();
-        while (enumerator.MoveNext(out var uid, out var list))
-        {
-            PruneInvalidEntries(uid, list);
-        }
     }
 
     private void OnShutdown(EntityUid uid, DeviceListComponent component, ComponentShutdown args)
@@ -103,8 +84,6 @@ public sealed class DeviceListSystem : SharedDeviceListSystem
     /// </summary>
     private void OnBeforeBroadcast(EntityUid uid, DeviceListComponent component, BeforeBroadcastAttemptEvent args)
     {
-        PruneInvalidEntries(uid, component);
-
         //Don't filter anything if the device list is empty
         if (component.Devices.Count == 0)
         {
@@ -129,8 +108,6 @@ public sealed class DeviceListSystem : SharedDeviceListSystem
     /// </summary>
     private void OnBeforePacketSent(EntityUid uid, DeviceListComponent component, BeforePacketSentEvent args)
     {
-        PruneInvalidEntries(uid, component);
-
         if (component.HandleIncomingPackets && component.Devices.Contains(args.Sender) != component.IsAllowList)
             args.Cancel();
     }
@@ -138,11 +115,11 @@ public sealed class DeviceListSystem : SharedDeviceListSystem
     public void OnDeviceShutdown(Entity<DeviceListComponent?> list, Entity<DeviceNetworkComponent> device)
     {
         device.Comp.DeviceLists.Remove(list.Owner);
-        if (!TryComp<DeviceListComponent>(list.Owner, out var listComp))
+        if (!Resolve(list.Owner, ref list.Comp))
             return;
 
-        listComp.Devices.Remove(device);
-        Dirty(list.Owner, listComp);
+        list.Comp.Devices.Remove(device);
+        Dirty(list);
     }
 
     private void OnMapSave(BeforeSerializationEvent ev)
@@ -241,29 +218,5 @@ public sealed class DeviceListSystem : SharedDeviceListSystem
         Dirty(uid, deviceList);
 
         return DeviceListUpdateResult.UpdateOk;
-    }
-
-    private void PruneInvalidEntries(EntityUid uid, DeviceListComponent component)
-    {
-        if (component.Devices.Count == 0)
-            return;
-
-        var oldDevices = component.Devices.ToList();
-        var removed = false;
-
-        foreach (var device in oldDevices)
-        {
-            if (EntityManager.EntityExists(device))
-                continue;
-
-            component.Devices.Remove(device);
-            removed = true;
-        }
-
-        if (!removed)
-            return;
-
-        RaiseLocalEvent(uid, new DeviceListUpdateEvent(oldDevices, component.Devices.ToList()));
-        Dirty(uid, component);
     }
 }

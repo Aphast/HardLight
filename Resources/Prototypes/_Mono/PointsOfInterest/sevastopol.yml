@@ -1,12 +1,18 @@
-# VRS: Ported from Triad_Sector — Sevastopol Data Storage Center POI.
+# Author Info
+# GitHub: starch70
+# Discord: _starch_
 
+# Maintainer Info
+# GitHub: starch70
+# Discord: _starch_
+
+# Notes:
 - type: pointOfInterest
   id: Sevastopol
   parent: BasePOI
   name: 'Sevastopol Data Storage Center'
   minimumDistance: 3500
   maximumDistance: 7500
-  spawnGamePreset: [ NFAdventure, NFPirate ]
   spawnGroup: Required
   gridPath: /Maps/_Mono/POI/sevastopol.yml
   addComponents:

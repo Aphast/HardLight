@@ -79,55 +79,10 @@ public sealed class PopupUIController : UIController, IOnStateEntered<GameplaySt
                 font = _largeFont;
                 color = Color.Red;
                 break;
-            case PopupType.Cryptic:
-                font = _largeFont;
-                color = Color.Red;
-                break;
         }
 
-        if (popup.Type == PopupType.Cryptic)
-        {
-            var customScale = scale;
-            var messageText = popup.Text;
-
-            // Parse scale from message if present
-            if (messageText.StartsWith("[scale:"))
-            {
-                var scaleEnd = messageText.IndexOf(']');
-                if (scaleEnd > 0 && float.TryParse(messageText[7..scaleEnd], out var parsedScale))
-                {
-                    customScale = parsedScale;
-                    messageText = messageText[(scaleEnd + 1)..];
-                }
-            }
-
-            var charsPerSecond = 5f;
-            var charsToShow = (int)(popup.TotalTime * charsPerSecond);
-            var displayText = messageText[..Math.Min(charsToShow, messageText.Length)];
-
-            var totalWidth = 0f;
-            for (int i = 0; i < displayText.Length; i++)
-            {
-                totalWidth += handle.GetDimensions(font, displayText[i].ToString(), customScale).X;
-            }
-
-            var basePosition = position - new Vector2(0f, MathF.Min(8f, 12f * (popup.TotalTime * popup.TotalTime + popup.TotalTime)));
-            var startX = basePosition.X - totalWidth / 2f;
-
-            var currentX = startX;
-            for (int i = 0; i < displayText.Length; i++)
-            {
-                var charBob = MathF.Sin(popup.TotalTime * 3f + i * 0.5f) * 3f; // wave effect per character
-                var charPosition = new Vector2(currentX, basePosition.Y + charBob);
-                handle.DrawString(font, charPosition, displayText[i].ToString(), customScale, color.WithAlpha(alpha));
-                currentX += handle.GetDimensions(font, displayText[i].ToString(), customScale).X;
-            }
-        }
-        else
-        {
-            var dimensions = handle.GetDimensions(font, popup.Text, scale);
-            handle.DrawString(font, updatedPosition - dimensions / 2f, popup.Text, scale, color.WithAlpha(alpha));
-        }
+        var dimensions = handle.GetDimensions(font, popup.Text, scale);
+        handle.DrawString(font, updatedPosition - dimensions / 2f, popup.Text, scale, color.WithAlpha(alpha));
     }
 
     /// <summary>
@@ -137,7 +92,6 @@ public sealed class PopupUIController : UIController, IOnStateEntered<GameplaySt
     {
         private readonly PopupSystem? _popup;
         private readonly PopupUIController _controller;
-        private readonly Dictionary<(int x, int y), int> _stackCounts = new(); // HardLight: Tracks how many popups are stacked at each position.
 
         public PopupRootControl(PopupSystem? system, PopupUIController controller)
         {
@@ -154,29 +108,13 @@ public sealed class PopupUIController : UIController, IOnStateEntered<GameplaySt
 
             // Different window
             var windowId = UserInterfaceManager.RootControl.Window.Id;
-            var stackSpacing = 14f * UIScale;
-
-            _stackCounts.Clear();
 
             foreach (var popup in _popup.CursorLabels)
             {
                 if (popup.InitialPos.Window != windowId)
                     continue;
 
-                // HardLight start: Calculate stacked position for cursor popups; prevents overlap when multiple popups spawn at the same position.
-                var stackX = (int) MathF.Round(popup.InitialPos.Position.X);
-                var stackY = (int) MathF.Round(popup.InitialPos.Position.Y);
-                var stackKey = (stackX, stackY);
-
-                var stackLevel = 0;
-                if (_stackCounts.TryGetValue(stackKey, out var count))
-                    stackLevel = count;
-
-                _stackCounts[stackKey] = stackLevel + 1;
-
-                var stackedPos = popup.InitialPos.Position - new Vector2(0f, stackLevel * stackSpacing);
-                _controller.DrawPopup(popup, handle, stackedPos, UIScale); // popup.InitialPos.Position<stackedPos
-                // HardLight end
+                _controller.DrawPopup(popup, handle, popup.InitialPos.Position, UIScale);
             }
         }
     }

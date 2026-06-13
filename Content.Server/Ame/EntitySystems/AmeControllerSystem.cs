@@ -21,14 +21,14 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.Ame.EntitySystems;
 
-public sealed class AmeControllerSystem : EntitySystem
+public sealed partial class AmeControllerSystem : EntitySystem
 {
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly AppearanceSystem _appearanceSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-    [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-    [Dependency] private readonly ItemSlotsSystem _itemSlots = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private AppearanceSystem _appearanceSystem = default!;
+    [Dependency] private SharedAudioSystem _audioSystem = default!;
+    [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+    [Dependency] private ItemSlotsSystem _itemSlots = default!;
 
     public override void Initialize()
     {
@@ -36,7 +36,6 @@ public sealed class AmeControllerSystem : EntitySystem
 
         SubscribeLocalEvent<AmeControllerComponent, ComponentInit>(OnInit);
         SubscribeLocalEvent<AmeControllerComponent, ComponentRemove>(OnRemove);
-        SubscribeLocalEvent<AmeControllerComponent, MapInitEvent>(OnMapInit); // HardLight
         SubscribeLocalEvent<AmeControllerComponent, EntInsertedIntoContainerMessage>(OnItemSlotChanged);
         SubscribeLocalEvent<AmeControllerComponent, EntRemovedFromContainerMessage>(OnItemSlotChanged);
         SubscribeLocalEvent<AmeControllerComponent, PowerChangedEvent>(OnPowerChanged);
@@ -49,20 +48,6 @@ public sealed class AmeControllerSystem : EntitySystem
 
         UpdateUi(uid, component);
     }
-
-    // HardLight start: Restore injection state after map load when node groups are established
-    private void OnMapInit(EntityUid uid, AmeControllerComponent component, MapInitEvent args)
-    {
-        // Restore injection state after map load when node groups are established
-        if (component.WasInjecting && !component.Injecting)
-        {
-            // Wait a bit for node groups to fully establish, then restore injection
-            component.Injecting = true;
-            UpdateDisplay(uid, component.Stability, component);
-            UpdateUi(uid, component);
-        }
-    }
-    // HardLight end
 
     public override void Update(float frameTime)
     {
@@ -247,7 +232,6 @@ public sealed class AmeControllerSystem : EntitySystem
             return;
 
         controller.Injecting = value;
-        controller.WasInjecting = value; // HardLight: Keep saved state in sync
         UpdateDisplay(uid, controller.Stability, controller);
         if (!value && TryComp<PowerSupplierComponent>(uid, out var powerOut))
             powerOut.MaxSupply = 0;
@@ -261,7 +245,7 @@ public sealed class AmeControllerSystem : EntitySystem
             return;
 
         var humanReadableState = value ? "Inject" : "Not inject";
-        _adminLogger.Add(LogType.Action, LogImpact.Medium, $"{EntityManager.ToPrettyString(user.Value):player} has set the AME to {humanReadableState}");
+        _adminLogger.Add(LogType.Action, LogImpact.Extreme, $"{EntityManager.ToPrettyString(user.Value):player} has set the AME to {humanReadableState}");
     }
 
     public void ToggleInjecting(EntityUid uid, EntityUid? user = null, AmeControllerComponent? controller = null)
@@ -288,15 +272,27 @@ public sealed class AmeControllerSystem : EntitySystem
             return;
 
         var humanReadableState = controller.Injecting ? "Inject" : "Not inject";
+        _adminLogger.Add(LogType.Action, LogImpact.Extreme, $"{EntityManager.ToPrettyString(user.Value):player} has set the AME to inject {controller.InjectionAmount} while set to {humanReadableState}");
 
+        /* This needs to be information which an admin is very likely to want to be informed about in order to be an admin alert or have a sound notification.
+        At the time of editing, players regularly "overclock" the AME and those cases require no admin attention.
 
+        // Admin alert
         var safeLimit = int.MaxValue;
         if (TryGetAMENodeGroup(uid, out var group))
             safeLimit = group.CoreCount * 4;
 
-        var logImpact = (oldValue <= safeLimit && value > safeLimit) ? LogImpact.Extreme : LogImpact.Medium;
-
-        _adminLogger.Add(LogType.Action, logImpact, $"{EntityManager.ToPrettyString(user.Value):player} has set the AME to inject {controller.InjectionAmount} while set to {humanReadableState}");
+        if (oldValue <= safeLimit && value > safeLimit)
+        {
+            if (_gameTiming.CurTime > controller.EffectCooldown)
+            {
+                _chatManager.SendAdminAlert(user.Value, $"increased AME over safe limit to {controller.InjectionAmount}");
+                _audioSystem.PlayGlobal("/Audio/Misc/adminlarm.ogg",
+                    Filter.Empty().AddPlayers(_adminManager.ActiveAdmins), false, AudioParams.Default.WithVolume(-8f));
+                controller.EffectCooldown = _gameTiming.CurTime + controller.CooldownDuration;
+            }
+        }
+        */
     }
 
     public void AdjustInjectionAmount(EntityUid uid, int delta, EntityUid? user = null, AmeControllerComponent? controller = null)
@@ -304,15 +300,13 @@ public sealed class AmeControllerSystem : EntitySystem
         if (!Resolve(uid, ref controller))
             return;
 
-        var max = GetMaxInjectionAmount((uid, controller));
+        var max = int.MaxValue; // Mono
         SetInjectionAmount(uid, MathHelper.Clamp(controller.InjectionAmount + delta, 0, max), user, controller);
     }
 
     public int GetMaxInjectionAmount(Entity<AmeControllerComponent> ent)
     {
-        if (!TryGetAMENodeGroup(ent, out var group))
-            return 0;
-        return  group.CoreCount * 8;
+        return int.MaxValue; // Mono
     }
 
     private void UpdateDisplay(EntityUid uid, int stability, AmeControllerComponent? controller = null, AppearanceComponent? appearance = null)

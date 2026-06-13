@@ -21,25 +21,24 @@ namespace Content.Server.Gateway.Systems;
 /// <summary>
 /// Generates gateway destinations regularly and indefinitely that can be chosen from.
 /// </summary>
-public sealed class GatewayGeneratorSystem : EntitySystem
+public sealed partial class GatewayGeneratorSystem : EntitySystem
 {
-    [Dependency] private readonly IConfigurationManager _cfgManager = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ITileDefinitionManager _tileDefManager = default!;
-    [Dependency] private readonly BiomeSystem _biome = default!;
-    [Dependency] private readonly DungeonSystem _dungeon = default!;
-    [Dependency] private readonly GatewaySystem _gateway = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly SharedMapSystem _maps = default!;
-    [Dependency] private readonly SharedSalvageSystem _salvage = default!;
-    [Dependency] private readonly TileSystem _tile = default!;
+    [Dependency] private IConfigurationManager _cfgManager = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private ITileDefinitionManager _tileDefManager = default!;
+    [Dependency] private BiomeSystem _biome = default!;
+    [Dependency] private DungeonSystem _dungeon = default!;
+    [Dependency] private GatewaySystem _gateway = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
+    [Dependency] private SharedMapSystem _maps = default!;
+    [Dependency] private SharedSalvageSystem _salvage = default!;
+    [Dependency] private TileSystem _tile = default!;
 
-    private static readonly ProtoId<LocalizedDatasetPrototype> PlanetNamesId = "NamesBorer";
-    private static readonly ProtoId<BiomeTemplatePrototype> ContinentalId = "Continental";
-    private static readonly ProtoId<DungeonConfigPrototype> ExperimentDungeonId = "Experiment";
+    [ValidatePrototypeId<LocalizedDatasetPrototype>]
+    private const string PlanetNames = "NamesBorer";
 
     // TODO:
     // Fix shader some more
@@ -104,12 +103,17 @@ public sealed class GatewayGeneratorSystem : EntitySystem
         var mapId = _mapManager.CreateMap();
         var mapUid = _mapManager.GetMapEntityId(mapId);
 
-        var gatewayName = _salvage.GetFTLName(_protoManager.Index(PlanetNamesId), seed);
+        var gatewayName = _salvage.GetFTLName(_protoManager.Index<LocalizedDatasetPrototype>(PlanetNames), seed);
         _metadata.SetEntityName(mapUid, gatewayName);
 
         var origin = new Vector2i(random.Next(-MaxOffset, MaxOffset), random.Next(-MaxOffset, MaxOffset));
+        var restricted = new RestrictedRangeComponent
+        {
+            Origin = origin
+        };
+        AddComp(mapUid, restricted);
 
-        _biome.EnsurePlanet(mapUid, _protoManager.Index(ContinentalId), seed);
+        _biome.EnsurePlanet(mapUid, _protoManager.Index<BiomeTemplatePrototype>("Continental"), seed);
 
         var grid = Comp<MapGridComponent>(mapUid);
 
@@ -181,7 +185,7 @@ public sealed class GatewayGeneratorSystem : EntitySystem
         var dungeonRotation = _dungeon.GetDungeonRotation(seed);
         var dungeonPosition = (origin + dungeonRotation.RotateVec(new Vector2i(0, dungeonDistance))).Floored();
 
-        _dungeon.GenerateDungeon(_protoManager.Index(ExperimentDungeonId), "Experiment", args.MapUid, grid, dungeonPosition, seed); // Frontier: add "Experiment" arg
+        _dungeon.GenerateDungeon(_protoManager.Index<DungeonConfigPrototype>("Experiment"), "Experiment", args.MapUid, grid, dungeonPosition, seed); // Frontier: added "Experiment"
 
         // TODO: Dungeon mobs + loot.
 

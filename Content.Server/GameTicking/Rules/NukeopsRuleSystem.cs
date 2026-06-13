@@ -23,25 +23,27 @@ using Content.Shared.Zombies;
 using Robust.Shared.Map;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
-using Robust.Shared.Prototypes;
 using System.Linq;
+using Content.Shared.Station.Components;
 using Content.Shared.Store.Components;
 
 namespace Content.Server.GameTicking.Rules;
 
-public sealed class NukeopsRuleSystem : GameRuleSystem<NukeopsRuleComponent>
+public sealed partial class NukeopsRuleSystem : GameRuleSystem<NukeopsRuleComponent>
 {
-    [Dependency] private readonly AntagSelectionSystem _antag = default!;
-    [Dependency] private readonly EmergencyShuttleSystem _emergency = default!;
-    [Dependency] private readonly NpcFactionSystem _npcFaction = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly RoundEndSystem _roundEndSystem = default!;
-    [Dependency] private readonly StoreSystem _store = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
+    [Dependency] private AntagSelectionSystem _antag = default!;
+    [Dependency] private EmergencyShuttleSystem _emergency = default!;
+    [Dependency] private NpcFactionSystem _npcFaction = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private RoundEndSystem _roundEndSystem = default!;
+    [Dependency] private StoreSystem _store = default!;
+    [Dependency] private TagSystem _tag = default!;
 
-    private static readonly ProtoId<CurrencyPrototype> TelecrystalCurrencyPrototype = new("Telecrystal");
+    [ValidatePrototypeId<CurrencyPrototype>]
+    private const string TelecrystalCurrencyPrototype = "Telecrystal";
 
-    private static readonly ProtoId<TagPrototype> NukeOpsUplinkTagPrototype = new("NukeOpsUplink");
+    [ValidatePrototypeId<TagPrototype>]
+    private const string NukeOpsUplinkTagPrototype = "NukeOpsUplink";
 
     public override void Initialize()
     {
@@ -174,7 +176,7 @@ public sealed class NukeopsRuleSystem : GameRuleSystem<NukeopsRuleComponent>
             return;
 
         var nukeQuery = AllEntityQuery<NukeComponent, TransformComponent>();
-        var Colcomms = _emergency.GetColcommMaps();
+        var centcomms = _emergency.GetCentcommMaps();
 
         while (nukeQuery.MoveNext(out var nuke, out var nukeTransform))
         {
@@ -182,9 +184,9 @@ public sealed class NukeopsRuleSystem : GameRuleSystem<NukeopsRuleComponent>
                 continue;
 
             // UH OH
-            if (nukeTransform.MapUid != null && Colcomms.Contains(nukeTransform.MapUid.Value))
+            if (nukeTransform.MapUid != null && centcomms.Contains(nukeTransform.MapUid.Value))
             {
-                ent.Comp.WinConditions.Add(WinCondition.NukeActiveAtColCom);
+                ent.Comp.WinConditions.Add(WinCondition.NukeActiveAtCentCom);
                 SetWinType((ent, ent), WinType.OpsMajor);
                 return;
             }
@@ -217,27 +219,27 @@ public sealed class NukeopsRuleSystem : GameRuleSystem<NukeopsRuleComponent>
             ? WinCondition.SomeNukiesAlive
             : WinCondition.AllNukiesDead);
 
-        var diskAtColCom = false;
+        var diskAtCentCom = false;
         var diskQuery = AllEntityQuery<NukeDiskComponent, TransformComponent>();
         while (diskQuery.MoveNext(out var diskUid, out _, out var transform))
         {
-            diskAtColCom = transform.MapUid != null && Colcomms.Contains(transform.MapUid.Value);
-            diskAtColCom |= _emergency.IsTargetEscaping(diskUid);
+            diskAtCentCom = transform.MapUid != null && centcomms.Contains(transform.MapUid.Value);
+            diskAtCentCom |= _emergency.IsTargetEscaping(diskUid);
 
             // TODO: The target station should be stored, and the nuke disk should store its original station.
             // This is fine for now, because we can assume a single station in base SS14.
             break;
         }
 
-        // If the disk is currently at Colonial Command, the crew wins - just slightly.
+        // If the disk is currently at Central Command, the crew wins - just slightly.
         // This also implies that some nuclear operatives have died.
         SetWinType(ent,
-            diskAtColCom
+            diskAtCentCom
             ? WinType.CrewMinor
             : WinType.OpsMinor);
-        ent.Comp.WinConditions.Add(diskAtColCom
-            ? WinCondition.NukeDiskOnColCom
-            : WinCondition.NukeDiskNotOnColCom);
+        ent.Comp.WinConditions.Add(diskAtCentCom
+            ? WinCondition.NukeDiskOnCentCom
+            : WinCondition.NukeDiskNotOnCentCom);
     }
 
     private void OnNukeDisarm(NukeDisarmSuccessEvent ev)

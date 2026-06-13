@@ -15,7 +15,7 @@ namespace Content.Shared.Fluids.Components
         public SoundSpecifier SpillSound = new SoundPathSpecifier("/Audio/Effects/Fluids/splat.ogg");
 
         [DataField]
-        public FixedPoint2 OverflowVolume = FixedPoint2.New(50); // Frontier: 20<50
+        public FixedPoint2 OverflowVolume = FixedPoint2.New(20);
 
         /// <summary>
         /// Mono - don't bother trying to spill if we're above overflow volume but below this
@@ -39,5 +39,6 @@ namespace Content.Shared.Fluids.Components
 
         [ViewVariables]
         public Entity<SolutionComponent>? Solution;
+
     }
 }

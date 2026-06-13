@@ -9,7 +9,6 @@ using Content.Shared.Wieldable;
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Network;
-using Robust.Shared.Timing;
 
 namespace Content.Shared.Item.ItemToggle;
 /// <summary>
@@ -18,13 +17,12 @@ namespace Content.Shared.Item.ItemToggle;
 /// <remarks>
 /// If you need extended functionality (e.g. requiring power) then add a new component and use events.
 /// </remarks>
-public sealed class ItemToggleSystem : EntitySystem
+public sealed partial class ItemToggleSystem : EntitySystem
 {
-    [Dependency] private readonly INetManager _netManager = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
+    [Dependency] private INetManager _netManager = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     private EntityQuery<ItemToggleComponent> _query;
 
@@ -78,23 +76,6 @@ public sealed class ItemToggleSystem : EntitySystem
             return;
 
         var user = args.User;
-
-        if (ent.Comp.Activated)
-        {
-            var ev = new ItemToggleActivateAttemptEvent(args.User);
-            RaiseLocalEvent(ent.Owner, ref ev);
-
-            if (ev.Cancelled)
-                return;
-        }
-        else
-        {
-            var ev = new ItemToggleDeactivateAttemptEvent(args.User);
-            RaiseLocalEvent(ent.Owner, ref ev);
-
-            if (ev.Cancelled)
-                return;
-        }
 
         args.Verbs.Add(new ActivationVerb()
         {
@@ -173,20 +154,15 @@ public sealed class ItemToggleSystem : EntitySystem
         if (comp.Activated)
             return true;
 
+        if (!comp.Predictable && _netManager.IsClient)
+            return true;
+
         var attempt = new ItemToggleActivateAttemptEvent(user);
         RaiseLocalEvent(uid, ref attempt);
 
-        if (!comp.Predictable)
-            predicted = false;
-
-        if (!predicted && _netManager.IsClient)
-            return false;
-
+        if (!comp.Predictable) predicted = false;
         if (attempt.Cancelled)
         {
-            if (attempt.Silent)
-                return false;
-
             if (predicted)
                 _audio.PlayPredicted(comp.SoundFailToActivate, uid, user);
             else
@@ -204,6 +180,7 @@ public sealed class ItemToggleSystem : EntitySystem
         }
 
         Activate((uid, comp), predicted, user);
+
         return true;
     }
 
@@ -220,31 +197,16 @@ public sealed class ItemToggleSystem : EntitySystem
         if (!comp.Activated)
             return true;
 
-        if (!comp.Predictable)
-            predicted = false;
+        if (!comp.Predictable && _netManager.IsClient)
+            return true;
 
         var attempt = new ItemToggleDeactivateAttemptEvent(user);
         RaiseLocalEvent(uid, ref attempt);
 
-        if (!predicted && _netManager.IsClient)
-            return false;
-
         if (attempt.Cancelled)
-        {
-            if (attempt.Silent)
-                return false;
-
-            if (attempt.Popup != null && user != null)
-            {
-                if (predicted)
-                    _popup.PopupClient(attempt.Popup, uid, user.Value);
-                else
-                    _popup.PopupEntity(attempt.Popup, uid, user.Value);
-            }
-
             return false;
-        }
 
+        if (!comp.Predictable) predicted = false;
         Deactivate((uid, comp), predicted, user);
         return true;
     }
@@ -290,7 +252,7 @@ public sealed class ItemToggleSystem : EntitySystem
     {
         if (TryComp(ent, out AppearanceComponent? appearance))
         {
-            _appearance.SetData(ent, ToggleVisuals.Toggled, ent.Comp.Activated, appearance);
+            _appearance.SetData(ent, ToggleableVisuals.Enabled, ent.Comp.Activated, appearance);
         }
     }
 
@@ -307,7 +269,8 @@ public sealed class ItemToggleSystem : EntitySystem
     /// </summary>
     private void TurnOnOnWielded(Entity<ItemToggleComponent> ent, ref ItemWieldedEvent args)
     {
-        TryActivate((ent, ent.Comp), args.User);
+        // FIXME: for some reason both client and server play sound
+        TryActivate((ent, ent.Comp));
     }
 
     public bool IsActivated(Entity<ItemToggleComponent?> ent)
@@ -331,9 +294,6 @@ public sealed class ItemToggleSystem : EntitySystem
     /// </summary>
     private void UpdateActiveSound(Entity<ItemToggleActiveSoundComponent> ent, ref ItemToggledEvent args)
     {
-        if (!_gameTiming.IsFirstTimePredicted)
-            return;
-
         var (uid, comp) = ent;
         if (!args.Activated)
         {

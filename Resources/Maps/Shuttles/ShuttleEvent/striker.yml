@@ -18,6 +18,7 @@ entities:
     - type: MetaData
     - type: Transform
       pos: 0.5638949,0.47865233
+      parent: invalid
     - type: MapGrid
       chunks:
         -1,-1:
@@ -1763,6 +1764,11 @@ entities:
     - type: Transform
       pos: -1.5,-6.5
       parent: 325
+    - type: PowerNetworkBattery
+      loadingNetworkDemand: 15106.935
+      currentReceiving: 15105.06
+      currentSupply: 15106.935
+      supplyRampPosition: 1.875
 - proto: SuitStorageSyndie
   entities:
   - uid: 67

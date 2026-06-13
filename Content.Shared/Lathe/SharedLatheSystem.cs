@@ -15,11 +15,11 @@ namespace Content.Shared.Lathe;
 /// <summary>
 /// This handles...
 /// </summary>
-public abstract class SharedLatheSystem : EntitySystem
+public abstract partial class SharedLatheSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly SharedMaterialStorageSystem _materialStorage = default!;
-    [Dependency] private readonly EmagSystem _emag = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private SharedMaterialStorageSystem _materialStorage = default!;
+    [Dependency] private EmagSystem _emag = default!;
 
     public readonly Dictionary<string, List<LatheRecipePrototype>> InverseRecipes = new();
 
@@ -33,25 +33,6 @@ public abstract class SharedLatheSystem : EntitySystem
         SubscribeLocalEvent<PrototypesReloadedEventArgs>(OnPrototypesReloaded);
 
         BuildInverseRecipeDictionary();
-    }
-
-    /// <summary>
-    /// Get the set of all recipes that a lathe could possibly ever create (e.g., if all techs were unlocked).
-    /// </summary>
-    public HashSet<ProtoId<LatheRecipePrototype>> GetAllPossibleRecipes(LatheComponent component)
-    {
-        var recipes = new HashSet<ProtoId<LatheRecipePrototype>>();
-        foreach (var pack in component.StaticPacks)
-        {
-            recipes.UnionWith(_proto.Index(pack).Recipes);
-        }
-
-        foreach (var pack in component.DynamicPacks)
-        {
-            recipes.UnionWith(_proto.Index(pack).Recipes);
-        }
-
-        return recipes;
     }
 
     /// <summary>
@@ -85,6 +66,48 @@ public abstract class SharedLatheSystem : EntitySystem
         return _proto.TryIndex<LatheRecipePrototype>(recipe, out var proto) && CanProduce(uid, proto, amount, component);
     }
 
+    // Mono
+    public Dictionary<ProtoId<MaterialPrototype>, int> GetEndMaterialAmounts(Entity<LatheComponent?> ent)
+    {
+        if (!Resolve(ent, ref ent.Comp))
+            return new();
+
+        var currentMaterial = _materialStorage.GetStoredMaterials(ent.Owner);
+        foreach (var batch in ent.Comp.Queue)
+        {
+            var recipe = batch.Recipe;
+            foreach (var (material, needed) in recipe.Materials)
+            {
+                var adjustedAmount = AdjustMaterial(needed, recipe.MaterialDiscountScale, ent.Comp.FinalMaterialUseMultiplier);
+                currentMaterial[material] -= adjustedAmount * (batch.ItemsRequested - batch.ItemsPrinted);
+            }
+        }
+        return currentMaterial;
+    }
+
+    // Mono
+    /// <summary>
+    /// Whether we'll be able to produce this if we queue this to the end.
+    /// </summary>
+    public bool CanProduceEnd(Entity<LatheComponent?> ent, LatheRecipePrototype recipe, int amount = 1)
+    {
+        if (!Resolve(ent, ref ent.Comp))
+            return false;
+        if (!HasRecipe(ent, recipe, ent.Comp))
+            return false;
+
+        var endAmts = GetEndMaterialAmounts(ent);
+
+        foreach (var (material, needed) in recipe.Materials)
+        {
+            var adjustedAmount = AdjustMaterial(needed, recipe.MaterialDiscountScale, ent.Comp.FinalMaterialUseMultiplier);
+
+            if (endAmts.GetValueOrDefault(material) < adjustedAmount * amount)
+                return false;
+        }
+        return true;
+    }
+
     public bool CanProduce(EntityUid uid, LatheRecipePrototype recipe, int amount = 1, LatheComponent? component = null)
     {
         if (!Resolve(uid, ref component))
@@ -92,12 +115,9 @@ public abstract class SharedLatheSystem : EntitySystem
         if (!HasRecipe(uid, recipe, component))
             return false;
 
-        if (amount <= 0) // Frontier
-            return false; // Frontier
-
         foreach (var (material, needed) in recipe.Materials)
         {
-            var adjustedAmount = AdjustMaterial(needed, recipe.ApplyMaterialDiscount, component.FinalMaterialUseMultiplier); // Frontier: FinalMaterialUseMultiplier<MaterialUseMultiplier
+            var adjustedAmount = AdjustMaterial(needed, recipe.MaterialDiscountScale, component.FinalMaterialUseMultiplier);
 
             if (_materialStorage.GetMaterialAmount(uid, material) < adjustedAmount * amount)
                 return false;
@@ -129,8 +149,8 @@ public abstract class SharedLatheSystem : EntitySystem
     }
     // End Frontier: demag
 
-    public static int AdjustMaterial(int original, bool reduce, float multiplier)
-        => reduce ? (int) MathF.Ceiling(original * multiplier) : original;
+    public static int AdjustMaterial(int original, float multScale, float multiplier)
+        => (int) MathF.Ceiling(original * MathF.Pow(multiplier, multScale));
 
     protected abstract bool HasRecipe(EntityUid uid, LatheRecipePrototype recipe, LatheComponent component);
 
@@ -210,5 +230,64 @@ public abstract class SharedLatheSystem : EntitySystem
         }
 
         return string.Empty;
+    }
+
+    // Monolith
+    /// <summary>
+    /// Sets multipliers for this lathe before modification by machine parts, for non-null arguments.
+    /// </summary>
+    public void SetLatheMultipliers(Entity<LatheComponent?> ent, float? materialUse = null, float? time = null)
+    {
+        if (!Resolve(ent, ref ent.Comp, false))
+            return;
+
+        if (materialUse != null)
+        {
+            // parts are server so have to do this hack in shared
+            var old = ent.Comp.MaterialUseMultiplier;
+            ent.Comp.MaterialUseMultiplier = materialUse.Value;
+            ent.Comp.FinalMaterialUseMultiplier *= materialUse.Value / old;
+
+            DirtyField(ent, nameof(LatheComponent.MaterialUseMultiplier));
+            DirtyField(ent, nameof(LatheComponent.FinalMaterialUseMultiplier));
+        }
+
+        if (time != null)
+        {
+            var old = ent.Comp.TimeMultiplier;
+            ent.Comp.TimeMultiplier = time.Value;
+            ent.Comp.FinalTimeMultiplier *= time.Value / old;
+
+            DirtyField(ent, nameof(LatheComponent.TimeMultiplier));
+            DirtyField(ent, nameof(LatheComponent.FinalTimeMultiplier));
+        }
+    }
+
+    // Monolith
+    /// <summary>
+    /// Multiplies multipliers for this lathe before modification by machine parts, for non-null arguments.
+    /// </summary>
+    public void MultiplyLatheMultipliers(Entity<LatheComponent?> ent, float? materialUse = null, float? time = null)
+    {
+        if (!Resolve(ent, ref ent.Comp, false))
+            return;
+
+        if (materialUse != null)
+        {
+            ent.Comp.MaterialUseMultiplier *= materialUse.Value;
+            ent.Comp.FinalMaterialUseMultiplier *= materialUse.Value;
+
+            DirtyField(ent, nameof(LatheComponent.MaterialUseMultiplier));
+            DirtyField(ent, nameof(LatheComponent.FinalMaterialUseMultiplier));
+        }
+
+        if (time != null)
+        {
+            ent.Comp.TimeMultiplier *= time.Value;
+            ent.Comp.FinalTimeMultiplier *= time.Value;
+
+            DirtyField(ent, nameof(LatheComponent.TimeMultiplier));
+            DirtyField(ent, nameof(LatheComponent.FinalTimeMultiplier));
+        }
     }
 }

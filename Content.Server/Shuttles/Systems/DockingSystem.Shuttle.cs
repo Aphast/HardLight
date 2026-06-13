@@ -17,17 +17,6 @@ public sealed partial class DockingSystem
      */
 
     private const int DockRoundingDigits = 2;
-    private const float DockingAngleKeyPrecision = 10000f; // HardLight
-
-    // HardLight: Many dock pairs on multi-port strips collapse to the exact same final shuttle placement.
-    // Cache those placements during a search so we don't recompute the same collision /
-    // aggregation work over and over.
-    private readonly record struct DockingPlacementKey(
-        float Left,
-        float Right,
-        float Top,
-        float Bottom,
-        int AngleKey);
 
     public Angle GetAngle(EntityUid uid, TransformComponent xform, EntityUid targetUid, TransformComponent targetXform)
     {
@@ -136,177 +125,6 @@ public sealed partial class DockingSystem
         return GetDockingConfigPrivate(shuttleUid, targetGrid, shuttleDocks, gridDocks, priorityTag, dockType); // Frontier: add dockType
     }
 
-    // HardLight: opt-in capped overload for the shipyard purchase fast path.
-    //
-    // The full dock-pair search is O(shuttleDocks × gridDocks × inner aggregation), and on a 140-airlock
-    // station + 40-airlock capital ship it can freeze the server for seconds during a purchase. Most call
-    // sites need the *globally optimal* dock (FTL travel, emergency return, expedition recall) and must
-    // keep the original behaviour. Purchase is the one path that just needs *a* valid dock — so we let it
-    // opt in to a capped search.
-    //
-    // The cap selects a spatially-spread, priority-tag-preserving, dockType-filtered subset of each pool.
-    // If the capped search yields no config we transparently retry with the full pools so the optimization
-    // can never *fail* a purchase that would have succeeded before.
-    /// <summary>
-    /// HardLight: capped variant of <see cref="GetDockingConfig(EntityUid, EntityUid, string?, DockType)"/> for the
-    /// shipyard purchase path. <paramref name="maxShuttleDocks"/>/<paramref name="maxGridDocks"/> &lt;= 0 disables the
-    /// cap on that side. Always retries with the full pools on a capped miss.
-    /// </summary>
-    public DockingConfig? GetDockingConfig(
-        EntityUid shuttleUid,
-        EntityUid targetGrid,
-        string? priorityTag,
-        DockType dockType,
-        int maxShuttleDocks,
-        int maxGridDocks)
-    {
-        var gridDocks = GetDocks(targetGrid);
-        var shuttleDocks = GetDocks(shuttleUid);
-
-        var shuttleSelection = SelectSpreadDocks(shuttleUid, shuttleDocks, maxShuttleDocks, dockType, priorityTag);
-        var gridSelection = SelectSpreadDocks(targetGrid, gridDocks, maxGridDocks, dockType, priorityTag);
-
-        var config = GetDockingConfigPrivate(shuttleUid, targetGrid, shuttleSelection, gridSelection, priorityTag, dockType);
-
-        // Safety net: if the capped search found nothing but we did narrow either side, fall back
-        // to the full uncapped search exactly once. This guarantees the cap can never block a
-        // purchase that the original code path would have allowed.
-        if (config == null
-            && (shuttleSelection.Count < shuttleDocks.Count || gridSelection.Count < gridDocks.Count))
-        {
-            config = GetDockingConfigPrivate(shuttleUid, targetGrid, shuttleDocks, gridDocks, priorityTag, dockType);
-        }
-
-        return config;
-    }
-
-    /// <summary>
-    /// HardLight: pick at most <paramref name="cap"/> docks distributed around the grid's local AABB centre.
-    /// Always preserves docks matching <paramref name="priorityTag"/>. Filters out wrong-type docks before sampling.
-    /// Returns the original list when no narrowing applies.
-    /// </summary>
-    private List<Entity<DockingComponent>> SelectSpreadDocks(
-        EntityUid gridUid,
-        List<Entity<DockingComponent>> docks,
-        int cap,
-        DockType dockType,
-        string? priorityTag)
-    {
-        if (cap <= 0 || docks.Count <= cap)
-            return docks;
-
-        // Pre-filter to docks matching the requested type. We must do this before capping so we
-        // don't burn slots on docks the inner CanDock would reject anyway.
-        var typed = new List<Entity<DockingComponent>>(docks.Count);
-        for (var i = 0; i < docks.Count; i++)
-        {
-            var (_, dock) = docks[i];
-            if ((dock.DockType & dockType) == DockType.None)
-                continue;
-            typed.Add(docks[i]);
-        }
-
-        if (typed.Count <= cap)
-            return typed;
-
-        var result = new List<Entity<DockingComponent>>(cap);
-
-        // Always include priority-tagged docks first, regardless of where they sit on the grid.
-        // The shipyard does not pass a priorityTag today, but emergency-shuttle / future callers do,
-        // and silently dropping a tagged dock would break those flows.
-        if (!string.IsNullOrEmpty(priorityTag))
-        {
-            for (var i = 0; i < typed.Count && result.Count < cap; i++)
-            {
-                var dockUid = typed[i].Owner;
-                if (TryComp<PriorityDockComponent>(dockUid, out var priority)
-                    && priority.Tag?.Equals(priorityTag) == true)
-                {
-                    result.Add(typed[i]);
-                }
-            }
-
-            if (result.Count >= cap)
-                return result;
-        }
-
-        // Spread the remaining slots around the grid's local AABB centre by angular sector.
-        // For each sector we keep the dock furthest from the centre (i.e. perimeter-most) so the
-        // selection biases toward externally-reachable airlocks rather than interior maintenance ones.
-        var aabb = _gridQuery.GetComponent(gridUid).LocalAABB;
-        var centre = aabb.Center;
-
-        var remainingCap = cap - result.Count;
-        var sectorCount = remainingCap;
-        var bestPerSector = new (int idx, float distSq)[sectorCount];
-        for (var s = 0; s < sectorCount; s++)
-            bestPerSector[s] = (-1, -1f);
-
-        var twoPi = MathF.PI * 2f;
-
-        for (var i = 0; i < typed.Count; i++)
-        {
-            // Skip docks already accepted as priority picks.
-            var alreadyPicked = false;
-            for (var r = 0; r < result.Count; r++)
-            {
-                if (result[r].Owner == typed[i].Owner)
-                {
-                    alreadyPicked = true;
-                    break;
-                }
-            }
-            if (alreadyPicked)
-                continue;
-
-            var dockXform = _xformQuery.GetComponent(typed[i].Owner);
-            var local = dockXform.LocalPosition - centre;
-            var distSq = local.LengthSquared();
-
-            // Map angle to [0, 2π) then to a sector index.
-            var angle = MathF.Atan2(local.Y, local.X);
-            if (angle < 0f)
-                angle += twoPi;
-
-            var sector = (int)(angle / twoPi * sectorCount);
-            if (sector >= sectorCount)
-                sector = sectorCount - 1;
-
-            if (distSq > bestPerSector[sector].distSq)
-                bestPerSector[sector] = (i, distSq);
-        }
-
-        for (var s = 0; s < sectorCount; s++)
-        {
-            if (bestPerSector[s].idx >= 0)
-                result.Add(typed[bestPerSector[s].idx]);
-        }
-
-        // Backfill empty sectors with the next-furthest unselected docks so we always end up with
-        // at most `cap` candidates (and at least one per non-empty input).
-        if (result.Count < cap)
-        {
-            for (var i = 0; i < typed.Count && result.Count < cap; i++)
-            {
-                var owner = typed[i].Owner;
-                var alreadyPicked = false;
-                for (var r = 0; r < result.Count; r++)
-                {
-                    if (result[r].Owner == owner)
-                    {
-                        alreadyPicked = true;
-                        break;
-                    }
-                }
-                if (!alreadyPicked)
-                    result.Add(typed[i]);
-            }
-        }
-
-        return result;
-    }
-    // End HardLight
-
     /// <summary>
     /// Tries to get a docking config at the specified coordinates and angle.
     /// </summary>
@@ -362,7 +180,6 @@ public sealed partial class DockingSystem
         var isMap = HasComp<MapComponent>(targetGrid);
 
         var grids = new List<Entity<MapGridComponent>>();
-        var seenPlacements = new HashSet<DockingPlacementKey>(); // HardLight
         if (shuttleDocks.Count > 0)
         {
             // We'll try all combinations of shuttle docks and see which one is most suitable
@@ -399,25 +216,13 @@ public sealed partial class DockingSystem
                         continue;
                     }
 
-                    // HardLight start
-                    dockedAABB = dockedAABB.Rounded(DockRoundingDigits);
-                    var placementKey = new DockingPlacementKey(
-                        dockedAABB.Left,
-                        dockedAABB.Right,
-                        dockedAABB.Top,
-                        dockedAABB.Bottom,
-                        (int) Math.Round(targetAngle.Reduced().Theta * DockingAngleKeyPrecision));
-
-                    if (!seenPlacements.Add(placementKey))
-                        continue;
-                    // HardLight end
-
                     // Can't just use the AABB as we want to get bounds as tight as possible.
                     var gridPosition = new EntityCoordinates(targetGrid, Vector2.Transform(Vector2.Zero, matty));
                     var spawnPosition = new EntityCoordinates(targetGridXform.MapUid!.Value, _transform.ToMapCoordinates(gridPosition).Position);
 
                     // TODO: use tight bounds
-                    var dockedBounds = new Box2Rotated(shuttleAABB.Translated(spawnPosition.Position), targetAngle, spawnPosition.Position);
+                    var targetWorldAngle = (targetGridAngle + targetAngle).Reduced(); // Frontier
+                    var dockedBounds = new Box2Rotated(shuttleAABB.Translated(spawnPosition.Position), targetWorldAngle, spawnPosition.Position); // Frontier: targetAngle<targetWorldAngle
 
                     // Check if there's no intersecting grids (AKA oh god it's docking at cargo).
                     grids.Clear();
@@ -435,6 +240,8 @@ public sealed partial class DockingSystem
                    {
                        (dockUid, gridDockUid, shuttleDock, gridDock),
                    };
+
+                    dockedAABB = dockedAABB.Rounded(DockRoundingDigits);
 
                     foreach (var (otherUid, other) in shuttleDocks)
                     {
@@ -475,9 +282,9 @@ public sealed partial class DockingSystem
 
                             otherdockedAABB = otherdockedAABB.Rounded(DockRoundingDigits);
 
-                            // Different setup: allow small tolerance on angle / AABB to aggregate more ports.
-                            if (!targetAngle.EqualsApprox(otherTargetAngle, 0.05) ||
-                                !Box2ApproximatelyEquals(dockedAABB, otherdockedAABB, 0.05f))
+                            // Different setup.
+                            if (!targetAngle.Equals(otherTargetAngle) ||
+                                !dockedAABB.Equals(otherdockedAABB))
                             {
                                 continue;
                             }
@@ -498,14 +305,6 @@ public sealed partial class DockingSystem
         }
 
         return validDockConfigs;
-    }
-
-    private static bool Box2ApproximatelyEquals(Box2 a, Box2 b, float epsilon)
-    {
-        return MathF.Abs(a.Left - b.Left) <= epsilon &&
-               MathF.Abs(a.Right - b.Right) <= epsilon &&
-               MathF.Abs(a.Top - b.Top) <= epsilon &&
-               MathF.Abs(a.Bottom - b.Bottom) <= epsilon;
     }
 
     private DockingConfig? GetDockingConfigPrivate(
@@ -579,32 +378,11 @@ public sealed partial class DockingSystem
                     }
                 }
             }
-            // If it's not a map then we're docking onto another grid; ensure we don't overlap either tiles OR
-            // anchored hard-collidable entities on that grid. Previously this only checked tiles which could
-            // miss walls/fixtures and allow clipping.
+            // If it's not a map check it doesn't overlap the grid.
             else
             {
-                // First reject if any solid tiles intersect.
                 if (_mapSystem.GetLocalTilesIntersecting(gridEntity.Owner, gridEntity.Comp, aabb).Any())
                     return false;
-
-                // Additionally scan anchored entities on intersecting tiles and reject if any hard colliders are present.
-                var localTiles = _mapSystem.GetLocalTilesEnumerator(gridEntity.Owner, gridEntity.Comp, aabb);
-                while (localTiles.MoveNext(out var tile))
-                {
-                    var anchoredEnumerator = _mapSystem.GetAnchoredEntitiesEnumerator(gridEntity.Owner, gridEntity.Comp, tile.GridIndices);
-                    while (anchoredEnumerator.MoveNext(out var anc))
-                    {
-                        if (!_physicsQuery.TryGetComponent(anc, out var physics) ||
-                            !physics.CanCollide ||
-                            !physics.Hard)
-                        {
-                            continue;
-                        }
-
-                        return false;
-                    }
-                }
             }
         }
 
@@ -617,5 +395,26 @@ public sealed partial class DockingSystem
         _lookup.GetChildEntities(uid, _dockingSet);
 
         return _dockingSet.ToList();
+    }
+
+    /// <summary>
+    /// Mono: Checks if two grids are docked together by examining if any docking port on gridA is connected to any docking port on gridB.
+    /// </summary>
+    public bool AreGridsDocked(EntityUid gridA, EntityUid gridB)
+    {
+        var docksA = GetDocks(gridA);
+
+        foreach (var dockA in docksA)
+        {
+            if (!dockA.Comp.Docked || dockA.Comp.DockedWith == null)
+                continue;
+
+            // Get the grid that this dock is connected to
+            var connectedDockGrid = Transform(dockA.Comp.DockedWith.Value).GridUid;
+            if (connectedDockGrid == gridB)
+                return true;
+        }
+
+        return false;
     }
 }

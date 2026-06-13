@@ -13,17 +13,14 @@ namespace Content.Shared.Clothing.EntitySystems;
 
 public abstract class SharedChameleonClothingSystem : EntitySystem
 {
-    [Dependency] private readonly IComponentFactory _factory = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly ClothingSystem _clothingSystem = default!;
-    [Dependency] private readonly ContrabandSystem _contraband = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly SharedItemSystem _itemSystem = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
-    [Dependency] protected readonly SharedUserInterfaceSystem UI = default!;
-
-    private static readonly ProtoId<TagPrototype> WhitelistChameleonTag = "WhitelistChameleon";
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private ClothingSystem _clothingSystem = default!;
+    [Dependency] private ContrabandSystem _contraband = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private SharedItemSystem _itemSystem = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private TagSystem _tag = default!;
+    [Dependency] protected SharedUserInterfaceSystem UI = default!;
 
     public override void Initialize()
     {
@@ -66,7 +63,7 @@ public abstract class SharedChameleonClothingSystem : EntitySystem
 
         // item sprite logic
         if (TryComp(uid, out ItemComponent? item) &&
-            proto.TryGetComponent(out ItemComponent? otherItem, _factory))
+            proto.TryGetComponent(out ItemComponent? otherItem, Factory))
         {
             _itemSystem.CopyVisuals(uid, otherItem, item);
         }
@@ -126,7 +123,7 @@ public abstract class SharedChameleonClothingSystem : EntitySystem
             return false;
 
         // check if it is marked as valid chameleon target
-        if (!proto.TryGetComponent(out TagComponent? tag, _factory) || !_tag.HasTag(tag, WhitelistChameleonTag))
+        if (!proto.TryGetComponent(out TagComponent? tag, Factory) || !_tag.HasTag(tag, "WhitelistChameleon"))
             return false;
 
         if (requiredTag != null && !_tag.HasTag(tag, requiredTag))

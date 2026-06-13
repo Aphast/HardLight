@@ -22,9 +22,9 @@ using Content.Shared.Radio.Components; // Goobstation
 namespace Content.Server.Administration.Commands
 {
     [AdminCommand(AdminFlags.Admin)]
-    public sealed class SetOutfitCommand : IConsoleCommand
+    public sealed partial class SetOutfitCommand : IConsoleCommand
     {
-        [Dependency] private readonly IEntityManager _entities = default!;
+        [Dependency] private IEntityManager _entities = default!;
 
         public string Command => "setoutfit";
 
@@ -168,10 +168,10 @@ namespace Content.Server.Administration.Commands
 
             if (entityManager.HasComponent<EncryptionKeyHolderComponent>(target))
             {
-                var encryption = new InternalEncryptionKeySpawner();
-                encryption.TryInsertEncryptionKey(target, startingGear, entityManager);
+                var encryptionSystem = entityManager.System<InternalEncryptionKeySpawner>();
+                encryptionSystem.TryInsertEncryptionKey(target, startingGear);
             }
-            
+
             return true;
         }
     }

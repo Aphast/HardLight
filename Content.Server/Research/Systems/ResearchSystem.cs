@@ -16,13 +16,14 @@ namespace Content.Server.Research.Systems
     [UsedImplicitly]
     public sealed partial class ResearchSystem : SharedResearchSystem
     {
-        [Dependency] private readonly IAdminLogManager _adminLog = default!;
-        [Dependency] private readonly IGameTiming _timing = default!;
-        [Dependency] private readonly AccessReaderSystem _accessReader = default!;
-        [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-        [Dependency] private readonly SharedPopupSystem _popup = default!;
-        // [Dependency] private readonly RadioSystem _radio = default!; // Frontier
-        [Dependency] private readonly EntityLookupSystem _lookup = default!;
+        [Dependency] private IAdminLogManager _adminLog = default!;
+        [Dependency] private IGameTiming _timing = default!;
+        [Dependency] private AccessReaderSystem _accessReader = default!;
+        [Dependency] private UserInterfaceSystem _uiSystem = default!;
+        [Dependency] private SharedPopupSystem _popup = default!;
+        [Dependency] private RadioSystem _radio = default!;
+        [Dependency] private StationSystem _station = default!;
+        [Dependency] private EntityLookupSystem _lookup = default!;
 
         public override void Initialize()
         {
@@ -102,32 +103,38 @@ namespace Content.Server.Research.Systems
         {
             var allServers = EntityQueryEnumerator<ResearchServerComponent>();
             var list = new List<string>();
-            if (!EntityManager.TryGetComponent(gridUid, out TransformComponent? gridXform) || gridXform.GridUid == null)
-                return list.ToArray();
+            var station = _station.GetOwningStation(gridUid);
 
-            var targetGrid = gridXform.GridUid.Value;
-            while (allServers.MoveNext(out var uid, out var comp))
+            if (station is { } stationUid)
             {
-                if (EntityManager.TryGetComponent(uid, out TransformComponent? serverXform) && serverXform.GridUid == targetGrid)
-                    list.Add(comp.ServerName);
+                while (allServers.MoveNext(out var uid, out var comp))
+                {
+                    if (_station.GetOwningStation(uid) == stationUid)
+                        list.Add(comp.ServerName);
+                }
             }
-            return list.ToArray();
+
+            var serverList = list.ToArray();
+            return serverList;
         }
 
         public int[] GetNFServerIds(EntityUid gridUid)
         {
             var allServers = EntityQueryEnumerator<ResearchServerComponent>();
             var list = new List<int>();
-            if (!EntityManager.TryGetComponent(gridUid, out TransformComponent? gridXform) || gridXform.GridUid == null)
-                return list.ToArray();
+            var station = _station.GetOwningStation(gridUid);
 
-            var targetGrid = gridXform.GridUid.Value;
-            while (allServers.MoveNext(out var uid, out var comp))
+            if (station is { } stationUid)
             {
-                if (EntityManager.TryGetComponent(uid, out TransformComponent? serverXform) && serverXform.GridUid == targetGrid)
-                    list.Add(comp.Id);
+                while (allServers.MoveNext(out var uid, out var comp))
+                {
+                    if (_station.GetOwningStation(uid) == stationUid)
+                        list.Add(comp.Id);
+                }
             }
-            return list.ToArray();
+
+            var serverList = list.ToArray();
+            return serverList;
         }
 
         public override void Update(float frameTime)

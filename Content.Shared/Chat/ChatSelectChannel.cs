@@ -1,4 +1,4 @@
-﻿namespace Content.Shared.Chat
+namespace Content.Shared.Chat
 {
     /// <summary>
     ///     Chat channels that the player can select in the chat box.
@@ -7,7 +7,7 @@
     ///     Maps to <see cref="ChatChannel"/>, giving better names.
     /// </remarks>
     [Flags]
-    public enum ChatSelectChannel : UInt32
+    public enum ChatSelectChannel : uint // Goobstation - Starlight collective mind port
     {
         None = 0,
 
@@ -42,14 +42,9 @@
         Emotes = ChatChannel.Emotes,
 
         /// <summary>
-        ///     Subtle - Floofstation
+        ///     CollectiveMind
         /// </summary>
-        Subtle = ChatChannel.Subtle,
-
-        /// <summary>
-        ///     Subtle - Floofstation
-        /// </summary>
-        SubtleOOC = ChatChannel.SubtleOOC,
+        CollectiveMind = ChatChannel.CollectiveMind,
 
         /// <summary>
         ///     Deadchat
@@ -60,11 +55,6 @@
         ///     Admin chat
         /// </summary>
         Admin = ChatChannel.AdminChat,
-
-        /// <summary>
-        ///     Nyano - Summary:. Telepathic channel for all psionic entities. 
-        /// </summary>
-        Telepathic = ChatChannel.Telepathic,
 
         Console = ChatChannel.Unspecified
     }

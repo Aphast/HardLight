@@ -24,6 +24,7 @@ entities:
       name: NT Evac Wode
     - type: Transform
       pos: -0.70836353,-1.958334
+      parent: invalid
     - type: MapGrid
       chunks:
         0,0:
@@ -62,8 +63,6 @@ entities:
     - type: OccluderTree
     - type: SpreaderGrid
     - type: Shuttle
-    - type: WorldLoader
-      disabled: False
     - type: GridPathfinding
     - type: Gravity
       gravityShakeSound: !type:SoundPathSpecifier

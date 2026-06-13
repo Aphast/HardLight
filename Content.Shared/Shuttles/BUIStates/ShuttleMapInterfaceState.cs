@@ -25,19 +25,15 @@ public sealed class ShuttleMapInterfaceState
 
     public List<ShuttleExclusionObject> Exclusions;
 
-    public List<ShuttleStationObject> Stations;
-
     public ShuttleMapInterfaceState(
         FTLState ftlState,
         StartEndTime ftlTime,
         List<ShuttleBeaconObject> destinations,
-        List<ShuttleExclusionObject> exclusions,
-        List<ShuttleStationObject> stations)
+        List<ShuttleExclusionObject> exclusions)
     {
         FTLState = ftlState;
         FTLTime = ftlTime;
         Destinations = destinations;
         Exclusions = exclusions;
-        Stations = stations;
     }
 }

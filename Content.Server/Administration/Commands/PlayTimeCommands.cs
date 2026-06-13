@@ -1,101 +1,16 @@
-using Content.Server.Players.PlayTimeTracking;
+﻿using Content.Server.Players.PlayTimeTracking;
 using Content.Shared.Administration;
 using Content.Shared.Players.PlayTimeTracking;
 using Robust.Server.Player;
 using Robust.Shared.Console;
-using System.Text.RegularExpressions;
 
 namespace Content.Server.Administration.Commands;
 
-public sealed class PlayTimeCommandUtilities
-{
-    private readonly static Dictionary<string, int> Units = new() {
-        { "y", 525960 },
-        { "mo", 43800 },
-        { "w", 10080 },
-        { "d", 1440 },
-        { "h", 60 },
-        { "m", 1 },
-    };
-
-    public struct TimeUnit
-    {
-        public int TimeValue { get; }
-        public string Unit { get; }
-
-        public TimeUnit(int timeValue)
-        {
-            TimeValue = timeValue;
-            Unit = "m";
-        }
-
-        public TimeUnit(int timeValue, string unit)
-        {
-            TimeValue = timeValue;
-            Unit = unit;
-        }
-        public int ToMinutes()
-        {
-            var unitExists = Units.TryGetValue(Unit, out int minutes);
-
-            if (!unitExists)
-                return TimeValue;
-
-            return TimeValue * minutes;
-        }
-    }
-
-    public static List<TimeUnit> ConvertToTimeUnits(string timeString)
-    {
-        // Searching for something similar to 365d24h, etc.
-        List<TimeUnit> result = new();
-
-        // We want to support plain numbers as a translation to just minutes, just in case people don't know things like 30d or 1d are an option.
-        if (int.TryParse(timeString, out int timeValue))
-        {
-            result.Add(new TimeUnit(timeValue, "m"));
-            return result;
-        }
-
-        MatchCollection timeRegex = Regex.Matches(timeString, "(\\d+)([A-Za-z]+)");
-
-        foreach (Match match in timeRegex)
-        {
-            bool isTimeAmountNumber = int.TryParse(match.Groups[1].Value, out int amountOfTime);
-            string timeUnit = match.Groups[2].Value;
-
-            if (!isTimeAmountNumber)
-                continue;
-
-            if (!Units.ContainsKey(timeUnit))
-                continue;
-
-            result.Add(new TimeUnit(amountOfTime, timeUnit));
-        }
-
-        return result;
-    }
-
-    public static int CountMinutes(string timeString)
-    {
-        List<TimeUnit> timeUnits = ConvertToTimeUnits(timeString);
-        int total = 0;
-
-        foreach (var timeUnit in timeUnits)
-        {
-            total += timeUnit.ToMinutes();
-        }
-
-        return total;
-    }
-}
-
-
 [AdminCommand(AdminFlags.Moderator)]
-public sealed class PlayTimeAddOverallCommand : IConsoleCommand
+public sealed partial class PlayTimeAddOverallCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTimeTracking = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private PlayTimeTrackingManager _playTimeTracking = default!;
 
     public string Command => "playtime_addoverall";
     public string Description => Loc.GetString("cmd-playtime_addoverall-desc");
@@ -109,7 +24,11 @@ public sealed class PlayTimeAddOverallCommand : IConsoleCommand
             return;
         }
 
-        var minutes = PlayTimeCommandUtilities.CountMinutes(args[1]);
+        if (!int.TryParse(args[1], out var minutes))
+        {
+            shell.WriteError(Loc.GetString("parse-minutes-fail", ("minutes", args[1])));
+            return;
+        }
 
         if (!_playerManager.TryGetSessionByUsername(args[0], out var player))
         {
@@ -140,10 +59,10 @@ public sealed class PlayTimeAddOverallCommand : IConsoleCommand
 }
 
 [AdminCommand(AdminFlags.Moderator)]
-public sealed class PlayTimeAddRoleCommand : IConsoleCommand
+public sealed partial class PlayTimeAddRoleCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTimeTracking = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private PlayTimeTrackingManager _playTimeTracking = default!;
 
     public string Command => "playtime_addrole";
     public string Description => Loc.GetString("cmd-playtime_addrole-desc");
@@ -166,9 +85,14 @@ public sealed class PlayTimeAddRoleCommand : IConsoleCommand
 
         var role = args[1];
 
-        var m = PlayTimeCommandUtilities.CountMinutes(args[2]);
+        var m = args[2];
+        if (!int.TryParse(m, out var minutes))
+        {
+            shell.WriteError(Loc.GetString("parse-minutes-fail", ("minutes", minutes)));
+            return;
+        }
 
-        _playTimeTracking.AddTimeToTracker(player, role, TimeSpan.FromMinutes(m));
+        _playTimeTracking.AddTimeToTracker(player, role, TimeSpan.FromMinutes(minutes));
         var time = _playTimeTracking.GetPlayTimeForTracker(player, role);
         shell.WriteLine(Loc.GetString("cmd-playtime_addrole-succeed",
             ("username", userName),
@@ -200,10 +124,10 @@ public sealed class PlayTimeAddRoleCommand : IConsoleCommand
 }
 
 [AdminCommand(AdminFlags.Moderator)]
-public sealed class PlayTimeGetOverallCommand : IConsoleCommand
+public sealed partial class PlayTimeGetOverallCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTimeTracking = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private PlayTimeTrackingManager _playTimeTracking = default!;
 
     public string Command => "playtime_getoverall";
     public string Description => Loc.GetString("cmd-playtime_getoverall-desc");
@@ -245,10 +169,10 @@ public sealed class PlayTimeGetOverallCommand : IConsoleCommand
 }
 
 [AdminCommand(AdminFlags.Moderator)]
-public sealed class PlayTimeGetRoleCommand : IConsoleCommand
+public sealed partial class PlayTimeGetRoleCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTimeTracking = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private PlayTimeTrackingManager _playTimeTracking = default!;
 
     public string Command => "playtime_getrole";
     public string Description => Loc.GetString("cmd-playtime_getrole-desc");
@@ -324,10 +248,10 @@ public sealed class PlayTimeGetRoleCommand : IConsoleCommand
 /// Saves the timers for a particular player immediately
 /// </summary>
 [AdminCommand(AdminFlags.Moderator)]
-public sealed class PlayTimeSaveCommand : IConsoleCommand
+public sealed partial class PlayTimeSaveCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTimeTracking = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private PlayTimeTrackingManager _playTimeTracking = default!;
 
     public string Command => "playtime_save";
     public string Description => Loc.GetString("cmd-playtime_save-desc");
@@ -366,10 +290,10 @@ public sealed class PlayTimeSaveCommand : IConsoleCommand
 }
 
 [AdminCommand(AdminFlags.Debug)]
-public sealed class PlayTimeFlushCommand : IConsoleCommand
+public sealed partial class PlayTimeFlushCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly PlayTimeTrackingManager _playTimeTracking = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private PlayTimeTrackingManager _playTimeTracking = default!;
 
     public string Command => "playtime_flush";
     public string Description => Loc.GetString("cmd-playtime_flush-desc");

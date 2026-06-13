@@ -1,6 +1,3 @@
-using Content.Shared.Explosion;
-using Robust.Shared.Prototypes;
-
 namespace Content.Server._Mono.Radiation;
 
 [RegisterComponent]
@@ -23,15 +20,6 @@ public sealed partial class ChainRadiationComponent : Component
     /// </summary>
     [DataField]
     public float ExplosionThreshold = 2000f;
-
-    /// <summary>
-    /// VRS: explosion prototype to use when triggering. Mono originally pulled
-    /// this from the entity's <c>ExplosiveComponent</c>; ExplosiveComponent has
-    /// since been locked to SharedExplosionSystem access in upstream, so we
-    /// configure the explosion entirely on this component instead.
-    /// </summary>
-    [DataField]
-    public ProtoId<ExplosionPrototype> ExplosionType = "Default";
 
     /// <summary>
     /// TotalIntensity of explosion to make when reaching threshold.

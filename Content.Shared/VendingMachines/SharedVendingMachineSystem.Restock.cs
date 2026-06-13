@@ -1,5 +1,4 @@
 using Content.Shared.DoAfter;
-using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction;
 using Content.Shared.Popups;
 using Content.Shared.Wires;
@@ -62,7 +61,7 @@ public abstract partial class SharedVendingMachineSystem
 
         args.Handled = true;
 
-        var doAfterArgs = new DoAfterArgs(EntityManager, args.User, (float)component.RestockDelay.TotalSeconds, new RestockDoAfterEvent(), target,
+        var doAfterArgs = new DoAfterArgs(EntityManager, args.User, (float) component.RestockDelay.TotalSeconds, new RestockDoAfterEvent(), target,
             target: target, used: uid)
         {
             BreakOnMove = true,
@@ -73,13 +72,13 @@ public abstract partial class SharedVendingMachineSystem
         if (!_doAfter.TryStartDoAfter(doAfterArgs))
             return;
 
-        var selfMessage = Loc.GetString("vending-machine-restock-start-self", ("target", target));
-        var othersMessage = Loc.GetString("vending-machine-restock-start-others", ("user", Identity.Entity(args.User, EntityManager)), ("target", target));
-        Popup.PopupPredicted(selfMessage,
-            othersMessage,
-            uid,
-            args.User,
-            PopupType.Medium);
+        if (_net.IsServer)
+        {
+            Popup.PopupEntity(Loc.GetString("vending-machine-restock-start", ("this", uid), ("user", args.User),
+                    ("target", target)),
+                args.User,
+                PopupType.Medium);
+        }
 
         Audio.PlayPredicted(component.SoundRestockStart, uid, args.User);
     }

@@ -1,5 +1,9 @@
-# VRS: Ported from Triad_Sector — portstrike countdown announcements.
-# Round-end timing rules (RoundEndRuleHour3 etc.) intentionally excluded — VRS does not force round restarts.
+- type: entity
+  id: RoundEndRuleHour3
+  parent: BaseGameRule
+  components:
+  - type: RoundEndTimeRule
+    endAt: 10800 # 3 hour
 
 - type: entity
   id: PortstrikeAnnounceRuleHour4
@@ -13,6 +17,7 @@
   - type: StationEvent
     earliestStart: 0
     endAnnouncement: gamerule-portstrike-announce-announcement
+    announceSender: gamerule-portstrike-announce-sender
     endAudio:
       path: /Audio/Misc/gamma.ogg
       params:
@@ -28,6 +33,13 @@
       max: 3600
 
 # debug rules
+- type: entity
+  id: RoundEndRuleMinute2
+  parent: BaseGameRule
+  components:
+  - type: RoundEndTimeRule
+    endAt: 120
+
 - type: entity
   id: PortstrikeAnnounceRuleSeconds20
   parent: PortstrikeAnnounceRuleHour4

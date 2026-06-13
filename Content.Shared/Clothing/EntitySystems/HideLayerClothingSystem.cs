@@ -6,10 +6,10 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Clothing.EntitySystems;
 
-public sealed class HideLayerClothingSystem : EntitySystem
+public sealed partial class HideLayerClothingSystem : EntitySystem
 {
-    [Dependency] private readonly SharedHumanoidAppearanceSystem _humanoid = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private SharedHumanoidAppearanceSystem _humanoid = default!;
+    [Dependency] private IGameTiming _timing = default!;
 
     public override void Initialize()
     {
@@ -45,8 +45,7 @@ public sealed class HideLayerClothingSystem : EntitySystem
         if (!Resolve(clothing.Owner, ref clothing.Comp1, ref clothing.Comp2))
             return;
 
-        // logMissing: false, as this clothing might be getting equipped by a non-human.
-        if (!Resolve(user.Owner, ref user.Comp, false))
+        if (!Resolve(user.Owner, ref user.Comp))
             return;
 
         hideLayers &= IsEnabled(clothing!);
@@ -66,7 +65,7 @@ public sealed class HideLayerClothingSystem : EntitySystem
         // the clothing is (or was)equipped in a matching slot.
         foreach (var (layer, validSlots) in clothing.Comp1.Layers)
         {
-            if (!hideable.Contains(layer) && layer != HumanoidVisualLayers.Genital) // Hardlight, always hide genitals
+            if (!hideable.Contains(layer))
                 continue;
 
             // Only update this layer if we are currently equipped to the relevant slot.
@@ -82,7 +81,7 @@ public sealed class HideLayerClothingSystem : EntitySystem
         {
             foreach (var layer in slots)
             {
-                if (hideable.Contains(layer) || layer == HumanoidVisualLayers.Genital)
+                if (hideable.Contains(layer))
                     _humanoid.SetLayerVisibility(user!, layer, !hideLayers, inSlot, ref dirty);
             }
         }

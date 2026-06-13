@@ -1,12 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Work around https://github.com/dotnet/project-system/issues/4314 -->
-    <TargetFramework>$(TargetFramework)</TargetFramework>
     <OutputPath>..\bin\Content.IntegrationTests\</OutputPath>
-    <IsPackable>false</IsPackable>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <LangVersion>12</LangVersion>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
+  <Import Project="../MSBuild/Content.props" />
   <ItemGroup>
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit3TestAdapter" />
@@ -18,13 +16,11 @@
     <ProjectReference Include="..\Content.Shared\Content.Shared.csproj" />
     <ProjectReference Include="..\Content.Tests\Content.Tests.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Tests\_Impstation\" />
-  </ItemGroup>
-  <Import Project="..\RobustToolbox\Imports\Shared.props" />
-  <Import Project="..\RobustToolbox\Imports\Client.props" />
-  <Import Project="..\RobustToolbox\Imports\Server.props" />
-  <Import Project="..\RobustToolbox\Imports\Testing.props" />
   <Import Project="..\RobustToolbox\MSBuild\Robust.Properties.targets" />
   <Import Project="..\RobustToolbox\MSBuild\Robust.CompNetworkGenerator.targets" />
+
+  <Import Project="..\RobustToolbox\Imports\Client.props" />
+  <Import Project="..\RobustToolbox\Imports\Server.props" />
+  <Import Project="..\RobustToolbox\Imports\Shared.props" />
+  <Import Project="..\RobustToolbox\Imports\Testing.props" />
 </Project>

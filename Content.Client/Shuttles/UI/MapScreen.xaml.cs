@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Numerics;
 using Content.Client.Shuttles.Systems;
+using Content.Shared._Mono.Detection;
 using Content.Shared._NF.Shuttles.Components;
 using Content.Shared.Shuttles.BUIStates;
 using Content.Shared.Shuttles.Components;
@@ -27,10 +28,11 @@ namespace Content.Client.Shuttles.UI;
 [GenerateTypedNameReferences]
 public sealed partial class MapScreen : BoxContainer
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    private readonly DetectionSystem _detection; // Mono
     private readonly SharedAudioSystem _audio;
     private readonly SharedMapSystem _maps;
     private readonly ShuttleSystem _shuttles;
@@ -43,12 +45,14 @@ public sealed partial class MapScreen : BoxContainer
     private StartEndTime _ftlTime;
 
     private List<ShuttleBeaconObject> _beacons = new();
-    private List<ShuttleStationObject> _stations = new();
     private List<ShuttleExclusionObject> _exclusions = new();
 
     private TimeSpan _nextPing;
     private TimeSpan _pingCooldown = TimeSpan.FromSeconds(3);
     private TimeSpan _nextMapDequeue;
+
+    // Mono
+    private bool _autopilotTargeting = false;
 
     private float _minMapDequeue = 0.05f;
     private float _maxMapDequeue = 0.25f;
@@ -57,7 +61,9 @@ public sealed partial class MapScreen : BoxContainer
 
     public event Action<MapCoordinates, Angle>? RequestFTL;
     public event Action<NetEntity, Angle>? RequestBeaconFTL;
-    public event Action<NetEntity, Angle>? RequestStationFTL;
+
+    // Mono
+    public event Action<MapCoordinates, Angle>? RequestAutopilot;
 
     private readonly Dictionary<MapId, BoxContainer> _mapHeadings = new();
     private readonly Dictionary<MapId, List<IMapObject>> _mapObjects = new();
@@ -75,6 +81,7 @@ public sealed partial class MapScreen : BoxContainer
         RobustXamlLoader.Load(this);
         IoCManager.InjectDependencies(this);
 
+        _detection = _entManager.System<DetectionSystem>(); // Mono
         _audio = _entManager.System<SharedAudioSystem>();
         _maps = _entManager.System<SharedMapSystem>();
         _shuttles = _entManager.System<ShuttleSystem>();
@@ -85,6 +92,7 @@ public sealed partial class MapScreen : BoxContainer
         OnVisibilityChanged += OnVisChange;
 
         MapFTLButton.OnToggled += FtlPreviewToggled;
+        MapAutopilotButton.OnToggled += AutopilotPreviewToggled; // Mono
 
         _ftlStyle = new StyleBoxFlat(Color.LimeGreen);
         FTLBar.ForegroundStyleBoxOverride = _ftlStyle;
@@ -92,17 +100,20 @@ public sealed partial class MapScreen : BoxContainer
         // Just pass it on up.
         MapRadar.RequestFTL += (coords, angle) =>
         {
-            RequestFTL?.Invoke(coords, angle);
+            if (_autopilotTargeting) // Mono
+            {
+                RequestAutopilot?.Invoke(coords, angle);
+                SetTargeting(false, true);
+            }
+            else
+            {
+                RequestFTL?.Invoke(coords, angle);
+            }
         };
 
         MapRadar.RequestBeaconFTL += (ent, angle) =>
         {
             RequestBeaconFTL?.Invoke(ent, angle);
-        };
-
-        MapRadar.RequestStationFTL += (ent, angle) =>
-        {
-            RequestStationFTL?.Invoke(ent, angle);
         };
 
         MapBeaconsButton.OnToggled += args =>
@@ -116,7 +127,6 @@ public sealed partial class MapScreen : BoxContainer
         // Only network the accumulator due to ping making the thing fonky.
         // This should work better with predicting network states as they come in.
         _beacons = state.Destinations;
-        _stations = state.Stations;
         _exclusions = state.Exclusions;
         _state = state.FTLState;
         _ftlTime = state.FTLTime;
@@ -124,14 +134,14 @@ public sealed partial class MapScreen : BoxContainer
         MapFTLState.Text = Loc.GetString($"shuttle-console-ftl-state-{_state.ToString()}");
 
         //frontier - we only allow pre-approved vessels to FTL
-    //    if (!_entManager.HasComponent<ShuttleFTLComponent>(_shuttleEntity))
-    //    {
-    //        MapFTLButton.Visible = false;
-    //    }
-    //    else
-    //    {
-    //        MapFTLButton.Visible = true;
-    //    }
+        if (!_entManager.HasComponent<ShuttleFTLComponent>(_shuttleEntity))
+        {
+            MapFTLButton.Visible = true;
+        }
+        else
+        {
+            MapFTLButton.Visible = true;
+        }
 
         switch (_state)
         {
@@ -172,17 +182,10 @@ public sealed partial class MapScreen : BoxContainer
                 break;
         }
 
-        if (IsPingBlocked())
+        if (IsFTLBlocked())
         {
             MapRebuildButton.Disabled = true;
             ClearMapObjects();
-        }
-        else if (_mapHeadings.Count == 0)
-        {
-            // Ensure sector objects are populated on first open without requiring
-            // a manual scan click to seed the map list.
-            RebuildMapObjects();
-            BumpMapDequeue();
         }
     }
 
@@ -197,18 +200,45 @@ public sealed partial class MapScreen : BoxContainer
             // Unselect FTL
             MapFTLButton.Pressed = false;
             MapRadar.FtlMode = false;
+            MapRadar.ShowFTLRangeOnly = false;
             MapFTLButton.Disabled = true;
         }
     }
 
     private void FtlPreviewToggled(BaseButton.ButtonToggledEventArgs obj)
     {
-        MapRadar.FtlMode = obj.Pressed;
+        SetTargeting(obj.Pressed, false);
+    }
+
+    // Mono
+    private void AutopilotPreviewToggled(BaseButton.ButtonToggledEventArgs obj)
+    {
+        SetTargeting(obj.Pressed, true);
+    }
+
+    // Mono
+    private void SetTargeting(bool pressed, bool isAutopilot)
+    {
+        if (pressed)
+        {
+            MapRadar.FtlMode = true;
+            MapRadar.ShowFTLRangeOnly = false;
+            MapRadar.ShowFTLRange = !isAutopilot;
+            MapRadar.NoFTLRange = isAutopilot;
+            MapFTLButton.Pressed = !isAutopilot;
+            MapAutopilotButton.Pressed = isAutopilot;
+            _autopilotTargeting = isAutopilot;
+        }
+        else
+        {
+            MapRadar.FtlMode = false;
+        }
     }
 
     public void SetConsole(EntityUid? console)
     {
         _console = console;
+        MapRadar.SetConsole(console); // Mono
     }
 
     public void SetShuttle(EntityUid? shuttle)
@@ -241,7 +271,13 @@ public sealed partial class MapScreen : BoxContainer
         }
 
         RebuildMapObjects();
-        BumpMapDequeue();
+
+        // Immediately add all objects to the map instead of queueing them
+        foreach (var mapObj in _pendingMapObjects)
+        {
+            AddMapObject(mapObj.mapId, mapObj.mapobj);
+        }
+        _pendingMapObjects.Clear();
 
         _nextPing = _timing.CurTime + _pingCooldown;
         MapRebuildButton.Disabled = true;
@@ -254,7 +290,11 @@ public sealed partial class MapScreen : BoxContainer
 
     private void MapRebuildPressed(BaseButton.ButtonEventArgs obj)
     {
+        MapRadar.ShowFTLRangeOnly = true;
         PingMap();
+
+        // Reset range back after map pinging is complete.
+        MapRadar.ShowFTLRangeOnly = !MapFTLButton.Pressed;
     }
 
     /// <summary>
@@ -341,22 +381,23 @@ public sealed partial class MapScreen : BoxContainer
             {
                 _entManager.TryGetComponent(grid.Owner, out IFFComponent? iffComp);
 
-                // Frontier: Service flags for shuttles
-                // If it is a GridMapObject, Turn the mapObj.ServiceFlags into a string like Food = F, Medical = M, etc.
-                // This should turn the ServiceFlags into a string like "FM" for Food and Medical.
-                var serviceFlagsText = string.Empty;
-                if (iffComp?.ServiceFlags != null)
-                {
-                    serviceFlagsText = _shuttles.GetServiceFlagsSuffix(iffComp.ServiceFlags);
-                }
+                // Mono
+                var hideLabel = iffComp != null && (iffComp.Flags & IFFFlags.HideLabel) != 0x0 && grid.Owner != _shuttleEntity; // never hide our own label
+                var detectionLevel = _console == null ? DetectionLevel.Detected : _detection.IsGridDetected(grid.Owner, _console.Value);
+                var detected = detectionLevel != DetectionLevel.Undetected || !hideLabel;
+                if (!detected || iffComp != null && (iffComp.Flags & IFFFlags.Hide) != 0x0)
+                    continue;
+                var name = hideLabel ?
+                    detectionLevel == DetectionLevel.PartialDetected ?
+                        Loc.GetString($"shuttle-console-signature-infrared")
+                        : _detection.HandleUnknownMassLabel(grid.Owner)
+                    : _entManager.GetComponent<MetaDataComponent>(grid.Owner).EntityName;
 
                 var gridObj = new GridMapObject()
                 {
-                    Name = _entManager.GetComponent<MetaDataComponent>(grid.Owner).EntityName + serviceFlagsText,
-                    // Frontier: Service Flags
-                    ServiceFlags = iffComp?.ServiceFlags ?? ServiceFlags.None,
+                    Name = name, // Mono
                     Entity = grid.Owner,
-                    HideButton = iffComp != null && (iffComp.Flags & IFFFlags.HideLabel) != 0x0,
+                    HideButton = iffComp != null && (iffComp.Flags & IFFFlags.HideLabelAlways) != 0x0,
                 };
 
                 // Always show our shuttle immediately
@@ -367,7 +408,7 @@ public sealed partial class MapScreen : BoxContainer
 
                 // If we can show it then add it to pending.
                 else if (!_shuttles.IsBeaconMap(mapUid) && (iffComp == null ||
-                         (iffComp.Flags & IFFFlags.Hide | iffComp.Flags & IFFFlags.HideLabel) == 0x0) && // Frontier: add HideLabel check
+                         (iffComp.Flags & IFFFlags.Hide) == 0x0) &&
                          !gridObj.HideButton)
                 {
                     _pendingMapObjects.Add((mapComp.MapId, gridObj));
@@ -388,14 +429,6 @@ public sealed partial class MapScreen : BoxContainer
                     continue;
 
                 _pendingMapObjects.Add((mapComp.MapId, beacon));
-            }
-
-            foreach (var (station, _) in _shuttles.GetStations(mapComp.MapId, _stations))
-            {
-                if (station.HideButton)
-                    continue;
-
-                _pendingMapObjects.Add((mapComp.MapId, station));
             }
 
             HyperspaceDestinations.AddChild(mapButton);
@@ -454,27 +487,12 @@ public sealed partial class MapScreen : BoxContainer
         }
     }
 
-    /// <summary>
-    /// Returns true if we shouldn't be able to select the Scan for Objects button.
-    /// </summary>
-    private bool IsPingBlocked()
-    {
-        return _state switch
-        {
-            FTLState.Available or FTLState.Cooldown => false,
-            _ => true,
-        };
-    }
-
     private void OnMapObjectPress(IMapObject mapObject)
     {
-        if (IsPingBlocked())
+        if (IsFTLBlocked())
             return;
 
         var coordinates = _shuttles.GetMapCoordinates(mapObject);
-
-        if (coordinates.MapId == MapId.Nullspace) // HardLight
-            return;
 
         // If it's our map then scroll, otherwise just set position there.
         MapRadar.SetMap(coordinates.MapId, coordinates.Position, recentering: true);
@@ -559,15 +577,16 @@ public sealed partial class MapScreen : BoxContainer
 
         var curTime = _timing.CurTime;
 
-        if (_nextMapDequeue < curTime && _pendingMapObjects.Count > 0)
-        {
-            var mapObj = _pendingMapObjects[^1];
-            _pendingMapObjects.RemoveAt(_pendingMapObjects.Count - 1);
-            AddMapObject(mapObj.mapId, mapObj.mapobj);
-            BumpMapDequeue();
-        }
+        // Skip the gradual reveal of map objects - they're already added in PingMap
+        // if (_nextMapDequeue < curTime && _pendingMapObjects.Count > 0)
+        // {
+        //     var mapObj = _pendingMapObjects[^1];
+        //     _pendingMapObjects.RemoveAt(_pendingMapObjects.Count - 1);
+        //     AddMapObject(mapObj.mapId, mapObj.mapobj);
+        //     BumpMapDequeue();
+        // }
 
-        if (!IsPingBlocked() && _nextPing < curTime)
+        if (!IsFTLBlocked() && _nextPing < curTime)
         {
             MapRebuildButton.Disabled = false;
         }
@@ -587,12 +606,6 @@ public sealed partial class MapScreen : BoxContainer
         if (_entManager.TryGetComponent(_shuttleEntity, out TransformComponent? shuttleXform))
         {
             SetMap(shuttleXform.MapID, _maps.GetGridPosition((_shuttleEntity.Value, null, shuttleXform)));
-        }
-
-        if (!IsPingBlocked() && _mapHeadings.Count == 0)
-        {
-            RebuildMapObjects();
-            BumpMapDequeue();
         }
     }
 }

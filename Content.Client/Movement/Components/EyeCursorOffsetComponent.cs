@@ -16,9 +16,4 @@ public sealed partial class EyeCursorOffsetComponent : SharedEyeCursorOffsetComp
     /// The current positional offset being applied. Used to enable gradual panning.
     /// </summary>
     public Vector2 CurrentPosition = Vector2.Zero;
-
-    /// <summary>
-    /// Whether the zoom offset is currently active. Toggled by right-click in combat mode.
-    /// </summary>
-    public bool Enabled = true;
 }

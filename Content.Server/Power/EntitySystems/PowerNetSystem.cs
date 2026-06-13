@@ -1,3 +1,4 @@
+using System; // Mono
 using System.Linq;
 using Content.Server.NodeContainer.EntitySystems;
 using Content.Server.Power.Components;
@@ -18,13 +19,13 @@ namespace Content.Server.Power.EntitySystems
     ///     Manages power networks, power state, and all power components.
     /// </summary>
     [UsedImplicitly]
-    public sealed class PowerNetSystem : SharedPowerNetSystem
+    public sealed partial class PowerNetSystem : SharedPowerNetSystem
     {
-        [Dependency] private readonly AppearanceSystem _appearance = default!;
-        [Dependency] private readonly PowerNetConnectorSystem _powerNetConnector = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly IParallelManager _parMan = default!;
-        [Dependency] private readonly BatterySystem _battery = default!;
+        [Dependency] private AppearanceSystem _appearance = default!;
+        [Dependency] private PowerNetConnectorSystem _powerNetConnector = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private IParallelManager _parMan = default!;
+        [Dependency] private BatterySystem _battery = default!;
 
         private readonly PowerState _powerState = new();
         private readonly HashSet<PowerNet> _powerNetReconnectQueue = new();
@@ -34,6 +35,10 @@ namespace Content.Server.Power.EntitySystems
         private EntityQuery<BatteryComponent> _batteryQuery;
 
         private BatteryRampPegSolver _solver = new();
+
+        // Mono
+        private TimeSpan _updateInterval = TimeSpan.FromSeconds(0.5);
+        private TimeSpan _updateAccumulator = TimeSpan.FromSeconds(0);
 
         public override void Initialize()
         {
@@ -273,26 +278,28 @@ namespace Content.Server.Power.EntitySystems
         {
             base.Update(frameTime);
 
+            // Mono
+            _updateAccumulator += TimeSpan.FromSeconds(frameTime);
+            if (_updateAccumulator < _updateInterval)
+                return;
+            _updateAccumulator -= _updateInterval;
+
             ReconnectNetworks();
 
             // Synchronize batteries
             RaiseLocalEvent(new NetworkBatteryPreSync());
 
+            // Mono - replace frameTime with update interval
             // Run power solver.
-            _solver.Tick(frameTime, _powerState, _parMan);
+            _solver.Tick((float)_updateInterval.TotalSeconds, _powerState, _parMan);
 
             // Synchronize batteries, the other way around.
             RaiseLocalEvent(new NetworkBatteryPostSync());
 
             // Send events where necessary.
-            // TODO PERF: Originally proposed assembling a list of entity Uids during solver steps to avoid querying
-            // all power components every tick. A 2026-05 trace shows these three loops total ~3.3% of frame time
-            // (UpdateApcPowerReceiver 1.64%, UpdatePowerConsumer 1.59%, UpdateNetworkBattery 0.08%), so the realistic
-            // win is small. A dirty-set rewrite would also require adding EntityUid back-references to
-            // PowerState.Load/Supply/Battery (changing save serialization shape) and carries silent-bug risk if a
-            // dirty-flag set is missed. Higher-ROI target is BatteryRampPegSolver.UpdateNetwork at ~5.84%
-            // (see "TODO Look at SIMD" in BatteryRampPegSolver.cs).
-            UpdateApcPowerReceiver(frameTime);
+            // TODO: Instead of querying ALL power components every tick, and then checking if an event needs to be
+            // raised, should probably assemble a list of entity Uids during the actual solver steps.
+            UpdateApcPowerReceiver((float)_updateInterval.TotalSeconds); // Mono
             UpdatePowerConsumer();
             UpdateNetworkBattery();
         }
@@ -528,14 +535,6 @@ namespace Content.Server.Power.EntitySystems
                 netNode.Supplies.Add(supplier.NetworkSupply.Id);
                 supplier.NetworkSupply.LinkedNetwork = netNode.Id;
             }
-        }
-
-        /// <summary>
-        /// Validate integrity of the power state data. Throws if an error is found.
-        /// </summary>
-        public void Validate()
-        {
-            _solver.Validate(_powerState);
         }
     }
 

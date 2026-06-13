@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using Content.Server.Administration;
 using Content.Server.Administration.Logs;
@@ -18,9 +16,9 @@ using Robust.Shared.Utility;
 namespace Content.Server.Voting
 {
     [AnyCommand]
-    public sealed class CreateVoteCommand : IConsoleCommand
+    public sealed partial class CreateVoteCommand : IConsoleCommand
     {
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
 
         public string Command => "createvote";
         public string Description => Loc.GetString("cmd-createvote-desc");
@@ -71,13 +69,13 @@ namespace Content.Server.Voting
     }
 
     [AdminCommand(AdminFlags.Moderator)]
-    public sealed class CreateCustomCommand : LocalizedEntityCommands
+    public sealed partial class CreateCustomCommand : LocalizedEntityCommands
     {
-        [Dependency] private readonly IVoteManager _voteManager = default!;
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly IChatManager _chatManager = default!;
-        [Dependency] private readonly VoteWebhooks _voteWebhooks = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
+        [Dependency] private IVoteManager _voteManager = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private IChatManager _chatManager = default!;
+        [Dependency] private VoteWebhooks _voteWebhooks = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
 
         private ISawmill _sawmill = default!;
 
@@ -233,159 +231,9 @@ namespace Content.Server.Voting
     }
 
     [AdminCommand(AdminFlags.Moderator)]
-    public sealed class VoteHistoryCommand : IConsoleCommand
+    public sealed partial class CancelVoteCommand : IConsoleCommand
     {
-        public string Command => "votehistory";
-        public string Description => Loc.GetString("cmd-votehistory-desc");
-        public string Help => Loc.GetString("cmd-votehistory-help");
-
-        public void Execute(IConsoleShell shell, string argStr, string[] args)
-        {
-            var mgr = IoCManager.Resolve<IVoteManager>();
-
-            var take = 10;
-            if (args.Length >= 1 && (!int.TryParse(args[0], out take) || take <= 0))
-            {
-                shell.WriteError(Loc.GetString("cmd-votehistory-error-invalid-count"));
-                return;
-            }
-
-            var activeVotes = mgr.ActiveVotes.OrderByDescending(v => v.Id).Take(take).ToArray();
-            var historyVotes = mgr.HistoricalVotes.Take(take).ToArray();
-
-            shell.WriteLine(Loc.GetString("cmd-votehistory-active-header"));
-            if (activeVotes.Length == 0)
-            {
-                shell.WriteLine(Loc.GetString("cmd-votehistory-empty"));
-            }
-            else
-            {
-                foreach (var vote in activeVotes)
-                {
-                    shell.WriteLine($"[{vote.Id}] ACTIVE - {vote.InitiatorText}: {vote.Title}");
-                }
-            }
-
-            shell.WriteLine(Loc.GetString("cmd-votehistory-history-header"));
-            if (historyVotes.Length == 0)
-            {
-                shell.WriteLine(Loc.GetString("cmd-votehistory-empty"));
-            }
-            else
-            {
-                foreach (var vote in historyVotes)
-                {
-                    var status = vote.Cancelled ? "CANCELLED" : "FINISHED";
-                    shell.WriteLine($"[{vote.Id}] {status} - {vote.InitiatorText}: {vote.Title}");
-                }
-            }
-        }
-
-        public CompletionResult GetCompletion(IConsoleShell shell, string[] args)
-        {
-            if (args.Length == 1)
-            {
-                return CompletionResult.FromHint(Loc.GetString("cmd-votehistory-arg-count"));
-            }
-
-            return CompletionResult.Empty;
-        }
-    }
-
-    [AdminCommand(AdminFlags.Moderator)]
-    public sealed class VoteInspectCommand : IConsoleCommand
-    {
-        public string Command => "voteinspect";
-        public string Description => Loc.GetString("cmd-voteinspect-desc");
-        public string Help => Loc.GetString("cmd-voteinspect-help");
-
-        public void Execute(IConsoleShell shell, string argStr, string[] args)
-        {
-            var mgr = IoCManager.Resolve<IVoteManager>();
-
-            if (args.Length < 1)
-            {
-                shell.WriteError(Loc.GetString("cmd-voteinspect-error-missing-vote-id"));
-                return;
-            }
-
-            if (!int.TryParse(args[0], out var id))
-            {
-                shell.WriteError(Loc.GetString("cmd-voteinspect-error-invalid-vote-id"));
-                return;
-            }
-
-            if (mgr.TryGetVote(id, out var activeVote))
-            {
-                shell.WriteLine($"[{activeVote.Id}] ACTIVE - {activeVote.InitiatorText}: {activeVote.Title}");
-                WriteVoteBreakdown(shell, activeVote.OptionTexts, activeVote.CastVotes
-                    .Select(pair => (pair.Key.Name, pair.Key.UserId.ToString(), pair.Value)));
-                return;
-            }
-
-            if (mgr.TryGetHistoricalVote(id, out var historicalVote))
-            {
-                var status = historicalVote.Cancelled ? "CANCELLED" : "FINISHED";
-                shell.WriteLine($"[{historicalVote.Id}] {status} - {historicalVote.InitiatorText}: {historicalVote.Title}");
-                WriteVoteBreakdown(shell, historicalVote.OptionTexts, historicalVote.CastVotes
-                    .Select(entry => (entry.PlayerName, entry.UserId.ToString(), entry.OptionId)));
-                return;
-            }
-
-            shell.WriteError(Loc.GetString("cmd-voteinspect-error-invalid-vote-id"));
-        }
-
-        public CompletionResult GetCompletion(IConsoleShell shell, string[] args)
-        {
-            var mgr = IoCManager.Resolve<IVoteManager>();
-            if (args.Length == 1)
-            {
-                var active = mgr.ActiveVotes.Select(v => new CompletionOption(v.Id.ToString(), v.Title));
-                var history = mgr.HistoricalVotes.Select(v => new CompletionOption(v.Id.ToString(), v.Title));
-                return CompletionResult.FromHintOptions(active.Concat(history), Loc.GetString("cmd-voteinspect-arg-id"));
-            }
-
-            return CompletionResult.Empty;
-        }
-
-        private static void WriteVoteBreakdown(
-            IConsoleShell shell,
-            IReadOnlyList<string> optionTexts,
-            IEnumerable<(string playerName, string userId, int optionId)> votes)
-        {
-            var groupedVotes = votes
-                .OrderBy(vote => vote.playerName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(vote => vote.userId, StringComparer.Ordinal)
-                .ToArray();
-
-            shell.WriteLine(Loc.GetString("cmd-voteinspect-options-header"));
-            for (var i = 0; i < optionTexts.Count; i++)
-            {
-                shell.WriteLine($"  [{i}] {optionTexts[i]}");
-            }
-
-            shell.WriteLine(Loc.GetString("cmd-voteinspect-voters-header"));
-            if (groupedVotes.Length == 0)
-            {
-                shell.WriteLine(Loc.GetString("cmd-voteinspect-no-votes"));
-                return;
-            }
-
-            foreach (var vote in groupedVotes)
-            {
-                var optionLabel = vote.optionId >= 0 && vote.optionId < optionTexts.Count
-                    ? optionTexts[vote.optionId]
-                    : Loc.GetString("cmd-voteinspect-unknown-option");
-
-                shell.WriteLine($"  {vote.playerName} ({vote.userId}) -> [{vote.optionId}] {optionLabel}");
-            }
-        }
-    }
-
-    [AdminCommand(AdminFlags.Moderator)]
-    public sealed class CancelVoteCommand : IConsoleCommand
-    {
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
 
         public string Command => "cancelvote";
         public string Description => Loc.GetString("cmd-cancelvote-desc");

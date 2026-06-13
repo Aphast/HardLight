@@ -9,14 +9,15 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Server.CartridgeLoader.Cartridges;
 
-public sealed class CrewManifestCartridgeSystem : EntitySystem
+public sealed partial class CrewManifestCartridgeSystem : EntitySystem
 {
-    [Dependency] private readonly CartridgeLoaderSystem _cartridgeLoader = default!;
-    [Dependency] private readonly IConfigurationManager _configManager = default!;
-    [Dependency] private readonly CrewManifestSystem _crewManifest = default!;
-    [Dependency] private readonly StationSystem _stationSystem = default!;
+    [Dependency] private CartridgeLoaderSystem _cartridgeLoader = default!;
+    [Dependency] private IConfigurationManager _configManager = default!;
+    [Dependency] private CrewManifestSystem _crewManifest = default!;
+    [Dependency] private StationSystem _stationSystem = default!;
 
-    private static readonly EntProtoId CartridgePrototypeName = new("CrewManifestCartridge");
+    [ValidatePrototypeId<EntityPrototype>]
+    private const string CartridgePrototypeName = "CrewManifestCartridge";
 
     /// <summary>
     /// Flag that shows that if crew manifest is allowed to be viewed from 'unsecure' entities,
@@ -62,9 +63,9 @@ public sealed class CrewManifestCartridgeSystem : EntitySystem
         if (owningStation is null)
             return;
 
-        var entries = _crewManifest.GetCrewManifest(); // coyote: remove name
+        var (stationName, entries) = _crewManifest.GetCrewManifest(owningStation.Value);
 
-        var state = new CrewManifestUiState(entries); // coyote: remove name
+        var state = new CrewManifestUiState(stationName, entries);
         _cartridgeLoader.UpdateCartridgeUiState(loaderUid, state);
     }
 

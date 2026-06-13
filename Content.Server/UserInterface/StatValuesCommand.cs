@@ -16,12 +16,11 @@ using Robust.Shared.Prototypes;
 namespace Content.Server.UserInterface;
 
 [AdminCommand(AdminFlags.Debug)]
-public sealed class StatValuesCommand : IConsoleCommand
+public sealed partial class StatValuesCommand : IConsoleCommand
 {
-    [Dependency] private readonly EuiManager _eui = default!;
-    [Dependency] private readonly IComponentFactory _factory = default!;
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
+    [Dependency] private EuiManager _eui = default!;
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
 
     public string Command => "showvalues";
     public string Description => Loc.GetString("stat-values-desc");
@@ -174,7 +173,7 @@ public sealed class StatValuesCommand : IConsoleCommand
     private StatValuesEuiMessage GetMelee()
     {
         var values = new List<string[]>();
-        var meleeName = _factory.GetComponentName(typeof(MeleeWeaponComponent));
+        var meleeName = _entManager.ComponentFactory.GetComponentName<MeleeWeaponComponent>();
 
         foreach (var proto in _proto.EnumeratePrototypes<EntityPrototype>())
         {
@@ -257,7 +256,7 @@ public sealed class StatValuesCommand : IConsoleCommand
     private StatValuesEuiMessage GetDrawRateMessage()
     {
         var values = new List<string[]>();
-        var powerName = _factory.GetComponentName(typeof(ApcPowerReceiverComponent));
+        var powerName = _entManager.ComponentFactory.GetComponentName<ApcPowerReceiverComponent>();
 
         foreach (var proto in _proto.EnumeratePrototypes<EntityPrototype>())
         {

@@ -1,4 +1,4 @@
-﻿using Content.Shared.Roles;
+using Content.Shared.Roles;
 using Content.Shared.Store; // Frontier: turn-in features
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
@@ -37,7 +37,7 @@ public sealed partial class ContrabandComponent : Component
 
     // Frontier: turn-in features
     /// <summary>
-    ///     The set of currency types this item can be redeemed 
+    ///     The set of currency types this item can be redeemed
     /// </summary>
     [DataField]
     [AutoNetworkedField]

@@ -78,6 +78,4 @@ public sealed partial class LoadoutPrototype : IPrototype, IEquipmentLoadout
     /// </summary>
     [DataField]
     public List<LoadoutEffect> HideEffects = new();
-
-    [DataField] public Dictionary<string, List<EntProtoId>> Containers { get; set; } = new(); // Far Horizons
 }

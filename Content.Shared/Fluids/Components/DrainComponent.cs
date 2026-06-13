@@ -1,7 +1,6 @@
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Tag;
 using Robust.Shared.Audio;
-using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Fluids.Components;
 
@@ -18,7 +17,8 @@ public sealed partial class DrainComponent : Component
 {
     public const string SolutionName = "drainBuffer";
 
-    public static readonly ProtoId<TagPrototype> PlungerTag = "Plunger";
+    [ValidatePrototypeId<TagPrototype>]
+    public const string PlungerTag = "Plunger";
 
     [ViewVariables]
     public Entity<SolutionComponent>? Solution = null;
@@ -54,12 +54,13 @@ public sealed partial class DrainComponent : Component
     [DataField]
     public float Range = 2.5f;
 
+    // Mono - disabled
     /// <summary>
     /// How often in seconds the drain checks for puddles around it.
     /// If the EntityQuery seems a bit unperformant this can be increased.
     /// </summary>
-    [DataField]
-    public float DrainFrequency = 1f;
+    // [DataField]
+    // public float DrainFrequency = 1f;
 
     /// <summary>
     /// How much time it takes to unclog it with a plunger

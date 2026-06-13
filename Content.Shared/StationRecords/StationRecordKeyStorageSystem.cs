@@ -2,9 +2,9 @@ using Robust.Shared.GameStates;
 
 namespace Content.Shared.StationRecords;
 
-public sealed class StationRecordKeyStorageSystem : EntitySystem
+public sealed partial class StationRecordKeyStorageSystem : EntitySystem
 {
-    [Dependency] private readonly SharedStationRecordsSystem _records = default!;
+    [Dependency] private SharedStationRecordsSystem _records = default!;
 
     public override void Initialize()
     {
@@ -34,7 +34,10 @@ public sealed class StationRecordKeyStorageSystem : EntitySystem
     /// <param name="keyStorage"></param>
     public void AssignKey(EntityUid uid, StationRecordKey key, StationRecordKeyStorageComponent? keyStorage = null)
     {
-        keyStorage ??= EnsureComp<StationRecordKeyStorageComponent>(uid);
+        if (!Resolve(uid, ref keyStorage))
+        {
+            return;
+        }
 
         keyStorage.Key = key;
         Dirty(uid, keyStorage);

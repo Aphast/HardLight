@@ -1,4 +1,4 @@
-﻿using Content.Shared.DoAfter;
+using Content.Shared.DoAfter;
 using Content.Shared.Mech.Components;
 using Robust.Shared.Serialization;
 
@@ -19,6 +19,12 @@ public sealed partial class MechEquipmentComponent : Component
     /// The mech that the equipment is inside of.
     /// </summary>
     [ViewVariables] public EntityUid? EquipmentOwner;
+
+    /// <summary>
+    /// Monolith: Equipment that cant be fired on grids.
+    /// </summary>
+    [DataField]
+    public bool PreventFireOnGrid = false;
 }
 
 /// <summary>

@@ -8,10 +8,10 @@ using Robust.Shared.Utility;
 
 namespace Content.Client.Cuffs;
 
-public sealed class CuffableSystem : SharedCuffableSystem
+public sealed partial class CuffableSystem : SharedCuffableSystem
 {
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
 
     public override void Initialize()
     {
@@ -24,11 +24,7 @@ public sealed class CuffableSystem : SharedCuffableSystem
     private void OnCuffableShutdown(EntityUid uid, CuffableComponent component, ComponentShutdown args)
     {
         if (TryComp<SpriteComponent>(uid, out var sprite))
-        {
-            // Only try to hide the handcuffs layer if it actually exists
-            if (_sprite.TryGetLayer((uid, sprite), HumanoidVisualLayers.Handcuffs, out _, logMissing: false))
-                _sprite.LayerSetVisible((uid, sprite), HumanoidVisualLayers.Handcuffs, false);
-        }
+            _sprite.LayerSetVisible((uid, sprite), HumanoidVisualLayers.Handcuffs, false);
     }
 
     private void OnCuffableHandleState(EntityUid uid, CuffableComponent component, ref ComponentHandleState args)
@@ -44,11 +40,6 @@ public sealed class CuffableSystem : SharedCuffableSystem
 
         if (!TryComp<SpriteComponent>(uid, out var sprite))
             return;
-
-        // Only update handcuffs layer if it exists on this entity
-        if (!_sprite.TryGetLayer((uid, sprite), HumanoidVisualLayers.Handcuffs, out _, logMissing: false))
-            return;
-
         var cuffed = cuffState.NumHandsCuffed > 0;
         _sprite.LayerSetVisible((uid, sprite), HumanoidVisualLayers.Handcuffs, cuffed);
 

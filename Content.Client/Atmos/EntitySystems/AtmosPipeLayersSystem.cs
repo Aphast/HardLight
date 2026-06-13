@@ -14,10 +14,10 @@ namespace Content.Client.Atmos.EntitySystems;
 /// </summary>
 public sealed partial class AtmosPipeLayersSystem : SharedAtmosPipeLayersSystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly IReflectionManager _reflection = default!;
-    [Dependency] private readonly IResourceCache _resourceCache = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IReflectionManager _reflection = default!;
+    [Dependency] private IResourceCache _resourceCache = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
 
     public override void Initialize()
     {
@@ -37,13 +37,10 @@ public sealed partial class AtmosPipeLayersSystem : SharedAtmosPipeLayersSystem
             _sprite.SetBaseRsi((ent, sprite), resource.RSI);
         }
 
-        if (_appearance.TryGetData<AtmosPipeLayerSpriteLayerData>(ent, AtmosPipeLayerVisuals.SpriteLayers, out var pipeState))
+        if (_appearance.TryGetData<Dictionary<string, string>>(ent, AtmosPipeLayerVisuals.SpriteLayers, out var pipeState))
         {
-            foreach (var layer in pipeState.Layers)
+            foreach (var (layerKey, rsiPath) in pipeState)
             {
-                var layerKey = layer.LayerKey;
-                var rsiPath = layer.RsiPath;
-
                 if (TryParseKey(layerKey, out var @enum))
                     _sprite.LayerSetRsi((ent, sprite), @enum, new ResPath(rsiPath));
                 else

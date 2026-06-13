@@ -385,9 +385,6 @@ public partial class NavMapControl : MapGridControl
         if (PostWallDrawingAction != null)
             PostWallDrawingAction.Invoke(handle);
 
-        // Draw safe zone ring at 5000m
-        DrawSafeZoneRing(handle, offset);
-
         var curTime = Timing.RealTime;
         var blinkFrequency = 1f / 1f;
         var lit = curTime.TotalSeconds % blinkFrequency > blinkFrequency / 2f;
@@ -735,21 +732,6 @@ public partial class NavMapControl : MapGridControl
     protected Vector2 GetOffset()
     {
         return Offset + (_physics?.LocalCenter ?? new Vector2());
-    }
-
-    private void DrawSafeZoneRing(DrawingHandleScreen handle, Vector2 offset)
-    {
-        const float SafeZoneRadius = 5000f;
-        var safeZoneColor = Color.LimeGreen.WithAlpha(0.8f);
-        
-        // Calculate the center position (inverted Y for screen coordinates)
-        var centerPos = ScalePosition(new Vector2(-offset.X, offset.Y));
-        
-        // Scale the radius according to the minimap scale
-        var scaledRadius = SafeZoneRadius * MinimapScale;
-        
-        // Draw the ring
-        handle.DrawCircle(centerPos, scaledRadius, safeZoneColor, filled: false);
     }
 }
 

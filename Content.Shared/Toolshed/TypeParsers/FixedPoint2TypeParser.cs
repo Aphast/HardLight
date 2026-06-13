@@ -3,24 +3,29 @@ using Robust.Shared.Console;
 using Robust.Shared.Toolshed;
 using Robust.Shared.Toolshed.Syntax;
 using Robust.Shared.Toolshed.TypeParsers;
+using Robust.Shared.Utility;
 
 namespace Content.Shared.Toolshed.TypeParsers;
 
-/// <summary>
-/// Toolshed type parser for FixedPoint2, allowing commands to accept quantities like 1, 0.5, or 2.75.
-/// </summary>
 public sealed class FixedPoint2TypeParser : TypeParser<FixedPoint2>
 {
     public override bool TryParse(ParserContext ctx, out FixedPoint2 result)
     {
-        // Parse as a standard double using existing numeric parsers, then convert to FixedPoint2.
-        if (Toolshed.TryParse<double>(ctx, out var value))
+        if (Toolshed.TryParse(ctx, out int? value))
         {
-            result = FixedPoint2.New(value);
+            result =  FixedPoint2.New(value.Value);
             return true;
         }
 
-        result = default;
+        if (Toolshed.TryParse(ctx, out float? fValue))
+        {
+            result = FixedPoint2.New(fValue.Value);
+            return true;
+        }
+
+        // Toolshed's number parser (NumberBaseTypeParser) should have assigned ctx.Error so we don't have to.
+        DebugTools.AssertNotNull(ctx.Error);
+        result = FixedPoint2.Zero;
         return false;
     }
 

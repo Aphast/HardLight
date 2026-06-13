@@ -4,7 +4,6 @@ using Content.Shared.Chat;
 using Content.Shared.Damage;
 using Content.Shared.Database;
 using Content.Shared.Hands.Components;
-using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Item;
 using Content.Shared.Mind;
@@ -20,15 +19,15 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Server.Chat;
 
-public sealed class SuicideSystem : EntitySystem
+public sealed partial class SuicideSystem : EntitySystem
 {
-    [Dependency] private readonly EntityLookupSystem _entityLookupSystem = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly TagSystem _tagSystem = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly GhostSystem _ghostSystem = default!;
-    [Dependency] private readonly SharedSuicideSystem _suicide = default!;
+    [Dependency] private EntityLookupSystem _entityLookupSystem = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private GhostSystem _ghostSystem = default!;
+    [Dependency] private SharedSuicideSystem _suicide = default!;
 
     private static readonly ProtoId<TagPrototype> CannotSuicideTag = "CannotSuicide";
 
@@ -155,7 +154,7 @@ public sealed class SuicideSystem : EntitySystem
         if (args.Handled)
             return;
 
-        var othersMessage = Loc.GetString("suicide-command-default-text-others", ("name", Identity.Entity(victim, EntityManager)));
+        var othersMessage = Loc.GetString("suicide-command-default-text-others", ("name", victim));
         _popup.PopupEntity(othersMessage, victim, Filter.PvsExcept(victim), true);
 
         var selfMessage = Loc.GetString("suicide-command-default-text-self");

@@ -1,5 +1,4 @@
 using Content.Shared._Goobstation.Factory.Filters;
-using Content.Shared.Chemistry.Components;
 using Content.Shared.DeviceLinking;
 using Content.Shared.Whitelist;
 using Robust.Shared.Prototypes;
@@ -43,7 +42,7 @@ public abstract partial class AutomationSlot
     [ViewVariables]
     public EntityUid Owner;
 
-    [Dependency] public readonly IEntityManager EntMan = default!;
+    [Dependency] public IEntityManager EntMan = default!;
     protected AutomationFilterSystem _filter;
     protected EntityWhitelistSystem _whitelist;
     protected SharedDeviceLinkSystem _device;
@@ -110,9 +109,4 @@ public abstract partial class AutomationSlot
         if (Output is {} output)
             _device.RemoveSourcePort(Owner, output);
     }
-
-    /// <summary>
-    /// For plumbing slots, get the solution for this slot.
-    /// </summary>
-    public virtual Entity<SolutionComponent>? GetSolution() => null;
 }

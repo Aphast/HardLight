@@ -1,8 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
-using System.Linq; //Hardlight
 
 namespace Content.Shared.Construction.Prototypes
 {
@@ -70,7 +69,7 @@ namespace Content.Shared.Construction.Prototypes
             return nodes;
         }
 
-        public ConstructionGraphNode[]? Path(string startNode, string finishNode, List<ConstructionGraphEdge>? validEdges = null) //Hardlight
+        public ConstructionGraphNode[]? Path(string startNode, string finishNode)
         {
             var tuple = (startNode, finishNode);
 
@@ -86,7 +85,7 @@ namespace Content.Shared.Construction.Prototypes
             }
             else
             {
-                pathfindingForStart = _pathfinding[startNode] = PathsForStart(startNode, validEdges); //Hardlight
+                pathfindingForStart = _pathfinding[startNode] = PathsForStart(startNode);
             }
 
             // Follow the chain backwards.
@@ -119,7 +118,7 @@ namespace Content.Shared.Construction.Prototypes
         ///     Uses breadth first search for pathfinding.
         /// </summary>
         /// <param name="start"></param>
-        private Dictionary<ConstructionGraphNode, ConstructionGraphNode?> PathsForStart(string start, List<ConstructionGraphEdge>? validEdges = null) //Hardlight
+        private Dictionary<ConstructionGraphNode, ConstructionGraphNode?> PathsForStart(string start)
         {
             // TODO: Make this use A* or something, although it's not that important.
             var startNode = _nodes[start];
@@ -135,7 +134,6 @@ namespace Content.Shared.Construction.Prototypes
                 var current = frontier.Dequeue();
                 foreach (var edge in current.Edges)
                 {
-                    if (validEdges != null && validEdges.Any() && !validEdges.Contains(edge)) continue; //Hardlight: Tosses out edge if it has tag requirements not present in the entity
                     var edgeNode = _nodes[edge.Target];
                     if(cameFrom.ContainsKey(edgeNode)) continue;
                     frontier.Enqueue(edgeNode);

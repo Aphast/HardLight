@@ -20,14 +20,14 @@ namespace Content.Server.Anomaly;
 /// </summary>
 public sealed partial class AnomalySynchronizerSystem : EntitySystem
 {
-    [Dependency] private readonly AnomalySystem _anomaly = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly EntityLookupSystem _entityLookup = default!;
-    [Dependency] private readonly DeviceLinkSystem _signal = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly PowerReceiverSystem _power = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private AnomalySystem _anomaly = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private EntityLookupSystem _entityLookup = default!;
+    [Dependency] private DeviceLinkSystem _signal = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private PowerReceiverSystem _power = default!;
+    [Dependency] private IGameTiming _timing = default!;
 
     public override void Initialize()
     {
@@ -47,39 +47,27 @@ public sealed partial class AnomalySynchronizerSystem : EntitySystem
     {
         base.Update(frameTime);
 
-        var query = EntityQueryEnumerator<AnomalySynchronizerComponent>();
-        while (query.MoveNext(out var uid, out var sync))
+        var query = EntityQueryEnumerator<AnomalySynchronizerComponent, TransformComponent>();
+        while (query.MoveNext(out var uid, out var sync, out var xform))
         {
-            if (!TryComp<TransformComponent>(uid, out var xform))
-                continue;
-
-            if (sync.ConnectedAnomaly is not { } anomalyUid)
+            if (sync.ConnectedAnomaly is null)
                 continue;
 
             if (_timing.CurTime < sync.NextCheckTime)
                 continue;
             sync.NextCheckTime += sync.CheckFrequency;
 
-            if (!EntityManager.EntityExists(anomalyUid)
-                || EntityManager.IsQueuedForDeletion(anomalyUid)
-                || TerminatingOrDeleted(anomalyUid)
-                || !TryComp<TransformComponent>(anomalyUid, out var anomalyXform))
+            if (Transform(sync.ConnectedAnomaly.Value).MapUid != Transform(uid).MapUid)
             {
-                DisconnectFromAnomaly((uid, sync), anomalyUid);
+                DisconnectFromAnomaly((uid, sync), sync.ConnectedAnomaly.Value);
                 continue;
             }
 
-            if (anomalyXform.MapUid != xform.MapUid)
-            {
-                DisconnectFromAnomaly((uid, sync), anomalyUid);
-                continue;
-            }
-
-            if (!xform.Coordinates.TryDistance(EntityManager, anomalyXform.Coordinates, out var distance))
+            if (!xform.Coordinates.TryDistance(EntityManager, Transform(sync.ConnectedAnomaly.Value).Coordinates, out var distance))
                 continue;
 
             if (distance > sync.AttachRange)
-                DisconnectFromAnomaly((uid, sync), anomalyUid);
+                DisconnectFromAnomaly((uid, sync), sync.ConnectedAnomaly.Value);
         }
     }
 
@@ -153,15 +141,6 @@ public sealed partial class AnomalySynchronizerSystem : EntitySystem
     {
         if (ent.Comp.ConnectedAnomaly == anomaly)
             return;
-
-        if (!EntityManager.EntityExists(anomaly)
-            || EntityManager.IsQueuedForDeletion(anomaly)
-            || TerminatingOrDeleted(anomaly)
-            || !HasComp<TransformComponent>(ent)
-            || !HasComp<TransformComponent>(anomaly))
-        {
-            return;
-        }
 
         ent.Comp.ConnectedAnomaly = anomaly;
         //move the anomaly to the center of the synchronizer, for aesthetics.

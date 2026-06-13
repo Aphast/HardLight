@@ -1,12 +1,10 @@
 using System.Numerics;
 using Content.Client.Resources;
-using Content.Client.UserInterface.Controls;
 using Robust.Client.Graphics;
 using Robust.Client.ResourceManagement;
 using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.UserInterface.CustomControls;
-using Robust.Shared.Maths;
 
 namespace Content.Client.Stylesheets
 {
@@ -44,6 +42,7 @@ namespace Content.Client.Stylesheets
         protected StyleBoxTexture BaseAngleRect { get; }
         protected StyleBoxTexture AngleBorderRect { get; }
 
+        // Goobstation - ZH text support
         protected StyleBase(IResourceCache resCache)
         {
             var notoSans12 = resCache.GetFont
@@ -51,8 +50,9 @@ namespace Content.Client.Stylesheets
                 new []
                 {
                     "/Fonts/NotoSans/NotoSans-Regular.ttf",
+                    "/Fonts/NotoSans/NotoSansSC-Regular.ttf",
                     "/Fonts/NotoSans/NotoSansSymbols-Regular.ttf",
-                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf"
+                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf",
                 },
                 12
             );
@@ -61,8 +61,9 @@ namespace Content.Client.Stylesheets
                 new []
                 {
                     "/Fonts/NotoSans/NotoSans-Italic.ttf",
+                    "/Fonts/NotoSans/NotoSansSC-Regular.ttf",
                     "/Fonts/NotoSans/NotoSansSymbols-Regular.ttf",
-                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf"
+                    "/Fonts/NotoSans/NotoSansSymbols2-Regular.ttf",
                 },
                 12
             );
@@ -180,7 +181,7 @@ namespace Content.Client.Stylesheets
                     new[]
                     {
                         new StyleProperty(TextureButton.StylePropertyTexture, textureCloseButton),
-                        new StyleProperty(Control.StylePropertyModulateSelf, StyleNano.NanoGold),
+                        new StyleProperty(Control.StylePropertyModulateSelf, Color.FromHex("#545454")),
                     }),
                 // Window close button hover.
                 new StyleRule(

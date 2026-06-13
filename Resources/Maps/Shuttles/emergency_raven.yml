@@ -21,6 +21,7 @@ entities:
       name: NT Evac Raven
     - type: Transform
       pos: -0.546875,-0.53125
+      parent: invalid
     - type: MapGrid
       chunks:
         0,0:
@@ -66,8 +67,6 @@ entities:
       fixtures: {}
     - type: OccluderTree
     - type: Shuttle
-    - type: WorldLoader
-      disabled: False
     - type: Gravity
       gravityShakeSound: !type:SoundPathSpecifier
         path: /Audio/Effects/alert.ogg

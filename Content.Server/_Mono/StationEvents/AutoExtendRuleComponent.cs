@@ -8,7 +8,6 @@ namespace Content.Server._Mono.StationEvents;
 /// Supposed to be used by other systems and not YML.
 /// Is removed once the event is ended.
 /// </summary>
-// VRS: Ported from Triad_Sector — keeps dungeon/POI events alive while players are still inside.
 [RegisterComponent]
 public sealed partial class AutoExtendRuleComponent : Component
 {
@@ -21,7 +20,7 @@ public sealed partial class AutoExtendRuleComponent : Component
 
     /// <summary>
     /// In what radius to check for players.
-    /// </summary>
+    /// </summary
     [DataField]
     public float PlayerCheckRadius = 512f;
 

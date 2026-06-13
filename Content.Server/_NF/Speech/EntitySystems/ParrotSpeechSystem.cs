@@ -1,7 +1,7 @@
 using System.Linq;
 using Content.Server.Chat.Systems;
-using Content.Shared.Chat; // For InGameICChatType
 using Content.Server.Speech.Components;
+using Content.Shared.Chat; // Einstein Engines - Languages
 using Content.Shared.Mind.Components;
 using Content.Shared.Whitelist;
 using Robust.Shared.Random;
@@ -9,12 +9,12 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.Speech.EntitySystems;
 
-public sealed class ParrotSpeechSystem : EntitySystem
+public sealed partial class ParrotSpeechSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private ChatSystem _chat = default!;
 
     public override void Initialize()
     {
@@ -26,31 +26,28 @@ public sealed class ParrotSpeechSystem : EntitySystem
 
     public override void Update(float frameTime)
     {
-        var curTime = _timing.CurTime;
         var query = EntityQueryEnumerator<ParrotSpeechComponent>();
         while (query.MoveNext(out var uid, out var component))
         {
-            // Cheapest checks first: the timing gate filters out the vast majority of parrots
-            // every tick, before we touch component data or do a TryComp.
-            if (curTime < component.NextUtterance)
-                continue;
             if (component.LearnedPhrases.Count == 0)
                 // This parrot has not learned any phrases, so can't say anything interesting.
                 continue;
             if (TryComp<MindContainerComponent>(uid, out var mind) && mind.HasMind)
                 // Pause parrot speech when someone is controlling the parrot.
                 continue;
+            if (_timing.CurTime < component.NextUtterance)
+                continue;
 
             if (component.NextUtterance != null)
             {
-                // TODO: Don't spam admin logs either. If a parrot learns something inappropriate,
-                // admins can search for the player that said the inappropriate thing.
                 _chat.TrySendInGameICMessage(
                     uid,
                     _random.Pick(component.LearnedPhrases),
                     InGameICChatType.Speak,
                     hideChat: true, // Don't spam the chat with randomly generated messages
-                    hideLog: true,
+                    hideLog: true, // TODO: Don't spam admin logs either.
+                                   // If a parrot learns something inappropriate, admins can search for
+                                   // the player that said the inappropriate thing.
                     checkRadioPrefix: false);
             }
 
@@ -66,7 +63,7 @@ public sealed class ParrotSpeechSystem : EntitySystem
             // split words correctly.
             var words = args.Message.Split(" ", StringSplitOptions.RemoveEmptyEntries);
             // Prefer longer phrases
-            var phraseLength = 1 + (int)(Math.Sqrt(_random.NextDouble()) * component.MaximumPhraseLength);
+            var phraseLength = 1 + (int) (Math.Sqrt(_random.NextDouble()) * component.MaximumPhraseLength);
 
             var startIndex = _random.Next(0, Math.Max(0, words.Length - phraseLength + 1));
 

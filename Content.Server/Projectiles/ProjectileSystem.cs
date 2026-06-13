@@ -1,44 +1,27 @@
-using Content.Server.Administration.Logs;
 using Content.Server.Destructible;
-using Content.Server.Effects;
-using Content.Server.Weapons.Ranged.Systems;
-using Content.Shared.Camera;
 using Content.Shared.Damage;
-using Content.Shared.Damage.Components;
-using Content.Shared.Damage.Systems;
-using Content.Shared.Database;
 using Content.Shared.FixedPoint;
 using Content.Shared.Projectiles;
-using Content.Shared.Physics;
-using Content.Shared.Whitelist; // HardLight
 using Robust.Shared.Map;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
-using Robust.Shared.Physics.Dynamics; // Mono
-using Robust.Shared.Physics.Events; // HardLight - PreventCollideEvent in anti-tunnel raycast
+using Robust.Shared.Physics.Dynamics; // Mono;
+using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
-using Robust.Shared.Timing;
-using System.Linq;
-using System.Numerics;
 
 namespace Content.Server.Projectiles;
 
-public sealed class ProjectileSystem : SharedProjectileSystem
+public sealed partial class ProjectileSystem : SharedProjectileSystem
 {
-    [Dependency] private readonly DestructibleSystem _destructibleSystem = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!; // HardLight
+    [Dependency] private DestructibleSystem _destructibleSystem = default!;
 
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
 
+    // <Mono>
     private EntityQuery<PhysicsComponent> _physQuery;
     private EntityQuery<FixturesComponent> _fixQuery;
 
-    /// <summary>
-    /// Minimum velocity for a projectile to be considered for raycast hit detection.
-    /// Projectiles slower than this will rely on standard StartCollideEvent.
-    /// </summary>
-    private const float MinRaycastVelocity = 75f; // 100->75 Mono
 
     public override void Initialize()
     {
@@ -47,7 +30,6 @@ public sealed class ProjectileSystem : SharedProjectileSystem
         // Mono
         _physQuery = GetEntityQuery<PhysicsComponent>();
         _fixQuery = GetEntityQuery<FixturesComponent>();
-
         // Mono
         UpdatesBefore.Add(typeof(SharedPhysicsSystem));
     }
@@ -59,30 +41,32 @@ public sealed class ProjectileSystem : SharedProjectileSystem
         if (component.ProjectileSpent)
             return null;
 
-        if (TryComp<ProjectileTargetWhitelistComponent>(uid, out var targetFilter) // HardLight
-            && !_whitelist.CheckBoth(target, targetFilter.Blacklist, targetFilter.Whitelist))
-        {
-            return null;
-        }
-
         var otherName = ToPrettyString(target);
         // Get damage required for destructible before base applies damage
         var damageRequired = FixedPoint2.Zero;
-        if (TryComp(target, out DamageableComponent? damageableComponent))
+        if (TryComp<DamageableComponent>(target, out var damageableComponent))
         {
             damageRequired = _destructibleSystem.DestroyedAt(target);
             damageRequired -= damageableComponent.TotalDamage;
             damageRequired = FixedPoint2.Max(damageRequired, FixedPoint2.Zero);
         }
-        var deleted = Deleted(target);
+        // var deleted = Deleted(target); // Mono: Unused
 
         // Call base implementation to handle damage application and other effects
         var modifiedDamage = base.ProjectileCollide(projectile, target, collisionCoordinates, predicted);
 
         if (modifiedDamage == null)
         {
+            // mono start
+            if (!component.NoDamageDelete)
+                return null;
+
+            var spEv = new ProjectileSpentEvent();
+            RaiseLocalEvent(uid, spEv);
+            // mono end
+
             component.ProjectileSpent = true;
-            if (component.DeleteOnCollide && component.ProjectileSpent)
+            if (component.DeleteOnCollide)
                 QueueDel(uid);
             return null;
         }
@@ -128,6 +112,15 @@ public sealed class ProjectileSystem : SharedProjectileSystem
             component.ProjectileSpent = true;
         }
 
+        // Mono
+        if (component.ProjectileSpent)
+        {
+            var spEv = new ProjectileSpentEvent();
+            RaiseLocalEvent(uid, spEv);
+            if (component.DeleteOnCollide)
+                QueueDel(uid);
+        }
+
         return modifiedDamage;
     }
 
@@ -135,100 +128,107 @@ public sealed class ProjectileSystem : SharedProjectileSystem
     {
         base.Update(frameTime);
 
-        var query = EntityQueryEnumerator<ProjectileComponent, PhysicsComponent, TransformComponent>();
-        while (query.MoveNext(out var uid, out var projectileComp, out var physicsComp, out var xform))
+        var query = EntityQueryEnumerator<ProjectileComponent, PhysicsComponent>();
+        while (query.MoveNext(out var uid, out var projectileComp, out var physicsComp))
         {
             if (projectileComp.ProjectileSpent || TerminatingOrDeleted(uid))
                 continue;
 
-            var currentVelocity = physicsComp.LinearVelocity;
-            if (currentVelocity.Length() < MinRaycastVelocity)
+            var xform = Transform(uid);
+            var currentVelocity = projectileComp.RaycastResetVelocity ?? _physics.GetMapLinearVelocity(uid, physicsComp, xform);
+            var velLen = currentVelocity.Length();
+            if (!ShouldRaycastProjectile(velLen) && projectileComp.RaycastResetVelocity == null)
                 continue;
 
-            var lastPosition = _transformSystem.GetWorldPosition(xform, GetEntityQuery<TransformComponent>());
-            var rayDirection = currentVelocity.Normalized();
+            var lastMap = _transformSystem.GetMapCoordinates(xform);
+            var lastPosition = lastMap.Position;
+            var rayDirection = currentVelocity / velLen;
             // Ensure rayDistance is not zero to prevent issues with IntersectRay if frametime or velocity is zero.
-            var rayDistance = currentVelocity.Length() * frameTime;
+            var rayDistance = velLen * frameTime;
             if (rayDistance <= 0f)
                 continue;
 
             if (!_fixQuery.TryComp(uid, out var fix) || !fix.Fixtures.TryGetValue(ProjectileFixture, out var projFix))
                 continue;
 
-            var collisionMask = projFix.CollisionMask;
-
             var hits = _physics.IntersectRay(xform.MapID,
-                new CollisionRay(lastPosition, rayDirection, collisionMask),
+                new CollisionRay(lastPosition, rayDirection, projFix.CollisionMask),
                 rayDistance,
                 uid, // Entity to ignore (self)
-                false) // IncludeNonHard = false
-                .ToList();
+                false); // IncludeNonHard = false
 
-            TryComp<ProjectileTargetWhitelistComponent>(uid, out var targetFilter); // HardLight
-
-            // HardLight: walk hits nearest-first and route them through the same PreventCollide logic
-            // as a normal physics collision. Stop at the first real hit; if a handler consumes the shell
-            // (e.g. a shield intercept), stop there too instead of punching through to hits behind it.
-            hits.Sort((a, b) => a.Distance.CompareTo(b.Distance));
-
-            foreach (var hit in hits)
+            // do not process other grid velocity if we are gridded
+            if (!ProcessHits(hits) && projectileComp.RaycastResetVelocity is { } resetVel)
             {
-                var hitEnt = hit.HitEntity;
+                var parentVel = _physics.GetMapLinearVelocity(xform.ParentUid);
+                var resetTo = resetVel - parentVel;
+                _physics.SetLinearVelocity(uid, resetTo, body: physicsComp);
+                projectileComp.RaycastResetVelocity = null;
+            }
 
-                if (projectileComp.IgnoreShooter && projectileComp.Shooter == hitEnt)
-                    continue;
-
-                if (targetFilter != null && !_whitelist.CheckBoth(hitEnt, targetFilter.Blacklist, targetFilter.Whitelist))
-                    continue;
-
-                if (RaycastHitPrevented(uid, physicsComp, projFix, hitEnt))
+            bool ProcessHits(IEnumerable<RayCastResults> hits)
+            {
+                // Process the closest hit
+                // IntersectRay results are not guaranteed to be sorted by distance, so we go through them all.
+                (EntityUid? Uid, float Distance) minHit = (null, float.MaxValue);
+                foreach (var hit in hits)
                 {
-                    // Collision prevented. If the shell was also consumed (shield intercept), stop;
-                    // otherwise it genuinely passes through (own grid / EMP bypass) so keep scanning.
-                    if (projectileComp.ProjectileSpent || TerminatingOrDeleted(uid) || EntityManager.IsQueuedForDeletion(uid))
-                        break;
-                    continue;
+                    var hitEnt = hit.HitEntity;
+
+                    if (!_physQuery.TryComp(hitEnt, out var otherBody) || !_fixQuery.TryComp(hitEnt, out var otherFix))
+                        continue;
+
+                    Fixture? hitFix = null;
+                    foreach (var kv in otherFix.Fixtures)
+                    {
+                        if (kv.Value.Hard)
+                        {
+                            hitFix = kv.Value;
+                            break;
+                        }
+                    }
+                    if (hitFix == null)
+                        continue;
+                    // this is cursed but necessary
+                    var ourEv = new PreventCollideEvent(uid, hitEnt, physicsComp, otherBody, projFix, hitFix);
+                    RaiseLocalEvent(uid, ref ourEv);
+                    if (ourEv.Cancelled)
+                        continue;
+
+                    var otherEv = new PreventCollideEvent(hitEnt, uid, otherBody, physicsComp, hitFix, projFix);
+                    RaiseLocalEvent(hitEnt, ref otherEv);
+                    if (otherEv.Cancelled)
+                        continue;
+
+                    if (hit.Distance < minHit.Distance)
+                        minHit = (hitEnt, hit.Distance);
+                }
+                if (minHit.Uid == null)
+                    return false;
+
+                // teleport us so we hit it
+                var hitXform = Transform(minHit.Uid.Value);
+                var hitMapCoord = lastMap.Offset(rayDirection * minHit.Distance);
+                var hitPos = _transformSystem.ToCoordinates(hitMapCoord);
+                // if we somehow hit something not directly parented to space or a grid
+                if (hitXform.Coordinates.EntityId != hitXform.GridUid && hitXform.GridUid != null)
+                    hitPos = _transformSystem.WithEntityId(hitPos, hitXform.GridUid.Value);
+
+                if (projectileComp.RaycastResetVelocity == null)
+                {
+                    var parentVel = _physics.GetMapLinearVelocity(xform.ParentUid);
+                    projectileComp.RaycastResetVelocity = currentVelocity + parentVel; // record specifically world velocity
+                    var curVel = physicsComp.LinearVelocity;
+                    curVel.Normalize();
+                    var resetTo = 1f / frameTime;
+                    curVel *= resetTo;
+                    _physics.SetLinearVelocity(uid, curVel, body: physicsComp);
                 }
 
-                // Real collision: snap to the hit point so the normal collision pipeline resolves it.
-                var tpPos = lastPosition + rayDirection * hit.Distance;
-                _transformSystem.SetWorldPosition(uid, tpPos);
-                if (projectileComp.RaycastResetVelocity)
-                    _physics.SetLinearVelocity(uid, rayDirection * MinRaycastVelocity * 0.99f);
-                break;
+                _transformSystem.SetCoordinates(uid, hitPos);
+
+                return true;
             }
         }
-    }
-
-    /// <summary>
-    /// HardLight: mirror the engine's PreventCollide handshake so the anti-tunnel raycast ignores
-    /// entities the projectile would phase through (own grid, shields, shooter). Returns true to ignore.
-    /// </summary>
-    private bool RaycastHitPrevented(EntityUid uid, PhysicsComponent body, Fixture projFix, EntityUid hitEnt)
-    {
-        if (!_physQuery.TryComp(hitEnt, out var otherBody) || !_fixQuery.TryComp(hitEnt, out var otherFixtures))
-            return true;
-
-        Fixture? hitFix = null;
-        foreach (var kv in otherFixtures.Fixtures)
-        {
-            if (kv.Value.Hard)
-            {
-                hitFix = kv.Value;
-                break;
-            }
-        }
-
-        if (hitFix == null)
-            return true; // nothing hard to actually collide with
-
-        var ourEv = new PreventCollideEvent(uid, hitEnt, body, otherBody, projFix, hitFix);
-        RaiseLocalEvent(uid, ref ourEv);
-        if (ourEv.Cancelled)
-            return true;
-
-        var otherEv = new PreventCollideEvent(hitEnt, uid, otherBody, body, hitFix, projFix);
-        RaiseLocalEvent(hitEnt, ref otherEv);
-        return otherEv.Cancelled;
     }
 }

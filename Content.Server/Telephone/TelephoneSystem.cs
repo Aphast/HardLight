@@ -5,6 +5,7 @@ using Content.Server.Interaction;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Speech;
 using Content.Server.Speech.Components;
+using Content.Server._EinsteinEngines.Language;
 using Content.Shared.Chat;
 using Content.Shared.Database;
 using Content.Shared.Labels.Components;
@@ -22,23 +23,22 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Replays;
 using System.Linq;
-using Content.Server._Starlight.Language; // Starlight
 
 namespace Content.Server.Telephone;
 
-public sealed class TelephoneSystem : SharedTelephoneSystem
+public sealed partial class TelephoneSystem : SharedTelephoneSystem
 {
-    [Dependency] private readonly AppearanceSystem _appearanceSystem = default!;
-    [Dependency] private readonly InteractionSystem _interaction = default!;
-    [Dependency] private readonly IdCardSystem _idCardSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IReplayRecordingManager _replay = default!;
-    [Dependency] private readonly LanguageSystem _language = default!; // Starlight
+    [Dependency] private AppearanceSystem _appearanceSystem = default!;
+    [Dependency] private InteractionSystem _interaction = default!;
+    [Dependency] private IdCardSystem _idCardSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private IReplayRecordingManager _replay = default!;
+    [Dependency] private LanguageSystem _language = default!; // Einstein Engines - Language
 
     // Has set used to prevent telephone feedback loops
     private HashSet<(EntityUid, string, Entity<TelephoneComponent>)> _recentChatMessages = new();
@@ -114,10 +114,10 @@ public sealed class TelephoneSystem : SharedTelephoneSystem
             ("originalName", nameEv.VoiceName),
             ("speaker", Name(speaker)));
 
-        var range = args.TelephoneSource.Comp.LinkedTelephones.Count > 1 ? ChatTransmitRange.HideChat : ChatTransmitRange.GhostRangeLimitNoAdminCheck; // Frontier: GhostRangeLimit<GhostRangeLimitNoAdminCheck
+        var range = args.TelephoneSource.Comp.LinkedTelephones.Count > 1 ? ChatTransmitRange.HideChat : ChatTransmitRange.GhostRangeLimit;
         var volume = entity.Comp.SpeakerVolume == TelephoneVolume.Speak ? InGameICChatType.Speak : InGameICChatType.Whisper;
 
-        _chat.TrySendInGameICMessage(speaker, args.Message, volume, range, nameOverride: name, checkRadioPrefix: false, languageOverride: args.Language); // Starlight
+        _chat.TrySendInGameICMessage(speaker, args.Message, volume, range, nameOverride: name, checkRadioPrefix: false, languageOverride: args.Language); // Einstein Engines - Language
     }
 
     #endregion
@@ -373,7 +373,7 @@ public sealed class TelephoneSystem : SharedTelephoneSystem
         RaiseLocalEvent(source, ref evSentMessage);
         source.Comp.StateStartTime = _timing.CurTime;
 
-        var evReceivedMessage = new TelephoneMessageReceivedEvent(message, chatMsg, messageSource, source, _language.GetLanguage(messageSource)); // Starlight
+        var evReceivedMessage = new TelephoneMessageReceivedEvent(message, chatMsg, messageSource, source);
 
         foreach (var receiver in source.Comp.LinkedTelephones)
         {

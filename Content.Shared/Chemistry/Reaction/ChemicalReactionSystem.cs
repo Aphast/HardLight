@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-using System.Linq;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.Reagent;
@@ -7,32 +5,25 @@ using Content.Shared.Database;
 using Content.Shared.EntityEffects;
 using Content.Shared.FixedPoint;
 using Robust.Shared.Audio.Systems;
-using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
+using System.Collections.Frozen;
+using System.Linq;
 
 
 namespace Content.Shared.Chemistry.Reaction
 {
-    public sealed class ChemicalReactionSystem : EntitySystem
+    public sealed partial class ChemicalReactionSystem : EntitySystem
     {
-        private static readonly ProtoId<MixingCategoryPrototype> ElectrolysisCategory = "Electrolysis"; // HardLight
-
-        /// <summary>
-        /// Foam reaction protoId.
-        /// </summary>
-        public static readonly ProtoId<ReactionPrototype> FoamReaction = "Foam";
-
         /// <summary>
         ///     The maximum number of reactions that may occur when a solution is changed.
         /// </summary>
         private const int MaxReactionIterations = 20;
 
-        [Dependency] private readonly INetManager _netMan = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private SharedAudioSystem _audio = default!;
+        [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+        [Dependency] private SharedTransformSystem _transformSystem = default!;
 
         /// <summary>
         /// A cache of all reactions indexed by at most ONE of their required reactants.
@@ -103,19 +94,6 @@ namespace Content.Shared.Chemistry.Reaction
             var solution = soln.Comp.Solution;
 
             lowestUnitReactions = FixedPoint2.MaxValue;
-            // HardLight start: Allow reactions even if solution.CanReact is false when Electrolysis is involved
-            if (!solution.CanReact)
-            {
-                if (mixerComponent == null
-                    || reaction.MixingCategories == null
-                    || !reaction.MixingCategories.Contains(ElectrolysisCategory)
-                    || !mixerComponent.ReactionTypes.Contains(ElectrolysisCategory))
-                {
-                    lowestUnitReactions = FixedPoint2.Zero;
-                    return false;
-                }
-            }
-            // HardLight end
             if (solution.Temperature < reaction.MinimumTemperature)
             {
                 lowestUnitReactions = FixedPoint2.Zero;
@@ -242,11 +220,7 @@ namespace Content.Shared.Chemistry.Reaction
                 effect.Effect(args);
             }
 
-            // Someday, some brave soul will thread through an optional actor
-            // argument in from every call of OnReaction up, all just to pass
-            // it to PlayPredicted. I am not that brave soul.
-            if (_netMan.IsServer)
-                _audio.PlayPvs(reaction.Sound, soln);
+            _audio.PlayPvs(reaction.Sound, soln);
         }
 
         /// <summary>
@@ -256,6 +230,7 @@ namespace Content.Shared.Chemistry.Reaction
         /// </summary>
         private bool ProcessReactions(Entity<SolutionComponent> soln, SortedSet<ReactionPrototype> reactions, ReactionMixerComponent? mixerComponent)
         {
+            HashSet<ReactionPrototype> toRemove = new();
             List<string>? products = null;
 
             // attempt to perform any applicable reaction
@@ -263,6 +238,7 @@ namespace Content.Shared.Chemistry.Reaction
             {
                 if (!CanReact(soln, reaction, mixerComponent, out var unitReactions))
                 {
+                    toRemove.Add(reaction);
                     continue;
                 }
 

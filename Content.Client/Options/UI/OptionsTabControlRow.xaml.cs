@@ -48,8 +48,8 @@ namespace Content.Client.Options.UI;
 [GenerateTypedNameReferences]
 public sealed partial class OptionsTabControlRow : Control
 {
-    [Dependency] private readonly ILocalizationManager _loc = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
+    [Dependency] private ILocalizationManager _loc = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
 
     private ValueList<BaseOption> _options;
 
@@ -122,19 +122,6 @@ public sealed partial class OptionsTabControlRow : Control
     }
 
     /// <summary>
-    /// Add a color slider option, backed by a simple string CVar.
-    /// </summary>
-    /// <param name="cVar">The CVar represented by the slider.</param>
-    /// <param name="slider">The UI control for the option.</param>
-    /// <returns>The option instance backing the added option.</returns>
-    public OptionColorSliderCVar AddOptionColorSlider(
-        CVarDef<string> cVar,
-        OptionColorSlider slider)
-    {
-        return AddOption(new OptionColorSliderCVar(this, _cfg, cVar, slider));
-    }
-
-    /// <summary>
     /// Add a slider option, backed by a simple integer CVar.
     /// </summary>
     /// <param name="cVar">The CVar represented by the slider.</param>
@@ -154,6 +141,19 @@ public sealed partial class OptionsTabControlRow : Control
         Func<OptionSliderIntCVar, int, string>? format = null)
     {
         return AddOption(new OptionSliderIntCVar(this, _cfg, cVar, slider, min, max, format ?? FormatInt));
+    }
+
+    /// <summary>
+    /// Add a color slider option, backed by a simple string CVar.
+    /// </summary>
+    /// <param name="cVar">The CVar represented by the slider.</param>
+    /// <param name="slider">The UI control for the option.</param>
+    /// <returns>The option instance backing the added option.</returns>
+    public OptionColorSliderCVar AddOptionColorSlider(
+        CVarDef<string> cVar,
+        OptionColorSlider slider)
+    {
+        return AddOption(new OptionColorSliderCVar(this, _cfg, cVar, slider));
     }
 
     /// <summary>
@@ -531,10 +531,6 @@ public sealed class OptionSliderFloatCVar : BaseOptionCVar<float>
     }
 }
 
-/// <summary>
-/// Implementation of a CVar option that simply corresponds with a string <see cref="OptionColorSlider"/>.
-/// </summary>
-/// <seealso cref="OptionsTabControlRow"/>
 public sealed class OptionColorSliderCVar : BaseOptionCVar<string>
 {
     private readonly OptionColorSlider _slider;

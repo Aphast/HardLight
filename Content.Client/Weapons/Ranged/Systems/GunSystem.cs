@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Numerics;
-using System.Collections.Generic; // HardLight
 using Content.Client.Animations;
 using Content.Client.Gameplay;
 using Content.Client.Items;
@@ -17,7 +16,6 @@ using Content.Shared.Projectiles;
 using Content.Shared.Weapons.Hitscan.Components;
 using Content.Shared.Weapons.Ranged;
 using Content.Shared.Weapons.Ranged.Components;
-using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Systems;
 using Robust.Client.Animations;
@@ -42,20 +40,17 @@ namespace Content.Client.Weapons.Ranged.Systems;
 
 public sealed partial class GunSystem : SharedGunSystem
 {
-    private readonly HashSet<EntityUid> _activeShootRequests = new(); // HardLight
-
-    [Dependency] private readonly IComponentFactory _factory = default!;
-    [Dependency] private readonly IEyeManager _eyeManager = default!;
-    [Dependency] private readonly IInputManager _inputManager = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IStateManager _state = default!;
-    [Dependency] private readonly AnimationPlayerSystem _animPlayer = default!;
-    [Dependency] private readonly InputSystem _inputSystem = default!;
-    [Dependency] private readonly SharedCameraRecoilSystem _recoil = default!;
-    [Dependency] private readonly SharedMapSystem _maps = default!;
-    [Dependency] private readonly SharedTransformSystem _xform = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
-    [Dependency] private readonly Robust.Client.Physics.PhysicsSystem _physics = default!;
+    [Dependency] private IEyeManager _eyeManager = default!;
+    [Dependency] private IInputManager _inputManager = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IStateManager _state = default!;
+    [Dependency] private AnimationPlayerSystem _animPlayer = default!;
+    [Dependency] private InputSystem _inputSystem = default!;
+    [Dependency] private SharedCameraRecoilSystem _recoil = default!;
+    [Dependency] private SharedMapSystem _maps = default!;
+    [Dependency] private SharedTransformSystem _xform = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
+    [Dependency] private Robust.Client.Physics.PhysicsSystem _physics = default!;
 
     public static readonly EntProtoId HitscanProto = "HitscanEffect";
 
@@ -97,7 +92,6 @@ public sealed partial class GunSystem : SharedGunSystem
         SubscribeLocalEvent<AmmoCounterComponent, ItemStatusCollectMessage>(OnAmmoCounterCollect);
         SubscribeLocalEvent<AmmoCounterComponent, UpdateClientAmmoEvent>(OnUpdateClientAmmo);
         SubscribeAllEvent<MuzzleFlashEvent>(OnMuzzleFlash);
-        SubscribeAllEvent<StopMuzzleFlashEvent>(OnStopMuzzleFlash);
 
         // Plays animated effects on the client.
         SubscribeNetworkEvent<HitscanEvent>(OnHitscan);
@@ -118,8 +112,8 @@ public sealed partial class GunSystem : SharedGunSystem
         // Find the gun's holder by checking its parent entity
         // If the gun is being held, its parent will be a hand container, and the hand container's parent will be the holder
         EntityUid? holder = null;
-        var gunXform = Transform(gunUid);
-        if (gunXform.ParentUid != EntityUid.Invalid)
+
+        if (EntityManager.TryGetComponent(gunUid, out TransformComponent? gunXform) && gunXform.ParentUid != EntityUid.Invalid)
         {
             var parent = gunXform.ParentUid;
             // Check if the parent has HandsComponent (it's the holder)
@@ -170,9 +164,9 @@ public sealed partial class GunSystem : SharedGunSystem
             _xform.SetLocalRotationNoLerp(ent, xform.LocalRotation + delta, xform);
 
             sprite[EffectLayers.Unshaded].AutoAnimated = false;
-            _sprite.LayerSetSprite((ent, sprite), EffectLayers.Unshaded, rsi);
-            _sprite.LayerSetRsiState((ent, sprite), EffectLayers.Unshaded, rsi.RsiState);
-            _sprite.SetScale((ent, sprite), new Vector2(a.Distance, 1f));
+            sprite.LayerSetSprite(EffectLayers.Unshaded, rsi);
+            sprite.LayerSetState(EffectLayers.Unshaded, rsi.RsiState);
+            sprite.Scale = new Vector2(a.Distance, 1f);
             sprite[EffectLayers.Unshaded].Visible = true;
 
             var anim = new Animation()
@@ -197,8 +191,6 @@ public sealed partial class GunSystem : SharedGunSystem
 
     public override void Update(float frameTime)
     {
-        base.Update(frameTime);
-
         if (!Timing.IsFirstTimePredicted)
             return;
 
@@ -206,7 +198,6 @@ public sealed partial class GunSystem : SharedGunSystem
 
         if (entityNull == null || !TryComp<CombatModeComponent>(entityNull, out var combat) || !combat.IsInCombatMode)
         {
-            ClearActiveShootRequests(); // HardLight
             return;
         }
 
@@ -217,7 +208,6 @@ public sealed partial class GunSystem : SharedGunSystem
 
         if (!TryGetGun(entity, out var gunUid, out var gun))
         {
-            ClearActiveShootRequests(); // HardLight
             return;
         }
 
@@ -225,7 +215,7 @@ public sealed partial class GunSystem : SharedGunSystem
 
         if (_inputSystem.CmdStates.GetState(useKey) != BoundKeyState.Down && !gun.BurstActivated)
         {
-            if (_activeShootRequests.Remove(gunUid)) // HardLight: gun.ShotCounter != 0<_activeShootRequests.Remove(gunUid)
+            if (gun.ShotCounter != 0)
                 EntityManager.RaisePredictiveEvent(new RequestStopShootEvent { Gun = GetNetEntity(gunUid) });
             return;
         }
@@ -237,7 +227,7 @@ public sealed partial class GunSystem : SharedGunSystem
 
         if (mousePos.MapId == MapId.Nullspace)
         {
-            if (_activeShootRequests.Remove(gunUid)) // HardLight: gun.ShotCounter != 0<_activeShootRequests.Remove(gunUid)
+            if (gun.ShotCounter != 0)
                 EntityManager.RaisePredictiveEvent(new RequestStopShootEvent { Gun = GetNetEntity(gunUid) });
 
             return;
@@ -248,7 +238,7 @@ public sealed partial class GunSystem : SharedGunSystem
 
         NetEntity? target = null;
         if (_state.CurrentState is GameplayStateBase screen)
-            target = GetNetEntity(screen.GetClickedEntity(mousePos));
+            target = GetNetEntity(screen.GetDamageableClickedEntity(mousePos)); // Goob edit
 
         Log.Debug($"Sending shoot request tick {Timing.CurTick} / {Timing.CurTime}");
 
@@ -256,8 +246,6 @@ public sealed partial class GunSystem : SharedGunSystem
             return;
 
         var projectiles = ShootRequested(GetNetEntity(gunUid), GetNetCoordinates(coordinates), target, null, (Robust.Shared.Player.ICommonSession)session);
-
-        _activeShootRequests.Add(gunUid); // HardLight
 
         EntityManager.RaisePredictiveEvent(new RequestShootEvent()
         {
@@ -267,21 +255,6 @@ public sealed partial class GunSystem : SharedGunSystem
             Shot = projectiles?.Select(e => e.Entity.Id).ToList(),
         });
     }
-
-    // HardLight start
-    private void ClearActiveShootRequests()
-    {
-        if (_activeShootRequests.Count == 0)
-            return;
-
-        foreach (var gun in _activeShootRequests)
-        {
-            EntityManager.RaisePredictiveEvent(new RequestStopShootEvent { Gun = GetNetEntity(gun) });
-        }
-
-        _activeShootRequests.Clear();
-    }
-    // HardLight end
 
     public override void Shoot(EntityUid gunUid, GunComponent gun, List<(EntityUid? Entity, IShootable Shootable)> ammo,
         EntityCoordinates fromCoordinates, EntityCoordinates toCoordinates, out bool userImpulse, EntityUid? user = null, bool throwItems = false)
@@ -338,7 +311,7 @@ public sealed partial class GunSystem : SharedGunSystem
                     else
                         RemoveShootable(ent.Value);
                     break;
-                case HitscanPrototype:
+                case HitscanAmmoComponent:
                     Audio.PlayPredicted(gun.SoundGunshotModified, gunUid, user);
                     Recoil(user, direction, gun.CameraRecoilScalarModified);
                     break;
@@ -434,7 +407,7 @@ public sealed partial class GunSystem : SharedGunSystem
         _animPlayer.Play(ent, anim, "muzzle-flash");
         if (!TryComp(gunUid, out PointLightComponent? light))
         {
-            light = (PointLightComponent) _factory.GetComponent(typeof(PointLightComponent));
+            light = Factory.GetComponent<PointLightComponent>();
             light.NetSyncEnabled = false;
             AddComp(gunUid, light);
         }
@@ -480,22 +453,6 @@ public sealed partial class GunSystem : SharedGunSystem
         _animPlayer.Play((gunUid, uidPlayer), animTwo, "muzzle-flash-light");
     }
 
-    private void OnStopMuzzleFlash(StopMuzzleFlashEvent ev)
-    {
-        var gunUid = GetEntity(ev.Uid);
-
-        // Stop the light animation and ensure the light is disabled
-        if (TryComp<AnimationPlayerComponent>(gunUid, out var uidPlayer))
-        {
-            _animPlayer.Stop(gunUid, uidPlayer, "muzzle-flash-light");
-        }
-
-        if (TryComp<PointLightComponent>(gunUid, out var light))
-        {
-            Lights.SetEnabled(gunUid, false, light);
-        }
-    }
-
     // TODO: Move RangedDamageSoundComponent to shared so this can be predicted.
     public override void PlayImpactSound(
         EntityUid otherEntity,
@@ -513,7 +470,7 @@ public sealed partial class GunSystem : SharedGunSystem
         EntityUid gunUid,
         EntityUid? user = null,
         float speed = 20f,
-        float offset = 0f)
+        float offset = 0f) // Mono
     {
         EnsureComp<PredictedProjectileClientComponent>(uid);
         _physics.UpdateIsPredicted(uid);

@@ -1,8 +1,3 @@
-// SPDX-FileCopyrightText: 2025 GoobBot <uristmchands@proton.me>
-// SPDX-FileCopyrightText: 2025 deltanedas <@deltanedas:kde.org>
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 using Content.Shared._Goobstation.Factory;
 using Robust.Client.GameObjects;
 using Robust.Shared.Timing;
@@ -13,10 +8,9 @@ namespace Content.Client._Goobstation.Factory;
 /// Animations robotic arm's arm layer swinging.
 /// Can't be done with engine AnimationPlayer as it can't animate individual layers.
 /// </summary>
-public sealed class RoboticArmAnimationSystem : EntitySystem
+public sealed partial class RoboticArmAnimationSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IGameTiming _timing = default!;
 
     public override void FrameUpdate(float frameTime)
     {
@@ -43,8 +37,11 @@ public sealed class RoboticArmAnimationSystem : EntitySystem
         var progress = (_timing.CurTime - started) / ent.Comp.MoveDelay;
         if (!ent.Comp.HasItem) // returning to the resting position when emptied
             progress = 1f - progress;
+        else if (progress > 1f) // Mono
+            progress = 2f - progress;
+        progress = Math.Clamp(progress, 0f, 1f); // Mono
         var angle = Angle.FromDegrees(progress * 180f);
-        _sprite.LayerSetRotation((ent.Owner, sprite), RoboticArmLayers.Arm, angle);
+        sprite.LayerSetRotation(RoboticArmLayers.Arm, angle);
     }
 
     private void Reset(Entity<RoboticArmComponent> ent)
@@ -53,6 +50,6 @@ public sealed class RoboticArmAnimationSystem : EntitySystem
             return;
 
         var angle = ent.Comp.HasItem ? new Angle(Math.PI) : Angle.Zero;
-        _sprite.LayerSetRotation((ent.Owner, sprite), RoboticArmLayers.Arm, angle);
+        sprite.LayerSetRotation(RoboticArmLayers.Arm, angle);
     }
 }

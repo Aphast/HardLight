@@ -12,7 +12,6 @@ using Content.Server.GameTicking;
 using Content.Server.GameTicking.Presets;
 using Content.Server.GameTicking.Rules;
 using Content.Shared._NF.Bank;
-using Content.Shared._NF.Bank.Components;
 using Content.Shared._NF.CCVar;
 using Content.Shared.GameTicking;
 using Content.Shared.GameTicking.Components;
@@ -23,29 +22,38 @@ using Robust.Shared.Enums;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Utility;
 
 namespace Content.Server._NF.GameRule;
 
 /// <summary>
 /// This handles the dungeon and trading post spawning, as well as round end capitalism summary
 /// </summary>
-public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleComponent>
+public sealed partial class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleComponent>
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly BankSystem _bank = default!;
-    [Dependency] private readonly GameTicker _ticker = default!;
-    [Dependency] private readonly PointOfInterestSystem _poi = default!;
-    [Dependency] private readonly IBaseServer _baseServer = default!;
-    [Dependency] private readonly IEntitySystemManager _entSys = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private BankSystem _bank = default!;
+    [Dependency] private GameTicker _ticker = default!;
+    [Dependency] private PointOfInterestSystem _poi = default!;
+    [Dependency] private IBaseServer _baseServer = default!;
+    [Dependency] private IEntitySystemManager _entSys = default!;
 
     private readonly HttpClient _httpClient = new();
 
     private readonly ProtoId<GamePresetPrototype> _fallbackPresetID = "NFPirates";
-    private ISawmill _sawmill = default!;
-    // Prevent duplicate end-of-round reporting across multiple triggers
-    private int _lastReportedRoundId = -1;
+
+    private const int LeaderboardLimit = 20;
+
+    private readonly LocId _summaryProfitLocId = "adventure-list-profit";
+    private readonly LocId _summaryLossLocId = "adventure-list-loss";
+    private readonly LocId _summaryAdventureHighLocId = "adventure-list-high";
+    private readonly LocId _summaryAdventureLowLocId = "adventure-list-low";
+    private readonly LocId _summaryAdventureNoEntriesLocId = "adventure-webhook-list-no-entries";
+
+    private readonly string _summaryProfitColor = "[color=#d19e5e]";
+    private readonly string _summaryLossColor = "[color=#659cc9]";
 
     public sealed class PlayerRoundBankInformation
     {
@@ -80,29 +88,31 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
         SubscribeLocalEvent<PlayerDetachedEvent>(OnPlayerDetachedEvent);
         SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestart);
         _player.PlayerStatusChanged += PlayerManagerOnPlayerStatusChanged;
-        _sawmill = Logger.GetSawmill("debris");
     }
 
     protected override void AppendRoundEndText(EntityUid uid, NFAdventureRuleComponent component, GameRuleComponent gameRule, ref RoundEndTextAppendEvent ev)
     {
         ev.AddLine(Loc.GetString("adventure-list-start"));
-        var allScore = new List<Tuple<string, int>>();
+        var allScores = new List<BankData>();
 
-        var sortedPlayers = _players.ToList();
-        sortedPlayers.Sort((p1, p2) => p1.Value.Name.CompareTo(p2.Value.Name));
+        GetBuiltRoundEndSummary(ref ev, ref allScores);
 
-        foreach (var (player, playerInfo) in sortedPlayers)
+        if (allScores.Count == 0)
+            return;
+
+        HandleHighestLowestEarners(allScores);
+        ReportLedger();
+    }
+
+    private void GetBuiltRoundEndSummary(ref RoundEndTextAppendEvent ev, ref List<BankData> bankData)
+    {
+        foreach (var (player, playerInfo) in _players)
         {
             var endBalance = playerInfo.EndBalance;
-            
-            // Only try to get live balance if entity exists and has an attached player session
-            if (EntityManager.EntityExists(player) && 
-                _player.TryGetSessionByEntity(player, out var session))
+
+            if (_bank.TryGetBalance(player, out var bankBalance))
             {
-                if (_bank.TryGetBalance(player, out var bankBalance))
-                {
-                    endBalance = bankBalance;
-                }
+                endBalance = bankBalance;
             }
 
             // Check if endBalance is valid (non-negative)
@@ -110,56 +120,92 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
                 continue;
 
             var profit = endBalance - playerInfo.StartBalance;
-            string summaryText;
-            if (profit < 0)
+            var playerBankData = new BankData()
             {
-                summaryText = Loc.GetString("adventure-list-loss", ("amount", BankSystemExtensions.ToSpesoString(-profit)));
-            }
-            else
-            {
-                summaryText = Loc.GetString("adventure-list-profit", ("amount", BankSystemExtensions.ToSpesoString(profit)));
-            }
-            ev.AddLine($"- {playerInfo.Name} {summaryText}");
-            allScore.Add(new Tuple<string, int>(playerInfo.Name, profit));
+                PlayerName = playerInfo.Name,
+                Profit = profit
+            };
+
+            bankData.Add(playerBankData);
         }
 
-        if (!(allScore.Count >= 1))
-            return;
+        var orderedData = bankData.OrderByDescending(data => data.Profit);
 
-        var relayText = Loc.GetString("adventure-webhook-list-high");
-        relayText += '\n';
-        var highScore = allScore.OrderByDescending(h => h.Item2).ToList();
-
-        for (var i = 0; i < 10 && highScore.Count > 0; i++)
+        // Sort by profit
+        foreach (var data in orderedData)
         {
-            if (highScore.First().Item2 < 0)
+            var profit = Math.Abs(data.Profit);
+            var profitInSpesos = BankSystemExtensions.ToSpesoString(profit);
+            var localeId = data.Profit >= 0 ? _summaryProfitLocId : _summaryLossLocId;
+            var color = data.Profit >= 0 ? _summaryProfitColor : _summaryLossColor;
+
+            var amountText = $"{color}{profitInSpesos}[/color]";
+            var summaryText = Loc.GetString(localeId, ("amount", amountText));
+
+            ev.AddLine($"- {data.PlayerName} {summaryText}");
+        }
+    }
+
+    private string GetTopFor(List<BankData> orderedData, LocId adventureWebhookId, bool reverse = false)
+    {
+        if (reverse)
+            orderedData.Reverse();
+
+        var noEntries = Loc.GetString(_summaryAdventureNoEntriesLocId);
+        var builder = new StringBuilder();
+        var takeAmount = LeaderboardLimit / 2;
+
+        if (orderedData.Count == 0)
+        {
+            builder.Append(noEntries);
+            return builder.ToString();
+        }
+
+        for (var i = 0; i < takeAmount; i++)
+        {
+            if (orderedData.Count == 0)
                 break;
-            var profitText = Loc.GetString("adventure-webhook-top-profit", ("amount", BankSystemExtensions.ToSpesoString(highScore.First().Item2)));
-            relayText += $"{highScore.First().Item1} {profitText}";
-            relayText += '\n';
-            highScore.RemoveAt(0);
-        }
-        relayText += '\n'; // Extra line separating the highest and lowest scores
-        relayText += Loc.GetString("adventure-webhook-list-low");
-        relayText += '\n';
-        highScore.Reverse();
-        for (var i = 0; i < 10 && highScore.Count > 0; i++)
-        {
-            if (highScore.First().Item2 > 0)
+
+            var first = orderedData.First();
+
+            // If we're reversing it, assume we want only losses. Otherwise, only profit.
+            if (reverse && first.Profit > 0 || !reverse && first.Profit < 0)
                 break;
-            var lossText = Loc.GetString("adventure-webhook-top-loss", ("amount", BankSystemExtensions.ToSpesoString(-highScore.First().Item2)));
-            relayText += $"{highScore.First().Item1} {lossText}";
-            relayText += '\n';
-            highScore.RemoveAt(0);
+
+            var profit = Math.Abs(first.Profit);
+            var profitInSpesos = BankSystemExtensions.ToSpesoString(profit);
+            var profitText = Loc.GetString(adventureWebhookId, ("amount", profitInSpesos));
+            var realText = $"{first.PlayerName} {profitText}";
+
+            builder.AppendLine(realText);
+            orderedData.RemoveAt(0);
         }
-        // Fire and forget, but only once per round.
-        var currentRoundId = _ticker.RoundId;
-        if (_lastReportedRoundId != currentRoundId)
-        {
-            _lastReportedRoundId = currentRoundId;
-            _ = ReportRound(relayText);
-            _ = ReportLedger();
-        }
+
+        var finalString = builder.ToString();
+        return string.IsNullOrWhiteSpace(finalString) ? noEntries : finalString;
+    }
+
+    private void HandleHighestLowestEarners(List<BankData> bankData)
+    {
+        var builder = new StringBuilder();
+        var orderedData = bankData.OrderByDescending(data => data.Profit).ToList();
+
+        var highestProfits = GetTopFor(orderedData, _summaryProfitLocId);
+        var highestLosses = GetTopFor(orderedData, _summaryLossLocId, reverse: true);
+
+        var highText = Loc.GetString("adventure-webhook-list-high");
+        var lowText = Loc.GetString("adventure-webhook-list-low");
+
+        builder.AppendLine(highText);
+        builder.AppendLine(highestProfits);
+
+        builder.AppendLine(string.Empty);
+
+        builder.AppendLine(lowText);
+        builder.AppendLine(highestLosses);
+
+        var finalRelayText = FormattedMessage.RemoveMarkupPermissive(builder.ToString());
+        ReportRound(finalRelayText);
     }
 
     private void OnPlayerSpawningEvent(PlayerSpawnCompleteEvent ev)
@@ -169,11 +215,8 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
             EnsureComp<CargoSellBlacklistComponent>(mobUid);
 
             // Store player info with the bank balance - we have it directly, and BankSystem won't have a cache yet.
-            if (!_players.ContainsKey(mobUid)
-                && HasComp<BankAccountComponent>(mobUid))
-            {
+            if (!_players.ContainsKey(mobUid))
                 _players[mobUid] = new PlayerRoundBankInformation(ev.Profile.BankBalance, MetaData(mobUid).EntityName, ev.Player.UserId);
-            }
         }
     }
 
@@ -182,13 +225,15 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
         if (ev.Entity is not { Valid: true } mobUid)
             return;
 
-        if (_players.ContainsKey(mobUid))
+        // if player doesn't have bank information, cut early
+        if (!_players.TryGetValue(mobUid, out var value))
+            return;
+
+        // get the players balance
+        if (value.UserId == ev.Player.UserId &&
+            _bank.TryGetBalance(ev.Player, out var bankBalance))
         {
-            if (_players[mobUid].UserId == ev.Player.UserId &&
-                _bank.TryGetBalance(ev.Player, out var bankBalance))
-            {
-                _players[mobUid].EndBalance = bankBalance;
-            }
+            value.EndBalance = bankBalance;
         }
     }
 
@@ -200,40 +245,64 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
             return;
 
         var mobUid = e.Session.AttachedEntity.Value;
-        if (_players.ContainsKey(mobUid))
+
+        // checking if player has any bank information, if not, leave early
+        if (!_players.TryGetValue(mobUid, out var value))
+            return;
+
+        // get the players balance
+        if (value.UserId == e.Session.UserId &&
+            _bank.TryGetBalance(e.Session, out var bankBalance))
         {
-            if (_players[mobUid].UserId == e.Session.UserId &&
-                _bank.TryGetBalance(e.Session, out var bankBalance))
-            {
-                _players[mobUid].EndBalance = bankBalance;
-            }
+            value.EndBalance = bankBalance;
         }
     }
 
     private void OnRoundRestart(RoundRestartCleanupEvent ev)
     {
-        // Reset round-scoped data and reporting guards
         _players.Clear();
-        _lastReportedRoundId = -1;
+    }
 
-        // VRS: delete all POI grid entities spawned during the round.
-        // POIs without a matching GameMapPrototype are not station-owned and therefore
-        // not cleaned up by StationSystem.DeleteStation(); we delete them explicitly here.
-        // QueueDel is safe on already-deleted entities, so station-owned grids are fine too.
-        var query = EntityQueryEnumerator<NFAdventureRuleComponent>();
-        while (query.MoveNext(out _, out var comp))
+    /// <summary>
+    /// Mono: Gets profit information for a player by their character name.
+    /// </summary>
+    public BankData? GetBankDataInfo(NetUserId userId, string characterName)
+    {
+        // Find the player by character name and user ID
+        var playerEntry = _players.FirstOrDefault(kvp =>
+            kvp.Value.UserId == userId && kvp.Value.Name == characterName);
+
+        if (playerEntry.Key == EntityUid.Invalid)
+            return null;
+
+        var playerInfo = playerEntry.Value;
+        var endBalance = playerInfo.EndBalance;
+
+        // Try to get current balance if end balance wasn't set
+        if (_bank.TryGetBalance(playerEntry.Key, out var bankBalance))
         {
-            foreach (var uid in comp.CargoDepots)
-                QueueDel(uid);
-            foreach (var uid in comp.MarketStations)
-                QueueDel(uid);
-            foreach (var uid in comp.RequiredPois)
-                QueueDel(uid);
-            foreach (var uid in comp.OptionalPois)
-                QueueDel(uid);
-            foreach (var uid in comp.UniquePois)
-                QueueDel(uid);
+            endBalance = bankBalance;
         }
+
+        // Check if endBalance is valid (non-negative)
+        if (endBalance < 0)
+            return null;
+
+        var profit = endBalance - playerInfo.StartBalance;
+        return new BankData(characterName, profit);
+    }
+
+    public string ConvertBankDataToString(BankData bankData, bool removeColor = false)
+    {
+        var absoluteProfit = Math.Abs(bankData.Profit);
+        var adventureWebhookId = bankData.Profit > 0 ? _summaryProfitLocId : _summaryLossLocId;
+        var profitInSpesos = BankSystemExtensions.ToSpesoString(absoluteProfit);
+        var profitText = Loc.GetString(adventureWebhookId, ("amount", profitInSpesos));
+
+        if (removeColor)
+            profitText = FormattedMessage.RemoveMarkupPermissive(profitText);
+
+        return $"{bankData.PlayerName} {profitText}";
     }
 
     protected override void Started(EntityUid uid, NFAdventureRuleComponent component, GameRuleComponent gameRule, GameRuleStartedEvent args)
@@ -241,10 +310,10 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
         var mapUid = GameTicker.DefaultMap;
 
         //First, we need to grab the list and sort it into its respective spawning logics
-        List<PointOfInterestPrototype> depotProtos = new();
-        List<PointOfInterestPrototype> marketProtos = new();
-        List<PointOfInterestPrototype> requiredProtos = new();
-        List<PointOfInterestPrototype> optionalProtos = new();
+        List<PointOfInterestPrototype> depotProtos = [];
+        List<PointOfInterestPrototype> marketProtos = [];
+        List<PointOfInterestPrototype> requiredProtos = [];
+        List<PointOfInterestPrototype> optionalProtos = [];
         Dictionary<string, List<PointOfInterestPrototype>> remainingUniqueProtosBySpawnGroup = new();
 
         var currentPreset = _ticker.CurrentPreset?.ID ?? _fallbackPresetID;
@@ -252,22 +321,32 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
         foreach (var location in _proto.EnumeratePrototypes<PointOfInterestPrototype>())
         {
             // Check if any preset is accepted (empty) or if current preset is supported.
-            if (location.SpawnGamePreset.Length > 0 && !location.SpawnGamePreset.Contains(currentPreset))
+            var protoIds = location.SpawnGamePreset.ToList();
+            if (location.SpawnGamePreset.Length > 0 && !protoIds.Contains(currentPreset))
                 continue;
 
-            if (location.SpawnGroup == "CargoDepot")
-                depotProtos.Add(location);
-            else if (location.SpawnGroup == "MarketStation")
-                marketProtos.Add(location);
-            else if (location.SpawnGroup == "Required")
-                requiredProtos.Add(location);
-            else if (location.SpawnGroup == "Optional")
-                optionalProtos.Add(location);
-            else // the remainder are done on a per-poi-per-group basis
+            switch (location.SpawnGroup)
             {
-                if (!remainingUniqueProtosBySpawnGroup.ContainsKey(location.SpawnGroup))
-                    remainingUniqueProtosBySpawnGroup[location.SpawnGroup] = new();
-                remainingUniqueProtosBySpawnGroup[location.SpawnGroup].Add(location);
+                case "CargoDepot":
+                    depotProtos.Add(location);
+                    break;
+                case "MarketStation":
+                    marketProtos.Add(location);
+                    break;
+                case "Required":
+                    requiredProtos.Add(location);
+                    break;
+                case "Optional":
+                    optionalProtos.Add(location);
+                    break;
+                // the remainder are done on a per-poi-per-group basis
+                default:
+                {
+                    if (!remainingUniqueProtosBySpawnGroup.ContainsKey(location.SpawnGroup))
+                        remainingUniqueProtosBySpawnGroup[location.SpawnGroup] = new();
+                    remainingUniqueProtosBySpawnGroup[location.SpawnGroup].Add(location);
+                    break;
+                }
             }
         }
         _poi.GenerateDepots(mapUid, depotProtos, out component.CargoDepots);
@@ -284,20 +363,21 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
 
     private async Task ReportRound(string message, int color = 0x77DDE7)
     {
-        _sawmill.Info(message);
-        string webhookUrl = _cfg.GetCVar(NFCCVars.DiscordLeaderboardWebhook);
+        Logger.InfoS("discord", message);
+        var webhookUrl = _cfg.GetCVar(NFCCVars.DiscordLeaderboardWebhook);
+
         if (webhookUrl == string.Empty)
             return;
 
         var serverName = _baseServer.ServerName;
         var gameTicker = _entSys.GetEntitySystemOrNull<GameTicker>();
-        var runId = gameTicker != null ? gameTicker.RoundId : 0;
+        var runId = gameTicker?.RoundId ?? 0;
 
         var payload = new WebhookPayload
         {
-            Embeds = new List<Embed>
-            {
-                new()
+            Embeds =
+            [
+                new Embed
                 {
                     Title = Loc.GetString("adventure-webhook-list-start"),
                     Description = message,
@@ -310,31 +390,32 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
                             ("roundId", runId)),
                     },
                 },
-            },
+
+            ],
         };
         await SendWebhookPayload(webhookUrl, payload);
     }
 
     private async Task ReportLedger(int color = 0xBF863F)
     {
-        string webhookUrl = _cfg.GetCVar(NFCCVars.DiscordLeaderboardWebhook);
+        var webhookUrl = _cfg.GetCVar(NFCCVars.DiscordLeaderboardWebhook);
         if (webhookUrl == string.Empty)
             return;
 
         var ledgerPrintout = _bank.GetLedgerPrintout();
         if (string.IsNullOrEmpty(ledgerPrintout))
             return;
-        _sawmill.Info(ledgerPrintout);
+        Logger.InfoS("discord", ledgerPrintout);
 
         var serverName = _baseServer.ServerName;
         var gameTicker = _entSys.GetEntitySystemOrNull<GameTicker>();
-        var runId = gameTicker != null ? gameTicker.RoundId : 0;
+        var runId = gameTicker?.RoundId ?? 0;
 
         var payload = new WebhookPayload
         {
-            Embeds = new List<Embed>
-            {
-                new()
+            Embeds =
+            [
+                new Embed
                 {
                     Title = Loc.GetString("adventure-webhook-ledger-start"),
                     Description = ledgerPrintout,
@@ -347,20 +428,22 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
                             ("roundId", runId)),
                     },
                 },
-            },
+
+            ],
         };
+
         await SendWebhookPayload(webhookUrl, payload);
     }
 
     private async Task SendWebhookPayload(string webhookUrl, WebhookPayload payload)
     {
-        var ser_payload = JsonSerializer.Serialize(payload);
-        var content = new StringContent(ser_payload, Encoding.UTF8, "application/json");
+        var serializedPayload = JsonSerializer.Serialize(payload);
+        var content = new StringContent(serializedPayload, Encoding.UTF8, "application/json");
         var request = await _httpClient.PostAsync($"{webhookUrl}?wait=true", content);
         var reply = await request.Content.ReadAsStringAsync();
         if (!request.IsSuccessStatusCode)
         {
-            _sawmill.Error($"Discord returned bad status code when posting message: {request.StatusCode}\nResponse: {reply}");
+            Logger.ErrorS("mining", $"Discord returned bad status code when posting message: {request.StatusCode}\nResponse: {reply}");
         }
     }
 
@@ -413,5 +496,17 @@ public sealed class NFAdventureRuleSystem : GameRuleSystem<NFAdventureRuleCompon
         public EmbedFooter()
         {
         }
+    }
+}
+
+public record struct BankData
+{
+    public string PlayerName { get; set; }
+    public int Profit { get; set; }
+
+    public BankData(string playerName, int profit)
+    {
+        PlayerName = playerName;
+        Profit = profit;
     }
 }

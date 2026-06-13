@@ -14,11 +14,11 @@ namespace Content.Client.Lobby
     ///     connection.
     ///     Stores preferences on the server through <see cref="SelectCharacter" /> and <see cref="UpdateCharacter" />.
     /// </summary>
-    public sealed class ClientPreferencesManager : IClientPreferencesManager
+    public sealed partial class ClientPreferencesManager : IClientPreferencesManager
     {
-        [Dependency] private readonly IClientNetManager _netManager = default!;
-        [Dependency] private readonly IBaseClient _baseClient = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
+        [Dependency] private IClientNetManager _netManager = default!;
+        [Dependency] private IBaseClient _baseClient = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
 
         public event Action? OnServerDataLoaded;
 
@@ -126,47 +126,45 @@ namespace Content.Client.Lobby
             Preferences = message.Preferences;
             Settings = message.Settings;
 
-            // HardLight: Check if any character profiles have invalid companies and fix them.
-            // Wrapped in try/catch so a prototype lookup failure can NEVER prevent
-            // OnServerDataLoaded from firing -- otherwise the character editor stays
-            // empty until the client is restarted (see character setup loading race).
-            try
+            // Check if any character profiles have invalid companies and fix them
+            if (Preferences != null)
             {
-                if (Preferences != null)
+                var protoManager = IoCManager.Resolve<IPrototypeManager>();
+                var needsUpdate = false;
+                var characters = new Dictionary<int, ICharacterProfile>();
+
+                foreach (var (slot, profile) in Preferences.Characters)
                 {
-                    var protoManager = IoCManager.Resolve<IPrototypeManager>();
-                    var needsUpdate = false;
-                    var characters = new Dictionary<int, ICharacterProfile>();
+                    var updatedProfile = profile;
 
-                    foreach (var (slot, profile) in Preferences.Characters)
+                    if (profile is HumanoidCharacterProfile humanoidProfile &&
+                        !string.IsNullOrEmpty(humanoidProfile.Company) &&
+                        humanoidProfile.Company != "None" &&
+                        !protoManager.HasIndex<CompanyPrototype>(humanoidProfile.Company))
                     {
-                        var updatedProfile = profile;
-
-                        if (profile is HumanoidCharacterProfile humanoidProfile &&
-                            !string.IsNullOrEmpty(humanoidProfile.Company) &&
-                            humanoidProfile.Company != "None" &&
-                            !protoManager.HasIndex<CompanyPrototype>(humanoidProfile.Company))
-                        {
-                            updatedProfile = humanoidProfile.WithCompany("None");
-                            needsUpdate = true;
-                        }
-
-                        characters[slot] = updatedProfile;
+                        updatedProfile = humanoidProfile.WithCompany("None");
+                        needsUpdate = true;
                     }
 
-                    if (needsUpdate)
-                    {
-                        Preferences = new PlayerPreferences(characters, Preferences.SelectedCharacterIndex, Preferences.AdminOOCColor);
+                    characters[slot] = updatedProfile;
+                }
 
-                        // Do not auto-write to the server on load. If the loaded profile set is a fallback,
-                        // silently persisting here can overwrite valid server-side data.
-                        Logger.GetSawmill("preferences").Warning("Locally sanitized invalid company IDs in loaded preferences; skipping automatic server write.");
+                if (needsUpdate)
+                {
+                    Preferences = new PlayerPreferences(characters, Preferences.SelectedCharacterIndex, Preferences.AdminOOCColor);
+
+                    // Update the selected character on the server if needed
+                    var selectedIndex = Preferences.SelectedCharacterIndex;
+                    if (characters.TryGetValue(selectedIndex, out var selectedProfile))
+                    {
+                        var msg = new MsgUpdateCharacter
+                        {
+                            Profile = selectedProfile,
+                            Slot = selectedIndex
+                        };
+                        _netManager.ClientSendMessage(msg);
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Logger.GetSawmill("preferences").Error($"Error validating character companies on preferences load: {e}");
             }
 
             OnServerDataLoaded?.Invoke();

@@ -1,5 +1,4 @@
 using Content.Server.IdentityManagement;
-using Content.Shared.Contraband;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Clothing.EntitySystems;
 using Content.Shared.IdentityManagement.Components;
@@ -11,7 +10,6 @@ namespace Content.Server.Clothing.Systems;
 public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
 {
     [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IComponentFactory _factory = default!;
     [Dependency] private readonly IdentitySystem _identity = default!;
 
     public override void Initialize()
@@ -23,19 +21,7 @@ public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
 
     private void OnMapInit(EntityUid uid, ChameleonClothingComponent component, MapInitEvent args)
     {
-        EnsureClass3Contraband(uid);
         SetSelectedPrototype(uid, component.Default, true, component);
-    }
-
-    private void EnsureClass3Contraband(EntityUid uid)
-    {
-        var contraband = EnsureComp<ContrabandComponent>(uid);
-
-        if (contraband.Severity == "Class3General")
-            return;
-
-        contraband.Severity = "Class3General";
-        Dirty(uid, contraband);
     }
 
     private void OnSelected(EntityUid uid, ChameleonClothingComponent component, ChameleonPrototypeSelectedMessage args)
@@ -81,7 +67,7 @@ public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
 
     private void UpdateIdentityBlocker(EntityUid uid, ChameleonClothingComponent component, EntityPrototype proto)
     {
-        if (proto.HasComponent<IdentityBlockerComponent>(_factory))
+        if (proto.HasComponent<IdentityBlockerComponent>(Factory))
             EnsureComp<IdentityBlockerComponent>(uid);
         else
             RemComp<IdentityBlockerComponent>(uid);

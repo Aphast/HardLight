@@ -19,27 +19,30 @@ using Content.Server.StationEvents.Events;
 using Content.Server._NF.Station.Systems;
 using Content.Server._NF.StationEvents.Components;
 using Robust.Shared.EntitySerialization.Systems;
+using Content.Server._Mono.StationEvents;
+using Content.Server._Mono.GridClaimer;
 
 namespace Content.Server._NF.StationEvents.Events;
 
-public sealed class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleComponent>
+public sealed partial class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleComponent>
 {
     NanotrasenNameGenerator _nameGenerator = new();
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly MapSystem _map = default!;
-    [Dependency] private readonly SharedMapSystem _mapSystem = default!;
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly DungeonSystem _dungeon = default!;
-    [Dependency] private readonly MapLoaderSystem _loader = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly ShuttleSystem _shuttle = default!;
-    [Dependency] private readonly PricingSystem _pricing = default!;
-    [Dependency] private readonly LinkedLifecycleGridSystem _linkedLifecycleGrid = default!;
-    [Dependency] private readonly StationRenameWarpsSystems _renameWarps = default!;
-    [Dependency] private readonly BankSystem _bank = default!;
-    [Dependency] private readonly SharedSalvageSystem _salvage = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private MapSystem _map = default!;
+    [Dependency] private SharedMapSystem _mapSystem = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private DungeonSystem _dungeon = default!;
+    [Dependency] private MapLoaderSystem _loader = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private ShuttleSystem _shuttle = default!;
+    [Dependency] private PricingSystem _pricing = default!;
+    [Dependency] private LinkedLifecycleGridSystem _linkedLifecycleGrid = default!;
+    [Dependency] private StationRenameWarpsSystems _renameWarps = default!;
+    [Dependency] private BankSystem _bank = default!;
+    [Dependency] private SharedSalvageSystem _salvage = default!;
+    [Dependency] private AutoExtendRuleSystem _autoExtend = default!;
 
     public override void Initialize()
     {
@@ -121,6 +124,9 @@ public sealed class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleCo
                 EntityManager.AddComponents(spawned, group.AddComponents);
 
                 component.GridsUid.Add(spawned);
+
+                if (component.ExtendIfPopulated)
+                    _autoExtend.AutoExtend(uid, spawned);
             }
         }
 
@@ -153,7 +159,7 @@ public sealed class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleCo
         var spawnedGrid = _mapManager.CreateGridEntity(mapId);
 
         _transform.SetMapCoordinates(spawnedGrid, new MapCoordinates(Vector2.Zero, mapId));
-        _dungeon.GenerateDungeon(dungeonProto, dungeonProtoId, spawnedGrid.Owner, spawnedGrid.Comp, Vector2i.Zero, _random.Next(), spawnCoords);
+        _dungeon.GenerateDungeon(dungeonProto, dungeonProto.ID, spawnedGrid.Owner, spawnedGrid.Comp, Vector2i.Zero, _random.Next(), spawnCoords); // Frontier: add dungeonProto.ID
 
         spawned = spawnedGrid.Owner;
         component.MapsUid.Add(mapId);
@@ -221,6 +227,10 @@ public sealed class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleCo
                 return;
             }
 
+            // don't delete it if claimed
+            if (TryComp<ClaimableGridComponent>(componentGridUid, out var claimable) && claimable.Claimed)
+                return;
+
             if (component.DeleteGridsOnEnd)
             {
                 // Handle mobrestrictions getting deleted
@@ -247,13 +257,7 @@ public sealed class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleCo
                 var playerMobs = _linkedLifecycleGrid.GetEntitiesToReparent(gridUid);
                 foreach (var mob in playerMobs)
                 {
-                    if (!TryComp<MetaDataComponent>(mob.EntityUid, out var meta) || meta.EntityLifeStage >= EntityLifeStage.Terminating)
-                        continue;
-
-                    if (!TryComp<TransformComponent>(mob.EntityUid, out var xform) || xform.MapID == MapId.Nullspace)
-                        continue;
-
-                    _transform.DetachEntity(mob.EntityUid, xform);
+                    _transform.DetachEntity(mob.Entity.Owner, mob.Entity.Comp);
                 }
 
                 var gridValue = _pricing.AppraiseGrid(gridUid, null);
@@ -263,13 +267,7 @@ public sealed class BluespaceErrorRule : StationEventSystem<BluespaceErrorRuleCo
 
                 foreach (var mob in playerMobs)
                 {
-                    if (!TryComp<MetaDataComponent>(mob.EntityUid, out var meta) || meta.EntityLifeStage >= EntityLifeStage.Terminating)
-                        continue;
-
-                    if (!TryComp<TransformComponent>(mob.EntityUid, out var xform) || xform.MapID != MapId.Nullspace)
-                        continue;
-
-                    _transform.SetCoordinates(mob.EntityUid, xform, new EntityCoordinates(mob.MapUid, mob.MapPosition));
+                    _transform.SetCoordinates(mob.Entity.Owner, new EntityCoordinates(mob.MapUid, mob.MapPosition));
                 }
 
                 foreach (var (account, rewardCoeff) in component.RewardAccounts)

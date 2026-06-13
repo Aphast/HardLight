@@ -6,25 +6,24 @@ using Content.Shared.Storage.Components;
 using Content.Shared.Toggleable;
 using Content.Shared.Verbs;
 using Robust.Shared.Audio.Systems;
-using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Light.EntitySystems;
 
-public sealed class UnpoweredFlashlightSystem : EntitySystem
+public sealed partial class UnpoweredFlashlightSystem : EntitySystem
 {
     // TODO: Split some of this to ItemTogglePointLight
 
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedActionsSystem _actionsSystem = default!;
-    [Dependency] private readonly ActionContainerSystem _actionContainer = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-    [Dependency] private readonly SharedPointLightSystem _light = default!;
-    [Dependency] private readonly EmagSystem _emag = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedActionsSystem _actionsSystem = default!;
+    [Dependency] private ActionContainerSystem _actionContainer = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audioSystem = default!;
+    [Dependency] private SharedPointLightSystem _light = default!;
+    [Dependency] private EmagSystem _emag = default!;
 
     public override void Initialize()
     {
@@ -36,35 +35,6 @@ public sealed class UnpoweredFlashlightSystem : EntitySystem
         SubscribeLocalEvent<UnpoweredFlashlightComponent, MindAddedMessage>(OnMindAdded);
         SubscribeLocalEvent<UnpoweredFlashlightComponent, GotEmaggedEvent>(OnGotEmagged);
         SubscribeLocalEvent<UnpoweredFlashlightComponent, MapInitEvent>(OnMapInit);
-        SubscribeLocalEvent<UnpoweredFlashlightComponent, ComponentGetState>(OnGetState);
-        SubscribeLocalEvent<UnpoweredFlashlightComponent, ComponentHandleState>(OnHandleState);
-    }
-
-    private void OnGetState(EntityUid uid, UnpoweredFlashlightComponent component, ref ComponentGetState args)
-    {
-        NetEntity? toggleAction = null;
-
-        if (component.ToggleActionEntity is { } toggleActionUid &&
-            // HardLight: We have to check for MetaDataComponent because the entity might be deleted,
-            // and we don't want to throw an exception trying to get the name of a deleted entity.
-            TryComp(toggleActionUid, out MetaDataComponent? meta) &&
-            meta.EntityLifeStage < EntityLifeStage.Terminating)
-        {
-            toggleAction = GetNetEntity(toggleActionUid, meta);
-        }
-
-        args.State = new UnpoweredFlashlightComponentState(component.LightOn, toggleAction);
-    }
-
-    private void OnHandleState(EntityUid uid, UnpoweredFlashlightComponent component, ref ComponentHandleState args)
-    {
-        if (args.Current is not UnpoweredFlashlightComponentState state)
-            return;
-
-        component.LightOn = state.LightOn;
-        component.ToggleActionEntity = state.ToggleActionEntity is { } action && TryGetEntity(action, out var actionUid)
-            ? actionUid
-            : null;
     }
 
     private void OnMapInit(EntityUid uid, UnpoweredFlashlightComponent component, MapInitEvent args)

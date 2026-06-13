@@ -7,11 +7,11 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Xenoarchaeology.XenoArtifacts.Effects.Systems;
 
-public sealed class TelepathicArtifactSystem : EntitySystem
+public sealed partial class TelepathicArtifactSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
 
     public override void Initialize()
     {
@@ -39,15 +39,8 @@ public sealed class TelepathicArtifactSystem : EntitySystem
                 msgArr = component.Messages;
             }
 
-            if (msgArr == null || msgArr.Count == 0)
-                continue;
-
             // pick a random message
             var msgId = _random.Pick(msgArr);
-
-            if (string.IsNullOrEmpty(msgId))
-                continue;
-
             var msg = Loc.GetString(msgId);
 
             // show it as a popup, but only for the victim

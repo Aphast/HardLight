@@ -1,10 +1,11 @@
 using Content.Shared.Access;
 using Content.Shared._NF.Shipyard;
+using Content.Shared._NF.Shipyard.Prototypes;
 using Robust.Shared.Prototypes;
 
 namespace Content.Server._NF.Shipyard.Components;
 
-[RegisterComponent]
+[RegisterComponent, AutoGenerateComponentPause]
 public sealed partial class ShipyardVoucherComponent : Component
 {
     /// <summary>
@@ -28,10 +29,41 @@ public sealed partial class ShipyardVoucherComponent : Component
     [DataField]
     public IReadOnlyCollection<ProtoId<AccessGroupPrototype>> AccessGroups { get; private set; } = Array.Empty<ProtoId<AccessGroupPrototype>>();
 
+    // Mono
+    /// <summary>
+    ///  Vessels this voucher can be used for, in addition to what Access and AccessGroups would allow.
+    /// </summary>
+    [DataField]
+    public HashSet<ProtoId<VesselPrototype>> Vessels = new();
+
     /// <summary>
     ///  The type of console where this voucher can be used.
     ///  Should not be ShipyardConsoleUiKey.Custom.  Note: currently cannot be used for mothership consoles.
     /// </summary>
     [DataField(required: true)]
     public ShipyardConsoleUiKey ConsoleType;
+
+    /// <summary>
+    ///  The company name associated with this voucher. Used to transfer company information to purchased ships.
+    /// </summary>
+    [DataField]
+    public string? CompanyName;
+
+    /// <summary>
+    ///     Mono: Delay between purchases with this voucher
+    /// </summary>
+    [DataField]
+    public TimeSpan Cooldown = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    ///     Mono: Current purchase delay on this voucher
+    /// </summary>
+    [DataField, AutoPausedField]
+    public TimeSpan NextBuyAt = TimeSpan.FromSeconds(0);
+
+    /// <summary>
+    ///     Mono: Whether this voucher is allowed to have its deed unassigned.
+    /// </summary>
+    [DataField]
+    public bool CanBeUnassigned = true;
 }

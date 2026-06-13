@@ -8,12 +8,12 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Xenoarchaeology.XenoArtifacts.Effects.Systems;
 
-public sealed class PortalArtifactSystem : EntitySystem
+public sealed partial class PortalArtifactSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly LinkedEntitySystem _link = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private LinkedEntitySystem _link = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
 
     public override void Initialize()
     {
@@ -28,17 +28,11 @@ public sealed class PortalArtifactSystem : EntitySystem
         var mindQuery = EntityQueryEnumerator<MindContainerComponent, TransformComponent, MetaDataComponent>();
         while (mindQuery.MoveNext(out var uid, out var mc, out var xform, out var meta))
         {
-            // Cheap-first short-circuit: most MindContainers on a populated server are not on
-            // the same map as the artifact, and IsEntityOrParentInContainer walks the parent
-            // chain. Filter by map, then HasMind, then container check. Same set of valid minds.
-            if (xform.MapID != map)
-                continue;
-            if (!mc.HasMind)
-                continue;
-            if (_container.IsEntityOrParentInContainer(uid, meta: meta, xform: xform))
-                continue;
-
-            validMinds.Add(uid);
+            // check if the MindContainer has a Mind and if the entity is not in a container (this also auto excludes AI) and if they are on the same map
+            if (mc.HasMind && !_container.IsEntityOrParentInContainer(uid, meta: meta, xform: xform) && xform.MapID == map)
+            {
+                validMinds.Add(uid);
+            }
         }
         //this would only be 0 if there were a station full of AIs and no one else, in that case just stop this function
         if (validMinds.Count == 0)

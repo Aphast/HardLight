@@ -1,20 +1,16 @@
 using Content.Server.Popups;
 using Content.Shared.Administration;
 using Content.Shared.GameTicking;
-using Content.Server.GameTicking;
-using Content.Server.Mind;
-using Content.Server._NF.Roles.Systems; // HardLight
-using Content.Shared._NF.Roles.Components; // HardLight
-using Robust.Server.Player;
+using Content.Shared.Mind;
 using Robust.Shared.Console;
+using Content.Server.GameTicking;
 
 namespace Content.Server.Ghost
 {
     [AnyCommand]
-    public sealed class GhostCommand : IConsoleCommand
+    public sealed partial class GhostCommand : IConsoleCommand
     {
-        [Dependency] private readonly IEntityManager _entities = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
+        [Dependency] private IEntityManager _entities = default!;
 
         public string Command => "ghost";
         public string Description => Loc.GetString("ghost-command-description");
@@ -47,23 +43,17 @@ namespace Content.Server.Ghost
                 return;
             }
 
-            if (player.AttachedEntity is not { Valid: true } controlled)
+            var minds = _entities.System<SharedMindSystem>();
+            if (!minds.TryGetMind(player, out var mindId, out var mind))
             {
-                shell.WriteLine(Loc.GetString("ghost-command-error-lobby"));
-                return;
+                mindId = minds.CreateMind(player.UserId);
+                mind = _entities.GetComponent<MindComponent>(mindId);
             }
 
-            var minds = _entities.System<MindSystem>();
-            if (_entities.TryGetComponent<JobTrackingComponent>(controlled, out var tracking)) // HardLight
-                _entities.System<JobTrackingSystem>().OpenJob((controlled, tracking), player.UserId);
-
-            if (minds.TryGetMind(player, out var mindId, out var mind))
-                minds.WipeMind(mindId, mind);
-            else
-                _playerManager.SetAttachedEntity(player, null);
-
-            _entities.DeleteEntity(controlled);
-            gameTicker.ReturnPlayerToLobby(player);
+            if (!_entities.System<GhostSystem>().OnGhostAttempt(mindId, true, true, mind: mind))
+            {
+                shell.WriteLine(Loc.GetString("ghost-command-denied"));
+            }
         }
     }
 }

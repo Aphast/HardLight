@@ -33,26 +33,26 @@ using Robust.Shared.Utility;
 
 namespace Content.Server.Nutrition.EntitySystems;
 
-public sealed class DrinkSystem : SharedDrinkSystem
+public sealed partial class DrinkSystem : SharedDrinkSystem
 {
-    [Dependency] private readonly BodySystem _body = default!;
-    [Dependency] private readonly FlavorProfileSystem _flavorProfile = default!;
-    [Dependency] private readonly FoodSystem _food = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly OpenableSystem _openable = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly PuddleSystem _puddle = default!;
-    [Dependency] private readonly ReactiveSystem _reaction = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
-    [Dependency] private readonly StomachSystem _stomach = default!;
-    [Dependency] private readonly ForensicsSystem _forensics = default!;
+    [Dependency] private BodySystem _body = default!;
+    [Dependency] private FlavorProfileSystem _flavorProfile = default!;
+    [Dependency] private FoodSystem _food = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private OpenableSystem _openable = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private PuddleSystem _puddle = default!;
+    [Dependency] private ReactiveSystem _reaction = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedInteractionSystem _interaction = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainer = default!;
+    [Dependency] private StomachSystem _stomach = default!;
+    [Dependency] private ForensicsSystem _forensics = default!;
 
     public override void Initialize()
     {
@@ -195,7 +195,7 @@ public sealed class DrinkSystem : SharedDrinkSystem
             _popup.PopupEntity(Loc.GetString("drink-component-force-feed", ("user", userName)), user, target);
 
             // logging
-            _adminLogger.Add(LogType.ForceFeed, LogImpact.Medium, $"{ToPrettyString(user):user} is forcing {ToPrettyString(target):target} to drink {ToPrettyString(item):drink} {SharedSolutionContainerSystem.ToPrettyString(drinkSolution)}"); // Hardlight | High -> Medium. Force-feeding is rarely a round-affecting action, and thus does not need to be promptly visible. It also can and does frequently spam chat.
+            _adminLogger.Add(LogType.ForceFeed, LogImpact.Medium, $"{ToPrettyString(user):user} is forcing {ToPrettyString(target):target} to drink {ToPrettyString(item):drink} {SharedSolutionContainerSystem.ToPrettyString(drinkSolution)}");
         }
         else
         {
@@ -228,6 +228,7 @@ public sealed class DrinkSystem : SharedDrinkSystem
             // do-after will stop if item is dropped when trying to feed someone else
             // or if the item started out in the user's own hands
             NeedHand = forceDrink || _hands.IsHolding(user, item),
+            MultiplyDelay = false, // Goobstation
         };
 
         _doAfter.TryStartDoAfter(doAfterEventArgs);
@@ -347,9 +348,8 @@ public sealed class DrinkSystem : SharedDrinkSystem
             !_body.TryGetBodyOrganEntityComps<StomachComponent>((ev.User, body), out var stomachs))
             return;
 
-        // HardLight: Make sure the solution exists and has volume.
-        // If empty, do not add the drink alt-verb so other alternative actions can execute.
-        if (!_solutionContainer.TryGetSolution(entity.Owner, entity.Comp.Solution, out Entity<SolutionComponent>? _, out Solution? solution) || solution.Volume <= 0) // HardLight: Added Entity<SolutionComponent>? _, out Solution? & solution.Volume <= 0
+        // Make sure the solution exists
+        if (!_solutionContainer.TryGetSolution(entity.Owner, entity.Comp.Solution, out var solution))
             return;
 
         // no drinking from living drinks, have to kill them first.

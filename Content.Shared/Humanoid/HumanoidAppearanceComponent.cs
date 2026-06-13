@@ -1,4 +1,3 @@
-using Content.Shared.DisplacementMap;
 using Content.Shared.Humanoid.Markings;
 using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.Inventory;
@@ -23,13 +22,6 @@ public sealed partial class HumanoidAppearanceComponent : Component
 
     [DataField, AutoNetworkedField]
     public HashSet<HumanoidVisualLayers> PermanentlyHidden = new();
-
-    /// <summary>
-    ///     A set of marking IDs that are currently hidden on this humanoid.
-    ///     Used to toggle visibility of specific markings (e.g., undergarments/genitals).
-    /// </summary>
-    [DataField, AutoNetworkedField]
-    public HashSet<string> HiddenMarkings = new();
 
     // Couldn't these be somewhere else?
 
@@ -56,13 +48,6 @@ public sealed partial class HumanoidAppearanceComponent : Component
     public ProtoId<SpeciesPrototype> Species { get; set; }
 
     /// <summary>
-    /// Optional custom species string to display for examines. This does not affect the
-    /// actual species prototype used for appearance or mechanics.
-    /// </summary>
-    [DataField, AutoNetworkedField]
-    public string? CustomSpecies { get; set; } = null;
-
-    /// <summary>
     ///     The initial profile and base layers to apply to this humanoid.
     /// </summary>
     [DataField]
@@ -87,8 +72,6 @@ public sealed partial class HumanoidAppearanceComponent : Component
 
     [DataField, AutoNetworkedField]
     public Color EyeColor = Color.Brown;
-    [DataField, AutoNetworkedField]
-    public bool EyeGlowing = false; //starlight
 
     [DataField, AutoNetworkedField]
     public float Height = 1.0f;
@@ -113,18 +96,6 @@ public sealed partial class HumanoidAppearanceComponent : Component
     /// </summary>
     [DataField]
     public HashSet<HumanoidVisualLayers> HideLayersOnEquip = [HumanoidVisualLayers.Hair];
-
-    [DataField]
-    public ProtoId<MarkingPrototype>? UndergarmentTop = new ProtoId<MarkingPrototype>("UndergarmentTopTanktop");
-
-    [DataField]
-    public ProtoId<MarkingPrototype>? UndergarmentBottom = new ProtoId<MarkingPrototype>("UndergarmentBottomBoxers");
-
-    /// <summary>
-    ///     The displacement maps that will be applied to specific layers of the humanoid.
-    /// </summary>
-    [DataField]
-    public Dictionary<HumanoidVisualLayers, DisplacementData> MarkingsDisplacement = new();
 }
 
 [DataDefinition]

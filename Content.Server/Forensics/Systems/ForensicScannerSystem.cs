@@ -1,6 +1,11 @@
 using System.Linq;
 using System.Text;
 using Content.Server.Popups;
+using Content.Server.Stack; // Frontier
+using Content.Server._NF.Smuggling; // Frontier
+using Content.Server._NF.Smuggling.Components; // Frontier
+using Content.Server.Cargo.Systems; // Frontier
+using Content.Server.Radio.EntitySystems; // Frontier
 using Content.Shared.UserInterface;
 using Content.Shared.DoAfter;
 using Content.Shared.Forensics;
@@ -8,72 +13,67 @@ using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
 using Content.Shared.Paper;
 using Content.Shared.Verbs;
+using Content.Shared.Stacks; // Frontier
+using Content.Shared.Radio; // Frontier
+using Robust.Shared.Prototypes; // Frontier
 using Content.Shared.Tag;
 using Robust.Shared.Audio.Systems;
 using Robust.Server.GameObjects;
 using Robust.Shared.Audio;
 using Robust.Shared.Timing;
-using Content.Server.Chemistry.Containers.EntitySystems;
-using Robust.Shared.Prototypes;
+using Content.Shared.Containers.ItemSlots; // Frontier
 using Content.Server._NF.SectorServices; // Frontier
-using Content.Server._NF.Smuggling; // Frontier
-using Content.Server._NF.Smuggling.Components; // Frontier
-using Content.Server.Radio.EntitySystems; // Frontier
-using Content.Server.Stack; // Frontier
+using Content.Shared.FixedPoint; // Frontier
+using Robust.Shared.Configuration; // Frontier
+using Content.Shared._NF.CCVar; // Frontier
 using Content.Shared._NF.Bank; // Frontier
 using Content.Shared._NF.Bank.Components; // Frontier
 using Content.Server._NF.Bank; // Frontier
 using Content.Shared._NF.Bank.BUI; // Frontier
-using Content.Shared._NF.CCVar; // Frontier
-using Content.Shared.Containers.ItemSlots; // Frontier
-using Content.Shared.FixedPoint; // Frontier
-using Content.Shared.Stacks; // Frontier
-using Content.Shared.Radio; // Frontier
-using Robust.Shared.Configuration; // Frontier
+
+using Content.Server.Chemistry.Containers.EntitySystems;
+using Robust.Shared.Prototypes;
 // todo: remove this stinky LINQy
 
 namespace Content.Server.Forensics
 {
-    public sealed class ForensicScannerSystem : EntitySystem
+    public sealed partial class ForensicScannerSystem : EntitySystem
     {
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly SharedDoAfterSystem _doAfterSystem = default!;
-        [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-        [Dependency] private readonly PopupSystem _popupSystem = default!;
-        [Dependency] private readonly PaperSystem _paperSystem = default!;
-        [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-        [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-        [Dependency] private readonly MetaDataSystem _metaData = default!;
-        [Dependency] private readonly ForensicsSystem _forensicsSystem = default!;
-        [Dependency] private readonly TagSystem _tag = default!;
-        [Dependency] private readonly StackSystem _stackSystem = default!; // Frontier
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!; // Frontier
-        [Dependency] private readonly RadioSystem _radio = default!; // Frontier
-        [Dependency] private readonly DeadDropSystem _deadDrop = default!; // Frontier
-        [Dependency] private readonly ItemSlotsSystem _itemSlots = default!; // Frontier
-        [Dependency] private readonly SectorServiceSystem _service = default!; // Frontier
-        [Dependency] private readonly IConfigurationManager _cfg = default!; // Frontier
-        [Dependency] private readonly BankSystem _bank = default!; // Frontier
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private SharedDoAfterSystem _doAfterSystem = default!;
+        [Dependency] private UserInterfaceSystem _uiSystem = default!;
+        [Dependency] private PopupSystem _popupSystem = default!;
+        [Dependency] private PaperSystem _paperSystem = default!;
+        [Dependency] private SharedHandsSystem _handsSystem = default!;
+        [Dependency] private SharedAudioSystem _audioSystem = default!;
+        [Dependency] private MetaDataSystem _metaData = default!;
+        [Dependency] private ForensicsSystem _forensicsSystem = default!;
+        [Dependency] private TagSystem _tag = default!;
+        [Dependency] private StackSystem _stackSystem = default!; // Frontier
+        [Dependency] private IPrototypeManager _prototypeManager = default!; // Frontier
+        [Dependency] private RadioSystem _radio = default!; // Frontier
+        [Dependency] private DeadDropSystem _deadDrop = default!; // Frontier
+        [Dependency] private ItemSlotsSystem _itemSlots = default!; // Frontier
+        [Dependency] private CargoSystem _cargo = default!; // Frontier
+        [Dependency] private SectorServiceSystem _service = default!; // Frontier
+        [Dependency] private IConfigurationManager _cfg = default!; // Frontier
+        [Dependency] private BankSystem _bank = default!; // Frontier
 
         // Frontier: payout constants
         // Temporary values, sane defaults, will be overwritten by CVARs.
-        private int _minFUCPayout = 2;
+        private int _minFMCPayout = 6;
 
-        private SoundSpecifier _confirmSound = new SoundPathSpecifier("/Audio/Effects/Cargo/ping.ogg");
-
-        private const int ActiveUnusedDeadDropSpesoReward = 50000;
-        private const float ActiveUnusedDeadDropFUCReward = 5.0f;
-        private const int ActiveUsedDeadDropSpesoReward = 20000;
-        private const float ActiveUsedDeadDropFUCReward = 2.0f;
-        private const int InactiveUsedDeadDropSpesoReward = 10000;
-        private const float InactiveUsedDeadDropFUCReward = 1.0f;
-        private const int DropPodSpesoReward = 20000;
-        private const float DropPodFUCReward = 2.0f;
+        private const int ActiveUnusedDeadDropSpesoReward = 150000; //Mono
+        private const float ActiveUnusedDeadDropFMCReward = 35.0f; //Mono
+        private const int ActiveUsedDeadDropSpesoReward = 50000; //Mono
+        private const float ActiveUsedDeadDropFMCReward = 15.0f; //Mono
+        private const int InactiveUsedDeadDropSpesoReward = 25000; //Mono
+        private const float InactiveUsedDeadDropFMCReward = 10.0f; //Mono
+        private const int DropPodSpesoReward = 75000; //Mono
+        private const float DropPodFMCReward = 15.0f; //Mono
         // End Frontier: payout constants
 
         private static readonly ProtoId<TagPrototype> DNASolutionScannableTag = "DNASolutionScannable";
-        private static readonly ProtoId<StackPrototype> FrontierUplinkCoinId = "FrontierUplinkCoin";
-        private static readonly ProtoId<RadioChannelPrototype> ColSecChannelId = "ColSec";  // HardLight
 
         public override void Initialize()
         {
@@ -87,55 +87,56 @@ namespace Content.Server.Forensics
             SubscribeLocalEvent<ForensicScannerComponent, ForensicScannerClearMessage>(OnClear);
             SubscribeLocalEvent<ForensicScannerComponent, ForensicScannerDoAfterEvent>(OnDoAfter);
 
-            Subs.CVar(_cfg, NFCCVars.SmugglingMinFucPayout, OnMinFucPayoutChanged, true); // Frontier
+            Subs.CVar(_cfg, NFCCVars.SmugglingMinFMCPayout, OnMinFMCPayoutChanged, true); // Frontier
         }
 
-        private void OnMinFucPayoutChanged(int newMin)
+        private void OnMinFMCPayoutChanged(int newMin)
         {
-            _minFUCPayout = newMin;
+            _minFMCPayout = newMin;
         }
 
         // Frontier: add dead drop rewards
         /// <summary>
         ///     Rewards the NFSD department for scanning a dead drop.
-        ///     Gives some amount of spesos and FUC to the
+        ///     Gives some amount of spesos and FMC to the
         /// </summary>
-        private void GiveReward(EntityUid uidOrigin, EntityUid target, int spesoAmount, FixedPoint2 fucAmount, string msg)
+        private void GiveReward(EntityUid uidOrigin, EntityUid target, int spesoAmount, FixedPoint2 fmcAmount, string msg)
         {
-            _audioSystem.PlayPvs(_audioSystem.ResolveSound(_confirmSound), uidOrigin);
+            SoundSpecifier confirmSound = new SoundPathSpecifier("/Audio/Effects/Cargo/ping.ogg");
+            _audioSystem.PlayPvs(_audioSystem.GetSound(confirmSound), uidOrigin);
 
             if (spesoAmount > 0)
                 _bank.TrySectorDeposit(SectorBankAccount.Nfsd, spesoAmount, LedgerEntryType.AntiSmugglingBonus);
             else
                 spesoAmount = 0;
 
-            if (fucAmount > 0)
+            if (fmcAmount > 0)
             {
-                // Accumulate sector-wide FUCs, pay out if min threshold met
+                // Accumulate sector-wide FMCs, pay out if min threshold met
                 if (TryComp<SectorDeadDropComponent>(_service.GetServiceEntity(), out var sectorDD))
                 {
-                    sectorDD.FUCAccumulator += fucAmount;
-                    if (sectorDD.FUCAccumulator >= _minFUCPayout)
+                    sectorDD.FMCAccumulator += fmcAmount;
+                    if (sectorDD.FMCAccumulator >= _minFMCPayout)
                     {
                         // inherent floor
-                        int payout = sectorDD.FUCAccumulator.Int();
-                        sectorDD.FUCAccumulator -= payout;
+                        int payout = sectorDD.FMCAccumulator.Int();
+                        sectorDD.FMCAccumulator -= payout;
 
-                        var stackPrototype = _prototypeManager.Index<StackPrototype>(FrontierUplinkCoinId);
+                        var stackPrototype = _prototypeManager.Index<StackPrototype>("FederationMilitaryCredit");
                         _stackSystem.Spawn(payout, stackPrototype, Transform(target).Coordinates);
                     }
                 }
             }
             else
-                fucAmount = 0;
+                fmcAmount = 0;
 
-            var channel = _prototypeManager.Index<RadioChannelPrototype>(ColSecChannelId);
+            var channel = _prototypeManager.Index<RadioChannelPrototype>("Nfsd");
             string msgString = Loc.GetString(msg);
-            if (fucAmount >= 1)
+            if (fmcAmount >= 1)
             {
                 msgString = msgString + " " + Loc.GetString("forensic-reward-amount",
                 ("spesos", BankSystemExtensions.ToSpesoString(spesoAmount)),
-                ("fuc", BankSystemExtensions.ToFUCString(fucAmount.Int())));
+                ("fmc", BankSystemExtensions.ToFMCString(fmcAmount.Int())));
             }
             else
             {
@@ -196,33 +197,33 @@ namespace Content.Server.Forensics
                         if (_gameTiming.CurTime >= deadDrop.NextDrop)
                         {
                             int spesoReward;
-                            FixedPoint2 fucReward;
+                            FixedPoint2 fmcReward;
                             string msg;
                             if (deadDrop.DeadDropCalled)
                             {
                                 spesoReward = ActiveUsedDeadDropSpesoReward;
-                                fucReward = ActiveUsedDeadDropFUCReward;
+                                fmcReward = ActiveUsedDeadDropFMCReward;
                                 msg = "forensic-reward-dead-drop-used-present";
                             }
                             else
                             {
                                 spesoReward = ActiveUnusedDeadDropSpesoReward;
-                                fucReward = ActiveUnusedDeadDropFUCReward;
+                                fmcReward = ActiveUnusedDeadDropFMCReward;
                                 msg = "forensic-reward-dead-drop-unused";
                             }
-                            GiveReward(uid, target, spesoReward, fucReward, msg);
+                            GiveReward(uid, target, spesoReward, fmcReward, msg);
                             _deadDrop.CompromiseDeadDrop(target, deadDrop);
                         }
                         // Otherwise, if it's been used, pay out at a reduced rate and compromise it.
                         else if (deadDrop.DeadDropCalled)
                         {
-                            GiveReward(uid, target, InactiveUsedDeadDropSpesoReward, InactiveUsedDeadDropFUCReward, "forensic-reward-dead-drop-used-gone");
+                            GiveReward(uid, target, InactiveUsedDeadDropSpesoReward, InactiveUsedDeadDropFMCReward, "forensic-reward-dead-drop-used-gone");
                             _deadDrop.CompromiseDeadDrop(target, deadDrop);
                         }
                     }
                     else if (TryComp<ContrabandPodGridComponent>(Transform(target).GridUid, out var pod) && !pod.Scanned)
                     {
-                        GiveReward(uid, target, DropPodSpesoReward, DropPodFUCReward, "forensic-reward-pod");
+                        GiveReward(uid, target, DropPodSpesoReward, DropPodFMCReward, "forensic-reward-pod");
                         pod.Scanned = true;
                     }
                 }

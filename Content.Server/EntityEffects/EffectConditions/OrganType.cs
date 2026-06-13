@@ -46,12 +46,8 @@ public sealed partial class OrganType : EntityEffectCondition
 
     public override string GuidebookExplanation(IPrototypeManager prototype)
     {
-        var metabolizerName = Type;
-        if (prototype.TryIndex<MetabolizerTypePrototype>(Type, out var metabolizerType))
-            metabolizerName = metabolizerType.LocalizedName;
-
         return Loc.GetString("reagent-effect-condition-guidebook-organ-type",
-            ("name", metabolizerName),
+            ("name", prototype.Index<MetabolizerTypePrototype>(Type).LocalizedName),
             ("shouldhave", ShouldHave));
     }
 }

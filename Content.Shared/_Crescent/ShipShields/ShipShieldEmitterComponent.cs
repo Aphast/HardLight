@@ -5,7 +5,10 @@ namespace Content.Shared._Crescent.ShipShields;
 [RegisterComponent]
 public sealed partial class ShipShieldEmitterComponent : Component
 {
+    [ViewVariables]
     public EntityUid? Shield;
+
+    [ViewVariables]
     public EntityUid? Shielded;
 
     [DataField]
@@ -34,9 +37,7 @@ public sealed partial class ShipShieldEmitterComponent : Component
     public float HealPerSecond = 250f;
 
     /// <summary>
-    /// Maximum multiplier applied to healing rate when the emitter is in recharge mode.
-    /// Actual recharge speed scales up toward this multiplier based on how much
-    /// of the emitter's recharge draw the ship can supply.
+    /// Multiplier applied to healing rate when the emitter is in recharge mode.
     /// </summary>
     [DataField]
     public float UnpoweredBonus = 6f;
@@ -56,9 +57,6 @@ public sealed partial class ShipShieldEmitterComponent : Component
     [DataField]
     public bool Recharging = false;
 
-    // Note: Shield and Shielded are intentionally NOT DataFields - they reference entities
-    // that won't exist after deserialization. The system will recreate shields on load.
-
     /// <summary>
     /// Damage threshold that triggers overload protection.
     /// </summary>
@@ -77,15 +75,9 @@ public sealed partial class ShipShieldEmitterComponent : Component
     [DataField]
     public Color ShieldColor = Color.White;
 
-    /// <summary>
-    /// Extra size (added to the shielded grid's bounds) of the oval shield this emitter projects.
-    /// Larger = a roomier bubble around the hull. Default 50 matches ShipShieldVisualsComponent.
-    /// Smaller tiers use a tighter value so the shield hugs the hull and is harder to hit.
-    /// </summary>
-    [DataField]
-    public float ShieldPadding = 50f;
-
+    [ViewVariables]
     public float OverloadAccumulator = 0f;
+
     /// <summary>
     /// On power up, players for all on vessel, pitched down.
     /// </summary>
@@ -94,4 +86,10 @@ public sealed partial class ShipShieldEmitterComponent : Component
 
     [DataField]
     public SoundSpecifier PowerDownSound = new SoundPathSpecifier("/Audio/Effects/teleport_departure.ogg");
+
+    /// <summary>
+    /// While shield is active, multiplies impact energy to both grids from grid collisions by this much.
+    /// </summary>
+    [DataField]
+    public float CollisionResistanceMultiplier = 1.0f;
 }

@@ -41,20 +41,6 @@
 
 - type: entity
   parent: BaseTradeItem
-  id: TradeGoodScrap
-  name: Scrap Crate
-  description: A sealed crate of scrap, cheap to make but horrid profits.
-  components:
-  - type: Sprite
-    sprite: _Crescent/Objects/TradeGoods/scrap.rsi
-    layers:
-    - state: icon
-  - type: TradeCrate
-    valueAtDestination: 750
-    valueElsewhere: 250
-
-- type: entity
-  parent: BaseTradeItem
   id: TradeGoodSugar
   name: Sugar Sack
   description: A sealed Sack of Sugar, Produced by local botanists.
@@ -66,20 +52,6 @@
   - type: TradeCrate
     valueAtDestination: 2500
     valueElsewhere: 250
-
-- type: entity
-  parent: BaseTradeItem
-  id: TradeGoodAmmo
-  name: Ammunition Crate
-  description: A sealed crate of ammunition, Dont worry for where its being sent.
-  components:
-  - type: Sprite
-    sprite: _Crescent/Objects/TradeGoods/ammo.rsi
-    layers:
-    - state: icon
-  - type: TradeCrate
-    valueAtDestination: 3500
-    valueElsewhere: 350
 
 - type: entity
   parent: BaseTradeItem

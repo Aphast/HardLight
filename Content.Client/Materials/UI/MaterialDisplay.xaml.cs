@@ -15,8 +15,8 @@ namespace Content.Client.Materials.UI;
 [GenerateTypedNameReferences]
 public sealed partial class MaterialDisplay : PanelContainer
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IEntityManager _entityManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
 
     private readonly MaterialStorageSystem _materialStorage;
 
@@ -71,7 +71,7 @@ public sealed partial class MaterialDisplay : PanelContainer
         if (!_canEject)
             return;
 
-        int[] sheetsToEjectArray = { 1, 5, 10, 50 }; // Frontier: add 30.  HL - Changed to 50
+        int[] sheetsToEjectArray = { 1, 5, 10, 30 }; // Frontier: add 30
 
         for (var i = 0; i < sheetsToEjectArray.Length; i++)
         {

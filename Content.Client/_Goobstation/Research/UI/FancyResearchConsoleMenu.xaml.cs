@@ -24,9 +24,9 @@ public sealed partial class FancyResearchConsoleMenu : FancyWindow
     public Action<string>? OnTechnologyCardPressed;
     public Action? OnServerButtonPressed;
 
-    [Dependency] private readonly IEntityManager _entity = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly IPlayerManager _player = default!;
+    [Dependency] private IEntityManager _entity = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
+    [Dependency] private IPlayerManager _player = default!;
 
     private readonly ResearchSystem _research;
     private readonly SpriteSystem _sprite;
@@ -84,17 +84,10 @@ public sealed partial class FancyResearchConsoleMenu : FancyWindow
     /// </summary>
     private const int CardSize = 64;
 
-    private const float DefaultZoom = 1f;
-    private const float MinZoom = 0.6f;
-    private const float MaxZoom = 2.25f;
-    private const float ZoomStep = 0.15f;
-
     /// <summary>
     /// Frontier: the distance between elements on the grid.
     /// </summary>
     private static readonly Vector2i DefaultPosition = Vector2i.Zero; //Frontier: 45,250 < 0,0
-
-    private float _zoom = DefaultZoom;
 
     private ParallaxControl _parallaxControl; // Frontier: Parallax control for the background
 
@@ -154,8 +147,8 @@ public sealed partial class FancyResearchConsoleMenu : FancyWindow
             var control = new FancyResearchConsoleItem(proto, _sprite, tech.Value);
             DragContainer.AddChild(control);
 
-            control.SetZoom(_zoom);
-            var uiPosition = GetTechUiPosition(proto);
+            // Set position for all tech, relating to _position
+            var uiPosition = _position + proto.Position * GridSize;
             LayoutContainer.SetPosition(control, uiPosition);
             control.SelectAction += SelectTech;
 
@@ -230,28 +223,6 @@ public sealed partial class FancyResearchConsoleMenu : FancyWindow
         }
     }
 
-    protected override void MouseWheel(GUIMouseWheelEventArgs args)
-    {
-        base.MouseWheel(args);
-
-        var researchTopLeft = new Vector2(ResearchesContainer.PixelPosition.X, ResearchesContainer.PixelPosition.Y);
-        var researchBounds = UIBox2.FromDimensions(researchTopLeft, new Vector2(ResearchesContainer.PixelWidth, ResearchesContainer.PixelHeight));
-        if (!researchBounds.Contains(args.RelativePosition))
-            return;
-
-        var newZoom = Math.Clamp(_zoom * (1f + args.Delta.Y * ZoomStep), MinZoom, MaxZoom);
-        if (Math.Abs(newZoom - _zoom) < 0.001f)
-            return;
-
-        var focus = args.RelativePosition - researchTopLeft;
-        var graphFocus = (focus - _position) / _zoom;
-
-        _zoom = newZoom;
-        _position = focus - graphFocus * _zoom;
-        UpdateTechView();
-        args.Handle();
-    }
-
     /// <summary>
     /// Raised when LMB is pressed at <see cref="DragContainer"/>
     /// </summary>
@@ -321,23 +292,5 @@ public sealed partial class FancyResearchConsoleMenu : FancyWindow
     private sealed partial class DisciplineButton(TechDisciplinePrototype proto) : Button
     {
         public TechDisciplinePrototype Proto = proto;
-    }
-
-    private Vector2 GetTechUiPosition(TechnologyPrototype proto)
-    {
-        var gridPosition = new Vector2(proto.Position.X, proto.Position.Y) * GridSize * _zoom;
-        return _position + gridPosition;
-    }
-
-    private void UpdateTechView()
-    {
-        foreach (var child in DragContainer.Children)
-        {
-            if (child is not FancyResearchConsoleItem tech)
-                continue;
-
-            tech.SetZoom(_zoom);
-            LayoutContainer.SetPosition(tech, GetTechUiPosition(tech.Prototype));
-        }
     }
 }

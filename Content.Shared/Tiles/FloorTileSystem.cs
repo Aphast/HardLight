@@ -17,29 +17,34 @@ using Robust.Shared.Network;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Systems;
-using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
 
 namespace Content.Shared.Tiles;
 
-public sealed class FloorTileSystem : EntitySystem
+public sealed partial class FloorTileSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly INetManager _netManager = default!;
-    [Dependency] private readonly ITileDefinitionManager _tileDefinitionManager = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly SharedStackSystem _stackSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly TileSystem _tile = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private INetManager _netManager = default!;
+    [Dependency] private ITileDefinitionManager _tileDefinitionManager = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedStackSystem _stackSystem = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private TileSystem _tile = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] private TurfSystem _turf = default!;
 
     private static readonly Vector2 CheckRange = new(1f, 1f);
+
+    /// <summary>
+    ///     A recycled hashset used to check for walls when trying to place tiles on turfs.
+    /// </summary>
+    private readonly HashSet<EntityUid> _turfCheck = [];
 
     public override void Initialize()
     {
@@ -73,30 +78,24 @@ public sealed class FloorTileSystem : EntitySystem
         // FTLing close is okay but this makes alignment too finnicky.
         // While you may already have a tile close you want to replace when we get half-tiles that may also be finnicky
         // so we're just gon with this for now.
-        // HardLight: only enforce the proximity check when creating a new grid in space. Placing or
-        // replacing tiles on an existing grid must not be blocked by a neighbouring grid (e.g. a dock
-        // or an adjacent ship), see HardLight issue #1477.
-        if (!HasComp<MapGridComponent>(location.EntityId))
-        {
-            const bool inRange = true;
-            var state = (inRange, location.EntityId);
-            _mapManager.FindGridsIntersecting(map.MapId, new Box2(map.Position - CheckRange, map.Position + CheckRange), ref state,
-                static (EntityUid entityUid, MapGridComponent grid, ref (bool weh, EntityUid EntityId) tuple) =>
-                {
-                    if (tuple.EntityId == entityUid)
-                        return true;
-
-                    tuple.weh = false;
-                    return false;
-                });
-
-            if (!state.inRange)
+        const bool inRange = true;
+        var state = (inRange, location.EntityId);
+        _mapManager.FindGridsIntersecting(map.MapId, new Box2(map.Position - CheckRange, map.Position + CheckRange), ref state,
+            static (EntityUid entityUid, MapGridComponent grid, ref (bool weh, EntityUid EntityId) tuple) =>
             {
-                if (_netManager.IsClient && _timing.IsFirstTimePredicted)
-                    _popup.PopupEntity(Loc.GetString("invalid-floor-placement"), args.User);
+                if (tuple.EntityId == entityUid)
+                    return true;
 
-                return;
-            }
+                tuple.weh = false;
+                return false;
+            });
+
+        if (!state.inRange)
+        {
+            if (_netManager.IsClient && _timing.IsFirstTimePredicted)
+                _popup.PopupEntity(Loc.GetString("invalid-floor-placement"), args.User);
+
+            return;
         }
 
         var userPos = _transform.ToMapCoordinates(transformQuery.GetComponent(args.User).Coordinates).Position;
@@ -111,14 +110,16 @@ public sealed class FloorTileSystem : EntitySystem
 
         // if user can access tile center then they can place floor
         // otherwise check it isn't blocked by a wall
-        if (!canAccessCenter)
+        if (!canAccessCenter && _turf.TryGetTileRef(location, out var tileRef))
         {
-            foreach (var ent in location.GetEntitiesInTile(lookupSystem: _lookup))
+            _turfCheck.Clear();
+            _lookup.GetEntitiesInTile(tileRef.Value, _turfCheck);
+            foreach (var ent in _turfCheck)
             {
                 if (physicQuery.TryGetComponent(ent, out var phys) &&
                     phys.BodyType == BodyType.Static &&
                     phys.Hard &&
-                    (phys.CollisionLayer & (int) CollisionGroup.Impassable) != 0)
+                    (phys.CollisionLayer & (int)CollisionGroup.Impassable) != 0)
                 {
                     return;
                 }
@@ -134,17 +135,16 @@ public sealed class FloorTileSystem : EntitySystem
             {
                 var gridUid = location.EntityId;
 
-                var tile = _map.GetTileRef(gridUid, mapGrid, location);
-
-                if (!CanPlaceTile(gridUid, mapGrid, tile.GridIndices, out var reason))
+                if (!CanPlaceTile(gridUid, mapGrid, currentTileDefinition, out var reason))
                 {
                     _popup.PopupClient(reason, args.User, args.User);
                     return;
                 }
 
+                var tile = _map.GetTileRef(gridUid, mapGrid, location);
                 var baseTurf = (ContentTileDefinition) _tileDefinitionManager[tile.Tile.TypeId];
 
-                if (CanPlaceOn(currentTileDefinition, baseTurf.ID))
+                if (HasBaseTurf(currentTileDefinition, baseTurf.ID))
                 {
                     if (!_stackSystem.Use(uid, 1, stack))
                         continue;
@@ -154,7 +154,7 @@ public sealed class FloorTileSystem : EntitySystem
                     return;
                 }
             }
-            else if (HasBaseTurf(currentTileDefinition, new ProtoId<ContentTileDefinition>(ContentTileDefinition.SpaceID)))
+            else if (HasBaseTurf(currentTileDefinition, ContentTileDefinition.SpaceID))
             {
                 if (!_stackSystem.Use(uid, 1, stack))
                     continue;
@@ -173,22 +173,9 @@ public sealed class FloorTileSystem : EntitySystem
         }
     }
 
-    public bool HasBaseTurf(ContentTileDefinition tileDef, ProtoId<ContentTileDefinition> baseTurf)
+    public bool HasBaseTurf(ContentTileDefinition tileDef, string baseTurf)
     {
         return tileDef.BaseTurf == baseTurf;
-    }
-
-    private bool CanPlaceOn(ContentTileDefinition tileDef, ProtoId<ContentTileDefinition> currentTurfId)
-    {
-        //Check exact BaseTurf match
-        if (tileDef.BaseTurf == currentTurfId)
-            return true;
-
-        // Check whitelist match
-        if (tileDef.BaseWhitelist.Count > 0 && tileDef.BaseWhitelist.Contains(currentTurfId))
-            return true;
-
-        return false;
     }
 
     private void PlaceAt(EntityUid user, EntityUid gridUid, MapGridComponent mapGrid, EntityCoordinates location,
@@ -196,22 +183,19 @@ public sealed class FloorTileSystem : EntitySystem
     {
         _adminLogger.Add(LogType.Tile, LogImpact.Low, $"{ToPrettyString(user):actor} placed tile {_tileDefinitionManager[tileId].Name} at {ToPrettyString(gridUid)} {location}");
 
-        var tileDef = (ContentTileDefinition) _tileDefinitionManager[tileId];
-        var random = new System.Random((int)_timing.CurTick.Value);
-        var variant = _tile.PickVariant(tileDef, random);
-
-        var tileRef = _map.GetTileRef(gridUid, mapGrid, location.Offset(new Vector2(offset, offset)));
-        _tile.ReplaceTile(tileRef, tileDef, gridUid, mapGrid, variant: variant);
+        var random = new System.Random((int) _timing.CurTick.Value);
+        var variant = _tile.PickVariant((ContentTileDefinition) _tileDefinitionManager[tileId], random);
+        _map.SetTile(gridUid, mapGrid,location.Offset(new Vector2(offset, offset)), new Tile(tileId, 0, variant));
 
         _audio.PlayPredicted(placeSound, location, user);
     }
 
-    public bool CanPlaceTile(EntityUid gridUid, MapGridComponent component, Vector2i gridIndices, [NotNullWhen(false)] out string? reason)
+    public bool CanPlaceTile(EntityUid gridUid, MapGridComponent component, ContentTileDefinition? currentTileDefinition, [NotNullWhen(false)] out string? reason)
     {
-        var ev = new FloorTileAttemptEvent(gridIndices);
+        var ev = new FloorTileAttemptEvent();
         RaiseLocalEvent(gridUid, ref ev);
 
-        if (ev.Cancelled)
+        if ((TryComp<ProtectedGridComponent>(gridUid, out var prot) && prot.PreventFloorPlacement || ev.Cancelled) && currentTileDefinition?.ID == "Lattice") // Frontier: HasComp<TryComp, add PreventFloorPlaceement check
         {
             reason = Loc.GetString("invalid-floor-placement");
             return false;

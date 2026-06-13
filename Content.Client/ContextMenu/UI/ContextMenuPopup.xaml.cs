@@ -76,13 +76,5 @@ namespace Content.Client.ContextMenu.UI
             ParentElement = null;
             base.Dispose(disposing);
         }
-
-        /// <summary>
-        ///     Reset the scroll position to the top.
-        /// </summary>
-        public void ResetScroll()
-        {
-            Scroll.VScroll = 0;
-        }
     }
 }

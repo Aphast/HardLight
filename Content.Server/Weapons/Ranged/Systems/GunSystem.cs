@@ -1,64 +1,13 @@
-// SPDX-FileCopyrightText: 2022 Flipp Syder
-// SPDX-FileCopyrightText: 2022 Nemanja
-// SPDX-FileCopyrightText: 2022 Paul Ritter
-// SPDX-FileCopyrightText: 2022 Rane
-// SPDX-FileCopyrightText: 2022 Visne
-// SPDX-FileCopyrightText: 2022 metalgearsloth
-// SPDX-FileCopyrightText: 2022 themias
-// SPDX-FileCopyrightText: 2023 AJCM-git
-// SPDX-FileCopyrightText: 2023 Arendian
-// SPDX-FileCopyrightText: 2023 Chief-Engineer
-// SPDX-FileCopyrightText: 2023 Ilya Chvilyov
-// SPDX-FileCopyrightText: 2023 Kara
-// SPDX-FileCopyrightText: 2023 MendaxxDev
-// SPDX-FileCopyrightText: 2023 Slava0135
-// SPDX-FileCopyrightText: 2023 TaralGit
-// SPDX-FileCopyrightText: 2023 and_a
-// SPDX-FileCopyrightText: 2023 deltanedas
-// SPDX-FileCopyrightText: 2023 deltanedas <@deltanedas:kde.org>
-// SPDX-FileCopyrightText: 2024 Aviu00
-// SPDX-FileCopyrightText: 2024 Bixkitts
-// SPDX-FileCopyrightText: 2024 Cojoke
-// SPDX-FileCopyrightText: 2024 DrSmugleaf
-// SPDX-FileCopyrightText: 2024 Dvir
-// SPDX-FileCopyrightText: 2024 Ed
-// SPDX-FileCopyrightText: 2024 Jake Huxell
-// SPDX-FileCopyrightText: 2024 Jessica M
-// SPDX-FileCopyrightText: 2024 LordCarve
-// SPDX-FileCopyrightText: 2024 RiceMar1244
-// SPDX-FileCopyrightText: 2024 Sigil
-// SPDX-FileCopyrightText: 2024 VividPups
-// SPDX-FileCopyrightText: 2024 Whatstone
-// SPDX-FileCopyrightText: 2024 beck-thompson
-// SPDX-FileCopyrightText: 2024 eoineoineoin
-// SPDX-FileCopyrightText: 2024 keronshb
-// SPDX-FileCopyrightText: 2024 nikthechampiongr
-// SPDX-FileCopyrightText: 2025 Ark
-// SPDX-FileCopyrightText: 2025 Leon Friedrich
-// SPDX-FileCopyrightText: 2025 Redrover1760
-// SPDX-FileCopyrightText: 2025 SlamBamActionman
-// SPDX-FileCopyrightText: 2025 ark1368
-// SPDX-FileCopyrightText: 2025 bitcrushing
-// SPDX-FileCopyrightText: 2025 tonotom
-// SPDX-FileCopyrightText: 2025 tonotom1
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 using System.Linq;
 using System.Numerics;
-using Content.Server._Mono.Projectiles.TargetGuided;
-using Content.Server._Mono.Projectiles.TargetSeeking;
+using Content.Server._Mono.FireControl;
 using Content.Server.Cargo.Systems;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Weapons.Ranged.Components;
-using Content.Shared._Mono;
-using Content.Shared._Crescent.ShipShields;
+using Content.Shared._Mono.Weapons.Ranged.Components;
 using Content.Shared._RMC14.Weapons.Ranged.Prediction;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Systems;
-using Content.Shared.Damage.Components;
-using Content.Shared.Database;
-using Content.Shared.Effects;
 using Content.Shared.Projectiles;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Weapons.Ranged;
@@ -67,12 +16,11 @@ using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Systems;
 using Content.Shared.Weapons.Hitscan.Components;
 using Content.Shared.Weapons.Hitscan.Events;
-using Content.Shared.Weapons.Reflect;
+using Content.Shared.Effects; // Mono
 using Robust.Server.GameObjects;
 using Robust.Server.Player;
 using Robust.Shared.Audio;
 using Robust.Shared.Map;
-using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
@@ -87,13 +35,17 @@ namespace Content.Server.Weapons.Ranged.Systems;
 
 public sealed partial class GunSystem : SharedGunSystem
 {
-    [Dependency] private readonly IComponentFactory _factory = default!;
-    [Dependency] private readonly DamageExamineSystem _damageExamine = default!;
-    [Dependency] private readonly PricingSystem _pricing = default!;
-    [Dependency] private readonly SharedColorFlashEffectSystem _color = default!;
-    [Dependency] private readonly SharedStaminaSystem _stamina = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
+    [Dependency] private DamageExamineSystem _damageExamine = default!;
+    [Dependency] private PricingSystem _pricing = default!;
+    [Dependency] private SharedColorFlashEffectSystem _color = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private StaminaSystem _stamina = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] private RequireProjectileTargetSystem _requireProjectileTarget = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    private EntityQuery<AutoShootGunComponent> _autoShootGunQuery; // Mono
+    private EntityQuery<DamageableComponent> _damageableQuery; // Mono
 
     private const float DamagePitchVariation = 0.05f;
 
@@ -107,11 +59,14 @@ public sealed partial class GunSystem : SharedGunSystem
         SubscribeLocalEvent<AutoShootGunComponent, ExaminedEvent>(OnGunExamine); // Frontier
         SubscribeLocalEvent<AutoShootGunComponent, PowerChangedEvent>(OnPowerChange); // Frontier
         SubscribeLocalEvent<AutoShootGunComponent, AnchorStateChangedEvent>(OnAnchorChange); // Frontier
+
+        _autoShootGunQuery = GetEntityQuery<AutoShootGunComponent>(); // Mono
+        _damageableQuery = GetEntityQuery<DamageableComponent>(); // Mono
     }
 
     private void OnBallisticPrice(EntityUid uid, BallisticAmmoProviderComponent component, ref PriceCalculationEvent args)
     {
-        if (string.IsNullOrEmpty(component.Proto) || component.UnspawnedCount == 0)
+        if (string.IsNullOrEmpty(component.Proto) || component.UnspawnedCount == 0 || component.InfiniteUnspawned) // Mono
             return;
 
         if (!ProtoManager.TryIndex<EntityPrototype>(component.Proto, out var proto))
@@ -145,36 +100,34 @@ public sealed partial class GunSystem : SharedGunSystem
         var toMap = TransformSystem.ToMapCoordinates(toCoordinates).Position;
         var mapDirection = toMap - fromMap.Position;
         var mapAngle = mapDirection.ToAngle();
-        var angle = GetRecoilAngle(Timing.CurTime, gun, mapDirection.ToAngle());
 
         // If applicable, this ensures the projectile is parented to grid on spawn, instead of the map.
-        var fromEnt = MapManager.TryFindGridAt(fromMap, out var gridUid, out _)
-            ? TransformSystem.WithEntityId(fromCoordinates, gridUid)
-            : new EntityCoordinates(_map.GetMapOrInvalid(fromMap.MapId), fromMap.Position);
+        var fromEnt = MapManager.TryFindGridAt(fromMap, out var gridUid, out var grid)
+            ? _transform.WithEntityId(fromCoordinates, gridUid)
+            : _transform.ToCoordinates(fromMap);
 
-        // Update shot based on the recoil
-        toMap = fromMap.Position + angle.ToVec() * mapDirection.Length();
-        mapDirection = toMap - fromMap.Position;
-        mapAngle = mapDirection.ToAngle(); // HardLight
-        // HardLight: gun-relative muzzle velocity (includes the ship's rotational omega x r component).
-        // Using only the grid's linear velocity made a rotating ship's shells render from the grid centre.
-        var gunVelocity = Physics.GetMapLinearVelocity(gunUid) - Physics.GetMapLinearVelocity(fromEnt);
+        // get gun's fromEnt-relative velocity
+        var gunVelocity = Vector2.Zero;
+        gunVelocity = Physics.GetMapLinearVelocity(gunUid) - Physics.GetMapLinearVelocity(fromEnt);
 
         // I must be high because this was getting tripped even when true.
         // DebugTools.Assert(direction != Vector2.Zero);
         var shotProjectiles = new List<EntityUid>(ammo.Count);
 
+        var offset = -1f; // Mono
         foreach (var (ent, shootable) in ammo)
         {
-            // Frontier: set projectiles to map parent
-            if (ent != null)
-                TransformSystem.SetParent(ent.Value, fromEnt.EntityId);
-            // End Frontier: set projectiles to map parent
+            offset = offset == -1f ? 0f : offset + 1f / ammo.Count;
+            // Mono - move into foreach
+            var angle = GetRecoilAngle(Timing.CurTime, gun, mapDirection.ToAngle());
+            // Update shot based on the recoil
+            toMap = fromMap.Position + angle.ToVec() * mapDirection.Length();
+            mapDirection = toMap - fromMap.Position;
 
             // pneumatic cannon doesn't shoot bullets it just throws them, ignore ammo handling
             if (throwItems && ent != null)
             {
-                ShootOrThrow(ent.Value, mapDirection, gunVelocity, gun, gunUid, user);
+                ShootOrThrow(ent.Value, mapDirection, gunVelocity, gun, gunUid, user, offset);
                 continue;
             }
 
@@ -185,7 +138,7 @@ public sealed partial class GunSystem : SharedGunSystem
                     if (!cartridge.Spent)
                     {
                         var uid = Spawn(cartridge.Prototype, fromEnt);
-                        CreateAndFireProjectiles(uid, cartridge);
+                        CreateAndFireProjectiles(uid, cartridge, offset);
 
                         RaiseLocalEvent(ent!.Value, new AmmoShotEvent()
                         {
@@ -205,7 +158,7 @@ public sealed partial class GunSystem : SharedGunSystem
 
                     // Something like ballistic might want to leave it in the container still
                     if (!cartridge.DeleteOnSpawn && !Containers.IsEntityInContainer(ent!.Value))
-                        EjectCartridge(ent.Value, angle);
+                        EjectCartridge(ent.Value, angle, false); //Mono: false: prevents shotguns from overlapping ejection sound
 
                     Dirty(ent!.Value, cartridge);
                     break;
@@ -213,169 +166,32 @@ public sealed partial class GunSystem : SharedGunSystem
                 case AmmoComponent newAmmo:
                     if (ent == null)
                         break;
-                    CreateAndFireProjectiles(ent.Value, newAmmo);
+                    CreateAndFireProjectiles(ent.Value, newAmmo, offset);
 
                     break;
-                case HitscanPrototype hitscan:
 
-                    EntityUid? lastHit = null;
+                case HitscanAmmoComponent hitscanammo:
+                    if (ent == null)
+                        break;
 
-                    var from = fromMap;
-                    // can't use map coords above because funny FireEffects
-                    var fromEffect = fromCoordinates;
-                    var dir = mapDirection.Normalized();
-
-                    //in the situation when user == null, means that the cannon fires on its own (via signals). And we need the gun to not fire by itself in this case
-                    var lastUser = user ?? gunUid;
-
-                    // HardLight: ship shield interaction (own-shield bypass + enemy-shield scatter).
-                    var firingGrid = Transform(gunUid).GridUid;
-                    var isShipWeaponBeam = HasComp<Content.Server._Mono.SpaceArtillery.Components.SpaceArtilleryComponent>(gunUid);
-
-                    if (hitscan.Reflective != ReflectType.None)
+                    var hitscanEv = new HitscanTraceEvent
                     {
-                        var reflectAttempts = 0;
-                        var allowUnlimitedBounces = false;
-
-                        while (true)
-                        {
-                            if (reflectAttempts >= 20)
-                                break;
-
-                            if (reflectAttempts >= 3 && !allowUnlimitedBounces)
-                                break;
-
-                            var ray = new CollisionRay(from.Position, dir, hitscan.CollisionMask);
-                            // HardLight: also ignore the firing ship's own shield so a turret never hits its own bubble.
-                            var rayCastResults =
-                                Physics.IntersectRayWithPredicate(from.MapId, ray, hitscan.MaxLength,
-                                    ent => ent == lastUser
-                                        || (firingGrid != null
-                                            && TryComp<ShipShieldComponent>(ent, out var ownSc)
-                                            && ownSc.Shielded == firingGrid.Value),
-                                    false).ToList();
-                            if (!rayCastResults.Any())
-                                break;
-
-                            var result = rayCastResults[0];
-
-                            // Check if laser is shot from in a container
-                            if (!_container.IsEntityOrParentInContainer(lastUser))
-                            {
-                                // Checks if the laser should pass over unless targeted by its user
-                                foreach (var collide in rayCastResults)
-                                {
-                                    if (collide.HitEntity != gun.Target &&
-                                        CompOrNull<RequireProjectileTargetComponent>(collide.HitEntity)?.Active == true)
-                                    {
-                                        continue;
-                                    }
-
-                                    result = collide;
-                                    break;
-                                }
-                            }
-
-                            var hit = result.HitEntity;
-
-                                FireEffects(fromEffect, result.Distance, dir.Normalized().ToAngle(), hitscan, hit, user, gunUid);
-
-                            // HardLight: an enemy shield scatters a ship-weapon beam instead of
-                            // blocking it, and drains the shield emitter; the beam then continues from the crossing point.
-                            if (TryComp<ShipShieldComponent>(hit, out var crossedShield))
-                            {
-                                if (isShipWeaponBeam)
-                                {
-                                    if (crossedShield.Source is { } emitterSource)
-                                    {
-                                        var drain = (float)(hitscan.Damage?.GetTotal() ?? 0);
-                                        var drainEv = new Content.Server._Crescent.ShipShields.ShipShieldsSystem.ShieldHitscanDeflectedEvent(drain);
-                                        RaiseLocalEvent(emitterSource, ref drainEv);
-                                    }
-
-                                    var deviation = Angle.FromDegrees(Random.NextFloat(-80f, 80f));
-                                    dir = deviation.RotateVec(dir).Normalized();
-                                }
-
-                                // Continue from the crossing point, ignoring this shield so we don't re-hit it.
-                                from = new MapCoordinates(result.HitPos + dir * 0.1f, from.MapId);
-                                fromEffect = TransformSystem.ToCoordinates(from);
-                                lastUser = hit;
-                                reflectAttempts++;
-                                continue;
-                            }
-
-                            var ev = new HitScanReflectAttemptEvent(user, gunUid, hitscan.Reflective, dir, false);
-                            RaiseLocalEvent(hit, ref ev);
-
-                            if (!ev.Reflected)
-                            {
-                                lastHit = hit;
-                                break;
-                            }
-
-                            allowUnlimitedBounces = TryComp<BeamPrismComponent>(hit, out _);
-                            fromEffect = Transform(hit).Coordinates;
-                            from = TransformSystem.ToMapCoordinates(fromEffect);
-                            dir = ev.Direction;
-                            lastUser = hit;
-                            reflectAttempts++;
-                        }
-                    }
-
-                    if (lastHit != null)
-                    {
-                        var hitEntity = lastHit.Value;
-                        if (hitscan.StaminaDamage > 0f)
-                            _stamina.TakeStaminaDamage(hitEntity, hitscan.StaminaDamage, source: user);
-
-                        var dmg = hitscan.Damage;
-
-                        var hitName = ToPrettyString(hitEntity);
-                        if (dmg != null)
-                            dmg = Damageable.TryChangeDamage(hitEntity, dmg * Damageable.UniversalHitscanDamageModifier, origin: user);
-
-                        // check null again, as TryChangeDamage returns modified damage values
-                        if (dmg != null)
-                        {
-                            if (!Deleted(hitEntity))
-                            {
-                                if (dmg.AnyPositive())
-                                {
-                                    _color.RaiseEffect(Color.Red, new List<EntityUid>() { hitEntity }, Filter.Pvs(hitEntity, entityManager: EntityManager));
-                                }
-
-                                // TODO get fallback position for playing hit sound.
-                                PlayImpactSound(hitEntity, dmg, hitscan.Sound, hitscan.ForceSound);
-                            }
-
-                            if (user != null)
-                            {
-                                Logs.Add(LogType.HitScanHit,
-                                    $"{ToPrettyString(user.Value):user} hit {hitName:target} using hitscan and dealt {dmg.GetTotal():damage} damage");
-                            }
-                            else
-                            {
-                                Logs.Add(LogType.HitScanHit,
-                                    $"{hitName:target} hit by hitscan dealing {dmg.GetTotal():damage} damage");
-                            }
-
-                            // Mono: notify gatherable systems about hitscan damage dealt
-                            var hitscanDmgEv = new HitscanDamageDealtEvent { Target = hitEntity, DamageDealt = dmg };
-                            RaiseLocalEvent(gunUid, ref hitscanDmgEv);
-                        }
-                    }
-                    else
-                    {
-                        FireEffects(fromEffect, hitscan.MaxLength, dir.ToAngle(), hitscan, null, user, gunUid);
-                    }
-
-                    // Notify listeners about hitscan raycast result (e.g., to spawn effects/entities on hit)
-                    var firedEv = new HitscanRaycastFiredEvent(lastHit, user, gunUid);
-                    RaiseLocalEvent(gunUid, ref firedEv);
+                        FromCoordinates = fromCoordinates,
+                        ShotDirection = mapDirection.Normalized(),
+                        Gun = gunUid,
+                        Shooter = user,
+                        Target = gun.Target,
+                    };
+                    RaiseLocalEvent(ent.Value, ref hitscanEv);
 
                     Audio.PlayPredicted(gun.SoundGunshotModified, gunUid, user);
+                    // Mono start
+                    if (hitscanammo.CasingPrototype != null)
+                        Spawn(hitscanammo.CasingPrototype, fromEnt);
+                    Del(ent);
+                    // Mono end
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -384,10 +200,9 @@ public sealed partial class GunSystem : SharedGunSystem
         RaiseLocalEvent(gunUid, new AmmoShotEvent()
         {
             FiredProjectiles = shotProjectiles,
-            Shooter = user, //starlight
         });
 
-        void CreateAndFireProjectiles(EntityUid ammoEnt, AmmoComponent ammoComp)
+        void CreateAndFireProjectiles(EntityUid ammoEnt, AmmoComponent ammoComp, float offset = 0f)
         {
             if (TryComp<ProjectileSpreadComponent>(ammoEnt, out var ammoSpreadComp))
             {
@@ -397,19 +212,19 @@ public sealed partial class GunSystem : SharedGunSystem
                 var angles = LinearSpread(mapAngle - spreadEvent.Spread / 2,
                     mapAngle + spreadEvent.Spread / 2, ammoSpreadComp.Count);
 
-                ShootOrThrow(ammoEnt, angles[0].ToVec(), gunVelocity, gun, gunUid, user);
+                ShootOrThrow(ammoEnt, angles[0].ToVec(), gunVelocity, gun, gunUid, user, offset);
                 shotProjectiles.Add(ammoEnt);
 
                 for (var i = 1; i < ammoSpreadComp.Count; i++)
                 {
                     var newuid = Spawn(ammoSpreadComp.Proto, fromEnt);
-                    ShootOrThrow(newuid, angles[i].ToVec(), gunVelocity, gun, gunUid, user);
+                    ShootOrThrow(newuid, angles[i].ToVec(), gunVelocity, gun, gunUid, user, offset);
                     shotProjectiles.Add(newuid);
                 }
             }
             else
             {
-                ShootOrThrow(ammoEnt, mapDirection, gunVelocity, gun, gunUid, user);
+                ShootOrThrow(ammoEnt, mapDirection, gunVelocity, gun, gunUid, user, offset);
                 shotProjectiles.Add(ammoEnt);
             }
 
@@ -418,18 +233,13 @@ public sealed partial class GunSystem : SharedGunSystem
         }
     }
 
-    private void ShootOrThrow(EntityUid uid, Vector2 mapDirection, Vector2 gunVelocity, GunComponent gun, EntityUid gunUid, EntityUid? user)
+    private void ShootOrThrow(EntityUid uid, Vector2 mapDirection, Vector2 gunVelocity, GunComponent gun, EntityUid gunUid, EntityUid? user,
+                              float offset = 0f) // Mono - add offset
     {
-        if (HasComp<Content.Server._Mono.FireControl.FireControllableComponent>(gunUid))
-        {
-            // HardLight: ship-gun shells phase through their own ship for their whole flight (networked).
-            EnsureComp<Content.Shared._Mono.ProjectileGridPhaseComponent>(uid);
-        }
-
         if (gun.Target is { } target && !TerminatingOrDeleted(target))
         {
             var targeted = EnsureComp<TargetedProjectileComponent>(uid);
-            targeted.Target = GetNetEntity(target);
+            targeted.Target = target;
             Dirty(uid, targeted);
         }
 
@@ -442,10 +252,6 @@ public sealed partial class GunSystem : SharedGunSystem
             return;
         }
 
-        // VRS (Triad #3731): apply per-gun damage modifier
-        if (gun.DamageModifier != 1f)
-            projectileComp.Damage *= gun.DamageModifier;
-
         if (GunPrediction && user != null && TryComp<ActorComponent>(user, out var actor))
         {
             var predicted = EnsureComp<PredictedProjectileServerComponent>(uid);
@@ -454,18 +260,12 @@ public sealed partial class GunSystem : SharedGunSystem
             predicted.ClientEnt = user;
         }
 
-        ShootProjectile(uid, mapDirection, gunVelocity, gunUid, user, gun.ProjectileSpeedModified);
-
-        if (TryComp<TargetSeekingComponent>(uid, out var targetSeeking))
+        projectileComp.Damage *= gun.DamageModifier;
+        ShootProjectile(uid, mapDirection, gunVelocity, gunUid, user, gun.ProjectileSpeedModified, offset); // Mono - add offset
+        // Mono
+        if (HasComp<FireControllableComponent>(gunUid))
         {
-            targetSeeking.InheritedVelocity = gunVelocity;
-            targetSeeking.InheritedVelocityInitialized = true;
-        }
-
-        if (TryComp<TargetGuidedComponent>(uid, out var targetGuided))
-        {
-            targetGuided.InheritedVelocity = gunVelocity;
-            targetGuided.InheritedVelocityInitialized = true;
+            EnsureComp<ProjectileGridPhaseComponent>(uid);
         }
     }
 
@@ -548,99 +348,4 @@ public sealed partial class GunSystem : SharedGunSystem
             Audio.PlayPvs(weaponSound, otherEntity);
         }
     }
-
-    // TODO: Pseudo RNG so the client can predict these.
-    #region Hitscan effects
-
-    private void FireEffects(EntityCoordinates fromCoordinates, float distance, Angle angle, HitscanPrototype hitscan, EntityUid? hitEntity = null, EntityUid? user = null, EntityUid? gunUid = null)
-    {
-        // Raise custom event for radar tracking
-        // Keep both the firing gun and the user so radar logic can key off the weapon entity.
-        var shooter = user ?? GetShooterFromCoordinates(fromCoordinates);
-        var radarEv = new _Mono.Radar.HitscanRadarSystem.HitscanFireEffectEvent(fromCoordinates, distance, angle, hitscan, hitEntity, gunUid, shooter);
-        RaiseLocalEvent(radarEv);
-
-        // Lord
-        // Forgive me for the shitcode I am about to do
-        // Effects tempt me not
-        var sprites = new List<(NetCoordinates coordinates, Angle angle, SpriteSpecifier sprite, float scale)>();
-        var fromXform = Transform(fromCoordinates.EntityId);
-
-        // We'll get the effects relative to the grid / map of the firer
-        // Look you could probably optimise this a bit with redundant transforms at this point.
-
-        var gridUid = fromXform.GridUid;
-        if (gridUid != fromCoordinates.EntityId && TryComp(gridUid, out TransformComponent? gridXform))
-        {
-            var (_, gridRot, gridInvMatrix) = TransformSystem.GetWorldPositionRotationInvMatrix(gridXform);
-            var map = TransformSystem.ToMapCoordinates(fromCoordinates);
-            fromCoordinates = new EntityCoordinates(gridUid.Value, Vector2.Transform(map.Position, gridInvMatrix));
-            angle -= gridRot;
-        }
-        else
-        {
-            angle -= TransformSystem.GetWorldRotation(fromXform);
-        }
-
-        if (distance >= 1f)
-        {
-            if (hitscan.MuzzleFlash != null)
-            {
-                var coords = fromCoordinates.Offset(angle.ToVec().Normalized() / 2);
-                var netCoords = GetNetCoordinates(coords);
-
-                sprites.Add((netCoords, angle, hitscan.MuzzleFlash, 1f));
-            }
-
-            if (hitscan.TravelFlash != null)
-            {
-                var coords = fromCoordinates.Offset(angle.ToVec() * (distance + 0.5f) / 2);
-                var netCoords = GetNetCoordinates(coords);
-
-                sprites.Add((netCoords, angle, hitscan.TravelFlash, distance - 1.5f));
-            }
-        }
-
-        if (hitscan.ImpactFlash != null)
-        {
-            var coords = fromCoordinates.Offset(angle.ToVec() * distance);
-            var netCoords = GetNetCoordinates(coords);
-
-            sprites.Add((netCoords, angle.FlipPositive(), hitscan.ImpactFlash, 1f));
-        }
-
-        if (sprites.Count > 0)
-        {
-            RaiseNetworkEvent(new HitscanEvent
-            {
-                Sprites = sprites,
-            }, Filter.Pvs(fromCoordinates, entityMan: EntityManager));
-        }
-    }
-
-    // Helper method to find the shooter from coordinates, typically a gun or the coordinate's entity
-    private EntityUid? GetShooterFromCoordinates(EntityCoordinates coordinates)
-    {
-        var entity = coordinates.EntityId;
-
-        // Check if the entity is a gun
-        if (HasComp<GunComponent>(entity))
-            return entity;
-
-        // Try to find a parent that might be the shooter
-        if (TryComp<TransformComponent>(entity, out var transform) && transform.ParentUid != EntityUid.Invalid)
-        {
-            if (HasComp<GunComponent>(transform.ParentUid))
-                return transform.ParentUid;
-
-            // If parent has hands, it might be the shooter
-            if (HasComp<HandsComponent>(transform.ParentUid))
-                return transform.ParentUid;
-        }
-
-        // Default to the entity itself
-        return entity;
-    }
-
-    #endregion
 }

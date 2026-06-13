@@ -1,18 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Content.Server._HL.ColComm; // HardLight
 using Content.Server._NF.Station.Components;
 using Content.Server.GameTicking;
 using Content.Server.Station.Components;
-using Content.Server.StationRecords.Components;
-using Content.Shared._NF.Shipyard;
-using Content.Shared._NF.Shipyard.Prototypes;
 using Content.Shared.CCVar;
 using Content.Shared.FixedPoint;
 using Content.Shared.GameTicking;
 using Content.Shared.Preferences;
 using Content.Shared.Roles;
-using Content.Shared.Station.Components;
 using JetBrains.Annotations;
 using Robust.Server.Player;
 using Robust.Shared.Configuration;
@@ -20,6 +15,7 @@ using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
+using Robust.Shared.Utility;
 
 namespace Content.Server.Station.Systems;
 
@@ -29,17 +25,16 @@ namespace Content.Server.Station.Systems;
 [PublicAPI]
 public sealed partial class StationJobsSystem : EntitySystem
 {
-    public const string ShipFreelancerInterviewJobId = "MercenaryInterview";
-    private const string ShipContractorInterviewJobId = "ContractorInterview";
-    private const string ShipPilotInterviewJobId = "PilotInterview";
+    [Dependency] private IConfigurationManager _configurationManager = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private GameTicker _gameTicker = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
 
-    [Dependency] private readonly IConfigurationManager _configurationManager = default!;
-    [Dependency] private readonly ColcommJobSystem _colcommJobs = default!; // HardLight
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly GameTicker _gameTicker = default!;
-    [Dependency] private readonly StationSystem _station = default!;
+    /// <summary>
+    /// The maximum number of slots allowed for any job.
+    /// </summary>
+    private const int MaxJobSlots = 10;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -54,8 +49,14 @@ public sealed partial class StationJobsSystem : EntitySystem
 
     private void OnInit(Entity<StationJobsComponent> ent, ref ComponentInit args)
     {
-        NormalizeShipLateJoinJobs(ent.Owner, ent.Comp);
-        RefreshSetupJobMetadata(ent.Comp);
+        ent.Comp.MidRoundTotalJobs = ent.Comp.SetupAvailableJobs.Values
+            .Select(x => Math.Max(x[1], 0))
+            .Sum();
+
+        ent.Comp.OverflowJobs = ent.Comp.SetupAvailableJobs
+            .Where(x => x.Value[0] < 0)
+            .Select(x => x.Key)
+            .ToHashSet();
     }
 
     public override void Update(float _)
@@ -78,75 +79,13 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (!TryComp<StationJobsComponent>(msg.Station, out var stationJobs))
             return;
 
-        NormalizeShipLateJoinJobs(msg.Station, stationJobs);
-        RefreshSetupJobMetadata(stationJobs);
-
         stationJobs.JobList = stationJobs.SetupAvailableJobs.ToDictionary(
             x => x.Key,
             x=> (int?)(x.Value[1] < 0 ? null : x.Value[1]));
 
         stationJobs.TotalJobs = stationJobs.JobList.Values.Select(x => x ?? 0).Sum();
 
-        ApplyActiveRoleCountsToJobList(stationJobs);
-
         UpdateJobsAvailable();
-    }
-
-    private void RefreshSetupJobMetadata(StationJobsComponent stationJobs)
-    {
-        stationJobs.MidRoundTotalJobs = stationJobs.SetupAvailableJobs.Values
-            .Select(x => Math.Max(x[1], 0))
-            .Sum();
-
-        stationJobs.OverflowJobs = stationJobs.SetupAvailableJobs
-            .Where(x => x.Value[0] < 0)
-            .Select(x => x.Key)
-            .ToHashSet();
-    }
-
-    private void NormalizeShipLateJoinJobs(EntityUid station, StationJobsComponent stationJobs)
-    {
-        if (!IsShipCrewHiringStation(station))
-            return;
-
-        NormalizeShipLateJoinJob(stationJobs, "Mercenary", ShipFreelancerInterviewJobId);
-        NormalizeShipLateJoinJob(stationJobs, "Pilot", ShipPilotInterviewJobId);
-        NormalizeShipLateJoinJob(stationJobs, "Contractor", ShipContractorInterviewJobId);
-    }
-
-    private static void NormalizeShipLateJoinJob(StationJobsComponent stationJobs, string legacyJobId, string interviewJobId)
-    {
-        if (!stationJobs.SetupAvailableJobs.Remove(legacyJobId, out var legacySlots))
-            return;
-
-        if (stationJobs.SetupAvailableJobs.TryGetValue(interviewJobId, out var interviewSlots))
-        {
-            stationJobs.SetupAvailableJobs[interviewJobId] =
-            [
-                Math.Max(interviewSlots[0], legacySlots[0]),
-                Math.Max(interviewSlots[1], legacySlots[1]),
-            ];
-            return;
-        }
-
-        stationJobs.SetupAvailableJobs[interviewJobId] =
-        [
-            legacySlots[0],
-            legacySlots[1],
-        ];
-    }
-
-    private static bool TryGetShipInterviewJobId(string jobPrototypeId, [NotNullWhen(true)] out string? interviewJobId)
-    {
-        interviewJobId = jobPrototypeId switch
-        {
-            "Mercenary" => ShipFreelancerInterviewJobId,
-            "Pilot" => ShipPilotInterviewJobId,
-            "Contractor" => ShipContractorInterviewJobId,
-            _ => null,
-        };
-
-        return interviewJobId != null;
     }
 
     #region Public API
@@ -175,62 +114,12 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (!Resolve(station, ref stationJobs, false))
             return false;
 
-        if (!IsAdvertisedLateJoinJob(station, jobPrototypeId))
+        if (!TryAdjustJobSlot(station, jobPrototypeId, -1, false, false, stationJobs))
             return false;
 
-        if (!stationJobs.JobList.TryGetValue(jobPrototypeId, out var localSlots))
-            return false;
-
-        var globalJobPrototypeId = GetColcommJobId(jobPrototypeId);
-        Entity<ColcommJobRegistryComponent> colcomm = default;
-        int? globalSlots = null;
-        var hasGlobalSlots = false;
-
-        if (_colcommJobs.TryGetColcommRegistry(out colcomm))
-            hasGlobalSlots = _colcommJobs.TryGetJobSlot(colcomm, globalJobPrototypeId, out globalSlots);
-
-        if (IsPlayerJobTracked(station, netUserId, jobPrototypeId, stationJobs))
-        {
-            if (hasGlobalSlots)
-                _colcommJobs.TryTrackPlayerJob(colcomm, netUserId, globalJobPrototypeId);
-
-            return true;
-        }
-
-        if (hasGlobalSlots && _colcommJobs.IsPlayerJobTracked(colcomm, netUserId, globalJobPrototypeId))
-        {
-            TryTrackPlayerJob(station, netUserId, jobPrototypeId, stationJobs);
-            return true;
-        }
-
-        if (localSlots == 0)
-            return false;
-
-        if (hasGlobalSlots && globalSlots == 0)
-            return false;
-
-        if (hasGlobalSlots)
-        {
-            if (!_colcommJobs.TryAdjustJobSlot(colcomm, globalJobPrototypeId, -1, clamp: true))
-                return false;
-
-            _colcommJobs.TryTrackPlayerJob(colcomm, netUserId, globalJobPrototypeId);
-        }
-
-        if (!TryAdjustJobSlot(station, jobPrototypeId, -1, false, true, stationJobs))
-        {
-            if (hasGlobalSlots)
-            {
-                _colcommJobs.TryAdjustJobSlot(colcomm, globalJobPrototypeId, 1, clamp: true);
-                _colcommJobs.TryUntrackPlayerJob(colcomm, netUserId, globalJobPrototypeId);
-            }
-
-            return false;
-        }
-
-        TryTrackPlayerJob(station, netUserId, jobPrototypeId, stationJobs);
+        stationJobs.PlayerJobs.TryAdd(netUserId, new());
+        stationJobs.PlayerJobs[netUserId].Add(jobPrototypeId);
         return true;
-
     }
 
     /// <inheritdoc cref="TryAdjustJobSlot(Robust.Shared.GameObjects.EntityUid,string,int,bool,bool,Content.Server.Station.Components.StationJobsComponent?)"/>
@@ -287,8 +176,10 @@ public sealed partial class StationJobsSystem : EntitySystem
             case false:
                 if (!createSlot)
                     return false;
-                stationJobs.TotalJobs += amount;
-                jobList[jobPrototypeId] = amount;
+                // Limit to MaxJobSlots
+                var newAmount = Math.Min(amount, MaxJobSlots);
+                stationJobs.TotalJobs += newAmount;
+                jobList[jobPrototypeId] = newAmount;
                 UpdateJobsAvailable();
                 return true;
             case true:
@@ -300,7 +191,8 @@ public sealed partial class StationJobsSystem : EntitySystem
                 if (available + amount < 0 && !clamp)
                     return false;
 
-                jobList[jobPrototypeId] = Math.Max(avail + amount, 0);
+                // Clamp to both minimum 0 and maximum MaxJobSlots
+                jobList[jobPrototypeId] = Math.Min(Math.Max(avail + amount, 0), MaxJobSlots);
                 stationJobs.TotalJobs = jobList.Values.Select(x => x ?? 0).Sum();
                 UpdateJobsAvailable();
                 return true;
@@ -363,6 +255,9 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (amount < 0)
             throw new ArgumentException("Tried to set a job to have a negative number of slots!", nameof(amount));
 
+        // Enforce the MaxJobSlots limit
+        var clampedAmount = Math.Min(amount, MaxJobSlots);
+
         var jobList = stationJobs.JobList;
 
         switch (jobList.ContainsKey(jobPrototypeId))
@@ -370,292 +265,17 @@ public sealed partial class StationJobsSystem : EntitySystem
             case false:
                 if (!createSlot)
                     return false;
-                stationJobs.TotalJobs += amount;
-                jobList[jobPrototypeId] = amount;
+                stationJobs.TotalJobs += clampedAmount;
+                jobList[jobPrototypeId] = clampedAmount;
                 UpdateJobsAvailable();
                 return true;
             case true:
-                stationJobs.TotalJobs += amount - (jobList[jobPrototypeId] ?? 0);
+                stationJobs.TotalJobs += clampedAmount - (jobList[jobPrototypeId] ?? 0);
 
-                jobList[jobPrototypeId] = amount;
+                jobList[jobPrototypeId] = clampedAmount;
                 UpdateJobsAvailable();
                 return true;
         }
-    }
-
-    /// <summary>
-    /// HardLight: Returns true when the given job is present in the station's configured job list
-    /// (<see cref="StationJobsComponent.SetupAvailableJobs"/>).  Use this from systems that only
-    /// have Read access to <see cref="StationJobsComponent"/> to avoid RA0002 violations.
-    /// </summary>
-    public bool IsConfiguredJob(EntityUid station,
-        ProtoId<JobPrototype> jobPrototypeId,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false))
-            return false;
-
-        return stationJobs.SetupAvailableJobs.ContainsKey(jobPrototypeId);
-    }
-
-    /// <summary>
-    /// HardLight: Returns true if this station already tracks the given player's assignment for the job.
-    /// </summary>
-    public bool IsPlayerJobTracked(EntityUid station,
-        NetUserId userId,
-        ProtoId<JobPrototype> jobPrototypeId,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false))
-            return false;
-
-        return stationJobs.PlayerJobs.TryGetValue(userId, out var jobs) && jobs.Contains(jobPrototypeId);
-    }
-
-    public bool IsAdvertisedLateJoinJob(EntityUid station, ProtoId<JobPrototype> jobPrototypeId)
-    {
-        return IsAdvertisedLateJoinJob(station, jobPrototypeId.ToString());
-    }
-
-    public bool IsAdvertisedLateJoinJob(EntityUid station, string jobPrototypeId)
-    {
-        if (!HasComp<ExtraShuttleInformationComponent>(station))
-            return true;
-
-        if (!IsShipCrewHiringStation(station))
-            return false;
-
-        return jobPrototypeId == ShipFreelancerInterviewJobId;
-    }
-
-    /// <summary>
-    /// Returns true when the station represents a player-manageable ship that should expose freelancer crew hiring.
-    /// Cargo-class and custom/non-player vessels are excluded.
-    /// </summary>
-    public bool IsShipCrewHiringStation(EntityUid station, ExtraShuttleInformationComponent? shuttleInfo = null)
-    {
-        if (!Resolve(station, ref shuttleInfo, false)
-            || shuttleInfo.Vessel is not { } vesselId
-            || !_prototype.TryIndex(vesselId, out VesselPrototype? vessel))
-        {
-            return false;
-        }
-
-        return vessel.Group != ShipyardConsoleUiKey.Custom
-            && !vessel.Classes.Contains(VesselClass.Cargo);
-    }
-
-    public ProtoId<JobPrototype> GetColcommJobId(ProtoId<JobPrototype> jobPrototypeId)
-    {
-        return GetColcommJobId(jobPrototypeId.ToString());
-    }
-
-    public ProtoId<JobPrototype> GetColcommJobId(string jobPrototypeId)
-    {
-        return jobPrototypeId switch
-        {
-            ShipFreelancerInterviewJobId => "Mercenary",
-            ShipPilotInterviewJobId => "Pilot",
-            ShipContractorInterviewJobId => "Contractor",
-            _ => jobPrototypeId,
-        };
-    }
-
-    public ProtoId<JobPrototype> GetStationTrackingJobId(EntityUid station, ProtoId<JobPrototype> jobPrototypeId, StationJobsComponent? stationJobs = null)
-    {
-        return GetStationTrackingJobId(station, jobPrototypeId.ToString(), stationJobs);
-    }
-
-    public ProtoId<JobPrototype> GetStationTrackingJobId(EntityUid station, string jobPrototypeId, StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false)
-            || !IsShipCrewHiringStation(station)
-            || !TryGetShipInterviewJobId(jobPrototypeId, out var interviewJobId))
-        {
-            return jobPrototypeId;
-        }
-
-        return stationJobs.JobList.ContainsKey(interviewJobId)
-            || stationJobs.SetupAvailableJobs.ContainsKey(interviewJobId)
-            ? interviewJobId
-            : jobPrototypeId;
-    }
-
-    /// <summary>
-    /// HardLight: Ensures this station tracks the given player's assignment for the job.
-    /// </summary>
-    public bool TryTrackPlayerJob(EntityUid station,
-        NetUserId userId,
-        ProtoId<JobPrototype> jobPrototypeId,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false))
-            return false;
-
-        stationJobs.PlayerJobs.TryAdd(userId, new());
-        if (!stationJobs.PlayerJobs[userId].Contains(jobPrototypeId))
-            stationJobs.PlayerJobs[userId].Add(jobPrototypeId);
-
-        return true;
-    }
-
-    /// <summary>
-    /// HardLight: Removes this player's assignment tracking for the given job on the station.
-    /// </summary>
-    public bool TryUntrackPlayerJob(EntityUid station,
-        NetUserId userId,
-        ProtoId<JobPrototype> jobPrototypeId,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false))
-            return false;
-
-        if (!stationJobs.PlayerJobs.TryGetValue(userId, out var jobs))
-            return false;
-
-        jobs.Remove(jobPrototypeId);
-        if (jobs.Count == 0)
-            stationJobs.PlayerJobs.Remove(userId);
-
-        return true;
-    }
-
-    /// <summary>
-    /// HardLight: Attempts to set the configured mid-round maximum slots for a job in <see cref="StationJobsComponent.SetupAvailableJobs"/>.
-    /// This controls logic that references setup max values (e.g. job reopening checks).
-    /// </summary>
-    /// <param name="station">Station to update.</param>
-    /// <param name="jobPrototypeId">Job prototype ID to update.</param>
-    /// <param name="amount">New configured mid-round maximum slots.</param>
-    /// <param name="createSlot">Whether to create setup entry when missing.</param>
-    /// <param name="stationJobs">Resolve pattern, station jobs component of the station.</param>
-    /// <returns>Whether the update succeeded.</returns>
-    /// <exception cref="ArgumentException">Thrown when the given station is not a station.</exception>
-    public bool TrySetJobMidRoundMax(EntityUid station,
-        string jobPrototypeId,
-        int amount,
-        bool createSlot = false,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs))
-            throw new ArgumentException("Tried to use a non-station entity as a station!", nameof(station));
-
-        if (amount < 0)
-            throw new ArgumentException("Tried to set a job to have a negative configured max slots!", nameof(amount));
-
-        if (stationJobs.SetupAvailableJobs.TryGetValue(jobPrototypeId, out var setupSlots))
-        {
-            if (setupSlots.Length < 2)
-                return false;
-
-            setupSlots[1] = amount;
-            RefreshSetupJobMetadata(stationJobs);
-            return true;
-        }
-
-        if (!createSlot)
-            return false;
-
-        stationJobs.SetupAvailableJobs[jobPrototypeId] = new[] { amount, amount };
-        RefreshSetupJobMetadata(stationJobs);
-        return true;
-    }
-
-    public bool TryGetJobMidRoundMax(EntityUid station,
-        string jobPrototypeId,
-        out int? amount,
-        StationJobsComponent? stationJobs = null)
-    {
-        amount = null;
-
-        if (!Resolve(station, ref stationJobs, false))
-            return false;
-
-        if (!stationJobs.SetupAvailableJobs.TryGetValue(jobPrototypeId, out var setupSlots)
-            || setupSlots.Length < 2)
-        {
-            return false;
-        }
-
-        amount = setupSlots[1] < 0 ? null : setupSlots[1];
-        return true;
-    }
-
-    public int GetTrackedJobOccupancy(EntityUid station,
-        ProtoId<JobPrototype> jobPrototypeId,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false))
-            return 0;
-
-        var total = 0;
-        foreach (var jobs in stationJobs.PlayerJobs.Values)
-        {
-            if (jobs.Contains(jobPrototypeId))
-                total++;
-        }
-
-        return total;
-    }
-
-    public bool TryAdjustJobCapacity(EntityUid station,
-        string jobPrototypeId,
-        int amount,
-        bool createSlot = false,
-        bool clamp = false,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs))
-            throw new ArgumentException("Tried to use a non-station entity as a station!", nameof(station));
-
-        if (amount == 0)
-            return true;
-
-        if (!TryGetJobMidRoundMax(station, jobPrototypeId, out var configuredMax, stationJobs))
-        {
-            if (!createSlot)
-                return false;
-
-            configuredMax = 0;
-        }
-
-        if (configuredMax == null)
-            return true;
-
-        if (configuredMax + amount < 0 && !clamp)
-            return false;
-
-        var targetMax = Math.Max(configuredMax.Value + amount, 0);
-        var occupied = GetTrackedJobOccupancy(station, jobPrototypeId, stationJobs);
-
-        if (!TrySetJobMidRoundMax(station, jobPrototypeId, targetMax, createSlot, stationJobs))
-            return false;
-
-        return TrySetJobSlot(station, jobPrototypeId, Math.Max(targetMax - occupied, 0), createSlot, stationJobs);
-    }
-
-    public bool TryReopenTrackedJobSlot(EntityUid station,
-        string jobPrototypeId,
-        StationJobsComponent? stationJobs = null)
-    {
-        if (!Resolve(station, ref stationJobs, false))
-            return false;
-
-        if (!stationJobs.JobList.TryGetValue(jobPrototypeId, out var currentSlots))
-            return false;
-
-        if (currentSlots == null)
-            return true;
-
-        if (TryGetJobMidRoundMax(station, jobPrototypeId, out var configuredMax, stationJobs)
-            && configuredMax != null)
-        {
-            var occupied = GetTrackedJobOccupancy(station, jobPrototypeId, stationJobs);
-            if (currentSlots.Value + occupied >= configuredMax.Value)
-                return false;
-        }
-
-        return TryAdjustJobSlot(station, jobPrototypeId, 1, stationJobs: stationJobs);
     }
 
     /// <inheritdoc cref="MakeJobUnlimited(Robust.Shared.GameObjects.EntityUid,string,Content.Server.Station.Components.StationJobsComponent?)"/>
@@ -710,7 +330,7 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (!Resolve(station, ref stationJobs))
             throw new ArgumentException("Tried to use a non-station entity as a station!", nameof(station));
 
-        return TryGetJobSlot(station, jobPrototypeId, out var job, stationJobs) && job == null;
+        return stationJobs.JobList.TryGetValue(jobPrototypeId, out var job) && job == null;
     }
 
     /// <inheritdoc cref="TryGetJobSlot(Robust.Shared.GameObjects.EntityUid,string,out System.Nullable{uint},Content.Server.Station.Components.StationJobsComponent?)"/>
@@ -738,28 +358,7 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (!Resolve(station, ref stationJobs))
             throw new ArgumentException("Tried to use a non-station entity as a station!", nameof(station));
 
-        if (!IsAdvertisedLateJoinJob(station, jobPrototypeId))
-        {
-            slots = null;
-            return false;
-        }
-
-        if (!stationJobs.JobList.TryGetValue(jobPrototypeId, out var localSlots))
-        {
-            slots = null;
-            return false;
-        }
-
-        var globalJobPrototypeId = GetColcommJobId(jobPrototypeId);
-        if (_colcommJobs.TryGetColcommRegistry(out var colcomm)
-            && _colcommJobs.TryGetJobSlot(colcomm, globalJobPrototypeId, out var globalSlots))
-        {
-            slots = GetEffectiveJobSlots(localSlots, globalSlots);
-            return true;
-        }
-
-        slots = localSlots;
-        return true;
+        return stationJobs.JobList.TryGetValue(jobPrototypeId, out slots);
     }
 
     /// <summary>
@@ -774,23 +373,9 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (!Resolve(station, ref stationJobs))
             throw new ArgumentException("Tried to use a non-station entity as a station!", nameof(station));
 
-        if (HasComp<ExtraShuttleInformationComponent>(station))
-        {
-            return stationJobs.JobList.Keys
-                .Where(job => TryGetJobSlot(station, job, out var slots, stationJobs) && slots != 0)
-                .ToArray();
-        }
-
-        if (_colcommJobs.TryGetColcommRegistry(out var colcomm))
-        {
-            return stationJobs.SetupAvailableJobs.Keys
-                .Where(job => _colcommJobs.TryGetJobSlot(colcomm, GetColcommJobId(job), out var slots) && slots != 0)
-                .ToArray();
-        }
-
-        return stationJobs.JobList.Keys
-            .Where(job => TryGetJobSlot(station, job, out var slots, stationJobs) && slots != 0)
-            .ToArray();
+        return stationJobs.JobList
+            .Where(x => x.Value != 0)
+            .Select(x => x.Key);
     }
 
     /// <summary>
@@ -820,47 +405,7 @@ public sealed partial class StationJobsSystem : EntitySystem
         if (!Resolve(station, ref stationJobs))
             throw new ArgumentException("Tried to use a non-station entity as a station!", nameof(station));
 
-        if (HasComp<ExtraShuttleInformationComponent>(station))
-        {
-            return stationJobs.JobList.Keys
-                .Select(job => (job, found: TryGetJobSlot(station, job, out var slots, stationJobs), slots))
-                .Where(entry => entry.found)
-                .ToDictionary(entry => entry.job, entry => entry.slots);
-        }
-
-        if (_colcommJobs.TryGetColcommRegistry(out var colcomm))
-        {
-            // Use the per-station TryGetJobSlot helper, which already returns
-            // MIN(localSlots, globalSlots). The previous implementation read colcomm-only
-            // counts, which could disagree with what TryAssignJob actually enforces:
-            // TryAssignJob requires both the per-station JobList count AND the colcomm
-            // count to be > 0. When the per-station JobList hit 0 (e.g. depleted by
-            // earlier joiners) but colcomm still showed > 0 (because colcomm is shared
-            // across stations and may still have headroom, or DynamicJobAllocationRule
-            // rebalanced the colcomm registry), the lobby would advertise the slot as
-            // open while the join was rejected. Aligning the lobby read with the same
-            // helper TryAssignJob effectively gates on closes that gap.
-            return stationJobs.SetupAvailableJobs.Keys
-                .Select(job => (job, found: TryGetJobSlot(station, job, out var slots, stationJobs), slots))
-                .Where(entry => entry.found)
-                .ToDictionary(entry => entry.job, entry => entry.slots);
-        }
-
-        return stationJobs.JobList.Keys
-            .Select(job => (job, found: TryGetJobSlot(station, job, out var slots, stationJobs), slots))
-            .Where(entry => entry.found)
-            .ToDictionary(entry => entry.job, entry => entry.slots);
-    }
-
-    private static int? GetEffectiveJobSlots(int? localSlots, int? globalSlots)
-    {
-        if (localSlots == null)
-            return globalSlots;
-
-        if (globalSlots == null)
-            return localSlots;
-
-        return Math.Min(localSlots.Value, globalSlots.Value);
+        return stationJobs.JobList;
     }
 
     /// <summary>
@@ -960,7 +505,6 @@ public sealed partial class StationJobsSystem : EntitySystem
             return new TickerJobsAvailableEvent(new()); // Frontier: changed param type
 
         var query = EntityQueryEnumerator<StationJobsComponent>();
-        var stationsWithCrewRecordsConsole = GetStationsWithCrewRecordsConsole();
 
         // Frontier: the dictionary inside a dictionary replaced with <NetEntity, StationJobInformation> which is much cleaner.
         var stationJobInformationList = new Dictionary<NetEntity, StationJobInformation>();
@@ -968,7 +512,7 @@ public sealed partial class StationJobsSystem : EntitySystem
         while (query.MoveNext(out var station, out var comp))
         {
             var stationNetEntity = GetNetEntity(station);
-            var list = GetJobs(station, comp).ToDictionary(x => x.Key, x => x.Value); // HardLight: Editted
+            var list = comp.JobList.ToDictionary(x => x.Key, x => x.Value);
 
             // Frontier: overwrite station/vessel information generation
             var isLateJoinStation = false;
@@ -976,10 +520,7 @@ public sealed partial class StationJobsSystem : EntitySystem
             StationDisplayInformation? stationDisplay = null;
             if (TryComp<ExtraShuttleInformationComponent>(station, out var extraVesselInfo))
             {
-                if (!stationsWithCrewRecordsConsole.Contains(station))
-                    continue;
-
-                if (!list.Any(x => x.Value != 0))
+                if (extraVesselInfo.HiddenWithoutOpenJobs && !list.Any(x => x.Value != 0))
                     continue;
 
                 vesselDisplay = new VesselDisplayInformation(
@@ -996,9 +537,8 @@ public sealed partial class StationJobsSystem : EntitySystem
                     stationDisplay = new StationDisplayInformation(
                         stationSubtext: extraStationInformation.StationSubtext,
                         stationDescription: extraStationInformation.StationDescription,
-                        stationIcon: extraStationInformation.IconPath,
-                        lobbySortOrder: extraStationInformation.LobbySortOrder,
-                        hiddenIfNoJobs: extraStationInformation.HiddenWithoutOpenJobs // <-- Add this line
+                        stationIcon: extraStationInformation.Icon,
+                        lobbySortOrder: extraStationInformation.LobbySortOrder
                     );
                 }
             }
@@ -1013,22 +553,6 @@ public sealed partial class StationJobsSystem : EntitySystem
             // End Frontier: overwrite station/vessel information generation
         }
         return new TickerJobsAvailableEvent(stationJobInformationList); // Frontier: changed param type
-    }
-
-    private HashSet<EntityUid> GetStationsWithCrewRecordsConsole()
-    {
-        var stations = new HashSet<EntityUid>();
-        var consoleQuery = AllEntityQuery<GeneralStationRecordConsoleComponent, TransformComponent>();
-
-        while (consoleQuery.MoveNext(out var uid, out _, out var xform))
-        {
-            if (_station.GetOwningStation(uid, xform) is { } stationUid)
-            {
-                stations.Add(stationUid);
-            }
-        }
-
-        return stations;
     }
 
     /// <summary>

@@ -1,7 +1,7 @@
+using Content.Shared._FarHorizons.Materials;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype.Array;
 using Robust.Shared.Utility;
-using Content.Shared._FarHorizons.Materials;
 
 namespace Content.Shared.Materials
 {
@@ -63,11 +63,6 @@ namespace Content.Shared.Materials
         /// The physical properties of this material.
         /// </summary>
         [DataField("properties")]
-        public MaterialProperties Properties { get; private set; } = new MaterialProperties
-      {
-        Hardness = 1,
-        Density = 1.0f,
-      };
-
+        public MaterialProperties Properties { get; private set; } = new();
     }
 }

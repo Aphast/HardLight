@@ -4,12 +4,15 @@ using Content.Server.DoAfter;
 using Content.Server.Resist;
 using Content.Server.Popups;
 using Content.Server.Inventory;
+using Content.Server.Nyanotrasen.Item.PseudoItem;
 using Content.Shared.Mobs;
 using Content.Shared.DoAfter;
 using Content.Shared.Buckle.Components;
+using Content.Shared.Hands.Components;
 using Content.Shared.Hands;
 using Content.Shared.Stunnable;
 using Content.Shared.Interaction.Events;
+using Content.Shared.Verbs;
 using Content.Shared.Climbing.Events;
 using Content.Shared.Carrying;
 using Content.Shared.Contests;
@@ -23,24 +26,30 @@ using Content.Shared.Throwing;
 using Content.Shared.Movement.Pulling.Components;
 using Content.Shared.Movement.Pulling.Events;
 using Content.Shared.Movement.Pulling.Systems;
+using Content.Shared.Mobs.Systems;
+using Content.Shared.Nyanotrasen.Item.PseudoItem;
+using Content.Shared.Storage;
+using Robust.Shared.Map.Components;
 using Robust.Shared.Physics.Components;
 using Robust.Server.GameObjects;
 
 namespace Content.Server.Carrying
 {
-    public sealed class CarryingSystem : SharedCarryingSystem // HL: Moved the base to SharedCarryingSystem so we can handle the Verb drawing on both to remove UI lag
+    public sealed partial class CarryingSystem : EntitySystem
     {
-        [Dependency] private readonly VirtualItemSystem _virtualItemSystem = default!;
-        [Dependency] private readonly CarryingSlowdownSystem _slowdown = default!;
-        [Dependency] private readonly DoAfterSystem _doAfterSystem = default!;
-        [Dependency] private readonly StandingStateSystem _standingState = default!;
-        [Dependency] private readonly ActionBlockerSystem _actionBlockerSystem = default!;
-        [Dependency] private readonly PullingSystem _pullingSystem = default!;
-        [Dependency] private readonly EscapeInventorySystem _escapeInventorySystem = default!;
-        [Dependency] private readonly PopupSystem _popupSystem = default!;
-        [Dependency] private readonly MovementSpeedModifierSystem _movementSpeed = default!;
-        [Dependency] private readonly ContestsSystem _contests = default!;
-        [Dependency] private readonly TransformSystem _transform = default!;
+        [Dependency] private VirtualItemSystem _virtualItemSystem = default!;
+        [Dependency] private CarryingSlowdownSystem _slowdown = default!;
+        [Dependency] private DoAfterSystem _doAfterSystem = default!;
+        [Dependency] private StandingStateSystem _standingState = default!;
+        [Dependency] private ActionBlockerSystem _actionBlockerSystem = default!;
+        [Dependency] private PullingSystem _pullingSystem = default!;
+        [Dependency] private MobStateSystem _mobStateSystem = default!;
+        [Dependency] private EscapeInventorySystem _escapeInventorySystem = default!;
+        [Dependency] private PopupSystem _popupSystem = default!;
+        [Dependency] private MovementSpeedModifierSystem _movementSpeed = default!;
+        [Dependency] private PseudoItemSystem _pseudoItem = default!;
+        [Dependency] private ContestsSystem _contests = default!;
+        [Dependency] private TransformSystem _transform = default!;
 
         public const float BaseDistanceCoeff = 0.5f; // Frontier: default throwing speed reduction
         public const float MaxDistanceCoeff = 1.0f; // Frontier: default throwing speed reduction
@@ -49,10 +58,11 @@ namespace Content.Server.Carrying
         public override void Initialize()
         {
             base.Initialize();
+            SubscribeLocalEvent<CarriableComponent, GetVerbsEvent<AlternativeVerb>>(AddCarryVerb);
+            SubscribeLocalEvent<CarryingComponent, GetVerbsEvent<InnateVerb>>(AddInsertCarriedVerb);
             SubscribeLocalEvent<CarryingComponent, VirtualItemDeletedEvent>(OnVirtualItemDeleted);
             SubscribeLocalEvent<CarryingComponent, BeforeThrowEvent>(OnThrow);
             SubscribeLocalEvent<CarryingComponent, EntParentChangedMessage>(OnParentChanged);
-            SubscribeLocalEvent<CarryingComponent, EntityTerminatingEvent>(OnCarrierTerminating);
             SubscribeLocalEvent<CarryingComponent, MobStateChangedEvent>(OnMobStateChanged);
             SubscribeLocalEvent<BeingCarriedComponent, InteractionAttemptEvent>(OnInteractionAttempt);
             SubscribeLocalEvent<BeingCarriedComponent, MoveInputEvent>(OnMoveInput);
@@ -65,8 +75,52 @@ namespace Content.Server.Carrying
             SubscribeLocalEvent<BeingCarriedComponent, UnbuckledEvent>(OnBuckleChange);
             SubscribeLocalEvent<BeingCarriedComponent, StrappedEvent>(OnBuckleChange);
             SubscribeLocalEvent<BeingCarriedComponent, UnstrappedEvent>(OnBuckleChange);
-            SubscribeLocalEvent<BeingCarriedComponent, EntityTerminatingEvent>(OnCarriedTerminating);
             SubscribeLocalEvent<CarriableComponent, CarryDoAfterEvent>(OnDoAfter);
+        }
+
+        private void AddCarryVerb(EntityUid uid, CarriableComponent component, GetVerbsEvent<AlternativeVerb> args)
+        {
+            if (!args.CanInteract || !args.CanAccess || !_mobStateSystem.IsAlive(args.User)
+                || !CanCarry(args.User, uid, component)
+                || HasComp<CarryingComponent>(args.User)
+                || HasComp<BeingCarriedComponent>(args.User) || HasComp<BeingCarriedComponent>(args.Target)
+                || args.User == args.Target)
+                return;
+
+            AlternativeVerb verb = new()
+            {
+                Act = () =>
+                {
+                    StartCarryDoAfter(args.User, uid, component);
+                },
+                Text = Loc.GetString("carry-verb"),
+                Priority = 2
+            };
+            args.Verbs.Add(verb);
+        }
+
+        private void AddInsertCarriedVerb(EntityUid uid, CarryingComponent component, GetVerbsEvent<InnateVerb> args)
+        {
+            // If the person is carrying someone, and the carried person is a pseudo-item, and the target entity is a storage,
+            // then add an action to insert the carried entity into the target
+            var toInsert = args.Using;
+            if (toInsert is not { Valid: true } || !args.CanAccess
+                || !TryComp<PseudoItemComponent>(toInsert, out var pseudoItem)
+                || !TryComp<StorageComponent>(args.Target, out var storageComp)
+                || !_pseudoItem.CheckItemFits((toInsert.Value, pseudoItem), (args.Target, storageComp)))
+                return;
+
+            InnateVerb verb = new()
+            {
+                Act = () =>
+                {
+                    DropCarried(uid, toInsert.Value);
+                    _pseudoItem.TryInsert(args.Target, toInsert.Value, pseudoItem, storageComp);
+                },
+                Text = Loc.GetString("action-name-insert-other", ("target", toInsert)),
+                Priority = 2
+            };
+            args.Verbs.Add(verb);
         }
 
         /// <summary>
@@ -76,12 +130,6 @@ namespace Content.Server.Carrying
         {
             if (!HasComp<CarriableComponent>(args.BlockingEntity))
                 return;
-
-            if (TerminatingOrDeleted(args.BlockingEntity))
-            {
-                CleanupCarryState(uid, args.BlockingEntity, false);
-                return;
-            }
 
             DropCarried(uid, args.BlockingEntity);
         }
@@ -120,16 +168,6 @@ namespace Content.Server.Carrying
         private void OnMobStateChanged(EntityUid uid, CarryingComponent component, MobStateChangedEvent args)
         {
             DropCarried(uid, component.Carried);
-        }
-
-        private void OnCarrierTerminating(EntityUid uid, CarryingComponent component, ref EntityTerminatingEvent args)
-        {
-            CleanupCarryState(uid, component.Carried, !TerminatingOrDeleted(component.Carried));
-        }
-
-        private void OnCarriedTerminating(EntityUid uid, BeingCarriedComponent component, ref EntityTerminatingEvent args)
-        {
-            CleanupCarryState(component.Carrier, uid, false);
         }
 
         /// <summary>
@@ -198,8 +236,6 @@ namespace Content.Server.Carrying
         private void OnDoAfter(EntityUid uid, CarriableComponent component, CarryDoAfterEvent args)
         {
             component.CancelToken = null;
-            component.HasCancelToken = false; // HL: We can't sync the CancelToken to the client, so have a marker to see if we've set one or not. This is used to check if we want to show the Verb action.
-            DirtyField(uid, component, nameof(CarriableComponent.HasCancelToken)); // HL: Make sure it's synced to the client too
             if (args.Handled || args.Cancelled
                 || !CanCarry(args.Args.User, uid, component))
                 return;
@@ -207,13 +243,8 @@ namespace Content.Server.Carrying
             Carry(args.Args.User, uid);
             args.Handled = true;
         }
-
-        protected override void StartCarryDoAfter(EntityUid carrier, EntityUid carried, CarriableComponent component)
+        private void StartCarryDoAfter(EntityUid carrier, EntityUid carried, CarriableComponent component)
         {
-            // Prevent duplicate attempts properly
-            if (HasComp<CarryingComponent>(carrier) || HasComp<BeingCarriedComponent>(carried))
-                return;
-
             if (!TryComp<PhysicsComponent>(carrier, out var carrierPhysics)
                 || !TryComp<PhysicsComponent>(carried, out var carriedPhysics)
                 || carriedPhysics.Mass > carrierPhysics.Mass * 2f)
@@ -235,14 +266,13 @@ namespace Content.Server.Carrying
             // End Frontier
 
             component.CancelToken = new CancellationTokenSource();
-            component.HasCancelToken = true; // HL: We can't sync the CancelToken to the client, so have a marker to see if we've set one or not. This is used to check if we want to show the Verb action.
-            DirtyField(carried, component, nameof(CarriableComponent.HasCancelToken)); // HL: Make sure it's synced to the client too
 
             var ev = new CarryDoAfterEvent();
             var args = new DoAfterArgs(EntityManager, carrier, duration, ev, carried, target: carried) // Frontier: length<duration
             {
                 BreakOnMove = true,
-                NeedHand = true
+                NeedHand = true,
+                MultiplyDelay = false, // Goobstation
             };
 
             _doAfterSystem.TryStartDoAfter(args);
@@ -290,33 +320,17 @@ namespace Content.Server.Carrying
             return true;
         }
 
-        public override void DropCarried(EntityUid carrier, EntityUid carried)
+        public void DropCarried(EntityUid carrier, EntityUid carried)
         {
-            CleanupCarryState(carrier, carried, true);
-        }
-
-        private void CleanupCarryState(EntityUid carrier, EntityUid carried, bool dropCarried)
-        {
-            if (!TerminatingOrDeleted(carrier))
-            {
-                RemComp<CarryingComponent>(carrier); // get rid of this first so we don't recursively fire that event
-                RemComp<CarryingSlowdownComponent>(carrier);
-                _virtualItemSystem.DeleteInHandsMatching(carrier, carried);
-                _movementSpeed.RefreshMovementSpeedModifiers(carrier);
-            }
-
-            if (TerminatingOrDeleted(carried))
-                return;
-
+            RemComp<CarryingComponent>(carrier); // get rid of this first so we don't recursively fire that event
+            RemComp<CarryingSlowdownComponent>(carrier);
             RemComp<BeingCarriedComponent>(carried);
             RemComp<KnockedDownComponent>(carried);
             _actionBlockerSystem.UpdateCanMove(carried);
-
-            if (!dropCarried)
-                return;
-
+            _virtualItemSystem.DeleteInHandsMatching(carrier, carried);
             _transform.AttachToGridOrMap(carried);
             _standingState.Stand(carried);
+            _movementSpeed.RefreshMovementSpeedModifiers(carrier);
         }
 
         private void ApplyCarrySlowdown(EntityUid carrier, EntityUid carried)
@@ -330,43 +344,44 @@ namespace Content.Server.Carrying
             _slowdown.SetModifier(carrier, modifier, modifier, slowdownComp);
         }
 
+        public bool CanCarry(EntityUid carrier, EntityUid carried, CarriableComponent? carriedComp = null)
+        {
+            if (!Resolve(carried, ref carriedComp, false)
+                || carriedComp.CancelToken != null
+                || !HasComp<MapGridComponent>(Transform(carrier).ParentUid)
+                || HasComp<BeingCarriedComponent>(carrier)
+                || HasComp<BeingCarriedComponent>(carried)
+                || !TryComp<HandsComponent>(carrier, out var hands)
+                || hands.CountFreeHands() < carriedComp.FreeHandsRequired)
+                return false;
+
+            return true;
+        }
+
         public override void Update(float frameTime)
         {
-            // Frontier: query for transform
-            var query = EntityQueryEnumerator<BeingCarriedComponent, TransformComponent>();
-            while (query.MoveNext(out var carried, out var comp, out var xform))
+            var query = EntityQueryEnumerator<BeingCarriedComponent>();
+            while (query.MoveNext(out var carried, out var comp))
             {
                 var carrier = comp.Carrier;
-                if (TerminatingOrDeleted(carried))
-                {
-                    CleanupCarryState(carrier, carried, false);
-                    continue;
-                }
-
-                if (TerminatingOrDeleted(carrier))
-                {
-                    CleanupCarryState(carrier, carried, true);
-                    continue;
-                }
-
                 if (carrier is not { Valid: true } || carried is not { Valid: true })
                     continue;
 
                 // SOMETIMES - when an entity is inserted into disposals, or a cryosleep chamber - it can get re-parented without a proper reparent event
                 // when this happens, it needs to be dropped because it leads to weird behavior
-                if (xform.ParentUid != carrier)
+                if (Transform(carried).ParentUid != carrier)
                 {
                     DropCarried(carrier, carried);
                     continue;
                 }
 
                 // Make sure the carried entity is always centered relative to the carrier, as gravity pulls can offset it otherwise
+                var xform = Transform(carried);
                 if (!xform.LocalPosition.Equals(Vector2.Zero))
                 {
-                    _transform.SetLocalPosition(carried, Vector2.Zero, xform); // Frontier: warning suppression
+                    xform.LocalPosition = Vector2.Zero;
                 }
             }
-            // End Frontier: query for transform
             query.Dispose();
         }
     }

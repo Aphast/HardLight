@@ -18,13 +18,6 @@ namespace Content.Shared.Chemistry
         public const uint LabelMaxLength = 50;
     }
 
-    // Starlight-start: Plumbing valve toggle
-    [Serializable, NetSerializable]
-    public sealed class ChemMasterToggleValveMessage : BoundUserInterfaceMessage
-    {
-    }
-    // Starlight-end
-
     [Serializable, NetSerializable]
     public sealed class ChemMasterSetModeMessage : BoundUserInterfaceMessage
     {
@@ -96,6 +89,12 @@ namespace Content.Shared.Chemistry
         }
     }
 
+    [Serializable, NetSerializable]
+    public sealed class ChemMasterOutputDrawSourceMessage(ChemMasterDrawSource drawSource) : BoundUserInterfaceMessage
+    {
+        public readonly ChemMasterDrawSource DrawSource = drawSource;
+    }
+
     public enum ChemMasterMode
     {
         Transfer,
@@ -119,13 +118,16 @@ namespace Content.Shared.Chemistry
         U1 = 1,
         U5 = 5,
         U10 = 10,
-        U15 = 15,
-        U20 = 20,
-        U30 = 30,
-        U40 = 40,
-        U60 = 60,
-        U120 = 120,
+        U25 = 25,
+        U50 = 50,
+        U100 = 100,
         All,
+    }
+
+    public enum ChemMasterDrawSource
+    {
+        Internal,
+        External,
     }
 
     public static class ChemMasterReagentAmountToFixedPoint
@@ -180,7 +182,6 @@ namespace Content.Shared.Chemistry
     {
         public readonly ContainerInfo? InputContainerInfo;
         public readonly ContainerInfo? OutputContainerInfo;
-        public readonly bool ValveOpen;
 
         /// <summary>
         /// A list of the reagents and their amounts within the buffer, if applicable.
@@ -198,10 +199,12 @@ namespace Content.Shared.Chemistry
 
         public readonly bool UpdateLabel;
 
+        public readonly ChemMasterDrawSource DrawSource;
+
         public ChemMasterBoundUserInterfaceState(
             ChemMasterMode mode, ChemMasterSortingType sortingType, ContainerInfo? inputContainerInfo, ContainerInfo? outputContainerInfo,
             IReadOnlyList<ReagentQuantity> bufferReagents, FixedPoint2 bufferCurrentVolume,
-            uint selectedPillType, uint pillDosageLimit, bool updateLabel, bool valveOpen)
+            uint selectedPillType, uint pillDosageLimit, bool updateLabel, ChemMasterDrawSource drawSource)
         {
             InputContainerInfo = inputContainerInfo;
             OutputContainerInfo = outputContainerInfo;
@@ -212,7 +215,7 @@ namespace Content.Shared.Chemistry
             SelectedPillType = selectedPillType;
             PillDosageLimit = pillDosageLimit;
             UpdateLabel = updateLabel;
-            ValveOpen = valveOpen;
+            DrawSource = drawSource;
         }
     }
 

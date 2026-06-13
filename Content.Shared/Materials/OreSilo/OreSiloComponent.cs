@@ -13,7 +13,7 @@ public sealed partial class OreSiloComponent : Component
     /// <summary>
     /// The <see cref="OreSiloClientComponent"/> that are connected to this silo.
     /// </summary>
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public HashSet<EntityUid> Clients = new();
 
     /// <summary>

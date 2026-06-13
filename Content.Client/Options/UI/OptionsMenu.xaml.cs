@@ -8,7 +8,7 @@ namespace Content.Client.Options.UI
     [GenerateTypedNameReferences]
     public sealed partial class OptionsMenu : DefaultWindow
     {
-        [Dependency] private readonly IClientAdminManager _adminManager = default!;
+        [Dependency] private IClientAdminManager _adminManager = default!;
 
         public OptionsMenu()
         {
@@ -21,6 +21,7 @@ namespace Content.Client.Options.UI
             Tabs.SetTabTitle(3, Loc.GetString("ui-options-tab-audio"));
             Tabs.SetTabTitle(4, Loc.GetString("ui-options-tab-accessibility"));
             Tabs.SetTabTitle(5, Loc.GetString("ui-options-tab-admin"));
+            Tabs.SetTabTitle(6, Loc.GetString("ui-options-tab-extra")); // Extra settings
 
             UpdateTabs();
         }

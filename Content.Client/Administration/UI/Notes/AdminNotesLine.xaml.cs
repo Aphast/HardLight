@@ -70,7 +70,7 @@ public sealed partial class AdminNotesLine : BoxContainer
 
         TimeLabel.Text = Note.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
         ServerLabel.Text = Note.ServerName ?? "Unknown";
-        RoundLabel.Text = Note.Rounds.Length == 0 ? "Unknown round" : "Round " + string.Join(',', Note.Rounds);
+        RoundLabel.Text = Note.Round == null ? "Unknown round" : "Round " + Note.Round;
         AdminLabel.Text = Note.CreatedByName;
         PlaytimeLabel.Text = $"{Note.PlaytimeAtNote.TotalHours: 0.0}h";
 
@@ -139,11 +139,7 @@ public sealed partial class AdminNotesLine : BoxContainer
 
     private string FormatRoleBanMessage()
     {
-        var rolesText = Note.BannedRoles is { Length: > 0 }
-            ? string.Join(", ", (IEnumerable<BanRoleDef>) Note.BannedRoles)
-            : "unknown";
-
-        var banMessage = new StringBuilder($"{Loc.GetString("admin-notes-banned-from")} {rolesText} ");
+        var banMessage = new StringBuilder($"{Loc.GetString("admin-notes-banned-from")} {string.Join(", ", Note.BannedRoles ?? new []{"unknown"})} ");
         return FormatBanMessageCommon(banMessage);
     }
 

@@ -1,5 +1,4 @@
 using System;
-using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
 namespace Content.Server.Power.Components
 {
@@ -32,8 +31,6 @@ namespace Content.Server.Power.Components
         /// <summary>
         /// Do not auto recharge if this timestamp has yet to happen, set for the auto recharge pause system.
         /// </summary>
-        // VRS: use TimeOffsetSerializer so saved-then-loaded ships keep correct recharge timing (ported from Triad PR #42).
-        [DataField(customTypeSerializer: typeof(TimeOffsetSerializer))]
-        public TimeSpan NextAutoRecharge = TimeSpan.FromSeconds(0f);
+        [DataField] public TimeSpan NextAutoRecharge = TimeSpan.FromSeconds(0f);
     }
 }

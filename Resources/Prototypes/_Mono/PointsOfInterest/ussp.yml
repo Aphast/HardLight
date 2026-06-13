@@ -1,12 +1,20 @@
-# VRS: Ported from Triad_Sector — Camelot USSP Station POI.
+# Author Info
+# GitHub: starch70
+# Discord: _starch_
 
+# Maintainer Info
+# GitHub: starch70 # By the way, why did that previous guy set the maint info to his own name?
+# Discord: _starch_ # By the way, why did that previous guy set the maint info to his own name?
+
+# Notes:
+#
 - type: pointOfInterest
   id: USSPCamelot
   parent: [BasePOI, BaseRepairablePOI]
   name: 'Camelot Station'
   minimumDistance: 10650
   maximumDistance: 12400
-  spawnGamePreset: [ NFAdventure, NFPirate ]
+  spawnGamePreset: [ NFAdventure, NFPirate, MonoStandard, MonoRogueUSSP, MonoTSFUSSP, MonoADS, MonoChimera, MonoMixed, MonoAllAtOnce ]
   spawnGroup: Required
   gridPath: /Maps/_Mono/POI/camelot.yml
   addComponents:
@@ -21,15 +29,32 @@
   stations:
     USSPCamelot:
       stationProto: RecordsFrontierOutpostCargo
+      gridComponents:
+        - type: VesselMusic
+          ambientMusicPrototype: CamelotMusic
+        - type: VesselInfo
+          description: "A rickety old station once owned by a now decrepit interstellar power. Cold and dark."
       components:
         - type: StationNameSetup
           mapNameTemplate: 'Camelot Station'
+        - type: ExtraStationInformation
+          icon:
+            sprite: _NF/Structures/Storage/Crates/secure_ammo.rsi
+            state: icon
+          stationSubtext: 'frontier-lobby-camelot-subtext'
+          stationDescription: 'frontier-lobby-camelot-description'
+          lobbySortOrder: 4
         - type: StationJobs
           availableJobs:
+            # USSPCommissar: [1, 1]
+            # USSPSergeant: [4, 4]
+            # USSPCorporal: [6, 6]
+            # USSPMedic: [4, 4]
+            # USSPRifleman: [-1, -1]
             Contractor: [-1, -1]
             Pilot: [0, -1]
             Mercenary: [0, -1]
           tags:
           - USSPCommand
         - type: StationDeadDrop
-          maxDeadDrops: 2
+          maxDeadDrops: 2 # Fewer here, players start here.

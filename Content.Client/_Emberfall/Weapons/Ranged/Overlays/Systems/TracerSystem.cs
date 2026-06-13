@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 using System.Numerics;
 using Content.Client._Emberfall.Weapons.Ranged.Overlays;
 using Content.Shared._Emberfall.Weapons.Ranged;
@@ -11,11 +7,11 @@ using Robust.Shared.Timing;
 
 namespace Content.Client._Emberfall.Weapons.Ranged.Systems;
 
-public sealed class TracerSystem : EntitySystem
+public sealed partial class TracerSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IOverlayManager _overlay = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IOverlayManager _overlay = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
     public override void Initialize()
     {
@@ -28,7 +24,7 @@ public sealed class TracerSystem : EntitySystem
     private void OnTracerStart(Entity<TracerComponent> ent, ref ComponentStartup args)
     {
         var xform = Transform(ent);
-        var pos = xform.Coordinates.Position; // HardLight: _transform.GetWorldPosition(xform)<xform.Coordinates.Position
+        var pos = _transform.GetWorldPosition(xform);
 
         ent.Comp.Data = new TracerData(
             new List<Vector2> { pos },
@@ -51,7 +47,7 @@ public sealed class TracerSystem : EntitySystem
                 continue;
             }
 
-            var currentPos = xform.Coordinates.Position; // HardLight: _transform.GetWorldPosition(xform)<xform.Coordinates.Position
+            var currentPos = _transform.GetWorldPosition(xform);
             tracer.Data.PositionHistory.Add(currentPos);
 
             while (tracer.Data.PositionHistory.Count > 2 &&
@@ -86,26 +82,11 @@ public sealed class TracerSystem : EntitySystem
             if (positions.Count < 2)
                 continue;
 
-            // HardLight start: Account for parent entity movement/rotation to keep tracer trajectory consistent when attached to moving grids.
-            // This is done by treating the first position as a local offset and applying the parent's transform to it.
-            var parentPos = Vector2.Zero;
-            var parentRot = Angle.Zero;
-
-            if (xform.ParentUid != EntityUid.Invalid)
-            {
-                var parent = Transform(xform.ParentUid);
-                parentPos = _transform.GetWorldPosition(parent);
-                parentRot = _transform.GetWorldRotation(parent);
-            }
-            // HardLight end
-
             handle.SetTransform(Matrix3x2.Identity);
 
             for (var i = 1; i < positions.Count; i++)
             {
-                var start = parentPos + parentRot.RotateVec(positions[i - 1]); // HardLight
-                var end = parentPos + parentRot.RotateVec(positions[i]); // HardLight
-                handle.DrawLine(start, end, tracer.Color); // HardLight
+                handle.DrawLine(positions[i - 1], positions[i], tracer.Color);
             }
         }
     }

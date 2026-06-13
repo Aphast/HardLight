@@ -1,7 +1,8 @@
 - type: entity
   id: BaseCartridge762x51mm
-  name: cartridge (762x51mm FMJ)
-  parent: [ BaseCartridge, BaseC1Contraband ] # Frontier: BaseSecurityContraband<BaseC1Contraband
+  name: cartridge (7.62x51mm FMJ)
+  parent: BaseCartridge
+  description: A decently sized full-power round.
   abstract: true
   components:
   - type: Tag
@@ -10,9 +11,8 @@
     - Cartridge762x51mmFMJ
   - type: CartridgeAmmo
     proto: Bullet762x51mmFMJ
-    deleteOnSpawn: true
   - type: Sprite
-    sprite: Objects/Weapons/Guns/Ammunition/Casings/ammo_casing.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Casings/rifle_ammo_casing.rsi
     layers:
     - state: base
       map: ["enum.AmmoVisualLayers.Base"]
@@ -23,7 +23,7 @@
 
 - type: entity
   id: Cartridge762x51mmFMJ
-  name: cartridge (762x51mm FMJ)
+  name: cartridge (7.62x51mm FMJ)
   parent: BaseCartridge762x51mm
   components:
   - type: CartridgeAmmo
@@ -31,7 +31,7 @@
 
 - type: entity
   id: Cartridge762x51mmPractice
-  name: cartridge (762x51mm practice)
+  name: cartridge (7.62x51mm practice)
   parent: BaseCartridge762x51mm
   components:
   - type: CartridgeAmmo
@@ -41,11 +41,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#dbdbdb"
 
 - type: entity
   id: Cartridge762x51mmIncendiary
-  name: cartridge (762x51mm incendiary)
+  name: cartridge (7.62x51mm incendiary)
   parent: BaseCartridge762x51mm
   components:
   - type: CartridgeAmmo
@@ -55,11 +56,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#ff6e52"
 
 - type: entity
   id: Cartridge762x51mmUranium
-  name: cartridge (762x51mm uranium)
+  name: cartridge (7.62x51mm uranium)
   parent: BaseCartridge762x51mm
   components:
   - type: CartridgeAmmo
@@ -69,11 +71,12 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#65fe08"
 
 - type: entity
   id: Cartridge762x51mmRubber
-  name: cartridge (762x51mm rubber)
+  name: cartridge (7.62x51mm rubber)
   parent: BaseCartridge762x51mm
   components:
   - type: CartridgeAmmo
@@ -83,4 +86,54 @@
       - state: base
         map: [ "enum.AmmoVisualLayers.Base" ]
       - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
         color: "#43c4f7"
+
+# Mono AP syst
+#anti-flesh:
+- type: entity
+  id: Cartridge762x51mmHP
+  name: cartridge (7.62x51mm hollow-point)
+  parent: BaseCartridge762x51mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet762x51mmHP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#90EE90"
+
+- type: entity
+  id: Cartridge762x51mmRIP
+  name: cartridge (7.62x51mm RIP)
+  parent: BaseCartridge762x51mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet762x51mmRIP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#C04000"
+
+#armor-piercing:
+
+- type: entity
+  id: Cartridge762x51mmPlasteelAP
+  name: cartridge (7.62x51mm AP)
+  parent: BaseCartridge762x51mm
+  components:
+  - type: CartridgeAmmo
+    proto: Bullet762x51mmPlasteelAP
+  - type: Sprite
+    layers:
+      - state: base
+        map: [ "enum.AmmoVisualLayers.Base" ]
+      - state: tip
+        map: [ "enum.AmmoVisualLayers.Tip" ]
+        color: "#888888"

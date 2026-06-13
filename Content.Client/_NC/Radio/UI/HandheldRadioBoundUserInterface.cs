@@ -42,7 +42,6 @@ public sealed class HandheldRadioBoundUserInterface : BoundUserInterface
         _menu.OpenCentered();
     }
 
-    [Obsolete]
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2025 GoobBot <uristmchands@proton.me>
+// SPDX-FileCopyrightText: 2025 ImHoks <142083149+ImHoks@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2025 ImHoks <imhokzzzz@gmail.com>
+// SPDX-FileCopyrightText: 2025 KillanGenifer <killangenifer@gmail.com>
+// SPDX-FileCopyrightText: 2025 gluesniffler <159397573+gluesniffler@users.noreply.github.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 using Content.Shared._CorvaxNext.Silicons.Borgs.Components;
 using Content.Shared.Actions;
 using Content.Shared.Mind;
@@ -6,11 +14,11 @@ using Robust.Shared.Serialization;
 
 namespace Content.Shared._CorvaxNext.Silicons.Borgs;
 
-public abstract class SharedAiRemoteControlSystem : EntitySystem
+public abstract partial class SharedAiRemoteControlSystem : EntitySystem
 {
-    [Dependency] private readonly SharedStationAiSystem _stationAiSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _xformSystem = default!;
-    [Dependency] private readonly SharedMindSystem _mind = default!;
+    [Dependency] private SharedStationAiSystem _stationAiSystem = default!;
+    [Dependency] private SharedTransformSystem _xformSystem = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
 
     public override void Initialize()
     {

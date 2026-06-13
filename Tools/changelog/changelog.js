@@ -2,7 +2,6 @@
 const fs = require("fs");
 const yaml = require("js-yaml");
 const axios = require("axios");
-const core = require('@actions/core');
 
 // Use GitHub token if available
 if (process.env.GITHUB_TOKEN) axios.defaults.headers.common["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
@@ -58,11 +57,11 @@ async function main() {
         changes: entries,
         id: getHighestCLNumber() + 1,
         time: time,
+        url: `https://github.com/${process.env.GITHUB_REPOSITORY}/pull/${process.env.PR_NUMBER}`,
     };
 
     // Write changelogs
     writeChangelog(entry);
-	core.setOutput('changelog', JSON.stringify(entry)); //Output the changelog so we can use it for sharing
 
     console.log(`Changelog updated with changes from PR #${process.env.PR_NUMBER}`);
 }

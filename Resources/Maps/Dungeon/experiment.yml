@@ -42,7 +42,6 @@ entities:
     - type: MetaData
     - type: Transform
     - type: Map
-
     - type: Broadphase
     - type: OccluderTree
     - type: MapGrid
@@ -2223,7 +2222,6 @@ entities:
     - type: LoadedMap
     - type: SpreaderGrid
     - type: GridTree
-
     - type: GridPathfinding
 - proto: Airlock
   entities:
@@ -8697,7 +8695,7 @@ entities:
     - type: Transform
       pos: 42.607162,12.70194
       parent: 1653
-- proto: ResearchDisk
+- proto: ResearchDisk10000
   entities:
   - uid: 1625
     components:

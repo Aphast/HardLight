@@ -12,7 +12,7 @@ public sealed partial class PredictedProjectileServerComponent : Component
     [DataField, AutoNetworkedField]
     public int ClientId;
 
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityUid? ClientEnt;
 
     [DataField]

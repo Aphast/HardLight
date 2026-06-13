@@ -1,20 +1,17 @@
-// SPDX-FileCopyrightText: 2025 Avalon
-//
-// SPDX-License-Identifier: MPL-2.0
-
 using Content.Shared.Damage;
-using Robust.Shared.GameObjects;
-using Robust.Shared.Serialization.Manager.Attributes;
+using Robust.Shared.GameStates;
 
 namespace Content.Shared.Weapons.Hitscan.Components;
 
 /// <summary>
-/// Stub component describing damage dealt by a hitscan impact.
-/// Prototype field: damage (DamageSpecifier with type map).
+/// Hitscan entities that have this component will do the damage specified to hit targets (Who didn't reflect it).
 /// </summary>
-[RegisterComponent]
+[RegisterComponent, NetworkedComponent]
 public sealed partial class HitscanBasicDamageComponent : Component
 {
-    [DataField("damage")]
-    public DamageSpecifier Damage = new();
+    /// <summary>
+    /// How much damage the hitscan weapon will do when hitting a target.
+    /// </summary>
+    [DataField(required: true)]
+    public DamageSpecifier Damage;
 }

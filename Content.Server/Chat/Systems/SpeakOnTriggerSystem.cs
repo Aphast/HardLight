@@ -1,17 +1,17 @@
 using Content.Server.Explosion.EntitySystems;
 using Content.Shared.Timing;
+using Content.Shared.Chat; // Einstein Engines - Languages
 using Robust.Shared.Prototypes;
-using Content.Shared.Chat;
 using Robust.Shared.Random;
 
 namespace Content.Server.Chat.Systems;
 
-public sealed class SpeakOnTriggerSystem : EntitySystem
+public sealed partial class SpeakOnTriggerSystem : EntitySystem
 {
-    [Dependency] private readonly UseDelaySystem _useDelay = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
+    [Dependency] private UseDelaySystem _useDelay = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private ChatSystem _chat = default!;
 
     public override void Initialize()
     {
@@ -35,10 +35,6 @@ public sealed class SpeakOnTriggerSystem : EntitySystem
             return;
 
         var message = Loc.GetString(_random.Pick(messagePack.Values));
-        // Chatcode moment: messages starting with "." are considered radio messages.
-        // Prepending ">" forces the message to be spoken instead.
-        // TODO chat refactor: remove this
-        message = '>' + message;
         _chat.TrySendInGameICMessage(ent.Owner, message, InGameICChatType.Speak, true);
 
         if (useDelay != null)

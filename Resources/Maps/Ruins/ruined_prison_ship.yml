@@ -21,6 +21,7 @@ entities:
       name: grid
     - type: Transform
       pos: -0.5625,-0.609375
+      parent: invalid
     - type: MapGrid
       chunks:
         0,0:
@@ -2957,14 +2958,14 @@ entities:
     - type: Transform
       pos: 7.5,-27.5
       parent: 2
-- proto: PosterContrabandLustyExomorph
+- proto: PosterContrabandLurkingExomorph
   entities:
   - uid: 290
     components:
     - type: Transform
       pos: 5.5,-9.5
       parent: 2
-- proto: PosterLegit12Gauge
+- proto: PosterLegit12_gauge
   entities:
   - uid: 641
     components:

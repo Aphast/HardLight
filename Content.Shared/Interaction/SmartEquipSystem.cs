@@ -18,25 +18,32 @@ namespace Content.Shared.Interaction;
 /// <summary>
 /// This handles smart equipping or inserting/ejecting from slots through keybinds--generally shift+E and shift+B
 /// </summary>
-public sealed class SmartEquipSystem : EntitySystem
+public sealed partial class SmartEquipSystem : EntitySystem
 {
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedStorageSystem _storage = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly ItemSlotsSystem _slots = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedStorageSystem _storage = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private ItemSlotsSystem _slots = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
     {
         CommandBinds.Builder
-            .Bind(ContentKeyFunctions.SmartEquipBackpack, InputCmdHandler.FromDelegate(HandleSmartEquipBackpack, handle: false, outsidePrediction: false))
-            .Bind(ContentKeyFunctions.SmartEquipBelt, InputCmdHandler.FromDelegate(HandleSmartEquipBelt, handle: false, outsidePrediction: false))
-            .Bind(ContentKeyFunctions.SmartEquipWallet, InputCmdHandler.FromDelegate(HandleSmartEquipWallet, handle: false, outsidePrediction: false)) // Frontier
-            .Bind(ContentKeyFunctions.SmartEquipSuitStorage, InputCmdHandler.FromDelegate(HandleSmartEquipSuitStorage, handle: false, outsidePrediction: false)) // Hardlight
+            // Mono
+            .Bind(ContentKeyFunctions.SmartEquipBackpack, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("back"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipBelt, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("belt"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipPocket1, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("pocket1"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipPocket2, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("pocket2"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipSuitStorage, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("suitstorage"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipWallet, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("wallet"), handle: false, outsidePrediction: false)) // Frontier
+            .Bind(ContentKeyFunctions.SmartEquipID, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("id"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipShoes, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("shoes"), handle: false, outsidePrediction: false))
+            .Bind(ContentKeyFunctions.SmartEquipOuterClothing, InputCmdHandler.FromDelegate(HandleSmartEquipPartial("outerClothing"), handle: false, outsidePrediction: false))
+            // Mono End
             .Register<SmartEquipSystem>();
     }
 
@@ -46,87 +53,11 @@ public sealed class SmartEquipSystem : EntitySystem
 
         CommandBinds.Unregister<SmartEquipSystem>();
     }
-
-    private void HandleSmartEquipBackpack(ICommonSession? session)
-    {
-        HandleSmartEquip(session, "back");
+    // Mono, Partial Application of 2nd Argument
+    private StateInputCmdDelegate HandleSmartEquipPartial(string equipmentSlot) {
+        return (x) => HandleSmartEquip(x, equipmentSlot);
     }
-
-    private void HandleSmartEquipBelt(ICommonSession? session)
-    {
-        HandleSmartEquip(session, "belt");
-    }
-    // Frontier: smart-equip to wallet
-    private void HandleSmartEquipWallet(ICommonSession? session)
-    {
-        HandleSmartEquip(session, "wallet");
-    }
-    // End Frontier: smart-equip to wallet
-
-    // Hardlight: smart-equip to suit storage
-    // Uses direct equip/unequip only — skipping storage and item-slot cases so guns don't eject their magazine.
-    private void HandleSmartEquipSuitStorage(ICommonSession? session)
-    {
-        if (session is not { } playerSession)
-            return;
-
-        if (playerSession.AttachedEntity is not { Valid: true } uid || !Exists(uid))
-            return;
-
-        if (!TryComp<HandsComponent>(uid, out var hands) || hands.ActiveHand == null)
-            return;
-
-        var handItem = hands.ActiveHand.HeldEntity;
-
-        if (!_actionBlocker.CanInteract(uid, handItem))
-            return;
-
-        if (!TryComp<InventoryComponent>(uid, out var inventory) || !_inventory.HasSlot(uid, "suitstorage", inventory))
-        {
-            _popup.PopupClient(Loc.GetString("smart-equip-missing-equipment-slot", ("slotName", "suitstorage")), uid, uid);
-            return;
-        }
-
-        if (handItem != null && !_hands.CanDropHeld(uid, hands.ActiveHand))
-        {
-            _popup.PopupClient(Loc.GetString("smart-equip-cant-drop"), uid, uid);
-            return;
-        }
-
-        _inventory.TryGetSlotEntity(uid, "suitstorage", out var slotEntity);
-
-        if (slotEntity is not { } slotItem)
-        {
-            if (handItem == null)
-            {
-                _popup.PopupClient(Loc.GetString("smart-equip-empty-equipment-slot", ("slotName", "suitstorage")), uid, uid);
-                return;
-            }
-
-            if (!_inventory.CanEquip(uid, handItem.Value, "suitstorage", out var reason))
-            {
-                _popup.PopupClient(Loc.GetString(reason), uid, uid);
-                return;
-            }
-
-            _hands.TryDrop(uid, hands.ActiveHand, handsComp: hands);
-            _inventory.TryEquip(uid, handItem.Value, "suitstorage", predicted: true, checkDoafter: true);
-            return;
-        }
-
-        if (handItem != null)
-            return;
-
-        if (!_inventory.CanUnequip(uid, "suitstorage", out var inventoryReason))
-        {
-            _popup.PopupClient(Loc.GetString(inventoryReason), uid, uid);
-            return;
-        }
-
-        _inventory.TryUnequip(uid, "suitstorage", inventory: inventory, predicted: true, checkDoafter: true);
-        _hands.TryPickup(uid, slotItem, handsComp: hands);
-    }
-    // End Hardlight: smart-equip to suit storage
+    // Mono End
     private void HandleSmartEquip(ICommonSession? session, string equipmentSlot)
     {
         if (session is not { } playerSession)

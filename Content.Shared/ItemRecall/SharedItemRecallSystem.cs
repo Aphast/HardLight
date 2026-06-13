@@ -14,13 +14,13 @@ namespace Content.Shared.ItemRecall;
 /// </summary>
 public abstract partial class SharedItemRecallSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedPlayerManager _player = default!;
-    [Dependency] private readonly SharedPvsOverrideSystem _pvs = default!;
-    [Dependency] private readonly SharedActionsSystem _actions = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly SharedPopupSystem _popups = default!;
-    [Dependency] private readonly SharedProjectileSystem _proj = default!;
+    [Dependency] private ISharedPlayerManager _player = default!;
+    [Dependency] private SharedPvsOverrideSystem _pvs = default!;
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private SharedPopupSystem _popups = default!;
+    [Dependency] private SharedProjectileSystem _proj = default!;
 
     public override void Initialize()
     {
@@ -29,7 +29,6 @@ public abstract partial class SharedItemRecallSystem : EntitySystem
         SubscribeLocalEvent<ItemRecallComponent, MapInitEvent>(OnMapInit);
         SubscribeLocalEvent<ItemRecallComponent, OnItemRecallActionEvent>(OnItemRecallActionUse);
 
-        SubscribeLocalEvent<RecallMarkerComponent, ComponentStartup>(OnRecallMarkerStartup);
         SubscribeLocalEvent<RecallMarkerComponent, ComponentShutdown>(OnRecallMarkerShutdown);
     }
 
@@ -91,14 +90,6 @@ public abstract partial class SharedItemRecallSystem : EntitySystem
         _popups.PopupPredictedCoordinates(Loc.GetString("item-recall-item-disappear", ("item", ent)), Transform(ent).Coordinates, actionOwner.Value);
 
         _hands.TryForcePickupAnyHand(actionOwner.Value, ent);
-    }
-
-    private void OnRecallMarkerStartup(Entity<RecallMarkerComponent> ent, ref ComponentStartup args)
-    {
-        if (ent.Comp.MarkedByAction != null)
-            return;
-
-        RemCompDeferred<RecallMarkerComponent>(ent);
     }
 
     private void OnRecallMarkerShutdown(Entity<RecallMarkerComponent> ent, ref ComponentShutdown args)

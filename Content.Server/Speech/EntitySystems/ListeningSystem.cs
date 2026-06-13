@@ -1,16 +1,15 @@
 using Content.Server.Chat.Systems;
 using Content.Server.Speech.Components;
-using Content.Shared._Starlight.Language; // Starlight
 
 namespace Content.Server.Speech.EntitySystems;
 
 /// <summary>
 ///     This system redirects local chat messages to listening entities (e.g., radio microphones).
 /// </summary>
-public sealed class ListeningSystem : EntitySystem
+public sealed partial class ListeningSystem : EntitySystem
 {
-    [Dependency] private readonly SharedTransformSystem _xforms = default!;
-    [Dependency] private readonly ChatSystem _chat = default!; // Starlight
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private SharedTransformSystem _xforms = default!;
 
     public override void Initialize()
     {
@@ -20,10 +19,10 @@ public sealed class ListeningSystem : EntitySystem
 
     private void OnSpeak(EntitySpokeEvent ev)
     {
-        PingListeners(ev.Source, ev.Message, ev.IsWhisper, ev.Language, ev.OriginalMessage, ev.OriginalObfuscatedMessage); // Starlight
+        PingListeners(ev.Source, ev.Message, ev.IsWhisper); // Einstein Engines - Languages
     }
 
-    public void PingListeners(EntityUid source, string message, bool isWhisper, LanguagePrototype? language = null, string? originalMessage = null, string? originalObfuscatedMessage = null) // Starlight
+    public void PingListeners(EntityUid source, string message, bool isWhisper) // Einstein Engines - Language
     {
         // TODO whispering / audio volume? Microphone sensitivity?
         // for now, whispering just arbitrarily reduces the listener's max range.
@@ -33,12 +32,8 @@ public sealed class ListeningSystem : EntitySystem
         var sourcePos = _xforms.GetWorldPosition(sourceXform, xformQuery);
 
         var attemptEv = new ListenAttemptEvent(source);
-        var ev = new ListenEvent(message, originalMessage, source, language);
-        // HardLight-edit start
-        ListenEvent? obfuscatedEv = isWhisper
-            ? null
-            : new ListenEvent(_chat.ObfuscateMessageReadability(message), originalObfuscatedMessage, source, language); // Starlight
-        // HardLight-edit end
+        var ev = new ListenEvent(message, source);
+        var obfuscatedEv = !isWhisper ? null : new ListenEvent(_chat.ObfuscateMessageReadability(message), source); // Einstein Engines - Language
         var query = EntityQueryEnumerator<ActiveListenerComponent, TransformComponent>();
 
         while (query.MoveNext(out var listenerUid, out var listener, out var xform))

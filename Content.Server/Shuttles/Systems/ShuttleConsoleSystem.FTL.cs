@@ -1,23 +1,31 @@
+using Content.Server.Power.EntitySystems; // Mono
 using Content.Server.Shuttles.Components;
 using Content.Server.Shuttles.Events;
-using Content.Server._VRS.Planet;
+using Content.Shared._Mono.Ships;
 using Content.Shared.Popups;
 using Content.Shared.Shuttles.BUIStates;
-using Content.Shared.Shuttles.Components;
 using Content.Shared.Shuttles.Events;
 using Content.Shared.Shuttles.UI.MapObjects;
-using Content.Shared._VRS.Planet;
+using Content.Shared.Station.Components;
+using Robust.Shared.Audio;
+using Robust.Shared.Audio.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Physics.Components;
-using Content.Server.Station.Components;
-using System.Linq;
-using System.Numerics;
 
 namespace Content.Server.Shuttles.Systems;
 
 public sealed partial class ShuttleConsoleSystem
 {
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+
+    private const float ShuttleFTLRange = 512f;
+    private const float ShuttleFTLMassThreshold = 100f; // Mono: now a soft limit, ships under the limit just stop you from shorter distance
+
+    private const float MassConstant = 50f; // Arbitrary, at this value massMultiplier = 0.65
+    private const float MassMultiplierMin = 0.5f;
+    private const float MassMultiplierMax = 5f;
     private void InitializeFTL()
     {
         SubscribeLocalEvent<FTLBeaconComponent, ComponentStartup>(OnBeaconStartup);
@@ -82,37 +90,6 @@ public sealed partial class ShuttleConsoleSystem
         ConsoleFTL(entity, targetCoordinates, angle, args.Coordinates.MapId);
     }
 
-    private void OnStationDockFTLMessage(Entity<ShuttleConsoleComponent> ent, ref ShuttleConsoleFTLStationDockMessage args)
-    {
-        var stationEnt = GetEntity(args.Station);
-        if (!Exists(stationEnt))
-        {
-            return;
-        }
-
-        // Get the console's shuttle
-        var consoleUid = GetDroneConsole(ent.Owner);
-        if (consoleUid == null)
-            return;
-
-        if (!_xformQuery.TryGetComponent(consoleUid.Value, out var shuttleXform) ||
-            !TryComp<ShuttleComponent>(shuttleXform.GridUid, out var shuttleComp))
-        {
-            return;
-        }
-
-        // Get the station's grids for docking
-        if (!TryComp<StationDataComponent>(stationEnt, out var stationData) || stationData.Grids.Count == 0)
-        {
-            return;
-        }
-
-        var targetGrid = stationData.Grids.First(); // Use the first/main grid as the docking target
-
-        // Use TryFTLDock for proper station docking - same mechanism as shipyard
-        _shuttle.TryFTLDock(shuttleXform.GridUid!.Value, shuttleComp, targetGrid);
-    }
-
     private void GetBeacons(ref List<ShuttleBeaconObject>? beacons)
     {
         var beaconQuery = AllEntityQuery<FTLBeaconComponent>();
@@ -146,24 +123,6 @@ public sealed partial class ShuttleConsoleSystem
         }
     }
 
-    private void GetStations(ref List<ShuttleStationObject>? stations)
-    {
-        var stationQuery = AllEntityQuery<StationDataComponent, TransformComponent>();
-
-        while (stationQuery.MoveNext(out var stationUid, out var stationData, out var xform))
-        {
-            var meta = _metaQuery.GetComponent(stationUid);
-            var name = meta.EntityName;
-
-            if (string.IsNullOrEmpty(name))
-                name = Loc.GetString("shuttle-console-unknown");
-
-            // Add station as FTL dock target
-            stations ??= new List<ShuttleStationObject>();
-            stations.Add(new ShuttleStationObject(GetNetEntity(stationUid), GetNetCoordinates(xform.Coordinates), $"🏭 {name}"));
-        }
-    }
-
     /// <summary>
     /// Handles shuttle console FTLs.
     /// </summary>
@@ -174,12 +133,9 @@ public sealed partial class ShuttleConsoleSystem
         if (consoleUid == null)
             return;
 
-        if (!ent.Comp.CanFTL) // Hardlight
-            return;
-
         var shuttleUid = _xformQuery.GetComponent(consoleUid.Value).GridUid;
 
-        if (!TryComp(shuttleUid, out ShuttleComponent? shuttleComp))
+        if (shuttleUid == null || !TryComp(shuttleUid.Value, out ShuttleComponent? shuttleComp))
             return;
 
         if (shuttleComp.Enabled == false)
@@ -198,6 +154,8 @@ public sealed partial class ShuttleConsoleSystem
             return;
         }
 
+        targetCoordinates = _shuttle.ClampCoordinatesToFTLRange(shuttleUid.Value, targetCoordinates);
+
         List<ShuttleExclusionObject>? exclusions = null;
         GetExclusions(ref exclusions);
 
@@ -206,35 +164,40 @@ public sealed partial class ShuttleConsoleSystem
             return;
         }
 
-        // VRS: block FTL within 100m of any procedurally-spawned dungeon on the
-        // target map. Dungeon positions are stored in grid-local tile coords on
-        // the planet's primary grid; planet grids sit at the map origin so they
-        // align with the map-world coordinates used by FTL targeting. Hostile
-        // mobs do NOT block landing — any mobs caught under the shuttle on
-        // arrival are squashed by PlanetSpawnerSystem's FTL-completed handler.
-        if (IsInsideContractNoLandingRadius(targetMap, targetCoordinates.Position))
+        if (!TryComp(shuttleUid.Value, out PhysicsComponent? shuttlePhysics))
         {
-            _popup.PopupEntity(Loc.GetString("shuttle-console-ftl-contract-too-close"), ent.Owner, PopupType.MediumCaution);
             return;
         }
 
-        if (TryComp<PlanetDungeonRegistryComponent>(_mapSystem.GetMap(targetMap), out var dungeonRegistry))
-        {
-            const float dungeonExclusionRange = 100f;
-            var rangeSq = dungeonExclusionRange * dungeonExclusionRange;
-            var targetPos = targetCoordinates.Position;
-            foreach (var dungeon in dungeonRegistry.Dungeons)
-            {
-                if (Vector2.DistanceSquared(targetPos, dungeon.Position) <= rangeSq)
-                {
-                    _popup.PopupEntity(Loc.GetString("shuttle-console-ftl-dungeon-too-close"), ent.Owner, PopupType.MediumCaution);
-                    return;
-                }
-            }
-        }
+        // Check for nearby grids that are above the mass threshold
+        var xform = Transform(shuttleUid.Value);
+        var bounds = xform.WorldMatrix.TransformBox(Comp<MapGridComponent>(shuttleUid.Value).LocalAABB).Enlarged(ShuttleFTLRange);
+        var bodyQuery = GetEntityQuery<PhysicsComponent>();
+        // Keep track of docked grids to exclude them from the proximity check
+        var dockedGrids = new HashSet<EntityUid>();
 
-        if (!TryComp(shuttleUid.Value, out PhysicsComponent? shuttlePhysics))
+        // Find all docked grids by looking for DockingComponents on the shuttle
+        _shuttle.GetAllDockedShuttlesIgnoringFTLLock(shuttleUid.Value, dockedGrids);
+
+        // Mono
+        foreach (var (console, consoleComp) in _lookup.GetEntitiesInRange<ShuttleConsoleComponent>(_transform.GetMapCoordinates(xform), ShuttleFTLRange))
         {
+            var consoleXform = Transform(console);
+            var consGrid = consoleXform.GridUid;
+            if (consGrid == null ||
+                consGrid == shuttleUid ||
+                dockedGrids.Contains(consGrid.Value) || // Skip grids that are docked to us or to the same parent grid
+                !bodyQuery.TryGetComponent(consGrid, out var body) ||
+                body.Mass < ShuttleFTLMassThreshold
+                    && (_transform.GetWorldPosition(consGrid.Value) - _transform.GetWorldPosition(consoleXform)).Length() > ShuttleFTLRange * body.Mass / ShuttleFTLMassThreshold ||
+                !this.IsPowered(console, EntityManager))
+            {
+                continue;
+            }
+
+            _popup.PopupEntity(Loc.GetString("shuttle-ftl-proximity"), ent.Owner, PopupType.Medium);
+            _audio.PlayPvs(new SoundPathSpecifier("/Audio/Machines/custom_deny.ogg"), ent.Owner);
+            UpdateConsoles(shuttleUid.Value);
             return;
         }
 
@@ -246,24 +209,52 @@ public sealed partial class ShuttleConsoleSystem
 
         var ev = new ShuttleConsoleFTLTravelStartEvent(ent.Owner);
         RaiseLocalEvent(ref ev);
-
-        _shuttle.FTLToCoordinates(shuttleUid.Value, shuttleComp, adjustedCoordinates, targetAngle);
+        if (_shuttle.TryGetFTLDrive(shuttleUid.Value, out _, out var drive)) // Mono Begin
+        {
+            MassAdjustFTLStart(shuttlePhysics,
+                drive,
+                out var massAdjustedStartupTime,
+                out var massAdjustedHyperSpaceTime);
+            _shuttle.FTLToCoordinates(shuttleUid.Value, shuttleComp, adjustedCoordinates, targetAngle, massAdjustedStartupTime, massAdjustedHyperSpaceTime);
+        }
     }
 
-    private bool IsInsideContractNoLandingRadius(MapId mapId, Vector2 targetPosition)
+    // Mono Begin
+    private void MassAdjustFTLStart(PhysicsComponent shuttlePhysics, FTLDriveComponent drive, out float massAdjustedStartupTime, out float massAdjustedHyperSpaceTime)
     {
-        var query = EntityQueryEnumerator<PlanetEventFTLOverrideComponent, TransformComponent>();
-        while (query.MoveNext(out var uid, out var overrideComp, out var xform))
+        if (drive.MassAffectedDrive == false)
         {
-            if (xform.MapID != mapId)
+            massAdjustedHyperSpaceTime = drive.HyperSpaceTime;
+            massAdjustedStartupTime = drive.StartupTime;
+            return;
+        }
+        var adjustedMass = shuttlePhysics.Mass * drive.DriveMassMultiplier;
+        var massMultiplier = float.Log(float.Sqrt(adjustedMass / MassConstant + float.E));
+        massMultiplier = float.Clamp(massMultiplier, MassMultiplierMin, MassMultiplierMax);
+        massAdjustedStartupTime = drive.StartupTime * massMultiplier;
+        massAdjustedHyperSpaceTime = drive.HyperSpaceTime * massMultiplier;
+    }
+    // Mono End
+    private void UpdateConsoles(EntityUid uid, ShuttleComponent? component = null)
+    {
+        if (!Resolve(uid, ref component))
+            return;
+
+        // Update pilot consoles
+        var query = EntityQueryEnumerator<ShuttleConsoleComponent, TransformComponent>();
+
+        while (query.MoveNext(out var consoleUid, out var console, out var xform))
+        {
+            if (xform.GridUid != uid)
                 continue;
 
-            var center = _transform.GetWorldPosition(xform); // Fix: Use world position instead of parent-local
-            var rangeSq = overrideComp.NoLandingRadius * overrideComp.NoLandingRadius;
-            if (Vector2.DistanceSquared(targetPosition, center) <= rangeSq)
-                return true;
+            UpdateConsoleState(consoleUid, console);
         }
+    }
 
-        return false;
+    private void UpdateConsoleState(EntityUid uid, ShuttleConsoleComponent component)
+    {
+        DockingInterfaceState? dockState = null;
+        UpdateState(uid, ref dockState);
     }
 }

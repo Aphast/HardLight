@@ -1,24 +1,20 @@
-﻿using Content.Server.Administration.Managers;
+﻿using System.Linq;
+using System.Text;
+using Content.Server.Administration.Managers;
 using Content.Shared.Administration;
 using Content.Shared.CCVar;
 using Content.Shared.Database;
 using Content.Shared.Roles;
 using Robust.Shared.Configuration;
 using Robust.Shared.Console;
-using Robust.Shared.Prototypes;
-
 namespace Content.Server.Administration.Commands;
 
 [AdminCommand(AdminFlags.Ban)]
-public sealed class RoleBanCommand : IConsoleCommand
+public sealed partial class RoleBanCommand : IConsoleCommand
 {
-    [Dependency] private readonly IPlayerLocator _locator = default!;
-    [Dependency] private readonly IBanManager _bans = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly ILogManager _log = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-
-    private ISawmill? _sawmill;
+    [Dependency] private IPlayerLocator _locator = default!;
+    [Dependency] private IBanManager _bans = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
 
     public string Command => "roleban";
     public string Description => Loc.GetString("cmd-roleban-desc");
@@ -32,8 +28,7 @@ public sealed class RoleBanCommand : IConsoleCommand
         uint minutes;
         if (!Enum.TryParse(_cfg.GetCVar(CCVars.RoleBanDefaultSeverity), out NoteSeverity severity))
         {
-            _sawmill ??= _log.GetSawmill("admin.role_ban");
-            _sawmill.Warning("Role ban severity could not be parsed from config! Defaulting to medium.");
+            Logger.WarningS("admin.role_ban", "Role ban severity could not be parsed from config! Defaulting to medium.");
             severity = NoteSeverity.Medium;
         }
 
@@ -81,12 +76,6 @@ public sealed class RoleBanCommand : IConsoleCommand
                 return;
         }
 
-        if (!_proto.HasIndex<JobPrototype>(job))
-        {
-            shell.WriteError(Loc.GetString("cmd-roleban-job-parse", ("job", job)));
-            return;
-        }
-
         var located = await _locator.LookupIdByNameOrIdAsync(target);
         if (located == null)
         {
@@ -97,17 +86,7 @@ public sealed class RoleBanCommand : IConsoleCommand
         var targetUid = located.UserId;
         var targetHWid = located.LastHWId;
 
-        var banInfo = new CreateRoleBanInfo(reason);
-        if (minutes > 0)
-            banInfo.WithMinutes(minutes);
-        banInfo.AddUser(targetUid, located.Username);
-        banInfo.WithBanningAdmin(shell.Player?.UserId);
-        banInfo.AddHWId(targetHWid);
-        banInfo.WithSeverity(severity);
-
-        banInfo.AddJob(new ProtoId<JobPrototype>(job));
-
-        _bans.CreateRoleBan(banInfo);
+        _bans.CreateRoleBan(targetUid, located.Username, shell.Player?.UserId, null, targetHWid, job, minutes, severity, reason, DateTimeOffset.UtcNow);
     }
 
     public CompletionResult GetCompletion(IConsoleShell shell, string[] args)

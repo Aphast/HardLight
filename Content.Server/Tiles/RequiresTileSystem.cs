@@ -4,13 +4,13 @@ using Robust.Shared.Map.Enumerators;
 
 namespace Content.Server.Tiles;
 
-public sealed class RequiresTileSystem : EntitySystem
+public sealed partial class RequiresTileSystem : EntitySystem
 {
     /*
      * Needs to be on server as client can't predict QueueDel.
      */
 
-    [Dependency] private readonly SharedMapSystem _maps = default!;
+    [Dependency] private SharedMapSystem _maps = default!;
 
     private EntityQuery<RequiresTileComponent> _tilesQuery;
 
@@ -29,8 +29,6 @@ public sealed class RequiresTileSystem : EntitySystem
         foreach (var change in ev.Changes)
         {
             var anchored = _maps.GetAnchoredEntitiesEnumerator(ev.Entity, grid, change.GridIndices);
-            if (anchored.Equals(AnchoredEntitiesEnumerator.Empty))
-                continue;
 
             while (anchored.MoveNext(out var ent))
             {

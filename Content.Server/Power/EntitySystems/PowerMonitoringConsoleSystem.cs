@@ -1,6 +1,4 @@
-using Content.Server.NodeContainer;
 using Content.Server.NodeContainer.EntitySystems;
-using Content.Server.NodeContainer.Nodes;
 using Content.Server.Power.Components;
 using Content.Server.Power.Nodes;
 using Content.Server.Power.NodeGroups;
@@ -9,6 +7,7 @@ using Content.Shared.GameTicking.Components;
 using Content.Shared.Pinpointer;
 using Content.Shared.Station.Components;
 using Content.Shared.Power;
+using Content.Shared.Power.Components;
 using JetBrains.Annotations;
 using Robust.Server.GameObjects;
 using Robust.Shared.Map.Components;
@@ -21,8 +20,8 @@ namespace Content.Server.Power.EntitySystems;
 [UsedImplicitly]
 internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitoringConsoleSystem
 {
-    [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-    [Dependency] private readonly SharedMapSystem _sharedMapSystem = default!;
+    [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+    [Dependency] private SharedMapSystem _sharedMapSystem = default!;
 
     // Note: this data does not need to be saved
     private Dictionary<EntityUid, Dictionary<Vector2i, PowerCableChunk>> _gridPowerCableChunks = new();
@@ -60,23 +59,12 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
 
     private void OnConsoleInit(EntityUid uid, PowerMonitoringConsoleComponent component, ComponentInit args)
     {
-        EnsureNavMapForConsole(uid);
         RefreshPowerMonitoringConsole(uid, component);
     }
 
     private void OnConsoleParentChanged(EntityUid uid, PowerMonitoringConsoleComponent component, EntParentChangedMessage args)
     {
-        EnsureNavMapForConsole(uid);
         RefreshPowerMonitoringConsole(uid, component);
-    }
-
-    // Ensure the console's grid carries a NavMapComponent here instead of in the per-tick
-    // UpdateUIState path, so per-second UI refreshes don't pay an EnsureComp call.
-    private void EnsureNavMapForConsole(EntityUid uid)
-    {
-        var xform = Transform(uid);
-        if (xform.GridUid is { } gridUid && HasComp<MapGridComponent>(gridUid))
-            EnsureComp<NavMapComponent>(gridUid);
     }
 
     private void OnCableNetworksInit(EntityUid uid, PowerMonitoringCableNetworksComponent component, ComponentInit args)
@@ -255,7 +243,8 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
         var query = AllEntityQuery<PowerMonitoringConsoleComponent, TransformComponent>();
         while (query.MoveNext(out var uid, out var console, out var xform))
         {
-            if (CompOrNull<StationMemberComponent>(xform.GridUid)?.Station == rule.AffectedStation)
+            var station = CompOrNull<StationMemberComponent>(xform.GridUid)?.Station;
+            if (station.HasValue && rule.AffectedStations.Contains(station.Value)) // Mono change, can affect multiple stations
             {
                 console.Flags |= PowerMonitoringFlags.PowerNetAbnormalities;
                 Dirty(uid, console);
@@ -271,7 +260,8 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
         var query = AllEntityQuery<PowerMonitoringConsoleComponent, TransformComponent>();
         while (query.MoveNext(out var uid, out var console, out var xform))
         {
-            if (CompOrNull<StationMemberComponent>(xform.GridUid)?.Station == rule.AffectedStation)
+            var station = CompOrNull<StationMemberComponent>(xform.GridUid)?.Station;
+            if (station.HasValue && rule.AffectedStations.Contains(station.Value)) // Mono change, can affect multiple stations
             {
                 console.Flags &= ~PowerMonitoringFlags.PowerNetAbnormalities;
                 Dirty(uid, console);
@@ -315,7 +305,8 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
         if (!TryComp<MapGridComponent>(gridUid, out var mapGrid))
             return;
 
-        // NavMapComponent is now ensured at console init / parent-change instead of every tick.
+        // The grid must have a NavMapComponent to visualize the map in the UI
+        EnsureComp<NavMapComponent>(gridUid);
 
         // Initializing data to be send to the client
         var totalSources = 0d;
@@ -535,16 +526,9 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
         var currentSupply = 0f;
         var currentDemand = 0f;
 
-        // Build quick lookup of component -> owner to avoid accessing obsolete Component.Owner
-        var supplierOwners = new Dictionary<PowerSupplierComponent, EntityUid>();
-        var supplierQuery = AllEntityQuery<PowerSupplierComponent>();
-        while (supplierQuery.MoveNext(out var supplierEnt, out var supplierComp))
-            supplierOwners[supplierComp] = supplierEnt;
-
         foreach (var powerSupplier in netQ.Suppliers)
         {
-            if (!supplierOwners.TryGetValue(powerSupplier, out var ent))
-                continue;
+            var ent = powerSupplier.Owner;
 
             if (uid == ent)
                 continue;
@@ -569,15 +553,9 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
             }
         }
 
-        var dischargerOwners = new Dictionary<BatteryDischargerComponent, EntityUid>();
-        var dischargerQuery = AllEntityQuery<BatteryDischargerComponent>();
-        while (dischargerQuery.MoveNext(out var dischargerEnt, out var dischargerComp))
-            dischargerOwners[dischargerComp] = dischargerEnt;
-
         foreach (var batteryDischarger in netQ.Dischargers)
         {
-            if (!dischargerOwners.TryGetValue(batteryDischarger, out var ent))
-                continue;
+            var ent = batteryDischarger.Owner;
 
             if (uid == ent)
                 continue;
@@ -613,15 +591,9 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
             currentDemand += powerConsumer.ReceivedPower;
         }
 
-        var chargerOwners = new Dictionary<BatteryChargerComponent, EntityUid>();
-        var chargerQuery = AllEntityQuery<BatteryChargerComponent>();
-        while (chargerQuery.MoveNext(out var chargerEnt, out var chargerComp))
-            chargerOwners[chargerComp] = chargerEnt;
-
         foreach (var batteryCharger in netQ.Chargers)
         {
-            if (!chargerOwners.TryGetValue(batteryCharger, out var ent))
-                continue;
+            var ent = batteryCharger.Owner;
 
             if (!TryComp<PowerNetworkBatteryComponent>(ent, out var entBattery))
                 continue;
@@ -668,7 +640,6 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
         var indexedLoads = new Dictionary<EntityUid, PowerMonitoringConsoleEntry>();
         var currentDemand = 0f;
 
-        #pragma warning disable CS0618
         foreach (var powerConsumer in netQ.Consumers)
         {
             var ent = powerConsumer.Owner;
@@ -695,9 +666,7 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
                 indexedLoads.Add(ent, new PowerMonitoringConsoleEntry(EntityManager.GetNetEntity(ent), entDevice.Group, powerConsumer.ReceivedPower, GetBatteryLevel(ent)));
             }
         }
-        #pragma warning restore CS0618
 
-        #pragma warning disable CS0618
         foreach (var batteryCharger in netQ.Chargers)
         {
             var ent = batteryCharger.Owner;
@@ -727,7 +696,6 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
                 indexedLoads.Add(ent, new PowerMonitoringConsoleEntry(EntityManager.GetNetEntity(ent), entDevice.Group, battery.CurrentReceiving, GetBatteryLevel(ent)));
             }
         }
-        #pragma warning restore CS0618
 
         loads = indexedLoads.Values.ToList();
 
@@ -864,10 +832,8 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
 
     private void UpdateCollectionChildMetaData(EntityUid child, EntityUid master)
     {
-        if (!TryComp<TransformComponent>(child, out var xform))
-            return;
-
         var netEntity = EntityManager.GetNetEntity(child);
+        var xform = Transform(child);
 
         var query = AllEntityQuery<PowerMonitoringConsoleComponent, TransformComponent>();
         while (query.MoveNext(out var ent, out var entConsole, out var entXform))
@@ -887,10 +853,8 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
 
     private void UpdateCollectionMasterMetaData(EntityUid master, int childCount)
     {
-        if (!TryComp<TransformComponent>(master, out var xform))
-            return;
-
         var netEntity = EntityManager.GetNetEntity(master);
+        var xform = Transform(master);
 
         var query = AllEntityQuery<PowerMonitoringConsoleComponent, TransformComponent>();
         while (query.MoveNext(out var ent, out var entConsole, out var entXform))
@@ -903,17 +867,13 @@ internal sealed partial class PowerMonitoringConsoleSystem : SharedPowerMonitori
 
             if (childCount > 0)
             {
-                var name = TryComp<MetaDataComponent>(master, out var meta)
-                    ? (meta.EntityPrototype?.Name ?? meta.EntityName)
-                    : ToPrettyString(master);
+                var name = MetaData(master).EntityPrototype?.Name ?? MetaData(master).EntityName;
                 metaData.EntityName = Loc.GetString("power-monitoring-window-object-array", ("name", name), ("count", childCount + 1));
             }
 
             else
             {
-                metaData.EntityName = TryComp<MetaDataComponent>(master, out var meta)
-                    ? meta.EntityName
-                    : ToPrettyString(master);
+                metaData.EntityName = MetaData(master).EntityName;
             }
 
             metaData.CollectionMaster = null;

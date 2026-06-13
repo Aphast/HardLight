@@ -15,14 +15,10 @@ public static class SharedResearchSystemExtensions
         IPrototypeManager prototypeManager)
     {
         var allTech = prototypeManager.EnumeratePrototypes<TechnologyPrototype>()
-            .Where(p => system.CanContributeToDisciplineProgress(p, techDiscipline.ID)).ToList();
-
-        if (allTech.Count == 0)
-            return 0;
+            .Where(p => p.Discipline == techDiscipline.ID && !p.Hidden).ToList();
 
         var percentage = (float) component.UnlockedTechnologies
-            .Select(prototypeManager.Index<TechnologyPrototype>)
-            .Where(x => system.CanContributeToDisciplineProgress(x, techDiscipline.ID))
+            .Where(x => prototypeManager.Index<TechnologyPrototype>(x).Discipline == techDiscipline.ID)
             .Count() / (float) allTech.Count * 100f;
 
         return (int) Math.Clamp(percentage, 0, 100);

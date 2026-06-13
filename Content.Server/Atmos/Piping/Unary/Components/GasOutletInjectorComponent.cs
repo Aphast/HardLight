@@ -1,6 +1,6 @@
+using Content.Server.Atmos.Piping.Binary.Components;
 using Content.Server.Atmos.Piping.Unary.EntitySystems;
 using Content.Shared.Atmos;
-using Content.Shared.Atmos.Piping.Binary.Components;
 using Content.Shared.Guidebook;
 
 namespace Content.Server.Atmos.Piping.Unary.Components
@@ -16,7 +16,7 @@ namespace Content.Server.Atmos.Piping.Unary.Components
         /// <summary>
         ///     Target volume to transfer. If <see cref="WideNet"/> is enabled, actual transfer rate will be much higher.
         /// </summary>
-        [DataField]
+        [ViewVariables(VVAccess.ReadWrite)]
         public float TransferRate
         {
             get => _transferRate;
@@ -35,8 +35,5 @@ namespace Content.Server.Atmos.Piping.Unary.Components
 
         [DataField("inlet")]
         public string InletName { get; set; } = "pipe";
-
-        [DataField("HighFlow")]
-        public bool HighFlow = false;
     }
 }

@@ -1,44 +1,5 @@
-- type: entity
-  parent: BaseC2ContrabandUnredeemable
-  id: BaseC2ContrabandMercenary
-  abstract: true
-  components:
-  - type: Contraband
-    severity: Class2Restricted
-    allowedDepartments: [ Security, Command, CentralCommand ] # HardLight: Removed PMC
-
-- type: entity
-  parent: BaseC3Contraband
-  id: BaseC3ChemContraband
-  abstract: true
-  components:
-  - type: Contraband
-    severity: Class3Chem
-
-# These are compatibility prototypes to work with ported definitions
-# They simply map to the appropriate NF/Mono contraband equivalents
-
-# non-stealth syndicate stuff
-- type: entity
-  id: BaseSyndicateContraband
-  parent: BaseC3SyndicateContraband
-  abstract: true
-
-# civilian department contraband
-- type: entity
-  id: BaseCivilianContraband
-  parent: BaseC1Contraband
-  abstract: true
-
-# cargo department contraband
-- type: entity
-  id: BaseCargoContraband
-  parent: BaseC1Contraband
-  abstract: true
-
 # Frontier-specific contraband targets.
-# If you need multiple currency types, specify them in the actual object instead
-# of inheriting multiple parents here.
+# If you need multiple currency types, specify them in the actual object instead of inheriting multiple parents here.
 
 - type: entity # Mono
   id: BaseFactionGearT0
@@ -69,7 +30,7 @@
   - type: Contraband
     severity: FactionGear1
     turnInValues:
-      FederationMilitaryCredit: 5
+      FederationMilitaryCredit: 10
 
 - type: entity
   parent: BaseFactionGearPDVT0
@@ -79,7 +40,7 @@
   - type: Contraband
     severity: FactionGear2
     turnInValues:
-      FederationMilitaryCredit: 15
+      FederationMilitaryCredit: 30
 
 - type: entity
   parent: BaseFactionGearPDVT0
@@ -111,7 +72,7 @@
   - type: Contraband
     severity: FactionGear1
     turnInValues:
-      Doubloon: 5
+      Doubloon: 10
 
 - type: entity
   parent: BaseFactionGearTSFT0
@@ -121,7 +82,7 @@
   - type: Contraband
     severity: FactionGear2
     turnInValues:
-      Doubloon: 15
+      Doubloon: 30
 
 - type: entity
   parent: BaseFactionGearTSFT0
@@ -186,6 +147,10 @@
   parent: BaseFactionGearOtherFactionT0
   id: BaseFactionGearTaxedT0
   abstract: true
+  components:
+  - type: ItemTax
+    taxAccounts:
+      nfsd: -0.2
 
 - type: entity
   parent: BaseFactionGearTaxedT0
@@ -222,8 +187,8 @@
 
 #endregion
 
-# VRS: ported from Triad_Sector — required by Mono ship-event loot prototypes
-# (MonolithicCrystal*, ChimeraFleshKudzu, Iridite sheets, etc.).
+#region anomalies/loot
+
 - type: entity
   parent: BaseFactionGearOtherFactionT0
   id: BaseMonolithContrabandT1
@@ -256,3 +221,5 @@
     turnInValues:
       FederationMilitaryCredit: 50
       Doubloon: 50
+
+#endregion

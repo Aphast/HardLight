@@ -4,7 +4,7 @@
   suffix: USSP, Locked
   components:
   - type: AccessReader
-    access: [["USSP"]]
+    access: [["Mercenary"]]
 
 - type: entity
   parent: DoorElectronics
@@ -12,7 +12,7 @@
   suffix: USSP Secure, Locked
   components:
   - type: AccessReader
-    access: [["USSPHigh"]]
+    access: [["Mercenary"]]
 
 - type: entity
   parent: DoorElectronics
@@ -20,4 +20,28 @@
   suffix: USSP Command, Locked
   components:
   - type: AccessReader
-    access: [["USSPCommand"]]
+    access: [["Mercenary"]]
+
+- type: entity
+  parent: DoorElectronics
+  id: DoorElectronicsTsfEngineer
+  suffix: TSF Engineering, Locked
+  components:
+  - type: AccessReader
+    access: [["TsfmcEngineering"]]
+
+- type: entity
+  parent: DoorElectronics
+  id: DoorElectronicsGrandVizier
+  suffix: Grand Vizier, Locked
+  components:
+  - type: AccessReader
+    access: [["GrandVizier"]]
+
+- type: entity
+  parent: DoorElectronics
+  id: DoorElectronicsPdvCommand
+  suffix: PDV Command, Locked
+  components:
+  - type: AccessReader
+    access: [["PDVCommand"]]

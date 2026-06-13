@@ -7,14 +7,15 @@ using Robust.Shared.Utility;
 
 namespace Content.Client.Chat.Managers;
 
-internal sealed class ChatManager : IChatManager
+internal sealed partial class ChatManager : IChatManager
 {
-    [Dependency] private readonly IClientConsoleHost _consoleHost = default!;
-    [Dependency] private readonly IClientAdminManager _adminMgr = default!;
-    [Dependency] private readonly IEntitySystemManager _systems = default!;
+    [Dependency] private IClientConsoleHost _consoleHost = default!;
+    [Dependency] private IClientAdminManager _adminMgr = default!;
+    [Dependency] private IEntitySystemManager _systems = default!;
 
     private ISawmill _sawmill = default!;
-    public event Action? PermissionsUpdated; //Nyano - Summary: need to be able to update perms for new psionics.
+    public event Action? PermissionsUpdated;
+
     public void Initialize()
     {
         _sawmill = Logger.GetSawmill("chat");
@@ -41,60 +42,50 @@ internal sealed class ChatManager : IChatManager
                 _consoleHost.ExecuteCommand(text);
                 break;
 
-        case ChatSelectChannel.LOOC:
-            _consoleHost.ExecuteCommand($"looc \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.LOOC:
+                _consoleHost.ExecuteCommand($"looc \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        case ChatSelectChannel.OOC:
-            _consoleHost.ExecuteCommand($"ooc \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.OOC:
+                _consoleHost.ExecuteCommand($"ooc \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        case ChatSelectChannel.Admin:
-            _consoleHost.ExecuteCommand($"asay \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.Admin:
+                _consoleHost.ExecuteCommand($"asay \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        case ChatSelectChannel.Emotes:
-            _consoleHost.ExecuteCommand($"me \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.Emotes:
+                _consoleHost.ExecuteCommand($"me \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        case ChatSelectChannel.Subtle:
-            _consoleHost.ExecuteCommand($"subtle \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.Dead:
+                if (_systems.GetEntitySystemOrNull<GhostSystem>() is {IsGhost: true})
+                    goto case ChatSelectChannel.Local;
 
-                case ChatSelectChannel.SubtleOOC: // Den
-                    _consoleHost.ExecuteCommand($"subtleooc \"{CommandParsing.Escape(str)}\"");
-                    break;
-
-                case ChatSelectChannel.Dead:
-                    if (_systems.GetEntitySystemOrNull<GhostSystem>() is {IsGhost: true})
-                        goto case ChatSelectChannel.Local;
-
-            if (_adminMgr.HasFlag(AdminFlags.Admin))
-                _consoleHost.ExecuteCommand($"dsay \"{CommandParsing.Escape(str)}\"");
-            else
-                _sawmill.Warning("Tried to speak on deadchat without being ghost or admin.");
-            break;
+                if (_adminMgr.HasFlag(AdminFlags.Admin))
+                    _consoleHost.ExecuteCommand($"dsay \"{CommandParsing.Escape(str)}\"");
+                else
+                    _sawmill.Warning("Tried to speak on deadchat without being ghost or admin.");
+                break;
 
             // TODO sepearate radio and say into separate commands.
-        case ChatSelectChannel.Radio:
-        case ChatSelectChannel.Local:
-            _consoleHost.ExecuteCommand($"say \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.Radio:
+            case ChatSelectChannel.Local:
+                _consoleHost.ExecuteCommand($"say \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        case ChatSelectChannel.Whisper:
-            _consoleHost.ExecuteCommand($"whisper \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.Whisper:
+                _consoleHost.ExecuteCommand($"whisper \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        //Nyano - Summary: sends the command for telepath communication.
-        case ChatSelectChannel.Telepathic:
-           _consoleHost.ExecuteCommand($"tsay \"{CommandParsing.Escape(str)}\"");
-            break;
+            case ChatSelectChannel.CollectiveMind:
+                _consoleHost.ExecuteCommand($"cmsay \"{CommandParsing.Escape(str)}\"");
+                break;
 
-        default:
-            throw new ArgumentOutOfRangeException(nameof(channel), channel, null);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(channel), channel, null);
         }
     }
-    //Nyano - Summary: fires off the update permissions script.
     public void UpdatePermissions()
     {
         PermissionsUpdated?.Invoke();

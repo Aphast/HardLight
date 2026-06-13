@@ -14,13 +14,13 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Server._DV.Administration;
 
-public sealed class JobWhitelistsEui : BaseEui
+public sealed partial class JobWhitelistsEui : BaseEui
 {
-    [Dependency] private readonly IAdminManager _admin = default!;
-    [Dependency] private readonly ILogManager _log = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IServerDbManager _db = default!;
-    [Dependency] private readonly JobWhitelistManager _jobWhitelist = default!;
+    [Dependency] private IAdminManager _admin = default!;
+    [Dependency] private ILogManager _log = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private IServerDbManager _db = default!;
+    [Dependency] private JobWhitelistManager _jobWhitelist = default!;
 
     private readonly ISawmill _sawmill;
 
@@ -29,6 +29,7 @@ public sealed class JobWhitelistsEui : BaseEui
 
     public HashSet<ProtoId<JobPrototype>> Whitelists = new();
     public HashSet<ProtoId<GhostRolePrototype>> GhostRoleWhitelists = new(); // Frontier
+    public bool GlobalWhitelist = false;
 
     public JobWhitelistsEui(NetUserId playerId, string playerName)
     {
@@ -51,12 +52,14 @@ public sealed class JobWhitelistsEui : BaseEui
                 GhostRoleWhitelists.Add(id); // Frontier
         }
 
+        GlobalWhitelist = await _db.GetWhitelistStatusAsync(PlayerId); // Frontier: get global whitelist
+
         StateDirty();
     }
 
     public override EuiStateBase GetNewState()
     {
-        return new JobWhitelistsEuiState(PlayerName, Whitelists, GhostRoleWhitelists);
+        return new JobWhitelistsEuiState(PlayerName, Whitelists, GhostRoleWhitelists, GlobalWhitelist);
     }
 
     public override void HandleMessage(EuiMessageBase msg)
@@ -108,6 +111,22 @@ public sealed class JobWhitelistsEui : BaseEui
                 {
                     _jobWhitelist.RemoveWhitelist(PlayerId, ghostRoleArgs.Role);
                     GhostRoleWhitelists.Remove(ghostRoleArgs.Role);
+                }
+                break;
+            case SetGlobalWhitelistMessage:
+                var globalArgs = (SetGlobalWhitelistMessage)msg;
+
+                added = globalArgs.Whitelisting;
+                role = "all roles";
+                if (added)
+                {
+                    _jobWhitelist.AddGlobalWhitelist(PlayerId);
+                    GlobalWhitelist = true;
+                }
+                else
+                {
+                    _jobWhitelist.RemoveGlobalWhitelist(PlayerId);
+                    GlobalWhitelist = false;
                 }
                 break;
             default:

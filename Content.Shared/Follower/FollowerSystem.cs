@@ -23,15 +23,15 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Follower;
 
-public sealed class FollowerSystem : EntitySystem
+public sealed partial class FollowerSystem : EntitySystem
 {
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly TagSystem _tagSystem = default!;
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly SharedJointSystem _jointSystem = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physicsSystem = default!;
-    [Dependency] private readonly INetManager _netMan = default!;
-    [Dependency] private readonly ISharedAdminManager _adminManager = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private SharedJointSystem _jointSystem = default!;
+    [Dependency] private SharedPhysicsSystem _physicsSystem = default!;
+    [Dependency] private INetManager _netMan = default!;
+    [Dependency] private ISharedAdminManager _adminManager = default!;
 
     private static readonly ProtoId<TagPrototype> ForceableFollowTag = "ForceableFollow";
 
@@ -43,7 +43,6 @@ public sealed class FollowerSystem : EntitySystem
         SubscribeLocalEvent<FollowerComponent, MoveInputEvent>(OnFollowerMove);
         SubscribeLocalEvent<FollowerComponent, PullStartedMessage>(OnPullStarted);
         SubscribeLocalEvent<FollowerComponent, EntityTerminatingEvent>(OnFollowerTerminating);
-        SubscribeLocalEvent<FollowerComponent, AfterAutoHandleStateEvent>(OnAfterHandleState);
 
         SubscribeLocalEvent<FollowedComponent, ComponentGetStateAttemptEvent>(OnFollowedAttempt);
         SubscribeLocalEvent<FollowerComponent, GotEquippedHandEvent>(OnGotEquippedHand);
@@ -148,11 +147,6 @@ public sealed class FollowerSystem : EntitySystem
         StopFollowingEntity(uid, component.Following, deparent: false);
     }
 
-    private void OnAfterHandleState(Entity<FollowerComponent> entity, ref AfterAutoHandleStateEvent args)
-    {
-        StartFollowingEntity(entity, entity.Comp.Following);
-    }
-
     // Since we parent our observer to the followed entity, we need to detach
     // before they get deleted so that we don't get recursively deleted too.
     private void OnFollowedTerminating(EntityUid uid, FollowedComponent component, ref EntityTerminatingEvent args)
@@ -162,8 +156,7 @@ public sealed class FollowerSystem : EntitySystem
 
     private void OnFollowedPolymorphed(Entity<FollowedComponent> entity, ref PolymorphedEvent args)
     {
-        var followers = entity.Comp.Following.ToArray();
-        foreach (var follower in followers)
+        foreach (var follower in entity.Comp.Following)
         {
             // Stop following the target's old entity and start following the new one
             StartFollowingEntity(follower, args.NewEntity);
@@ -177,13 +170,11 @@ public sealed class FollowerSystem : EntitySystem
     /// <param name="entity">The entity to be followed</param>
     public void StartFollowingEntity(EntityUid follower, EntityUid entity)
     {
-        if (!follower.IsValid() || !entity.IsValid() || follower == entity || Deleted(follower) || TerminatingOrDeleted(entity))
-            return;
-
-        if (!TryComp(entity, out TransformComponent? targetXform))
+        if (follower == entity || TerminatingOrDeleted(entity))
             return;
 
         // No recursion for you
+        var targetXform = Transform(entity);
         while (targetXform.ParentUid.IsValid())
         {
             if (targetXform.ParentUid == follower)
@@ -272,12 +263,6 @@ public sealed class FollowerSystem : EntitySystem
         if (!deparent || !TryComp(uid, out TransformComponent? xform))
             return;
 
-        if (TerminatingOrDeleted(xform.GridUid) && TerminatingOrDeleted(xform.MapUid))
-        {
-            _transform.DetachEntity(uid, xform);
-            return;
-        }
-
         _transform.AttachToGridOrMap(uid, xform);
         if (xform.MapUid != null)
             return;
@@ -301,8 +286,7 @@ public sealed class FollowerSystem : EntitySystem
         if (!Resolve(uid, ref followed))
             return;
 
-        var followers = followed.Following.ToArray();
-        foreach (var player in followers)
+        foreach (var player in followed.Following)
         {
             StopFollowingEntity(player, uid, followed);
         }

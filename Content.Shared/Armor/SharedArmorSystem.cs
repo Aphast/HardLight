@@ -1,9 +1,9 @@
 using Content.Shared.Damage;
 using Content.Shared.Examine;
-using Content.Shared.Interaction.Components; // Far Horizons
 using Content.Shared.Inventory;
 using Content.Shared.Silicons.Borgs;
 using Content.Shared.Verbs;
+using Robust.Shared.GameStates;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Armor;
@@ -11,9 +11,9 @@ namespace Content.Shared.Armor;
 /// <summary>
 ///     This handles logic relating to <see cref="ArmorComponent" />
 /// </summary>
-public abstract class SharedArmorSystem : EntitySystem
+public abstract partial class SharedArmorSystem : EntitySystem
 {
-    [Dependency] private readonly ExamineSystemShared _examine = default!;
+    [Dependency] private ExamineSystemShared _examine = default!;
 
     /// <inheritdoc />
     public override void Initialize()
@@ -33,11 +33,6 @@ public abstract class SharedArmorSystem : EntitySystem
     /// <param name="args">The event, contains the running count of armor percentage as a coefficient</param>
     private void OnCoefficientQuery(Entity<ArmorComponent> ent, ref InventoryRelayedEvent<CoefficientQueryEvent> args)
     {
-        // Far Horizons-Start - Protogen armor bypass
-        if (args.Args.IgnoreUnremovable && HasComp<UnremoveableComponent>(ent.Owner))
-            return;
-        // Far Horizons-End
-
         foreach (var armorCoefficient in ent.Comp.Modifiers.Coefficients)
         {
             args.Args.DamageModifiers.Coefficients[armorCoefficient.Key] = args.Args.DamageModifiers.Coefficients.TryGetValue(armorCoefficient.Key, out var coefficient) ? coefficient * armorCoefficient.Value : armorCoefficient.Value;
@@ -46,21 +41,19 @@ public abstract class SharedArmorSystem : EntitySystem
 
     private void OnDamageModify(EntityUid uid, ArmorComponent component, InventoryRelayedEvent<DamageModifyEvent> args)
     {
-        args.Args.Damage = DamageSpecifier.ApplyModifierSet(args.Args.Damage, component.Modifiers);
+        args.Args.Damage = DamageSpecifier.ApplyModifierSet(args.Args.Damage,
+            DamageSpecifier.PenetrateArmor(component.Modifiers, args.Args.ArmorPenetration)); // Goob edit
     }
 
     private void OnBorgDamageModify(EntityUid uid, ArmorComponent component,
         ref BorgModuleRelayedEvent<DamageModifyEvent> args)
     {
-        args.Args.Damage = DamageSpecifier.ApplyModifierSet(args.Args.Damage, component.Modifiers);
+        args.Args.Damage = DamageSpecifier.ApplyModifierSet(args.Args.Damage, DamageSpecifier.PenetrateArmor(component.Modifiers, args.Args.ArmorPenetration)); // Goob edit
     }
 
     private void OnArmorVerbExamine(EntityUid uid, ArmorComponent component, GetVerbsEvent<ExamineVerb> args)
     {
-        if (!args.CanInteract || !args.CanAccess || !component.ShowArmorOnExamine)
-            return;
-
-        if (component.Modifiers == null)
+        if (!args.CanInteract || !args.CanAccess)
             return;
 
         var examineMarkup = GetArmorExamine(component.Modifiers);
@@ -78,14 +71,8 @@ public abstract class SharedArmorSystem : EntitySystem
         var msg = new FormattedMessage();
         msg.AddMarkupOrThrow(Loc.GetString("armor-examine"));
 
-        if (armorModifiers == null)
-            return msg;
-
         foreach (var coefficientArmor in armorModifiers.Coefficients)
         {
-            if (string.IsNullOrEmpty(coefficientArmor.Key))
-                continue;
-
             msg.PushNewline();
 
             var armorType = Loc.GetString("armor-damage-type-" + coefficientArmor.Key.ToLower());
@@ -97,9 +84,6 @@ public abstract class SharedArmorSystem : EntitySystem
 
         foreach (var flatArmor in armorModifiers.FlatReduction)
         {
-            if (string.IsNullOrEmpty(flatArmor.Key))
-                continue;
-
             msg.PushNewline();
 
             var armorType = Loc.GetString("armor-damage-type-" + flatArmor.Key.ToLower());

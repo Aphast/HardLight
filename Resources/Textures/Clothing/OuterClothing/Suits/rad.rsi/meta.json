@@ -1,7 +1,7 @@
 {
   "version": 1,
   "license": "CC-BY-SA-3.0",
-  "copyright": "Taken from tgstation at commit https://github.com/tgstation/tgstation/commit/4f6190e2895e09116663ef282d3ce1d8b35c032e. Vox state made by Flareguy for Space Station 14, harpy edit by VMSolidus",
+  "copyright": "Taken from Paradise at https://github.com/ParadiseSS13/Paradise/pull/26671/files harpy edit by VMSolidus, innhands and icon taken from https://github.com/ElorgRHG/Paradise/blob/25271b2f22a1593bb659e02de368d969a6878988",
   "size": {
     "x": 32,
     "y": 32
@@ -17,9 +17,9 @@
     {
       "name": "equipped-OUTERCLOTHING-vox",
       "directions": 4
-	},
-	{
-      "name": "equipped-OUTERCLOTHING-harpy",
+    },
+    {
+      "name": "equipped-OUTERCLOTHING-reptilian",
       "directions": 4
     },
     {
@@ -31,7 +31,7 @@
       "directions": 4
     },
     {
-      "name": "equipped-OUTERCLOTHING-resomi",
+      "name": "equipped-OUTERCLOTHING-harpy",
       "directions": 4
     }
   ]

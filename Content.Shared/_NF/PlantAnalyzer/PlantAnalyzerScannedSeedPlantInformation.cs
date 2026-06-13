@@ -1,5 +1,4 @@
 using Robust.Shared.Serialization;
-using Content.Shared.Atmos;
 
 namespace Content.Shared._NF.PlantAnalyzer;
 
@@ -11,32 +10,21 @@ public sealed class PlantAnalyzerScannedSeedPlantInformation : BoundUserInterfac
 {
     public NetEntity? TargetEntity;
     public bool IsTray;
-    public bool IsSwab;
 
+    //Basic tab
     public string? SeedName;
-    public string[]? SeedChem;
-    public AnalyzerHarvestType HarvestType;
-    public GasFlags ExudeGases;
-    public GasFlags ConsumeGases;
-    public float Endurance;
     public int SeedYield;
+    public float SeedPotency;
+    public AnalyzerHarvestType HarvestType;
     public float Lifespan;
     public float Maturation;
     public float Production;
     public int GrowthStages;
-    public float SeedPotency;
-    public string[]? Speciation; // Currently only available on server, we need to send strings to the client.
-    public AdvancedScanInfo? AdvancedInfo;
-    public GasRate[]? ExudeGasRates;
-    public GasRate[]? ConsumeGasRates;
-}
-
-/// <summary>
-///     Information gathered in an advanced scan.
-/// </summary>
-[Serializable, NetSerializable]
-public struct AdvancedScanInfo
-{
+    public float Endurance;
+    public GasFlags ConsumeGases;
+    public GasFlags ExudeGases;
+    public string[]? SeedChem;
+    //Tolerances tab
     public float NutrientConsumption;
     public float WaterConsumption;
     public float IdealHeat;
@@ -48,6 +36,8 @@ public struct AdvancedScanInfo
     public float HighPressureTolerance;
     public float PestTolerance;
     public float WeedTolerance;
+    //Mutations tab
+    public string[]? Speciation; // Currently only available on server, we need to send strings to the client.
     public MutationFlags Mutations;
 }
 
@@ -60,6 +50,7 @@ public enum MutationFlags : byte
     Seedless = 2,
     Ligneous = 4,
     CanScream = 8,
+    Unviable = 16,
 }
 
 [Flags]
@@ -83,89 +74,4 @@ public enum AnalyzerHarvestType : byte
     Repeat,
     NoRepeat,
     SelfHarvest
-}
-
-public static class GasExtensions
-{
-    public static GasFlags ToFlag(this Gas gas)
-    {
-        return gas switch
-        {
-            Gas.Nitrogen => GasFlags.Nitrogen,
-            Gas.Oxygen => GasFlags.Oxygen,
-            Gas.CarbonDioxide => GasFlags.CarbonDioxide,
-            Gas.Plasma => GasFlags.Plasma,
-            Gas.Tritium => GasFlags.Tritium,
-            Gas.WaterVapor => GasFlags.WaterVapor,
-            Gas.Ammonia => GasFlags.Ammonia,
-            Gas.NitrousOxide => GasFlags.NitrousOxide,
-            Gas.Frezon => GasFlags.Frezon,
-            _ => GasFlags.None,
-        };
-    }
-}
-
-
-[Serializable, NetSerializable]
-public sealed class PlantAnalyzerSetMode : BoundUserInterfaceMessage
-{
-    public bool AdvancedScan { get; }
-    public PlantAnalyzerSetMode(bool advancedScan)
-    {
-        AdvancedScan = advancedScan;
-    }
-}
-
-/// <summary>
-/// Client -> Server: request the analyzer resend its UI state (used for periodic refreshes).
-/// The server will resend the last-scanned target's state for the analyzer.
-/// </summary>
-[Serializable, NetSerializable]
-public sealed class PlantAnalyzerRequestRefresh : BoundUserInterfaceMessage
-{
-}
-/// <summary>
-/// Persistent UI state for the Plant Analyzer. This mirrors the scanned message
-/// but is a BoundUserInterfaceState so it can be set via SetUiState.
-/// </summary>
-[Serializable, NetSerializable]
-public sealed class PlantAnalyzerUserInterfaceState : BoundUserInterfaceState
-{
-    public NetEntity? TargetEntity;
-    public bool IsTray;
-    public bool IsSwab;
-
-    public string? SeedName;
-    public string[]? SeedChem;
-    public AnalyzerHarvestType HarvestType;
-    public GasFlags ExudeGases;
-    public GasFlags ConsumeGases;
-    public float Endurance;
-    public int SeedYield;
-    public float Lifespan;
-    public float Maturation;
-    public float Production;
-    public int GrowthStages;
-    public float SeedPotency;
-    public string[]? Speciation; // Currently only available on server, we need to send strings to the client.
-    public AdvancedScanInfo? AdvancedInfo;
-    public GasRate[]? ExudeGasRates;
-    public GasRate[]? ConsumeGasRates;
-
-    public PlantAnalyzerUserInterfaceState()
-    {
-    }
-}
-
-[Serializable, NetSerializable]
-public struct GasRate
-{
-    public Gas Gas;
-    public float Rate;
-
-    public GasRate(Gas gas, float rate)
-    {
-        Gas = gas;
-        Rate = rate;
-    }
 }

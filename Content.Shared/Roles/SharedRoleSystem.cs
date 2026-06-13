@@ -6,7 +6,6 @@ using Content.Shared.Database;
 using Content.Shared.GameTicking;
 using Content.Shared.Mind;
 using Content.Shared.Roles.Jobs;
-using Content.Shared.Whitelist; // Starlight
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Configuration;
@@ -18,16 +17,15 @@ using Robust.Shared.Utility;
 
 namespace Content.Shared.Roles;
 
-public abstract class SharedRoleSystem : EntitySystem
+public abstract partial class SharedRoleSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!; // Starlight
-    [Dependency] private readonly SharedAudioSystem _audio = default!; // Starlight
-    [Dependency] private readonly IConfigurationManager _cfg = default!; // Starlight
-    [Dependency] protected readonly ISharedPlayerManager Player = default!;
-    [Dependency] private readonly IEntityManager _entityManager = default!; // Starlight
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!; // Starlight
-    [Dependency] private readonly SharedMindSystem _minds = default!; // Starlight
-    [Dependency] private readonly IPrototypeManager _prototypes = default!; // Starlight
+    [Dependency] private   IConfigurationManager _cfg = default!;
+    [Dependency] private   IEntityManager _entityManager = default!;
+    [Dependency] private   IPrototypeManager _prototypes = default!;
+    [Dependency] private   ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] protected ISharedPlayerManager Player = default!;
+    [Dependency] private   SharedAudioSystem _audio = default!;
+    [Dependency] private   SharedMindSystem _minds = default!;
 
     private JobRequirementOverridePrototype? _requirementOverride;
 
@@ -184,7 +182,9 @@ public abstract class SharedRoleSystem : EntitySystem
         }
         else
         {
-            // Roles can be assigned before the mind is attached to a body during spawn/setup.
+            //TODO: This is not tied to the player on the Admin Log filters.
+            //Probably only happens when Job Role is added on initial spawn, before the mind entity is put in a mob
+            Log.Error($"{ToPrettyString(mindId)} does not have an OwnedEntity!");
             _adminLogger.Add(LogType.Mind,
                 LogImpact.Low,
                 $"{name} added to {ToPrettyString(mindId)}");
@@ -263,7 +263,7 @@ public abstract class SharedRoleSystem : EntitySystem
         else
         {
             var error = $"The Character Window of {_minds.MindOwnerLoggingString(comp)} potentially did not update immediately : session error";
-            _adminLogger.Add(LogType.Mind, LogImpact.Medium, $"{error}");
+            _adminLogger.Add(LogType.Mind, LogImpact.High, $"{error}");
         }
 
         if (comp.OwnedEntity is null)
@@ -361,20 +361,6 @@ public abstract class SharedRoleSystem : EntitySystem
     }
 
     /// <summary>
-    /// Starlight: Returns true if a mind has a role that matches a whitelist.
-    /// </summary>
-    public bool MindHasRole(Entity<MindComponent> mind, EntityWhitelist whitelist)
-    {
-        foreach (var roleEnt in mind.Comp.MindRoles)
-        {
-            if (_whitelist.IsWhitelistPass(whitelist, roleEnt))
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
     /// Finds the first mind role of a specific T type on a mind entity.
     /// Outputs entity components for the mind role's MindRoleComponent and for T
     /// </summary>
@@ -386,16 +372,8 @@ public abstract class SharedRoleSystem : EntitySystem
         [NotNullWhen(true)] out Entity<MindRoleComponent, T>? role) where T : IComponent
     {
         role = null;
-        if (mind.Comp is null)
-        {
-            if (!TryComp(mind.Owner, out MindComponent? mindComp))
-                return false;
-
-            mind.Comp = mindComp;
-        }
-// HardLight: Apparently single-handedly caused the unknown job bug.
-// I'm commenting it out instead of just deleting it for future historians.
-//            return false;
+        if (!Resolve(mind.Owner, ref mind.Comp))
+            return false;
 
         foreach (var roleEnt in mind.Comp.MindRoles)
         {
@@ -665,18 +643,6 @@ public abstract class SharedRoleSystem : EntitySystem
     {
         return string.IsNullOrEmpty(subtype) ? Loc.GetString(roleType) : Loc.GetString(subtype);
     }
-
-    // Frontier: alternate requirement sets
-    public Dictionary<string, HashSet<JobRequirement>>? GetAlternateJobRequirements(JobPrototype job)
-    {
-        return job.AlternateRequirementSets;
-    }
-
-    public Dictionary<string, HashSet<JobRequirement>>? GetAlternateJobRequirements(ProtoId<JobPrototype> job)
-    {
-        return _prototypes.Index(job).AlternateRequirementSets;
-    }
-    // End Frontier: alternate requirement sets
 }
 
 /// <summary>

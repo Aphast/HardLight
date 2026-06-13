@@ -1,9 +1,7 @@
 using Content.Shared.Audio;
-#pragma warning disable IDE1006 // Allow underscore-prefixed fields in this file for consistency
 using Content.Shared.Construction.Components;
 using Content.Shared.Explosion;
 using Content.Shared.Eye;
-using Content.Shared.Interaction.Components;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Maps;
 using Content.Shared.Popups;
@@ -18,14 +16,14 @@ namespace Content.Shared.SubFloor
     ///     Entity system backing <see cref="SubFloorHideComponent"/>.
     /// </summary>
     [UsedImplicitly]
-    public abstract class SharedSubFloorHideSystem : EntitySystem
+    public abstract partial class SharedSubFloorHideSystem : EntitySystem
     {
-        [Dependency] private readonly ITileDefinitionManager _tileDefinitionManager = default!;
-        [Dependency] private readonly SharedAmbientSoundSystem _ambientSoundSystem = default!;
-        [Dependency] protected readonly SharedMapSystem Map = default!;
-        [Dependency] protected readonly SharedAppearanceSystem Appearance = default!;
-        [Dependency] private readonly SharedVisibilitySystem _visibility = default!;
-        [Dependency] protected readonly SharedPopupSystem _popup = default!;
+        [Dependency] private ITileDefinitionManager _tileDefinitionManager = default!;
+        [Dependency] private SharedAmbientSoundSystem _ambientSoundSystem = default!;
+        [Dependency] protected SharedMapSystem Map = default!;
+        [Dependency] protected SharedAppearanceSystem Appearance = default!;
+        [Dependency] private SharedVisibilitySystem _visibility = default!;
+        [Dependency] protected SharedPopupSystem _popup = default!;
 
         private EntityQuery<SubFloorHideComponent> _hideQuery;
 
@@ -85,10 +83,6 @@ namespace Content.Shared.SubFloor
 
         private void OnInteractionAttempt(EntityUid uid, SubFloorHideComponent component, ref GettingInteractedWithAttemptEvent args)
         {
-            // Allow admins (e.g., mappers/aghosts) to twiddle with stuff under subfloors
-            if (HasComp<BypassInteractionChecksComponent>(args.Uid))
-                return;
-
             // No interactions with entities hidden under floor tiles.
             if (component.BlockInteractions && component.IsUnderCover)
                 args.Cancelled = true;
@@ -136,7 +130,7 @@ namespace Content.Shared.SubFloor
                 if (change.NewTile.IsEmpty)
                     continue; // Anything that was here will be unanchored anyways.
 
-                UpdateTile(args.Entity.Owner, args.Entity.Comp, change.GridIndices);
+                UpdateTile(args.Entity, args.Entity.Comp, change.GridIndices);
             }
         }
 
@@ -234,11 +228,6 @@ namespace Content.Shared.SubFloor
     [Serializable, NetSerializable]
     public enum SubfloorLayers : byte
     {
-        FirstLayer,
-        // HL - Add another layer, because... reasons (Pucklight commit)
-        // Caaaarl you duplicated the subfloor layer
-        //SecondLayer
+        FirstLayer
     }
 }
-// Re-enable warnings if they were disabled elsewhere
-#pragma warning restore IDE1006

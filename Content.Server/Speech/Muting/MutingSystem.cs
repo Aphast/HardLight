@@ -1,5 +1,6 @@
 using Content.Server.Abilities.Mime;
 using Content.Server.Chat.Systems;
+using Content.Server._EinsteinEngines.Language;
 using Content.Server.Popups;
 using Content.Server.Speech.Components;
 using Content.Server.Speech.EntitySystems;
@@ -7,20 +8,18 @@ using Content.Shared.Chat.Prototypes;
 using Content.Shared.Puppet;
 using Content.Shared.Speech;
 using Content.Shared.Speech.Muting;
-using Content.Server._Starlight.Language; // Starlight
 
 namespace Content.Server.Speech.Muting
 {
-    public sealed class MutingSystem : EntitySystem
+    public sealed partial class MutingSystem : EntitySystem
     {
-        [Dependency] private readonly PopupSystem _popupSystem = default!;
-        [Dependency] private readonly LanguageSystem _languages = default!; // Starlight
-
+        [Dependency] private LanguageSystem _languages = default!;
+        [Dependency] private PopupSystem _popupSystem = default!;
         public override void Initialize()
         {
             base.Initialize();
             SubscribeLocalEvent<MutedComponent, SpeakAttemptEvent>(OnSpeakAttempt);
-            SubscribeLocalEvent<MutedComponent, EmoteEvent>(OnEmote, before: new[] { typeof(VocalSystem) });
+            SubscribeLocalEvent<MutedComponent, EmoteEvent>(OnEmote, before: new[] { typeof(VocalSystem), typeof(MumbleAccentSystem) });
             SubscribeLocalEvent<MutedComponent, ScreamActionEvent>(OnScreamAction, before: new[] { typeof(VocalSystem) });
         }
 
@@ -29,7 +28,7 @@ namespace Content.Server.Speech.Muting
             if (args.Handled)
                 return;
 
-            // still leaves the text so it looks like they are pantomiming a laugh
+            //still leaves the text so it looks like they are pantomiming a laugh
             if (args.Emote.Category.HasFlag(EmoteCategory.Vocal))
                 args.Handled = true;
         }
@@ -52,11 +51,9 @@ namespace Content.Server.Speech.Muting
         {
             // TODO something better than this.
 
-            // Starlight start: Cannot mute if there's no speech involved
             var language = _languages.GetLanguage(uid);
-            if (!language.Speech.RequireSpeech)
-                return;
-            // Starlight end
+            if (!language.SpeechOverride.RequireSpeech)
+                return; // Cannot mute if there's no speech involved
 
             if (HasComp<MimePowersComponent>(uid))
                 _popupSystem.PopupEntity(Loc.GetString("mime-cant-speak"), uid, uid);

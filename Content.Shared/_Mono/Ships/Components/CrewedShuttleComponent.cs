@@ -1,16 +1,14 @@
 namespace Content.Shared._Mono.Ships.Components;
 
 /// <summary>
-/// Marks a shuttle as crewed: a single user cannot have both a shuttle console
-/// and a gunnery console open simultaneously on the same grid. Override on a
-/// per-user basis with <see cref="AdvancedPilotComponent"/>.
+/// This is used for knowing whether a shuttle should be forced to be crewed.
 /// </summary>
 [RegisterComponent]
 public sealed partial class CrewedShuttleComponent : Component
 {
     [DataField]
-    public List<EntityUid> ShuttleConsoles = new();
+    public List<EntityUid> ShuttleConsoles;
 
     [DataField]
-    public List<EntityUid> GunneryConsoles = new();
+    public List<EntityUid> GunneryConsoles;
 }

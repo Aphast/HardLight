@@ -41,6 +41,8 @@
   - type: BatterySelfRecharger
   - type: PirateBountyItem
     id: GunneryServer
+  - type: StaticPrice
+    price: 200
 
 - type: entity
   id: GunneryServerLow
@@ -60,8 +62,9 @@
     idleLoad: 5
     batteryRechargeRate: 300
     batteryRechargeEfficiency: 0.95
-  - type: PirateBountyItem
-    id: GunneryServer
+  - type: ShipRepairable
+    repairTime: 10
+    repairCost: 25
 
 - type: entity
   id: GunneryServerMedium
@@ -81,6 +84,9 @@
     idleLoad: 10
     batteryRechargeRate: 600
     batteryRechargeEfficiency: 0.95
+  - type: ShipRepairable
+    repairTime: 13
+    repairCost: 40
 
 - type: entity
   id: GunneryServerHigh
@@ -100,6 +106,9 @@
     idleLoad: 20
     batteryRechargeRate: 1200
     batteryRechargeEfficiency: 0.95
+  - type: ShipRepairable
+    repairTime: 20
+    repairCost: 70
 
 - type: entity
   id: GunneryServerUltra
@@ -121,6 +130,9 @@
     batteryRechargeEfficiency: 0.95
 #  - type: Anchorable # Sorry Tunguska, but I am NOT risking this being used for a missile bus. - "what could go wrong" says redrover
 #    flags: Anchorable
+  - type: ShipRepairable
+    repairTime: 25
+    repairCost: 100
 
 - type: entity
   id: GunneryServerOmega
@@ -130,7 +142,7 @@
   - type: Machine
     board: MachineGCSUltraCircuitboard
   - type: FireControlServer
-    processingPower: 150
+    processingPower: 500
   - type: Battery
     maxCharge: 2000
     startingCharge: 2000
@@ -142,6 +154,9 @@
     batteryRechargeEfficiency: 0.95
   - type: Anchorable # Sorry Flyssa, but I am NOT risking this being used for a missile bus.
     flags: Anchorable
+  - type: ShipRepairable
+    repairTime: 40
+    repairCost: 150
 
 - type: entity
   id: GunneryServerStation
@@ -152,6 +167,8 @@
     board: MachineGCSStationCircuitboard
   - type: FireControlServer
     processingPower: 3000
+  # no thermal sig
+  # TODO: nuke this off ships
   - type: Battery
     maxCharge: 2500
     startingCharge: 2500
@@ -163,28 +180,36 @@
     batteryRechargeEfficiency: 0.95
   - type: Anchorable
     flags: Anchorable
+  - type: ShipRepairable
+    repairTime: 40
+    repairCost: 150
 
-# Monolith : Gunnery Computer
 - type: entity
-  id: GunneryTest
-  parent: BaseWeaponTurret
-  name: gunnery controllable
-  description: Helps debug gunnery.
+  id: GunneryServerStationConsolesEnforced
+  parent: [BaseStructureDisableToolUse, GunneryServerBase]
+  name: station gunnery control server
+  suffix: Enforced Max Consoles
   components:
   - type: Machine
     board: MachineGCSStationCircuitboard
   - type: FireControlServer
     processingPower: 3000
+    enforceMaxConsoles: true
+    maxConsoles: 2
   - type: Battery
     maxCharge: 2500
     startingCharge: 2500
   - type: ApcPowerReceiver
-    powerLoad: 200
-  - type: ExtensionCableReceiver
-  - type: FireControllable
-  - type: RadarBlip
-    radarColor: "#FFFF33"
-    scale: 1
+    powerLoad: 5000
+  - type: ApcPowerReceiverBattery
+    idleLoad: 50
+    batteryRechargeRate: 6000
+    batteryRechargeEfficiency: 0.95
+  - type: Anchorable
+    flags: Anchorable
+  - type: ShipRepairable
+    repairTime: 40
+    repairCost: 150
 
 # Monolith : Gunnery Computer
 - type: entity
@@ -215,6 +240,7 @@
   - type: FireControlConsole
   - type: ShipNpcTarget
     needPower: true
+  - type: TargetSeekingTarget
   - type: ActivatableUI
     key: enum.FireControlConsoleUiKey.Key
   - type: UserInterface
@@ -225,9 +251,9 @@
         enum.WiresUiKey.Key:
           type: WiresBoundUserInterface
   - type: RadarConsole
-    maxRange: 1500
+    relativePanning: true
   - type: WorldLoader
-    radius: 256 # Mono
+    radius: 384 # Mono
   - type: Computer
     board: GunneryControlComputerCircuitboard
   - type: PointLight
@@ -260,6 +286,20 @@
           volume: 1.2
           pitch: 1.05
           variation: 0.05
+  - type: ShipRepairable
+    repairTime: 7
+    repairCost: 25
+  - type: RadarBlip
+    visibleFromOtherGrids: true
+    radarColor: "#fc9403"
+    scale: 1.5
+    shape: diamond
+    gridConfig:
+      color: "#fc9403"
+      shape: Square
+      respectZoom: true
+      rotate: true
+      bounds: "-0.5,-0.5,0.5,0.5"
 
 - type: entity
   parent: [BaseStructureComputerTabletop, ComputerGunneryConsole]

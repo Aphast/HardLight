@@ -1,6 +1,5 @@
-using Robust.Shared.GameObjects;
 using Robust.Shared.GameStates;
-using Robust.Shared.Serialization;
+using Robust.Shared.Prototypes;
 
 namespace Content.Shared._Mono.Company;
 
@@ -14,5 +13,5 @@ public sealed partial class CompanyComponent : Component
     /// The name of the company the player belongs to.
     /// </summary>
     [DataField, AutoNetworkedField]
-    public string CompanyName = string.Empty;
+    public ProtoId<CompanyPrototype> CompanyName = "None";
 }

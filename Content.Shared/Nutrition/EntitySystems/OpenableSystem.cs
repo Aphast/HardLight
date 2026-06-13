@@ -17,10 +17,10 @@ namespace Content.Shared.Nutrition.EntitySystems;
 /// </summary>
 public sealed partial class OpenableSystem : EntitySystem
 {
-    [Dependency] private readonly LockSystem _lock = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private LockSystem _lock = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     public override void Initialize()
     {
@@ -104,7 +104,7 @@ public sealed partial class OpenableSystem : EntitySystem
                 Text = Loc.GetString(comp.CloseVerbText),
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/close.svg.192dpi.png")),
                 Act = () => TryClose(args.Target, comp, args.User),
-                Priority = 3
+                // this verb is lower priority than drink verb (2) so it doesn't conflict
             };
         }
         else
@@ -113,8 +113,7 @@ public sealed partial class OpenableSystem : EntitySystem
             {
                 Text = Loc.GetString(comp.OpenVerbText),
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/open.svg.192dpi.png")),
-                Act = () => TryOpen(args.Target, comp, args.User),
-                Priority = 3
+                Act = () => TryOpen(args.Target, comp, args.User)
             };
         }
         args.Verbs.Add(verb);

@@ -14,9 +14,9 @@ namespace Content.Client.UserInterface.Controls;
 /// <remarks>
 /// Colors for the different states need to be set in the stylesheet
 /// </remarks>
-public sealed class ConfirmButton : Button
+public sealed partial class ConfirmButton : Button
 {
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
 
     public const string ConfirmPrefix = "confirm-";
 
@@ -86,7 +86,7 @@ public sealed class ConfirmButton : Button
             DrawModeChanged();
         }
 
-        if (Disabled && _gameTiming.CurTime > _nextCooldown)
+        if (IsConfirming && Disabled && _gameTiming.CurTime > _nextCooldown)
             Disabled = false;
     }
 

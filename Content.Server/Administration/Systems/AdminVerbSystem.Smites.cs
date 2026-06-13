@@ -1,7 +1,6 @@
 using System.Threading;
 using Content.Server.Administration.Commands;
 using Content.Server.Administration.Components;
-using Content.Server.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
@@ -20,6 +19,7 @@ using Content.Server.Tabletop;
 using Content.Server.Tabletop.Components;
 using Content.Shared.Administration;
 using Content.Shared.Administration.Components;
+using Content.Shared.Atmos.Components;
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Part;
 using Content.Shared.Clumsy;
@@ -39,6 +39,7 @@ using Content.Shared.Movement.Systems;
 using Content.Shared.Nutrition.Components;
 using Content.Shared.Popups;
 using Content.Shared.Slippery;
+using Content.Shared.Storage.Components;
 using Content.Shared.Tabletop.Components;
 using Content.Shared.Tools.Systems;
 using Content.Shared.Verbs;
@@ -50,11 +51,10 @@ using Robust.Shared.Physics.Systems;
 using Robust.Shared.Player;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
-using Robust.Shared.Prototypes;
 using Timer = Robust.Shared.Timing.Timer;
 using Robust.Shared.Audio.Systems; // Frontier
 using Robust.Shared.Audio; // Frontier
-using Content.Server.NF.Speech.Components; // Frontier
+using Content.Server._NF.Speech.Components; // Frontier
 using Content.Shared.Damage.Prototypes; // Frontier
 using Content.Shared.Bed.Sleep; // Frontier
 
@@ -62,35 +62,33 @@ namespace Content.Server.Administration.Systems;
 
 public sealed partial class AdminVerbSystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly BloodstreamSystem _bloodstreamSystem = default!;
-    [Dependency] private readonly BodySystem _bodySystem = default!;
-    [Dependency] private readonly CreamPieSystem _creamPieSystem = default!;
-    [Dependency] private readonly ElectrocutionSystem _electrocutionSystem = default!;
-    [Dependency] private readonly EntityStorageSystem _entityStorageSystem = default!;
-    [Dependency] private readonly ExplosionSystem _explosionSystem = default!;
-    [Dependency] private readonly FixtureSystem _fixtures = default!;
-    [Dependency] private readonly FlammableSystem _flammableSystem = default!;
-    [Dependency] private readonly GhostKickManager _ghostKickManager = default!;
-    [Dependency] private readonly SharedGodmodeSystem _sharedGodmodeSystem = default!;
-    [Dependency] private readonly InventorySystem _inventorySystem = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _movementSpeedModifierSystem = default!;
-    [Dependency] private readonly PolymorphSystem _polymorphSystem = default!;
-    [Dependency] private readonly MobThresholdSystem _mobThresholdSystem = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly TabletopSystem _tabletopSystem = default!;
-    [Dependency] private readonly VomitSystem _vomitSystem = default!;
-    [Dependency] private readonly WeldableSystem _weldableSystem = default!;
-    [Dependency] private readonly SharedContentEyeSystem _eyeSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly SuperBonkSystem _superBonkSystem = default!;
-    [Dependency] private readonly SlipperySystem _slipperySystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!; // Frontier
-    [Dependency] private readonly DamageableSystem _damageable = default!; // Frontier
-    [Dependency] private readonly SleepingSystem _sleep = default!; // Frontier
-
-    private static readonly ProtoId<DamageTypePrototype> BluntDamage = new("Blunt");
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private BloodstreamSystem _bloodstreamSystem = default!;
+    [Dependency] private BodySystem _bodySystem = default!;
+    [Dependency] private CreamPieSystem _creamPieSystem = default!;
+    [Dependency] private ElectrocutionSystem _electrocutionSystem = default!;
+    [Dependency] private EntityStorageSystem _entityStorageSystem = default!;
+    [Dependency] private ExplosionSystem _explosionSystem = default!;
+    [Dependency] private FixtureSystem _fixtures = default!;
+    [Dependency] private FlammableSystem _flammableSystem = default!;
+    [Dependency] private GhostKickManager _ghostKickManager = default!;
+    [Dependency] private SharedGodmodeSystem _sharedGodmodeSystem = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
+    [Dependency] private MovementSpeedModifierSystem _movementSpeedModifierSystem = default!;
+    [Dependency] private PolymorphSystem _polymorphSystem = default!;
+    [Dependency] private MobThresholdSystem _mobThresholdSystem = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private TabletopSystem _tabletopSystem = default!;
+    [Dependency] private VomitSystem _vomitSystem = default!;
+    [Dependency] private WeldableSystem _weldableSystem = default!;
+    [Dependency] private SharedContentEyeSystem _eyeSystem = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private SuperBonkSystem _superBonkSystem = default!;
+    [Dependency] private SlipperySystem _slipperySystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!; // Frontier
+    [Dependency] private DamageableSystem _damageable = default!; // Frontier
+    [Dependency] private SleepingSystem _sleep = default!; // Frontier
 
     // All smite verbs have names so invokeverb works.
     private void AddSmiteVerbs(GetVerbsEvent<Verb> args)
@@ -128,6 +126,27 @@ public sealed partial class AdminVerbSystem
         };
         args.Verbs.Add(explode);
 
+        var bluntGibName = Loc.GetString("admin-smite-blunt-gib-name").ToLowerInvariant();
+        Verb bluntGib = new()
+        {
+            Text = bluntGibName,
+            Category = VerbCategory.Smite,
+            Icon = new SpriteSpecifier.Texture(new ("/Textures/Interface/VerbIcons/smite.svg.192dpi.png")),
+            Act = () =>
+            {
+                // Create a very high blunt damage to ensure gibbing
+                var damageSpec = new DamageSpecifier();
+                damageSpec.DamageDict.Add("Blunt", 1000);
+
+                // Apply the damage and then gib the body
+                _damageable.TryChangeDamage(args.Target, damageSpec, true);
+                _bodySystem.GibBody(args.Target);
+            },
+            Impact = LogImpact.Extreme,
+            Message = string.Join(": ", bluntGibName, Loc.GetString("admin-smite-blunt-gib-description"))
+        };
+        args.Verbs.Add(bluntGib);
+
         var chessName = Loc.GetString("admin-smite-chess-dimension-name").ToLowerInvariant();
         Verb chess = new()
         {
@@ -160,7 +179,7 @@ public sealed partial class AdminVerbSystem
             var flamesName = Loc.GetString("admin-smite-set-alight-name").ToLowerInvariant();
             Verb flames = new()
             {
-                Text = flamesName,
+                Text = "admin-smite-set-alight-name",
                 Category = VerbCategory.Smite,
                 Icon = new SpriteSpecifier.Texture(new ("/Textures/Interface/Alerts/Fire/fire.png")),
                 Act = () =>
@@ -492,7 +511,7 @@ public sealed partial class AdminVerbSystem
         var breadName = Loc.GetString("admin-smite-become-bread-name").ToLowerInvariant(); // Will I get cancelled for breadName-ing you?
         Verb bread = new()
         {
-            Text = breadName,
+            Text = "admin-smite-kill-sign-name",
             Category = VerbCategory.Smite,
             Icon = new SpriteSpecifier.Rsi(new ("/Textures/Objects/Consumable/Food/Baked/bread.rsi"), "plain"),
             Act = () =>
@@ -507,7 +526,7 @@ public sealed partial class AdminVerbSystem
         var mouseName = Loc.GetString("admin-smite-become-mouse-name").ToLowerInvariant();
         Verb mouse = new()
         {
-            Text = mouseName,
+            Text = "admin-smite-cluwne-name",
             Category = VerbCategory.Smite,
             Icon = new SpriteSpecifier.Rsi(new ("/Textures/Mobs/Animals/mouse.rsi"), "icon-0"),
             Act = () =>
@@ -664,7 +683,7 @@ public sealed partial class AdminVerbSystem
         var instrumentationName = Loc.GetString("admin-smite-become-instrument-name").ToLowerInvariant();
         Verb instrumentation = new()
         {
-            Text = instrumentationName,
+            Text = "admin-smite-become-mouse-name",
             Category = VerbCategory.Smite,
             Icon = new SpriteSpecifier.Rsi(new ("/Textures/Objects/Fun/Instruments/h_synthesizer.rsi"), "supersynth"),
             Act = () =>
@@ -735,7 +754,7 @@ public sealed partial class AdminVerbSystem
         var headstandName = Loc.GetString("admin-smite-headstand-name").ToLowerInvariant();
         Verb headstand = new()
         {
-            Text = headstandName,
+            Text = "admin-smite-run-walk-swap-name",
             Category = VerbCategory.Smite,
             Icon = new SpriteSpecifier.Texture(new ("/Textures/Interface/VerbIcons/refresh.svg.192dpi.png")),
             Act = () =>
@@ -833,7 +852,7 @@ public sealed partial class AdminVerbSystem
         var superSpeedName = Loc.GetString("admin-smite-super-speed-name").ToLowerInvariant();
         Verb superSpeed = new()
         {
-            Text = superSpeedName,
+            Text = "admin-smite-garbage-can-name",
             Category = VerbCategory.Smite,
             Icon = new SpriteSpecifier.Texture(new ("/Textures/Interface/AdminActions/super_speed.png")),
             Act = () =>
@@ -866,7 +885,7 @@ public sealed partial class AdminVerbSystem
         args.Verbs.Add(superBonkLite);
 
         var superBonkName = Loc.GetString("admin-smite-super-bonk-name").ToLowerInvariant();
-        Verb superBonk = new()
+        Verb superBonk= new()
         {
             Text = superBonkName,
             Category = VerbCategory.Smite,
@@ -960,7 +979,7 @@ public sealed partial class AdminVerbSystem
                     }
                 }
 
-                if (_prototypeManager.TryIndex<DamageTypePrototype>(BluntDamage, out var bluntProto))
+                if (_prototypeManager.TryIndex<DamageTypePrototype>("Blunt", out var bluntProto))
                 {
                     var bluntDamage = new DamageSpecifier(bluntProto, 10);
                     _damageable.TryChangeDamage(args.Target, bluntDamage, true);
@@ -1003,7 +1022,11 @@ public sealed partial class AdminVerbSystem
             Text = fuelRodifyName,
             Category = VerbCategory.Smite,
             Icon = new SpriteSpecifier.Rsi(new("/Textures/_FarHorizons/Structures/Power/Generation/FissionGenerator/reactor_parts.rsi"), "default_rod"),
-            Act = () => _polymorphSystem.PolymorphEntity(args.Target, "AdminFuelRodSmite"),
+            Act = () =>
+            {
+                _bodySystem.GibBody(args.Target);
+                _polymorphSystem.PolymorphEntity(args.Target, "AdminFuelRodSmite");
+            },
             Impact = LogImpact.Extreme,
             Message = string.Join(": ", fuelRodifyName, Loc.GetString("admin-smite-become-fuelrod-description"))
         };

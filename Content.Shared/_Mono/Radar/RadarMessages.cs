@@ -1,9 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Ark
-// SPDX-FileCopyrightText: 2025 Ilya246
-// SPDX-FileCopyrightText: 2025 ark1368
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
+using System.Linq;
 using System.Numerics;
 using Robust.Shared.Map;
 using Robust.Shared.Serialization;
@@ -38,30 +33,9 @@ public sealed class GiveBlipsEvent : EntityEventArgs
     public readonly List<BlipNetData> Blips;
 
     /// <summary>
-    /// Hitscan lines to display on the radar as (grid entity, start position, end position, thickness, color).
-    /// If grid entity is null, positions are world-space; otherwise they are grid-local.
+    /// Hitscan lines to display on the radar as (start position, end position, thickness, color).
     /// </summary>
     public readonly List<HitscanNetData> HitscanLines;
-
-    public GiveBlipsEvent(List<BlipNetData> blips)
-    {
-        ConfigPalette = new List<BlipConfig>();
-        Blips = blips;
-        HitscanLines = new List<HitscanNetData>();
-    }
-
-    public GiveBlipsEvent(
-        List<BlipNetData> blips,
-        List<(NetEntity? Grid, Vector2 Start, Vector2 End, float Thickness, Color Color)> hitscans)
-    {
-        ConfigPalette = new List<BlipConfig>();
-        Blips = blips;
-        HitscanLines = new List<HitscanNetData>(hitscans.Count);
-        foreach (var (grid, start, end, thickness, color) in hitscans)
-        {
-            HitscanLines.Add(new HitscanNetData(grid, start, end, thickness, color));
-        }
-    }
 
     public GiveBlipsEvent(
         List<BlipConfig> configPalette,
@@ -87,7 +61,7 @@ public sealed class RequestBlipsEvent : EntityEventArgs
 [Serializable, NetSerializable]
 public sealed class BlipRemovalEvent : EntityEventArgs
 {
-    public NetEntity NetBlipUid;
+    public NetEntity NetBlipUid { get; set; }
 
     public BlipRemovalEvent(NetEntity netBlipUid)
     {
@@ -107,7 +81,7 @@ public record struct BlipNetData
 );
 
 [Serializable, NetSerializable]
-public record struct HitscanNetData(NetEntity? Grid, Vector2 Start, Vector2 End, float Thickness, Color Color);
+public record struct HitscanNetData(Vector2 Start, Vector2 End, float Thickness, Color Color);
 
 [Serializable, NetSerializable, DataDefinition]
 public partial record struct BlipConfig

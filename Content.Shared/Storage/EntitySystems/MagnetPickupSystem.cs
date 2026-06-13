@@ -1,53 +1,34 @@
-// SPDX-FileCopyrightText: 2023 Leon Friedrich
-// SPDX-FileCopyrightText: 2023 Nemanja
-// SPDX-FileCopyrightText: 2023 Stray-Pyramid
-// SPDX-FileCopyrightText: 2023 crystalHex
-// SPDX-FileCopyrightText: 2024 Kara
-// SPDX-FileCopyrightText: 2024 Mnemotechnican
-// SPDX-FileCopyrightText: 2024 Pieter-Jan Briers
-// SPDX-FileCopyrightText: 2024 Plykiya
-// SPDX-FileCopyrightText: 2024 TemporalOroboros
-// SPDX-FileCopyrightText: 2024 metalgearsloth
-// SPDX-FileCopyrightText: 2025 Dvir
-// SPDX-FileCopyrightText: 2025 GreaseMonk
-// SPDX-FileCopyrightText: 2025 Kyle Tyo
-// SPDX-FileCopyrightText: 2025 Redrover1760
-// SPDX-FileCopyrightText: 2025 Whatstone
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 using Content.Shared.Storage.Components; // Frontier: Server<Shared
 using Content.Shared.Examine;
 using Content.Shared.Hands.Components;
 using Content.Shared.Inventory;
 using Content.Shared.Item.ItemToggle; // DeltaV
-using Content.Shared.Verbs; // Frontier
 using Content.Shared.Whitelist;
 using Robust.Shared.Map;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Content.Shared.Item; // Frontier
+using Content.Shared.Verbs; // Frontier
 
 namespace Content.Shared.Storage.EntitySystems;
 
 /// <summary>
 /// <see cref="MagnetPickupComponent"/>
 /// </summary>
-public sealed class MagnetPickupSystem : EntitySystem
+public sealed partial class MagnetPickupSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    // [Dependency] private readonly InventorySystem _inventory = default!; // Frontier
-    [Dependency] private readonly ItemToggleSystem _toggle = default!; // DeltaV
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly SharedStorageSystem _storage = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly SharedItemSystem _item = default!; // Frontier
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private ItemToggleSystem _toggle = default!; // DeltaV
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedStorageSystem _storage = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedItemSystem _item = default!; // Frontier
 
 
     private static readonly TimeSpan ScanDelay = TimeSpan.FromSeconds(1);
-    public TimeSpan NextScan = TimeSpan.Zero;
     private const int MaxEntitiesToInsert = 15; // Frontier
 
     private EntityQuery<PhysicsComponent> _physicsQuery;
@@ -56,18 +37,16 @@ public sealed class MagnetPickupSystem : EntitySystem
     {
         base.Initialize();
         _physicsQuery = GetEntityQuery<PhysicsComponent>();
-        //SubscribeLocalEvent<MagnetPickupComponent, MapInitEvent>(OnMagnetMapInit);
+        SubscribeLocalEvent<MagnetPickupComponent, MapInitEvent>(OnMagnetMapInit);
         SubscribeLocalEvent<MagnetPickupComponent, ExaminedEvent>(OnExamined); // Frontier
         SubscribeLocalEvent<MagnetPickupComponent, GetVerbsEvent<AlternativeVerb>>(AddToggleMagnetVerb); // Frontier
-        NextScan = _timing.CurTime + ScanDelay;
     }
 
-    /*
     private void OnMagnetMapInit(EntityUid uid, MagnetPickupComponent component, MapInitEvent args)
     {
         component.NextScan = _timing.CurTime;
     }
-    */ // Mono
+
 
     // Frontier: togglable magnets
     private void AddToggleMagnetVerb(EntityUid uid, MagnetPickupComponent component, GetVerbsEvent<AlternativeVerb> args)
@@ -124,16 +103,16 @@ public sealed class MagnetPickupSystem : EntitySystem
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
+        var query = EntityQueryEnumerator<MagnetPickupComponent, StorageComponent, TransformComponent, MetaDataComponent>();
         var currentTime = _timing.CurTime;
 
-        if (currentTime < NextScan) // Mono - Optimized Magnets
-            return;
-
-        NextScan += ScanDelay;
-
-        var query = EntityQueryEnumerator<MagnetPickupComponent, StorageComponent, TransformComponent, MetaDataComponent>();
         while (query.MoveNext(out var uid, out var comp, out var storage, out var xform, out var meta))
         {
+            if (comp.NextScan > currentTime)
+                continue;
+
+            comp.NextScan = currentTime + ScanDelay; // Frontier: no need to rerun if built late in-round
+
             // Frontier: combine DeltaV/White Dream's magnet toggle with old system
             if (comp.MagnetCanBeEnabled)
             {
@@ -171,10 +150,17 @@ public sealed class MagnetPickupSystem : EntitySystem
             foreach (var near in _lookup.GetEntitiesInRange(uid, comp.Range, LookupFlags.Dynamic | LookupFlags.Sundries))
             {
                 // Frontier: stop spamming bags
-                count++;
-
-                if (count > MaxEntitiesToInsert)
+                if (count >= MaxEntitiesToInsert)
                     break;
+
+                if (near == parentUid)
+                    continue;
+
+                if (!_physicsQuery.TryGetComponent(near, out var physics) || physics.BodyStatus != BodyStatus.OnGround)
+                    continue;
+
+                if (_whitelistSystem.IsWhitelistFail(storage.Whitelist, near))
+                    continue;
 
                 if (!TryComp<ItemComponent>(near, out var item))
                     continue;
@@ -182,16 +168,10 @@ public sealed class MagnetPickupSystem : EntitySystem
                 var itemSize = _item.GetItemShape((near, item)).GetArea();
                 if (itemSize > totalSlots - slotCount)
                     break;
+
+                // Count only objects we _could_ insert.
+                count++;
                 // End Frontier: stop spamming bags
-
-                if (_whitelistSystem.IsWhitelistFail(storage.Whitelist, near))
-                    continue;
-
-                if (!_physicsQuery.TryGetComponent(near, out var physics) || physics.BodyStatus != BodyStatus.OnGround)
-                    continue;
-
-                if (near == parentUid)
-                    continue;
 
                 // TODO: Probably move this to storage somewhere when it gets cleaned up
                 // TODO: This sucks but you need to fix a lot of stuff to make it better

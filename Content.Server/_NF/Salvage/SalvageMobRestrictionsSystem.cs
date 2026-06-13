@@ -11,11 +11,12 @@ using Robust.Shared.Player;
 
 namespace Content.Server._NF.Salvage;
 
-public sealed class SalvageMobRestrictionsSystem : EntitySystem
+public sealed partial class SalvageMobRestrictionsSystem : EntitySystem
 {
-    [Dependency] private readonly BodySystem _body = default!;
-    [Dependency] private readonly ExplosionSystem _explosion = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
+    [Dependency] private BodySystem _body = default!;
+    [Dependency] private ExplosionSystem _explosion = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
 
     public override void Initialize()
     {
@@ -56,16 +57,14 @@ public sealed class SalvageMobRestrictionsSystem : EntitySystem
 
     private void OnRemoveGrid(EntityUid uid, SalvageMobRestrictionsGridComponent component, ComponentRemove args)
     {
-        if (!uid.IsValid() || !EntityManager.EntityExists(uid))
-            return;
-
-        foreach (var target in component.MobsToKill.ToArray())
+        foreach (EntityUid target in component.MobsToKill)
         {
-            if (!target.IsValid() || !EntityManager.EntityExists(target))
+            // Don't destroy yourself, don't destroy things being destroyed.
+            if (uid == target || MetaData(target).EntityLifeStage >= EntityLifeStage.Terminating)
                 continue;
 
-            // Don't destroy yourself, don't destroy things being destroyed.
-            if (uid == target || Terminating(target))
+            // Mono - fix
+            if (TryComp<NFSalvageMobRestrictionsComponent>(target, out var mobRestrictions) && !mobRestrictions.DespawnIfOffLinkedGrid)
                 continue;
 
             if (TryComp(target, out BodyComponent? body))
@@ -73,13 +72,13 @@ public sealed class SalvageMobRestrictionsSystem : EntitySystem
                 // Creates a pool of blood on death, but remove the organs.
                 var gibs = _body.GibBody(target, body: body, gibOrgans: true);
                 foreach (var gib in gibs)
-                    QueueDel(gib);
+                    Del(gib);
             }
             else
             {
                 // No body, probably a robot - explode it and delete the body
                 _explosion.QueueExplosion(target, ExplosionSystem.DefaultExplosionPrototypeId, 5, 10, 5);
-                QueueDel(target);
+                Del(target);
             }
         }
     }
@@ -122,8 +121,8 @@ public sealed class SalvageMobRestrictionsSystem : EntitySystem
             if (actor.PlayerSession.AttachedEntity == null)
                 return;
 
-            /* if (component.DespawnIfOffLinkedGrid)
-                _adminLogger.Add(LogType.AdminMessage, LogImpact.Low, $"{ToPrettyString(actor.PlayerSession.AttachedEntity.Value):player} returned to dungeon grid"); */
+            if (component.DespawnIfOffLinkedGrid)
+                _adminLogger.Add(LogType.AdminMessage, LogImpact.Low, $"{ToPrettyString(actor.PlayerSession.AttachedEntity.Value):player} returned to dungeon grid");
         }
         else
         {
@@ -138,7 +137,7 @@ public sealed class SalvageMobRestrictionsSystem : EntitySystem
 
             if (component.DespawnIfOffLinkedGrid)
             {
-                //_adminLogger.Add(LogType.AdminMessage, LogImpact.Low, $"{ToPrettyString(actor.PlayerSession.AttachedEntity.Value):player} left the dungeon grid");
+                _adminLogger.Add(LogType.AdminMessage, LogImpact.Low, $"{ToPrettyString(actor.PlayerSession.AttachedEntity.Value):player} left the dungeon grid");
                 _popupSystem.PopupEntity(popupMessage, actor.PlayerSession.AttachedEntity.Value, actor.PlayerSession, PopupType.MediumCaution);
             }
         }
@@ -147,10 +146,7 @@ public sealed class SalvageMobRestrictionsSystem : EntitySystem
     // Returns true if the given entity is invalid or terminating
     private bool Terminating(EntityUid uid)
     {
-        if (!TryComp(uid, out MetaDataComponent? meta))
-            return true;
-
-        return meta.EntityLifeStage >= EntityLifeStage.Terminating;
+        return !TryComp(uid, out MetaDataComponent? meta) || meta.EntityLifeStage >= EntityLifeStage.Terminating;
     }
 }
 

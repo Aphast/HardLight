@@ -1,8 +1,7 @@
-# VRS port: Mono — base tech-disk prototype and tier weights.
-#
-# This mirrors the upstream Mono TechDiskBase / TechDiskTierWeightsNormal
-# definitions but uses VRS's existing TechnologyDisk framework and the
-# shared TechDiskMono tag already present in _Mono/tags.yml.
+# CIV TECH DISKS - #395933
+# FACTIONLATHE ONLY TECH DISKS - #454545
+# MECHA TECH DISKS - #345875
+# FRACTURE TECH DISKS - #d4d4d4
 
 - type: entity
   parent: BaseItem
@@ -20,9 +19,9 @@
     - state: protect
     - state: holo
       shader: unshaded
-  - type: Tag
-    tags:
-    - TechDiskMono
+    - type: Tag
+      tags:
+      - TechDiskMono
 
 - type: weightedRandom
   id: TechDiskTierWeightsNormal

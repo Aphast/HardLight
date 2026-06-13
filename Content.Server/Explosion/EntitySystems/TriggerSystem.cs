@@ -1,13 +1,11 @@
+using Content.Server._Mono.Planets;
 using Content.Server.Administration.Logs;
-using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
-using Content.Server.Chemistry.EntitySystems;
 using Content.Server.Explosion.Components;
-using Content.Server.Flash;
+using Content.Shared.Flash;
 using Content.Server.Electrocution;
 using Content.Server.Pinpointer;
 using Content.Shared.Chemistry.EntitySystems;
-using Content.Shared.FixedPoint;
 using Content.Shared.Flash.Components;
 using Content.Server.Radio.EntitySystems;
 using Content.Shared.Chemistry.Components;
@@ -17,10 +15,8 @@ using Content.Shared.Explosion.Components;
 using Content.Shared.Explosion.Components.OnTrigger;
 using Content.Shared.Implants.Components;
 using Content.Shared.Interaction;
-using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory;
 using Content.Shared.Mobs;
-using Robust.Shared.Timing;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Payload.Components;
 using Content.Shared.Radio;
@@ -28,7 +24,6 @@ using Content.Shared.Slippery;
 using Content.Shared.StepTrigger.Systems;
 using Content.Shared.Trigger;
 using Content.Shared.Weapons.Ranged.Events;
-using Content.Shared.Whitelist;
 using JetBrains.Annotations;
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
@@ -36,11 +31,16 @@ using Robust.Shared.Containers;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
 using Content.Server.Station.Systems;
+using Content.Shared._EinsteinEngines.Language;
 using Content.Shared.Humanoid;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
-using Robust.Shared.Utility;
 using Content.Shared.Body.Components; // Frontier: Gib organs
+using Content.Shared.Projectiles; // Frontier: embed triggers
+using Content.Shared.Mind;
+using Content.Shared.Mind.Components;
+using Content.Shared.Roles;
+using Robust.Shared.Map.Components;
 
 namespace Content.Server.Explosion.EntitySystems
 {
@@ -60,12 +60,6 @@ namespace Content.Server.Explosion.EntitySystems
     }
 
     /// <summary>
-    /// Raised before a trigger is activated.
-    /// </summary>
-    [ByRefEvent]
-    public record struct BeforeTriggerEvent(EntityUid Triggered, EntityUid? User, bool Cancelled = false);
-
-    /// <summary>
     /// Raised when timer trigger becomes active.
     /// </summary>
     [ByRefEvent]
@@ -74,25 +68,24 @@ namespace Content.Server.Explosion.EntitySystems
     [UsedImplicitly]
     public sealed partial class TriggerSystem : EntitySystem
     {
-        [Dependency] private readonly ExplosionSystem _explosions = default!;
-        [Dependency] private readonly FixtureSystem _fixtures = default!;
-        [Dependency] private readonly FlashSystem _flashSystem = default!;
-        [Dependency] private readonly SharedBroadphaseSystem _broadphase = default!;
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly SharedContainerSystem _container = default!;
-        [Dependency] private readonly BodySystem _body = default!;
-        [Dependency] private readonly SharedAudioSystem _audio = default!;
-        [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-        // [Dependency] private readonly NavMapSystem _navMap = default!; // Frontier
-        [Dependency] private readonly RadioSystem _radioSystem = default!;
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-        [Dependency] private readonly InventorySystem _inventory = default!;
-        [Dependency] private readonly ElectrocutionSystem _electrocution = default!;
-        [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-        [Dependency] private readonly StationSystem _station = default!; // Frontier: medical insurance
-        [Dependency] private readonly BloodstreamSystem _bloodstream = default!; // used by InjectOnTrigger
+        [Dependency] private ExplosionSystem _explosions = default!;
+        [Dependency] private FixtureSystem _fixtures = default!;
+        [Dependency] private SharedFlashSystem _flashSystem = default!;
+        [Dependency] private SharedBroadphaseSystem _broadphase = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private SharedContainerSystem _container = default!;
+        [Dependency] private BodySystem _body = default!;
+        [Dependency] private SharedAudioSystem _audio = default!;
+        [Dependency] private SharedTransformSystem _transformSystem = default!;
+        [Dependency] private NavMapSystem _navMap = default!;
+        [Dependency] private RadioSystem _radioSystem = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+        [Dependency] private InventorySystem _inventory = default!;
+        [Dependency] private ElectrocutionSystem _electrocution = default!;
+        [Dependency] private StationSystem _station = default!; // Frontier: medical insurance
+        [Dependency] private SharedMapSystem _map = default!; // Frontier: medical insurance
 
         public override void Initialize()
         {
@@ -104,17 +97,17 @@ namespace Content.Server.Explosion.EntitySystems
             InitializeTimedCollide();
             InitializeVoice();
             InitializeMobstate();
-            NFInitialize(); // Frontier
+            InitializeBeingGibbed(); // Frontier
 
             SubscribeLocalEvent<TriggerOnSpawnComponent, MapInitEvent>(OnSpawnTriggered);
             SubscribeLocalEvent<TriggerOnCollideComponent, StartCollideEvent>(OnTriggerCollide);
             SubscribeLocalEvent<TriggerOnActivateComponent, ActivateInWorldEvent>(OnActivate);
-            SubscribeLocalEvent<TriggerOnUseComponent, UseInHandEvent>(OnUse);
             SubscribeLocalEvent<TriggerImplantActionComponent, ActivateImplantEvent>(OnImplantTrigger);
             SubscribeLocalEvent<TriggerOnStepTriggerComponent, StepTriggeredOffEvent>(OnStepTriggered);
             SubscribeLocalEvent<TriggerOnSlipComponent, SlipEvent>(OnSlipTriggered);
             SubscribeLocalEvent<TriggerWhenEmptyComponent, OnEmptyGunShotEvent>(OnEmptyTriggered);
             SubscribeLocalEvent<RepeatingTriggerComponent, MapInitEvent>(OnRepeatInit);
+            SubscribeLocalEvent<TriggerOnProjectileHitComponent, ProjectileHitEvent>(OnProjectileHitEvent); // Frontier: trigger on embed
 
             SubscribeLocalEvent<SpawnOnTriggerComponent, TriggerEvent>(OnSpawnTrigger);
             SubscribeLocalEvent<DeleteOnTriggerComponent, TriggerEvent>(HandleDeleteTrigger);
@@ -125,15 +118,7 @@ namespace Content.Server.Explosion.EntitySystems
             SubscribeLocalEvent<AnchorOnTriggerComponent, TriggerEvent>(OnAnchorTrigger);
             SubscribeLocalEvent<SoundOnTriggerComponent, TriggerEvent>(OnSoundTrigger);
             SubscribeLocalEvent<ShockOnTriggerComponent, TriggerEvent>(HandleShockTrigger);
-            SubscribeLocalEvent<InjectOnTriggerComponent, TriggerEvent>(HandleInjectTrigger);
             SubscribeLocalEvent<RattleComponent, TriggerEvent>(HandleRattleTrigger);
-
-            SubscribeLocalEvent<TriggerWhitelistComponent, BeforeTriggerEvent>(HandleWhitelist);
-        }
-
-        private void HandleWhitelist(Entity<TriggerWhitelistComponent> ent, ref BeforeTriggerEvent args)
-        {
-            args.Cancelled = !_whitelist.CheckBoth(args.User, ent.Comp.Blacklist, ent.Comp.Whitelist);
         }
 
         private void OnSoundTrigger(EntityUid uid, SoundOnTriggerComponent component, TriggerEvent args)
@@ -163,43 +148,8 @@ namespace Content.Server.Explosion.EntitySystems
                 return;
             }
 
-            _electrocution.TryDoElectrocution(containerEnt, null, shockOnTrigger.Comp.Damage, shockOnTrigger.Comp.Duration, true,
-                ignoreInsulation: shockOnTrigger.Comp.IgnoreInsulation);
+            _electrocution.TryDoElectrocution(containerEnt, null, shockOnTrigger.Comp.Damage, shockOnTrigger.Comp.Duration, true);
             shockOnTrigger.Comp.NextTrigger = curTime + shockOnTrigger.Comp.Cooldown;
-        }
-
-        private void HandleInjectTrigger(Entity<InjectOnTriggerComponent> inject, ref TriggerEvent args)
-        {
-            // identical container lookup used by ShockOnTrigger: the container owning the
-            // clothing/responder component will be the mob wearing the item.
-            if (!_container.TryGetContainingContainer(inject.Owner, out var container))
-                return;
-
-            var wearer = container.Owner;
-            var now = _timing.CurTime;
-
-            if (now < inject.Comp.NextTrigger)
-                return;
-
-            // wearer needs a bloodstream in order to receive reagents
-            if (!TryComp<BloodstreamComponent>(wearer, out var bloodstream))
-                return;
-
-            // the source solution must exist on the clothing item; we need both the
-            // entity reference (for SplitSolution) and the actual Solution struct.
-            if (!_solutionContainerSystem.TryGetSolution(inject.Owner, inject.Comp.Solution, out var solEntityEnt, out var solEntity))
-                return;
-
-            // split off the requested volume.  If the solution was empty nothing happens.
-            var split = _solutionContainerSystem.SplitSolution(solEntityEnt.Value, inject.Comp.Amount);
-            if (split.Volume <= 0)
-            {
-                inject.Comp.NextTrigger = now + inject.Comp.Cooldown; // still go on cooldown
-                return;
-            }
-
-            _bloodstream.TryAddToChemicals(wearer, split, bloodstream);
-            inject.Comp.NextTrigger = now + inject.Comp.Cooldown;
         }
 
         private void OnAnchorTrigger(EntityUid uid, AnchorOnTriggerComponent component, TriggerEvent args)
@@ -215,23 +165,16 @@ namespace Content.Server.Explosion.EntitySystems
                 RemCompDeferred<AnchorOnTriggerComponent>(uid);
         }
 
-        private void OnSpawnTrigger(Entity<SpawnOnTriggerComponent> ent, ref TriggerEvent args)
+        private void OnSpawnTrigger(EntityUid uid, SpawnOnTriggerComponent component, TriggerEvent args)
         {
-            var xform = Transform(ent);
+            var xform = Transform(uid);
 
-            if (ent.Comp.mapCoords)
-            {
-                var mapCoords = _transformSystem.GetMapCoordinates(ent, xform);
-                Spawn(ent.Comp.Proto, mapCoords);
-            }
-            else
-            {
-                var coords = xform.Coordinates;
-                if (!coords.IsValid(EntityManager))
-                    return;
-                Spawn(ent.Comp.Proto, coords);
+            var coords = xform.Coordinates;
 
-            }
+            if (!coords.IsValid(EntityManager))
+                return;
+
+            Spawn(component.Proto, coords);
         }
 
         private void HandleExplodeTrigger(EntityUid uid, ExplodeOnTriggerComponent component, TriggerEvent args)
@@ -242,8 +185,7 @@ namespace Content.Server.Explosion.EntitySystems
 
         private void HandleFlashTrigger(EntityUid uid, FlashOnTriggerComponent component, TriggerEvent args)
         {
-            // TODO Make flash durations sane ffs.
-            _flashSystem.FlashArea(uid, args.User, component.Range, component.Duration * 1000f, probability: component.Probability);
+            _flashSystem.FlashArea(uid, args.User, component.Range, component.Duration, probability: component.Probability);
             args.Handled = true;
         }
 
@@ -295,7 +237,7 @@ namespace Content.Server.Explosion.EntitySystems
         }
         // End Frontier
 
-        // Frontier: custom function implementation
+        // Frontier: custom function implementation. Mono P.S - handling radio based on job through hardcode was something
         private void HandleRattleTrigger(EntityUid uid, RattleComponent component, TriggerEvent args)
         {
             if (!TryComp<SubdermalImplantComponent>(uid, out var implanted))
@@ -312,30 +254,42 @@ namespace Content.Server.Explosion.EntitySystems
             var posText = $"({x}, {y})";
 
             // Frontier: Gets station location of the implant
-            var station = _station.GetOwningStation(uid);
-            var stationText = station is null ? null : $"{Name(station.Value)} ";
+            var grid = ownerXform.GridUid;
+            var gridText = grid is null ? "" : MetaData(grid.Value).EntityName;
 
-            if (stationText == null)
-                stationText = "";
+            if (HasComp<MapComponent>(grid) && !HasComp<PlanetMapComponent>(grid))
+                gridText = "";
 
             // Frontier: Gets species of the implant user
             var speciesText = $"";
             if (TryComp<HumanoidAppearanceComponent>(implanted.ImplantedEntity, out var species))
-                speciesText = $" ({species!.Species})";
+                speciesText = $" ({species.Species})";
 
-            var critMessage = Loc.GetString(component.CritMessage, ("user", implanted.ImplantedEntity.Value), ("specie", speciesText), ("grid", stationText!), ("position", posText));
-            var deathMessage = Loc.GetString(component.DeathMessage, ("user", implanted.ImplantedEntity.Value), ("specie", speciesText), ("grid", stationText!), ("position", posText));
+            var critMessage = Loc.GetString(component.CritMessage, ("user", implanted.ImplantedEntity.Value), ("specie", speciesText), ("grid", gridText), ("position", posText));
+            var reviveMessage = Loc.GetString(component.ReviveMessage, ("user", implanted.ImplantedEntity.Value), ("specie", speciesText), ("grid", gridText), ("position", posText)); // Mono
+            var deathMessage = Loc.GetString(component.DeathMessage, ("user", implanted.ImplantedEntity.Value), ("specie", speciesText), ("grid", gridText), ("position", posText));
 
             if (!TryComp<MobStateComponent>(implanted.ImplantedEntity, out var mobstate))
                 return;
 
             if (mobstate.CurrentState != MobState.Alive)
             {
-                // Sends a message to the radio channel specified by the implant
-                if (mobstate.CurrentState == MobState.Critical)
-                    _radioSystem.SendRadioMessage(uid, critMessage, _prototypeManager.Index<RadioChannelPrototype>(component.RadioChannel), uid);
-                if (mobstate.CurrentState == MobState.Dead)
-                    _radioSystem.SendRadioMessage(uid, deathMessage, _prototypeManager.Index<RadioChannelPrototype>(component.RadioChannel), uid);
+                var radioChannel = _prototypeManager.Index(component.RadioChannel);
+                var language = _prototypeManager.Index(component.Language);
+                switch (mobstate.CurrentState)
+                {
+                    case MobState.Critical:
+                    {
+                        var message = mobstate.PreviousState == MobState.Dead ? reviveMessage : critMessage;
+                        _radioSystem.SendRadioMessage(uid, message, radioChannel, uid, null, language);
+                        break;
+                    }
+                    case MobState.Dead:
+                    {
+                        _radioSystem.SendRadioMessage(uid, deathMessage, radioChannel, uid, null, language);
+                        break;
+                    }
+                }
             }
 
             args.Handled = true;
@@ -344,26 +298,16 @@ namespace Content.Server.Explosion.EntitySystems
 
         private void OnTriggerCollide(EntityUid uid, TriggerOnCollideComponent component, ref StartCollideEvent args)
         {
-            if (args.OurFixtureId != component.FixtureID)
-                return;
-
-            if (component.IgnoreOtherNonHard && !args.OtherFixture.Hard)
-                return;
-
-            // Check whitelist - if specified, only entities on the whitelist can trigger
-            if (component.Whitelist != null && !_whitelist.IsWhitelistPass(component.Whitelist, args.OtherEntity))
-                return;
-
-            // Check blacklist - if specified, entities on the blacklist cannot trigger
-            if (component.Blacklist != null && !_whitelist.IsBlacklistPass(component.Blacklist, args.OtherEntity))
-                return;
-
-            Trigger(uid, args.OtherEntity);
+            if (args.OurFixtureId == component.FixtureID && (!component.IgnoreOtherNonHard || args.OtherFixture.Hard))
+                Trigger(uid, args.OtherEntity);
         }
 
         private void OnSpawnTriggered(EntityUid uid, TriggerOnSpawnComponent component, MapInitEvent args)
         {
-            Trigger(uid);
+            if (component.timerOnly == true)
+                StartTimer(uid,uid);
+            else
+                Trigger(uid);
         }
 
         private void OnActivate(EntityUid uid, TriggerOnActivateComponent component, ActivateInWorldEvent args)
@@ -372,15 +316,6 @@ namespace Content.Server.Explosion.EntitySystems
                 return;
 
             Trigger(uid, args.User);
-            args.Handled = true;
-        }
-
-        private void OnUse(Entity<TriggerOnUseComponent> ent, ref UseInHandEvent args)
-        {
-            if (args.Handled)
-                return;
-
-            Trigger(ent.Owner, args.User);
             args.Handled = true;
         }
 
@@ -404,6 +339,13 @@ namespace Content.Server.Explosion.EntitySystems
             Trigger(uid, args.EmptyGun);
         }
 
+        // Frontier: embed triggers
+        private void OnProjectileHitEvent(EntityUid uid, TriggerOnProjectileHitComponent component, ref ProjectileHitEvent args)
+        {
+            Trigger(uid, args.Target);
+        }
+        // End Frontier
+
         private void OnRepeatInit(Entity<RepeatingTriggerComponent> ent, ref MapInitEvent args)
         {
             ent.Comp.NextTrigger = _timing.CurTime + ent.Comp.Delay;
@@ -411,11 +353,6 @@ namespace Content.Server.Explosion.EntitySystems
 
         public bool Trigger(EntityUid trigger, EntityUid? user = null)
         {
-            var beforeTriggerEvent = new BeforeTriggerEvent(trigger, user);
-            RaiseLocalEvent(trigger, ref beforeTriggerEvent);
-            if (beforeTriggerEvent.Cancelled)
-                return false;
-
             var triggerEvent = new TriggerEvent(trigger, user);
             EntityManager.EventBus.RaiseLocalEvent(trigger, triggerEvent, true);
             return triggerEvent.Handled;

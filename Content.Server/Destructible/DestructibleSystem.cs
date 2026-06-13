@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Content.Server.Administration.Logs;
+using Content.Server.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Body.Systems;
 using Content.Server.Construction;
@@ -21,38 +22,37 @@ using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using System.Linq;
-using Content.Shared.Humanoid;
-using Robust.Shared.Player;
 
 namespace Content.Server.Destructible
 {
     [UsedImplicitly]
-    public sealed class DestructibleSystem : SharedDestructibleSystem
+    public sealed partial class DestructibleSystem : SharedDestructibleSystem
     {
-        [Dependency] public readonly IRobustRandom Random = default!;
+        [Dependency] public IRobustRandom Random = default!;
         public new IEntityManager EntityManager => base.EntityManager;
 
-        [Dependency] public readonly AtmosphereSystem AtmosphereSystem = default!;
-        [Dependency] public readonly AudioSystem AudioSystem = default!;
-        [Dependency] public readonly BodySystem BodySystem = default!;
-        [Dependency] public readonly ConstructionSystem ConstructionSystem = default!;
-        [Dependency] public readonly ExplosionSystem ExplosionSystem = default!;
-        [Dependency] public readonly StackSystem StackSystem = default!;
-        [Dependency] public readonly TriggerSystem TriggerSystem = default!;
-        [Dependency] public readonly SharedSolutionContainerSystem SolutionContainerSystem = default!;
-        [Dependency] public readonly PuddleSystem PuddleSystem = default!;
-        [Dependency] public readonly SharedContainerSystem ContainerSystem = default!;
-        [Dependency] public readonly IPrototypeManager PrototypeManager = default!;
-        [Dependency] public readonly IComponentFactory ComponentFactory = default!;
-        [Dependency] public readonly IAdminLogManager _adminLogger = default!;
+        [Dependency] public AtmosphereSystem AtmosphereSystem = default!;
+        [Dependency] public AudioSystem AudioSystem = default!;
+        [Dependency] public BodySystem BodySystem = default!;
+        [Dependency] public ConstructionSystem ConstructionSystem = default!;
+        [Dependency] public ExplosionSystem ExplosionSystem = default!;
+        [Dependency] public StackSystem StackSystem = default!;
+        [Dependency] public TriggerSystem TriggerSystem = default!;
+        [Dependency] public SharedSolutionContainerSystem SolutionContainerSystem = default!;
+        [Dependency] public PuddleSystem PuddleSystem = default!;
+        [Dependency] public SharedContainerSystem ContainerSystem = default!;
+        [Dependency] public IPrototypeManager PrototypeManager = default!;
+        [Dependency] public IAdminLogManager _adminLogger = default!;
 
-        private EntityQuery<DestructibleComponent> _destructibleQuery; // VRS (Triad #3732);
+        // Mono
+        private EntityQuery<DestructibleComponent> _destructibleQuery;
 
         public override void Initialize()
         {
             base.Initialize();
             SubscribeLocalEvent<DestructibleComponent, DamageChangedEvent>(Execute);
-            _destructibleQuery = GetEntityQuery<DestructibleComponent>(); // VRS (Triad #3732)
+
+            _destructibleQuery = GetEntityQuery<DestructibleComponent>();
         }
 
         /// <summary>
@@ -60,20 +60,15 @@ namespace Content.Server.Destructible
         /// </summary>
         public void Execute(EntityUid uid, DestructibleComponent component, DamageChangedEvent args)
         {
-            component.IsBroken = false;
-
             foreach (var threshold in component.Thresholds)
             {
                 if (threshold.Reached(args.Damageable, this))
                 {
                     RaiseLocalEvent(uid, new DamageThresholdReached(component, threshold), true);
 
-                    var logImpact = LogImpact.Low;
                     // Convert behaviors into string for logs
                     var triggeredBehaviors = string.Join(", ", threshold.Behaviors.Select(b =>
                     {
-                        if (logImpact <= b.Impact)
-                            logImpact = b.Impact;
                         if (b is DoActsBehavior doActsBehavior)
                         {
                             return $"{b.GetType().Name}:{doActsBehavior.Acts.ToString()}";
@@ -81,46 +76,27 @@ namespace Content.Server.Destructible
                         return b.GetType().Name;
                     }));
 
-                    // If it doesn't have a humanoid component, it's probably not particularly notable?
-                    if (logImpact > LogImpact.Medium && !HasComp<HumanoidAppearanceComponent>(uid))
-                        logImpact = LogImpact.Medium;
+                    // Check if the damage is from space (barotrauma)
+                    var spaceOrigin = args.Origin != null && EntityManager.HasComponent<BarotraumaComponent>(args.Origin.Value);
 
                     if (args.Origin != null)
                     {
-                        _adminLogger.Add(LogType.Damaged,
-                            logImpact,
+                        _adminLogger.Add(LogType.Damaged, LogImpact.Medium,
                             $"{ToPrettyString(args.Origin.Value):actor} caused {ToPrettyString(uid):subject} to trigger [{triggeredBehaviors}]");
                     }
                     else
                     {
-                        _adminLogger.Add(LogType.Damaged,
-                            logImpact,
+                        _adminLogger.Add(LogType.Damaged, LogImpact.Medium,
                             $"Unknown damage source caused {ToPrettyString(uid):subject} to trigger [{triggeredBehaviors}]");
                     }
 
-                    threshold.Execute(uid, this, EntityManager, args.Origin);
-                }
-
-                if (threshold.OldTriggered)
-                {
-                    component.IsBroken |= threshold.Behaviors.Any(b => b is DoActsBehavior doActsBehavior &&
-                        (doActsBehavior.HasAct(ThresholdActs.Breakage) || doActsBehavior.HasAct(ThresholdActs.Destruction)));
+                    threshold.Reached(uid, this, args.Origin, spaceOrigin);
                 }
 
                 // if destruction behavior (or some other deletion effect) occurred, don't run other triggers.
-                if (EntityManager.IsQueuedForDeletion(uid) || Deleted(uid))
+                if (EntityManager.IsQueuedForDeletion(uid) || EntityManager.Deleted(uid))
                     return;
             }
-        }
-
-        public bool TryGetDestroyedAt(Entity<DestructibleComponent?> ent, [NotNullWhen(true)] out FixedPoint2? destroyedAt)
-        {
-            destroyedAt = null;
-            if (!_destructibleQuery.TryComp(ent, out ent.Comp)) // VRS (Triad #3732)
-                return false;
-
-            destroyedAt = DestroyedAt(ent, ent.Comp);
-            return true;
         }
 
         // FFS this shouldn't be this hard. Maybe this should just be a field of the destructible component. Its not
@@ -155,6 +131,16 @@ namespace Content.Server.Destructible
                 }
             }
             return damageNeeded;
+        }
+
+        public bool TryGetDestroyedAt(Entity<DestructibleComponent?> ent, [NotNullWhen(true)] out FixedPoint2? destroyedAt)
+        {
+            destroyedAt = null;
+            if (!_destructibleQuery.TryComp(ent, out ent.Comp)) // Mono
+                return false;
+
+            destroyedAt = DestroyedAt(ent, ent.Comp);
+            return true;
         }
     }
 

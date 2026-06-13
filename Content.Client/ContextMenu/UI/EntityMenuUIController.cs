@@ -9,9 +9,6 @@ using Content.Shared.CCVar;
 using Content.Shared.Examine;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Input;
-using Content.Shared.Silicons.Borgs.Components;
-using Content.Shared.Silicons.StationAi;
-using Content.Shared.Turrets;
 using Content.Shared.Verbs;
 using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
@@ -38,17 +35,17 @@ namespace Content.Client.ContextMenu.UI
     /// </remarks>
     public sealed partial class EntityMenuUIController : UIController, IOnStateEntered<GameplayState>, IOnStateExited<GameplayState>
     {
-        [Dependency] private readonly IEntitySystemManager _systemManager = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly IStateManager _stateManager = default!;
-        [Dependency] private readonly IInputManager _inputManager = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly IUserInterfaceManager _userInterfaceManager = default!;
-        [Dependency] private readonly IEyeManager _eyeManager = default!;
-        [Dependency] private readonly ContextMenuUIController _context = default!;
-        [Dependency] private readonly VerbMenuUIController _verb = default!;
+        [Dependency] private IEntitySystemManager _systemManager = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
+        [Dependency] private IStateManager _stateManager = default!;
+        [Dependency] private IInputManager _inputManager = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private IUserInterfaceManager _userInterfaceManager = default!;
+        [Dependency] private IEyeManager _eyeManager = default!;
+        [Dependency] private ContextMenuUIController _context = default!;
+        [Dependency] private VerbMenuUIController _verb = default!;
 
         [UISystemDependency] private readonly VerbSystem _verbSystem = default!;
         [UISystemDependency] private readonly ExamineSystem _examineSystem = default!;
@@ -171,7 +168,7 @@ namespace Content.Client.ContextMenu.UI
             if (_stateManager.CurrentState is not GameplayStateBase)
                 return false;
 
-            if (_combatMode.IsInCombatMode(args.Session?.AttachedEntity) && !CanOpenEntityMenuInCombat(args.Session?.AttachedEntity))
+            if (_combatMode.IsInCombatMode(args.Session?.AttachedEntity))
                 return false;
 
             var coords = _xform.ToMapCoordinates(args.Coordinates);
@@ -180,16 +177,6 @@ namespace Content.Client.ContextMenu.UI
                 OpenRootMenu(entities);
 
             return true;
-        }
-
-        private bool CanOpenEntityMenuInCombat(EntityUid? entity)
-        {
-            if (entity == null || !entity.Value.IsValid())
-                return false;
-
-            return EntityManager.HasComponent<StationAiTurretComponent>(entity.Value)
-                   || EntityManager.HasComponent<BorgBrainComponent>(entity.Value)
-                   || EntityManager.HasComponent<StationAiHeldComponent>(entity.Value);
         }
 
         /// <summary>

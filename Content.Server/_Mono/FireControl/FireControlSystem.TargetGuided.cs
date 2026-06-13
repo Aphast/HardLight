@@ -4,13 +4,14 @@ using Content.Shared._Mono.FireControl;
 using Content.Shared.Projectiles;
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
+using Content.Shared.Shuttles.Components;
 using EntityCoordinates = Robust.Shared.Map.EntityCoordinates;
 
 namespace Content.Server._Mono.FireControl;
 
 public sealed partial class FireControlSystem
 {
-    [Dependency] private readonly TargetGuidedSystem _targetGuided = null!;
+    [Dependency] private TargetGuidedSystem _targetGuided = null!;
 
     /// <summary>
     /// List of active guided missiles that need cursor position updates
@@ -21,10 +22,6 @@ public sealed partial class FireControlSystem
     /// Map of console entities to their current mouse positions
     /// </summary>
     private readonly Dictionary<EntityUid, EntityCoordinates> _consoleMousePositions = new();
-
-    // Scratch buffers reused per Update tick to avoid per-tick allocations.
-    private readonly HashSet<EntityUid> _scratchActiveConsoles = new();
-    private readonly List<EntityUid> _scratchConsolesToRemove = new();
 
     /// <summary>
     /// Registers handlers for events related to target guided projectiles.
@@ -95,37 +92,85 @@ public sealed partial class FireControlSystem
             if (!TryComp<TargetGuidedComponent>(projectileUid, out var guidedComp))
                 continue;
 
-            // Store shooter entity and controlling console
-            guidedComp.ShooterEntity = shooter;
-            guidedComp.ControllingConsole = controllingConsole;
+            // If firing ship is in FTL, missile won't have guidance
+            if (shooter.HasValue && Transform(shooter.Value).GridUid is { } shipGrid)
+            {
+                if (TryComp<FTLComponent>(shipGrid, out _))
+                {
+                    // Skip guidance setup if ship is in FTL
+                    continue;
+                }
+            }
 
-            // Set initial target position and mark this missile for cursor updates
-            _targetGuided.SetTargetPosition(projectileUid, targetCoords.Value);
+            // Set up initial target for guided missile
+            guidedComp.TargetPosition = targetCoords.Value;
+
+            // Add to our tracking list for cursor position updates
             _activeMissiles.Add(projectileUid);
+
+            // Record the console this was fired from for position updates
+            if (controllingConsole.HasValue)
+            {
+                guidedComp.ControllingConsole = controllingConsole;
+            }
         }
     }
 
     /// <summary>
-    /// Cleanup when a guided missile is shutdown
+    /// Cleanup guided missiles when they're destroyed
     /// </summary>
     private void OnGuidedMissileShutdown(EntityUid uid, TargetGuidedComponent component, ComponentShutdown args)
     {
         _activeMissiles.Remove(uid);
     }
 
+    /// <summary>
+    /// Updates the cursor position for any tracking missiles from a given console
+    /// </summary>
+    public void OnGuidanceUpdate(EntityUid consoleUid, EntityCoordinates targetCoordinates)
+    {
+        // Store the updated position for this console
+        _consoleMousePositions[consoleUid] = targetCoordinates;
+
+        // Update any active missiles being controlled by this console
+        foreach (var missile in _activeMissiles)
+        {
+            if (!TryComp<TargetGuidedComponent>(missile, out var guidedComp))
+                continue;
+
+            if (guidedComp.ControllingConsole != consoleUid)
+                continue;
+
+            // Don't update position if the missile's ship is in FTL
+            if (TryComp<ProjectileComponent>(missile, out var projectileComp) &&
+                projectileComp.Shooter.HasValue &&
+                Transform(projectileComp.Shooter.Value).GridUid is { } shipGrid &&
+                TryComp<FTLComponent>(shipGrid, out _))
+            {
+                continue;
+            }
+
+            guidedComp.TargetPosition = targetCoordinates;
+        }
+    }
+
+    /// <summary>
+    /// Helper method to get the current position of a specific console
+    /// </summary>
+    public EntityCoordinates? GetConsolePosition(EntityUid consoleUid)
+    {
+        if (_consoleMousePositions.TryGetValue(consoleUid, out var coords))
+            return coords;
+
+        return null;
+    }
+
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
 
-        CleanupVisualizationEntities();
-
-        if (_activeMissiles.Count == 0 && _consoleMousePositions.Count == 0)
-            return;
-
-        // Update target positions for active missiles based on the current cursor position.
-        // Iterate the HashSet directly; SetTargetPosition does not mutate _activeMissiles
-        // (shutdown removal happens via the ComponentShutdown handler), so this is safe.
-        foreach (var missileUid in _activeMissiles)
+        // Update target positions for active missiles based on the current cursor position
+        foreach (var missileUid in _activeMissiles.ToArray())
         {
             if (!TryComp<TargetGuidedComponent>(missileUid, out var guidedComp) ||
                 !guidedComp.ControllingConsole.HasValue)
@@ -135,6 +180,15 @@ public sealed partial class FireControlSystem
             var consoleUid = guidedComp.ControllingConsole.Value;
             if (!_consoleMousePositions.TryGetValue(consoleUid, out var mousePosition))
                 continue;
+
+            // Don't update position if the missile's ship is in FTL
+            if (TryComp<ProjectileComponent>(missileUid, out var projectileComp) &&
+                projectileComp.Shooter.HasValue &&
+                Transform(projectileComp.Shooter.Value).GridUid is { } shipGrid &&
+                TryComp<FTLComponent>(shipGrid, out _))
+            {
+                continue;
+            }
 
             // Update the missile's target to the console's current mouse position
             _targetGuided.SetTargetPosition(missileUid, mousePosition);
@@ -149,29 +203,24 @@ public sealed partial class FireControlSystem
     /// </summary>
     private void CleanupConsolePositions()
     {
-        if (_consoleMousePositions.Count == 0)
-            return;
-
-        // Collect consoles that are actually controlling missiles into a reused scratch set.
-        _scratchActiveConsoles.Clear();
+        // Get all consoles that are actually controlling missiles
+        var activeConsoles = new HashSet<EntityUid>();
         foreach (var missileUid in _activeMissiles)
         {
             if (TryComp<TargetGuidedComponent>(missileUid, out var guidedComp) &&
                 guidedComp.ControllingConsole.HasValue)
             {
-                _scratchActiveConsoles.Add(guidedComp.ControllingConsole.Value);
+                activeConsoles.Add(guidedComp.ControllingConsole.Value);
             }
         }
 
-        // Find consoles to remove without allocating a Keys.ToList() each tick.
-        _scratchConsolesToRemove.Clear();
-        foreach (var consoleUid in _consoleMousePositions.Keys)
+        // Remove positions for consoles without any missiles
+        foreach (var consoleUid in _consoleMousePositions.Keys.ToList())
         {
-            if (!_scratchActiveConsoles.Contains(consoleUid) || !EntityManager.EntityExists(consoleUid))
-                _scratchConsolesToRemove.Add(consoleUid);
+            if (!activeConsoles.Contains(consoleUid) || !EntityManager.EntityExists(consoleUid))
+            {
+                _consoleMousePositions.Remove(consoleUid);
+            }
         }
-
-        for (var i = 0; i < _scratchConsolesToRemove.Count; i++)
-            _consoleMousePositions.Remove(_scratchConsolesToRemove[i]);
     }
 }

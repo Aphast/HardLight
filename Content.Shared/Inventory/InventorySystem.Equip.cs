@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Content.Shared.Armor;
+using Content.Shared.Body.Components;
+using Content.Shared.Body.Systems;
 using Content.Shared.Clothing.Components;
 using Content.Shared.DoAfter;
 using Content.Shared.Hands;
@@ -18,26 +20,27 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
-using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Inventory;
 
 public abstract partial class InventorySystem
 {
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _movementSpeed = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly SharedItemSystem _item = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly SharedStrippableSystem _strippable = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private MovementSpeedModifierSystem _movementSpeed = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private SharedItemSystem _item = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedStrippableSystem _strippable = default!;
+    [Dependency] private SharedBodySystem _body = default!; // Mono
 
-    private static readonly ProtoId<ItemSizePrototype> PocketableItemSize = "Small";
+    [ValidatePrototypeId<ItemSizePrototype>]
+    private const string PocketableItemSize = "Small";
 
     private void InitializeEquip()
     {
@@ -97,7 +100,7 @@ public abstract partial class InventorySystem
         // unequip the item.
         if (itemUid != null)
         {
-            if (!TryUnequip(actor, ev.Slot, out var item, predicted: true, inventory: inventory, checkDoafter: true, triggerHandContact: true))
+            if (!TryUnequip(actor, ev.Slot, out var item, predicted: true, inventory: inventory, checkDoafter: true))
                 return;
 
             _handsSystem.PickupOrDrop(actor, item.Value);
@@ -120,15 +123,15 @@ public abstract partial class InventorySystem
 
         RaiseLocalEvent(held.Value, new HandDeselectedEvent(actor));
 
-        TryEquip(actor, actor, held.Value, ev.Slot, predicted: true, inventory: inventory, force: true, checkDoafter: true, triggerHandContact: true);
+        TryEquip(actor, actor, held.Value, ev.Slot, predicted: true, inventory: inventory, force: true, checkDoafter: true);
     }
 
     public bool TryEquip(EntityUid uid, EntityUid itemUid, string slot, bool silent = false, bool force = false, bool predicted = false,
-        InventoryComponent? inventory = null, ClothingComponent? clothing = null, bool checkDoafter = false, bool triggerHandContact = false) =>
-        TryEquip(uid, uid, itemUid, slot, silent, force, predicted, inventory, clothing, checkDoafter, triggerHandContact);
+        InventoryComponent? inventory = null, ClothingComponent? clothing = null, bool checkDoafter = false) =>
+        TryEquip(uid, uid, itemUid, slot, silent, force, predicted, inventory, clothing, checkDoafter);
 
     public bool TryEquip(EntityUid actor, EntityUid target, EntityUid itemUid, string slot, bool silent = false, bool force = false, bool predicted = false,
-        InventoryComponent? inventory = null, ClothingComponent? clothing = null, bool checkDoafter = false, bool triggerHandContact = false)
+        InventoryComponent? inventory = null, ClothingComponent? clothing = null, bool checkDoafter = false)
     {
         if (!Resolve(target, ref inventory, false))
         {
@@ -175,7 +178,7 @@ public abstract partial class InventorySystem
             };
 
             _doAfter.TryStartDoAfter(args);
-            return true; // EE - Changed to return true even if the item wasn't equipped instantly
+            return false;
         }
 
         if (!_containerSystem.Insert(itemUid, slotContainer))
@@ -189,10 +192,6 @@ public abstract partial class InventorySystem
         {
             _audio.PlayPredicted(clothing.EquipSound, target, actor);
         }
-
-        // If new gloves are equipped, trigger OnContactInteraction for held items
-        if (triggerHandContact && !((slotDefinition.SlotFlags & SlotFlags.GLOVES) == 0))
-            TriggerHandContactInteraction(target);
 
         Dirty(target, inventory);
 
@@ -285,6 +284,14 @@ public abstract partial class InventorySystem
             return false;
         }
 
+        // Mono: Clothing whitelists
+        if (clothing != null && IsFailWhitelistClothing(itemUid, target, clothing))
+        {
+            reason = "inventory-component-can-equip-does-not-fit";
+            return false;
+        }
+        // Mono End
+
         var attemptEvent = new IsEquippingAttemptEvent(actor, target, itemUid, slotDefinition);
         RaiseLocalEvent(target, attemptEvent, true);
         if (attemptEvent.Cancelled)
@@ -315,6 +322,26 @@ public abstract partial class InventorySystem
         return true;
     }
 
+    // Mono: Clothing whitelists
+    public bool IsFailWhitelistClothing(EntityUid itemUid, EntityUid target, ClothingComponent clothing)
+    {
+        if (clothing.WhitelistCheckOrgans && TryComp<BodyComponent>(target, out var body))
+        {
+            var organs = _body.GetBodyOrgans(target, body);
+
+            foreach ((var id, var _) in organs)
+            {
+                if (_whitelistSystem.IsWhitelistPassOrNull(clothing.Whitelist, id))
+                    return false;
+            }
+        }
+
+        if (_whitelistSystem.IsWhitelistFail(clothing.Whitelist, target))
+            return true;
+
+        return false;
+    }
+
     public bool TryUnequip(
         EntityUid uid,
         string slot,
@@ -325,10 +352,9 @@ public abstract partial class InventorySystem
         ClothingComponent? clothing = null,
         bool reparent = true,
         bool checkDoafter = false,
-        bool triggerHandContact = false,
         bool child = false) // Frontier: raise DroppedEvent on all children
     {
-        return TryUnequip(uid, uid, slot, silent, force, predicted, inventory, clothing, reparent, checkDoafter, triggerHandContact, child); // Frontier: add child
+        return TryUnequip(uid, uid, slot, silent, force, predicted, inventory, clothing, reparent, checkDoafter, child); // Frontier: add child
     }
 
     public bool TryUnequip(
@@ -342,10 +368,9 @@ public abstract partial class InventorySystem
         ClothingComponent? clothing = null,
         bool reparent = true,
         bool checkDoafter = false,
-        bool triggerHandContact = false,
         bool child = false) // Frontier: raise DroppedEvent on all children
     {
-        return TryUnequip(actor, target, slot, out _, silent, force, predicted, inventory, clothing, reparent, checkDoafter, triggerHandContact, child); // Frontier: add child
+        return TryUnequip(actor, target, slot, out _, silent, force, predicted, inventory, clothing, reparent, checkDoafter, child); // Frontier: add child
     }
 
     public bool TryUnequip(
@@ -359,10 +384,9 @@ public abstract partial class InventorySystem
         ClothingComponent? clothing = null,
         bool reparent = true,
         bool checkDoafter = false,
-        bool triggerHandContact = false,
         bool child = false) // Frontier: raise DroppedEvent on all children
     {
-        return TryUnequip(uid, uid, slot, out removedItem, silent, force, predicted, inventory, clothing, reparent, checkDoafter, triggerHandContact, child); // Frontier: add child
+        return TryUnequip(uid, uid, slot, out removedItem, silent, force, predicted, inventory, clothing, reparent, checkDoafter, child); // Frontier: add child
     }
 
     public bool TryUnequip(
@@ -377,12 +401,11 @@ public abstract partial class InventorySystem
         ClothingComponent? clothing = null,
         bool reparent = true,
         bool checkDoafter = false,
-        bool triggerHandContact = false,
         bool child = false) // Frontier: raise DroppedEvent on all children
     {
         var itemsDropped = 0;
         return TryUnequip(actor, target, slot, out removedItem, ref itemsDropped,
-            silent, force, predicted, inventory, clothing, reparent, checkDoafter, triggerHandContact, child); // Frontier: add child (and triggerHandContact?!)
+            silent, force, predicted, inventory, clothing, reparent, checkDoafter, child); // Frontier: add child
     }
 
     private bool TryUnequip(
@@ -398,7 +421,6 @@ public abstract partial class InventorySystem
         ClothingComponent? clothing = null,
         bool reparent = true,
         bool checkDoafter = false,
-        bool triggerHandContact = false,
         bool child = false) // Frontier: raise DroppedEvent on all children
     {
         removedItem = null;
@@ -495,10 +517,6 @@ public abstract partial class InventorySystem
             _audio.PlayPredicted(clothing.UnequipSound, target, actor);
         }
 
-        // If gloves are unequipped, OnContactInteraction should trigger for held items
-        if (triggerHandContact && !((slotDefinition.SlotFlags & SlotFlags.GLOVES) == 0))
-            TriggerHandContactInteraction(target);
-
         Dirty(target, inventory);
 
         _movementSpeed.RefreshMovementSpeedModifiers(target);
@@ -573,13 +591,5 @@ public abstract partial class InventorySystem
 
         entityUid = container.ContainedEntity;
         return entityUid != null;
-    }
-
-    public void TriggerHandContactInteraction(EntityUid uid)
-    {
-        foreach (var item in _handsSystem.EnumerateHeld(uid))
-        {
-            _interactionSystem.DoContactInteraction(uid, item);
-        }
     }
 }

@@ -19,6 +19,12 @@ public sealed partial class FTLComponent : Component
     [ViewVariables]
     public FTLState State = FTLState.Available;
 
+    /// <summary>
+    /// If this shuttle is part of a docked group doing FTL, this is the main shuttle controlling the FTL.
+    /// </summary>
+    [DataField("linkedShuttle")]
+    public EntityUid? LinkedShuttle;
+
     [ViewVariables(VVAccess.ReadWrite)]
     public StartEndTime StateTime;
 
@@ -32,16 +38,16 @@ public sealed partial class FTLComponent : Component
     [DataField]
     public EntProtoId? VisualizerProto = "FtlVisualizerEntity";
 
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityUid? VisualizerEntity;
 
     /// <summary>
     /// Coordinates to arrive it: May be relative to another grid (for docking) or map coordinates.
     /// </summary>
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityCoordinates TargetCoordinates;
 
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public Angle TargetAngle;
 
     /// <summary>
@@ -56,7 +62,9 @@ public sealed partial class FTLComponent : Component
         Params = AudioParams.Default.WithVolume(-3f).WithLoop(true)
     };
 
+    [DataField]
     public EntityUid? StartupStream;
 
+    [DataField]
     public EntityUid? TravelStream;
 }

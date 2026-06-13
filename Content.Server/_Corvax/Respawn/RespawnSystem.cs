@@ -15,16 +15,16 @@ using Content.Shared.Ghost; // Frontier
 using Content.Server.Administration.Managers; // Frontier
 using Content.Server.Administration; // Frontier
 using Content.Shared.GameTicking; // Frontier
-using Content.Shared._NF.Roles.Components; // Frontier
+using Content.Shared._Mono.CorticalBorer;
 
 namespace Content.Server._Corvax.Respawn;
 
-public sealed class RespawnSystem : EntitySystem
+public sealed partial class RespawnSystem : EntitySystem
 {
-    [Dependency] private readonly IPlayerManager _player = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly IAdminManager _admin = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
+    [Dependency] private IAdminManager _admin = default!;
 
     private float _respawnTimeOnFirstCryo = 0f; // Frontier: shorter time for cryo respawns
     private float _respawnTime = 0f;
@@ -43,7 +43,7 @@ public sealed class RespawnSystem : EntitySystem
     public override void Initialize()
     {
         SubscribeLocalEvent<MindContainerComponent, MobStateChangedEvent>(OnMobStateChanged);
-        SubscribeLocalEvent<MindRemovedMessage>(OnMindRemoved);
+        SubscribeLocalEvent<MindContainerComponent, MindRemovedMessage>(OnMindRemoved);
         SubscribeLocalEvent<MindContainerComponent, CryosleepBeforeMindRemovedEvent>(OnCryoBeforeMindRemoved);
         SubscribeLocalEvent<MindContainerComponent, CryosleepWakeUpEvent>(OnCryoWakeUp);
         SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestart); // Frontier
@@ -79,26 +79,28 @@ public sealed class RespawnSystem : EntitySystem
         SetRespawnTime(session.UserId, ref respawnData, _timing.CurTime + TimeSpan.FromSeconds(_respawnTime));
     }
 
-    private void OnMindRemoved(MindRemovedMessage e)
+    private void OnMindRemoved(EntityUid entity, MindContainerComponent _, MindRemovedMessage e)
     {
         if (e.Mind.Comp.UserId is null)
             return;
-
-        var entity = e.Container.Owner;
 
         // Mob is dead, don't reset spawn timer twice
         if (TryComp<MobStateComponent>(entity, out var state) && state.CurrentState == MobState.Dead)
             return;
 
         // Frontier: extra conditions for respawn lenience
-        if (HasComp<GhostRoleComponent>(entity) || // Don't penalize user for exiting ghost roles
-            HasComp<InterviewHologramComponent>(entity)) // Don't penalize user for leaving an interview
+        if (HasComp<GhostRoleComponent>(entity)) // Don't penalize user for exiting ghost roles
             return; // Frontier: don't penalize user for exiting ghost roles
 
         if (HasComp<GhostComponent>(entity)) // Don't penalize user for reobserving
             return;
 
-        if (_player.TryGetSessionById(e.Mind.Comp.UserId.Value, out var session) && _admin.IsAdmin(session)) // Admins get free respawns
+        if (_player.TryGetSessionById(e.Mind.Comp.UserId, out var session) && _admin.IsAdmin(session)) // Admins get free respawns
+            return;
+
+        if (TryComp<CorticalBorerInfestedComponent>(entity, out var infestedComp) &&
+            TryComp<CorticalBorerComponent>(infestedComp.Borer, out var borerComp) &&
+            borerComp.ControlingHost)
             return;
 
         // Get respawn info

@@ -9,7 +9,7 @@ namespace Content.Server._NF.Bank;
 
 public sealed partial class BankSystem : SharedBankSystem
 {
-    [Dependency] private readonly SectorServiceSystem _sectorService = default!;
+    [Dependency] private SectorServiceSystem _sectorService = default!;
 
     // The interval between sector account increases, in seconds.
     private const float AccountIncreaseInterval = 10.0f;
@@ -32,7 +32,7 @@ public sealed partial class BankSystem : SharedBankSystem
     {
         if (amount <= 0)
         {
-            _log.Info($"TryBankWithdraw: {amount} is invalid");
+            _log.Info($"TryBankWithdraw: {amount} is invalid. Sector budget withdraw attempt. Parameters: Acc: {account} Am: {amount} Rsn: {reason}");
             return false;
         }
 
@@ -52,7 +52,7 @@ public sealed partial class BankSystem : SharedBankSystem
         var bankAccount = CollectionsMarshal.GetValueRefOrNullRef(bank.Accounts, account);
         if (bankAccount.Balance < amount)
         {
-            _log.Info($"TryBankWithdraw: account has less money {bankAccount.Balance} than requested {amount}");
+            _log.Info($"TryBankWithdraw: account has less money {bankAccount.Balance} than requested {amount}. Sector budget withdraw attempt. Parameters: Acc: {account} Am: {amount} Rsn: {reason}");
             return false;
         }
 
@@ -73,7 +73,7 @@ public sealed partial class BankSystem : SharedBankSystem
     {
         if (amount <= 0)
         {
-            _log.Info($"TryBankDeposit: {amount} is invalid");
+            _log.Info($"TryBankDeposit: {amount} is invalid, Sector budget deposit attempt. Parameters: Acc: {account} Am: {amount} Rsn: {reason}");
             return false;
         }
 

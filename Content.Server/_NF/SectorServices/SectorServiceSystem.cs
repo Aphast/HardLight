@@ -1,4 +1,5 @@
 using Content.Shared._NF.SectorServices.Prototypes;
+using Content.Shared.GameTicking;
 using JetBrains.Annotations;
 using Robust.Shared.Prototypes;
 
@@ -10,10 +11,10 @@ namespace Content.Server._NF.SectorServices;
 /// Allows service components to be registered and unregistered on a singular entity
 /// </summary>
 [PublicAPI]
-public sealed class SectorServiceSystem : EntitySystem
+public sealed partial class SectorServiceSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IEntityManager _entityManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
 
     [ViewVariables(VVAccess.ReadOnly)]
     private EntityUid _entity = EntityUid.Invalid; // The station entity that's storing our services.
@@ -24,6 +25,7 @@ public sealed class SectorServiceSystem : EntitySystem
 
         SubscribeLocalEvent<StationSectorServiceHostComponent, ComponentInit>(OnComponentInit);
         SubscribeLocalEvent<StationSectorServiceHostComponent, ComponentRemove>(OnComponentRemove);
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(OnCleanup);
     }
 
     private void OnComponentInit(EntityUid uid, StationSectorServiceHostComponent component, ComponentInit args)
@@ -40,14 +42,27 @@ public sealed class SectorServiceSystem : EntitySystem
                 _entityManager.AddComponents(_entity, servicePrototype.Components, false); // removeExisting false - do not override existing components.
             }
         }
-
-        // HardLight: Always point the current host at the active service entity.
-        component.SectorUid = _entity;
     }
 
     private void OnComponentRemove(EntityUid uid, StationSectorServiceHostComponent component, ComponentRemove args)
     {
-        Log.Debug($"ComponentRemove called for host {uid}. Keeping sector service entity {_entity} alive."); // HardLight: Editted
+        Log.Debug($"ComponentRemove called! Entity: {_entity}");
+        DeleteServiceEntity();
+    }
+
+    public void OnCleanup(RoundRestartCleanupEvent _)
+    {
+        Log.Debug($"RoundRestartCleanup called! Entity: {_entity}");
+        DeleteServiceEntity();
+    }
+
+    private void DeleteServiceEntity()
+    {
+        if (EntityManager.EntityExists(_entity) && !Terminating(_entity))
+        {
+            QueueDel(_entity);
+        }
+        _entity = EntityUid.Invalid;
     }
 
     public EntityUid GetServiceEntity()

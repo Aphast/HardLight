@@ -3,6 +3,7 @@ using System.Numerics;
 using Content.Client.Clickable;
 using Content.Client.UserInterface;
 using Content.Client.Viewport;
+using Content.Shared.Damage;
 using Content.Shared.Input;
 using Robust.Client.ComponentTrees;
 using Robust.Client.GameObjects;
@@ -28,18 +29,18 @@ namespace Content.Client.Gameplay
     // Ok actually it's fine.
     // Instantiated dynamically through the StateManager, Dependencies will be resolved.
     [Virtual]
-    public class GameplayStateBase : State, IEntityEventSubscriber
+    public partial class GameplayStateBase : State, IEntityEventSubscriber
     {
-        [Dependency] private readonly IEyeManager _eyeManager = default!;
-        [Dependency] private readonly IInputManager _inputManager = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly IEntitySystemManager _entitySystemManager = default!;
-        [Dependency] private readonly IGameTiming _timing = default!;
-        [Dependency] private readonly IMapManager _mapManager = default!;
-        [Dependency] protected readonly IUserInterfaceManager UserInterfaceManager = default!;
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly IViewVariablesManager _vvm = default!;
-        [Dependency] private readonly IConsoleHost _conHost = default!;
+        [Dependency] private IEyeManager _eyeManager = default!;
+        [Dependency] private IInputManager _inputManager = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
+        [Dependency] private IEntitySystemManager _entitySystemManager = default!;
+        [Dependency] private IGameTiming _timing = default!;
+        [Dependency] private IMapManager _mapManager = default!;
+        [Dependency] protected IUserInterfaceManager UserInterfaceManager = default!;
+        [Dependency] private IEntityManager _entityManager = default!;
+        [Dependency] private IViewVariablesManager _vvm = default!;
+        [Dependency] private IConsoleHost _conHost = default!;
 
         private ClickableEntityComparer _comparer = default!;
 
@@ -104,6 +105,13 @@ namespace Content.Client.Gameplay
             return GetClickedEntity(coordinates, _eyeManager.CurrentEye);
         }
 
+        public EntityUid? GetDamageableClickedEntity(MapCoordinates coordinates) // Goobstation
+        {
+            var first = GetClickableEntities(coordinates, _eyeManager.CurrentEye)
+                .FirstOrDefault(e => _entityManager.HasComponent<DamageableComponent>(e));
+            return first.IsValid() ? first : null;
+        }
+
         public EntityUid? GetClickedEntity(MapCoordinates coordinates, IEye? eye)
         {
             if (eye == null)
@@ -113,18 +121,18 @@ namespace Content.Client.Gameplay
             return first.IsValid() ? first : null;
         }
 
-        public IEnumerable<EntityUid> GetClickableEntities(EntityCoordinates coordinates, bool excludeFaded = true)
+        public IEnumerable<EntityUid> GetClickableEntities(EntityCoordinates coordinates)
         {
             var transformSystem = _entitySystemManager.GetEntitySystem<SharedTransformSystem>();
-            return GetClickableEntities(transformSystem.ToMapCoordinates(coordinates), excludeFaded);
+            return GetClickableEntities(transformSystem.ToMapCoordinates(coordinates));
         }
 
-        public IEnumerable<EntityUid> GetClickableEntities(MapCoordinates coordinates, bool excludeFaded = true)
+        public IEnumerable<EntityUid> GetClickableEntities(MapCoordinates coordinates)
         {
-            return GetClickableEntities(coordinates, _eyeManager.CurrentEye, excludeFaded);
+            return GetClickableEntities(coordinates, _eyeManager.CurrentEye);
         }
 
-        public IEnumerable<EntityUid> GetClickableEntities(MapCoordinates coordinates, IEye? eye, bool excludeFaded = true)
+        public IEnumerable<EntityUid> GetClickableEntities(MapCoordinates coordinates, IEye? eye)
         {
             /*
              * TODO:
@@ -147,7 +155,7 @@ namespace Content.Client.Gameplay
             foreach (var entity in entities)
             {
                 if (clickQuery.TryGetComponent(entity.Uid, out var component) &&
-                    clickables.CheckClick((entity.Uid, component, entity.Component, entity.Transform), coordinates.Position, eye, excludeFaded, out var drawDepthClicked, out var renderOrder, out var bottom))
+                    clickables.CheckClick((entity.Uid, component, entity.Component, entity.Transform), coordinates.Position, eye,  out var drawDepthClicked, out var renderOrder, out var bottom))
                 {
                     foundEntities.Add((entity.Uid, drawDepthClicked, renderOrder, bottom));
                 }

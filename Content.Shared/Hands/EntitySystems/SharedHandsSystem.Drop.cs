@@ -12,7 +12,7 @@ namespace Content.Shared.Hands.EntitySystems;
 
 public abstract partial class SharedHandsSystem
 {
-    [Dependency] private readonly TagSystem _tagSystem = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
 
     private static readonly ProtoId<TagPrototype> BypassDropChecksTag = "BypassDropChecks";
 
@@ -141,7 +141,7 @@ public abstract partial class SharedHandsSystem
         DoDrop(uid, hand, doDropInteraction: doDropInteraction, handsComp);
 
         // if there's no drop location stop here
-        if (targetDropLocation == null || targetDropLocation.Value.EntityId == EntityUid.Invalid)
+        if (targetDropLocation == null)
             return true;
 
         // otherwise, also move dropped item and rotate it properly according to grid/map

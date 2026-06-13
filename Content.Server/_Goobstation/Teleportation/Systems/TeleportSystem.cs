@@ -16,15 +16,16 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Teleportation;
 
-public sealed class TeleportSystem : EntitySystem
+public sealed partial class TeleportSystem : EntitySystem
 {
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedTransformSystem _xform = default!;
-    [Dependency] private readonly PullingSystem _pullingSystem = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly StackSystem _stack = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] private SharedTransformSystem _xform = default!;
+    [Dependency] private PullingSystem _pullingSystem = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private StackSystem _stack = default!;
 
     private EntityQuery<PhysicsComponent> _physicsQuery;
 
@@ -42,12 +43,9 @@ public sealed class TeleportSystem : EntitySystem
         if (args.Handled)
             return;
 
-        if (!TryComp<RandomTeleportComponent>(uid, out var teleport))
-            return;
-
         _adminLogger.Add(LogType.Action, LogImpact.Low, $"{ToPrettyString(args.User):actor} teleported with {ToPrettyString(uid)}");
 
-        RandomTeleport(args.User, teleport);
+        RandomTeleport(args.User, component.Specifier);
 
         if (!component.ConsumeOnUse)
             return;
@@ -62,47 +60,52 @@ public sealed class TeleportSystem : EntitySystem
         QueueDel(uid);
     }
 
-    public void RandomTeleport(EntityUid uid, RandomTeleportComponent component)
-    {
-        RandomTeleport(uid, component.TeleportRadius, component.TeleportSound, component.TeleportAttempts);
-    }
-
-    /// <summary>
-    /// VRS port (Mono): RandomTeleport overload taking a <see cref="TeleportSpecifier"/>.
-    /// MinRadiusFraction / AvoidSpace / ForceSafe fields are accepted for source-compatibility
-    /// with Mono callers but are not yet honored by this implementation; they degrade to the
-    /// existing radius/sound/attempts behavior.
-    /// </summary>
     public void RandomTeleport(EntityUid uid, TeleportSpecifier specifier)
     {
-        RandomTeleport(uid, specifier.TeleportRadius, specifier.TeleportSound, specifier.TeleportAttempts);
+        RandomTeleport(uid,
+                       specifier.MinRadiusFraction * specifier.TeleportRadius,
+                       specifier.TeleportRadius,
+                       specifier.TeleportSound,
+                       specifier.TeleportAttempts,
+                       specifier.AvoidSpace,
+                       specifier.ForceSafe);
     }
 
-    public void RandomTeleport(EntityUid uid, float radius, SoundSpecifier sound, int attempts)
+    public void RandomTeleport(EntityUid uid, float minRadius, float radius, SoundSpecifier sound, int attempts, bool avoidSpace, bool forceSafe)
     {
         // We need stop the user from being pulled so they don't just get "attached" with whoever is pulling them.
         // This can for example happen when the user is cuffed and being pulled.
         if (TryComp<PullableComponent>(uid, out var pull) && _pullingSystem.IsPulled(uid, pull))
-            _pullingSystem.TryStopPull(uid, pull, ignoreGrab: true); // HardLight: pullable<pull
+            _pullingSystem.TryStopPull(uid, pull);
 
         var xform = Transform(uid);
-        var entityCoords = xform.Coordinates.ToMap(EntityManager, _xform);
+        var entityCoords = _xform.ToMapCoordinates(xform.Coordinates);
 
-        var targetCoords = new MapCoordinates();
+        var targetCoords = entityCoords;
         // Try to find a valid position to teleport to, teleport to whatever works if we can't
         // If attempts is 1 or less, degenerates to a completely random teleport
-        for (var i = 0; i < Math.Max(attempts, 1); i++)
+        for (var i = 0; i < attempts; i++)
         {
-            var distance = radius * MathF.Sqrt(_random.NextFloat()); // to get an uniform distribution
-            targetCoords = entityCoords.Offset(_random.NextAngle().ToVec() * distance);
+            var extraRadius = radius - minRadius;
+            if (forceSafe && i > attempts / 2)
+                extraRadius *= 2f * (1f - i / (float)attempts);
+
+            var extraRandom = extraRadius * MathF.Sqrt(_random.NextFloat()); // to get an uniform distribution
+            var atRadius = minRadius + extraRandom;
+
+            targetCoords = entityCoords.Offset(_random.NextAngle().ToVec() * atRadius);
 
             // Prefer teleporting to grids
             if (!_mapManager.TryFindGridAt(targetCoords, out var gridUid, out var grid))
-                continue;
+            {
+                if (avoidSpace)
+                    continue;
+                break; // Mono - just go there if we aren't avoiding space
+            }
 
             // If attempts is specified, whatever's being teleported probably does not want to be in your walls
             var valid = true;
-            foreach (var entity in grid.GetAnchoredEntities(targetCoords))
+            foreach (var entity in _map.GetAnchoredEntities((gridUid, grid), targetCoords))
             {
                 if (!_physicsQuery.TryGetComponent(entity, out var body))
                     continue;

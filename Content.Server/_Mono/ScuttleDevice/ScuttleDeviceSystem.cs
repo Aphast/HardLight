@@ -27,23 +27,25 @@ using Robust.Shared.Utility;
 
 namespace Content.Server._Mono.ScuttleDevice;
 
-// VRS: Ported from Triad_Sector — self-destruct device for pirate ship scuttling.
-public sealed class ScuttleDeviceSystem : EntitySystem
+public sealed partial class ScuttleDeviceSystem : EntitySystem
 {
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly ChatSystem _chatSystem = default!;
-    [Dependency] private readonly ExplosionSystem _explosions = default!;
-    [Dependency] private readonly LockSystem _lock = default!;
-    [Dependency] private readonly NavMapSystem _navMap = default!;
-    [Dependency] private readonly PointLightSystem _pointLight = default!;
-    [Dependency] private readonly PopupSystem _popups = default!;
-    [Dependency] private readonly ServerGlobalSoundSystem _sound = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
-    [Dependency] private readonly SharedShuttleSystem _shuttles = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private ChatSystem _chatSystem = default!;
+    [Dependency] private ExplosionSystem _explosions = default!;
+    [Dependency] private LockSystem _lock = default!;
+    [Dependency] private NavMapSystem _navMap = default!;
+    [Dependency] private PointLightSystem _pointLight = default!;
+    [Dependency] private PopupSystem _popups = default!;
+    [Dependency] private ServerGlobalSoundSystem _sound = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] private SharedShuttleSystem _shuttles = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
+    /// <summary>
+    ///     Time to leave between the nuke song and the nuke alarm playing.
+    /// </summary>
     private TimeSpan NukeSongBuffer = TimeSpan.FromSeconds(1.5);
 
     public override void Initialize()
@@ -102,6 +104,7 @@ public sealed class ScuttleDeviceSystem : EntitySystem
             return;
 
         DisarmBomb((ent, ent.Comp));
+
         args.Handled = true;
     }
 
@@ -111,6 +114,7 @@ public sealed class ScuttleDeviceSystem : EntitySystem
             return;
 
         ArmBomb((ent, ent.Comp));
+
         args.Handled = true;
     }
 
@@ -156,7 +160,10 @@ public sealed class ScuttleDeviceSystem : EntitySystem
 
         ent.Comp.CooldownTime -= TimeSpan.FromSeconds(frameTime);
         if (ent.Comp.CooldownTime <= TimeSpan.FromSeconds(0))
+        {
+            // reset nuke to default state
             ent.Comp.CooldownTime = TimeSpan.FromSeconds(0);
+        }
     }
 
     private void TickTimer(Entity<ScuttleDeviceComponent?> ent, float frameTime)
@@ -166,18 +173,22 @@ public sealed class ScuttleDeviceSystem : EntitySystem
 
         ent.Comp.RemainingTime -= TimeSpan.FromSeconds(frameTime);
 
+        // disarm if we changed map and this should disarm us
         if (ent.Comp.DisarmOnMapChange && ent.Comp.ArmedMap != Transform(ent).MapID)
         {
             DisarmBomb(ent);
             return;
         }
 
+        // Start playing the ent.Comp event song so that it ends a couple seconds before the alert sound
+        // should play
         if (ent.Comp.DoMusic && ent.Comp.RemainingTime <= ent.Comp.NukeSongLength + ent.Comp.AlertSoundTime + NukeSongBuffer && !ent.Comp.PlayedNukeSong && !ResolvedSoundSpecifier.IsNullOrEmpty(ent.Comp.SelectedNukeSong))
         {
             _sound.DispatchStationEventMusic(ent, ent.Comp.SelectedNukeSong, StationEventMusicType.Nuke);
             ent.Comp.PlayedNukeSong = true;
         }
 
+        // play alert sound if time is running out
         if (ent.Comp.RemainingTime <= ent.Comp.AlertSoundTime && !ent.Comp.PlayedAlertSound)
         {
             _sound.PlayGlobalOnStation(ent, _audio.ResolveSound(ent.Comp.AlertSound), new AudioParams{Volume = -5f});
@@ -192,6 +203,9 @@ public sealed class ScuttleDeviceSystem : EntitySystem
         }
     }
 
+    /// <summary>
+    ///     Force a nuclear bomb to start a countdown timer
+    /// </summary>
     public void ArmBomb(Entity<ScuttleDeviceComponent?> ent)
     {
         if (!Resolve(ent, ref ent.Comp))
@@ -204,6 +218,7 @@ public sealed class ScuttleDeviceSystem : EntitySystem
         var grid = nukeXform.GridUid;
         var name = grid == null ? "Space" : _shuttles.GetIFFLabel(grid.Value) ?? "Space";
 
+        // warn a crew
         var announcement = Loc.GetString("scuttle-device-announcement-armed",
             ("time", (int) ent.Comp.RemainingTime.TotalSeconds),
             ("location", name));
@@ -219,17 +234,26 @@ public sealed class ScuttleDeviceSystem : EntitySystem
             ent.Comp.NukeSongLength = _audio.GetAudioLength(ent.Comp.SelectedNukeSong);
         }
 
+        // turn on the spinny light
         _pointLight.SetEnabled(ent, true);
+        // enable the navmap beacon for people to find it
         _navMap.SetBeaconEnabled(ent, true);
 
         if (!nukeXform.Anchored)
+        {
+            // Admin command shenanigans, just make sure.
             _transform.AnchorEntity(ent, nukeXform);
+        }
 
         ent.Comp.ArmedMap = nukeXform.MapID;
+
         ent.Comp.Armed = true;
         UpdateAppearance((ent, ent.Comp));
     }
 
+    /// <summary>
+    ///     Stop nuclear bomb timer
+    /// </summary>
     public void DisarmBomb(Entity<ScuttleDeviceComponent?> ent)
     {
         if (!Resolve(ent, ref ent.Comp))
@@ -252,19 +276,28 @@ public sealed class ScuttleDeviceSystem : EntitySystem
         _sound.PlayGlobalOnStation(ent, _audio.ResolveSound(ent.Comp.DisarmSound));
         _sound.StopStationEventMusic(ent, StationEventMusicType.Nuke);
 
+        // reset nuke remaining time to either itself or the minimum time, whichever is higher
         ent.Comp.RemainingTime = TimeSpan.FromSeconds(Math.Max(ent.Comp.RemainingTime.TotalSeconds, ent.Comp.MinimumTime.TotalSeconds));
 
+        // disable sound and reset it
         ent.Comp.PlayedAlertSound = false;
         ent.Comp.AlertAudioStream = _audio.Stop(ent.Comp.AlertAudioStream);
 
+        // turn off the spinny light
         _pointLight.SetEnabled(ent, false);
+        // disable the navmap beacon now that its disarmed
         _navMap.SetBeaconEnabled(ent, false);
 
+        // start bomb cooldown
         ent.Comp.CooldownTime = ent.Comp.Cooldown;
+
         ent.Comp.Armed = false;
         UpdateAppearance((ent, ent.Comp));
     }
 
+    /// <summary>
+    ///     Force bomb to explode immediately
+    /// </summary>
     public void ActivateBomb(Entity<ScuttleDeviceComponent?> ent)
     {
         if (!Resolve(ent, ref ent.Comp))
@@ -281,12 +314,14 @@ public sealed class ScuttleDeviceSystem : EntitySystem
             BreakOnDamage = true,
             BreakOnMove = true,
             NeedHand = false,
+            MultiplyDelay = false,
         };
 
         if (!_doAfter.TryStartDoAfter(doAfter))
             return;
 
-        _popups.PopupEntity(Loc.GetString("scuttle-device-arm-warning"), user, user, PopupType.LargeCaution);
+        _popups.PopupEntity(Loc.GetString("scuttle-device-arm-warning"), user,
+            user, PopupType.LargeCaution);
     }
 
     private void DisarmBombDoafter(Entity<ScuttleDeviceComponent> ent, EntityUid user)
@@ -296,17 +331,20 @@ public sealed class ScuttleDeviceSystem : EntitySystem
             BreakOnDamage = true,
             BreakOnMove = true,
             NeedHand = false,
+            MultiplyDelay = false,
         };
 
         if (!_doAfter.TryStartDoAfter(doAfter))
             return;
 
-        _popups.PopupEntity(Loc.GetString("scuttle-device-disarm-warning"), user, user, PopupType.LargeCaution);
+        _popups.PopupEntity(Loc.GetString("scuttle-device-disarm-warning"), user,
+            user, PopupType.LargeCaution);
     }
 
     private void UpdateAppearance(Entity<ScuttleDeviceComponent> ent)
     {
         var xform = Transform(ent);
+
         _appearance.SetData(ent, NukeVisuals.Deployed, xform.Anchored);
 
         NukeVisualState state;

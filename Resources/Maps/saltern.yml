@@ -3378,9 +3378,7 @@ entities:
     - type: Transform
     - type: Map
       mapPaused: True
-
     - type: GridTree
-
     - type: Broadphase
     - type: OccluderTree
     - type: LoadedMap
@@ -6634,7 +6632,7 @@ entities:
     - type: Transform
       pos: 0.53372324,-27.321005
       parent: 31
-- proto: BoxBeanbag
+- proto: AmmoBox12_gaugeBeanbag
   entities:
   - uid: 2222
     components:
@@ -6848,7 +6846,7 @@ entities:
     - type: Transform
       pos: 13.942519,-15.320015
       parent: 31
-- proto: NFAmmunitionBoxShellShotgunBuckshot
+- proto: AmmoBox12_gaugeBuckshot
   entities:
   - uid: 11281
     components:
@@ -6881,7 +6879,7 @@ entities:
     - type: Transform
       pos: 28.560026,15.665409
       parent: 31
-- proto: BoxShotgunFlare
+- proto: AmmoBox12_gaugeFlare
   entities:
   - uid: 2219
     components:
@@ -47846,21 +47844,21 @@ entities:
     - type: Transform
       pos: -39.5,26.5
       parent: 31
-- proto: HLGunSafeLaserCarbine
+- proto: GunSafeLaserCarbine
   entities:
   - uid: 2132
     components:
     - type: Transform
       pos: -13.5,21.5
       parent: 31
-- proto: HLGunSafeRifleLecter
+- proto: GunSafeRifleLecter
   entities:
   - uid: 7687
     components:
     - type: Transform
       pos: -14.5,19.5
       parent: 31
-- proto: HLGunSafeSubMachineGunDrozd
+- proto: GunSafeSubMachineGunDrozd
   entities:
   - uid: 4302
     components:
@@ -48790,7 +48788,7 @@ entities:
         - Pressed: Toggle
         6348:
         - Pressed: Toggle
-- proto: HLLockerAtmosphericsFilledHardsuit
+- proto: LockerAtmosphericsFilledHardsuit
   entities:
   - uid: 6408
     components:
@@ -48802,42 +48800,42 @@ entities:
     - type: Transform
       pos: 53.5,16.5
       parent: 31
-- proto: HLLockerBoozeFilled
+- proto: LockerBoozeFilled
   entities:
   - uid: 584
     components:
     - type: Transform
       pos: -11.5,-6.5
       parent: 31
-- proto: HLLockerBotanistFilled
+- proto: LockerBotanistFilled
   entities:
   - uid: 782
     components:
     - type: Transform
       pos: -17.5,1.5
       parent: 31
-- proto: HLLockerCaptainFilledHardsuit
+- proto: LockerCaptainFilledHardsuit
   entities:
   - uid: 5737
     components:
     - type: Transform
       pos: 10.5,26.5
       parent: 31
-- proto: HLLockerChemistryFilled
+- proto: LockerChemistryFilled
   entities:
   - uid: 5094
     components:
     - type: Transform
       pos: 19.5,-2.5
       parent: 31
-- proto: HLLockerChiefEngineerFilledHardsuit
+- proto: LockerChiefEngineerFilledHardsuit
   entities:
   - uid: 558
     components:
     - type: Transform
       pos: 37.5,-1.5
       parent: 31
-- proto: HLLockerChiefMedicalOfficerFilledHardsuit
+- proto: LockerChiefMedicalOfficerFilledHardsuit
   entities:
   - uid: 4134
     components:
@@ -48851,7 +48849,7 @@ entities:
     - type: Transform
       pos: -11.5,-39.5
       parent: 31
-- proto: HLLockerElectricalSuppliesFilled
+- proto: LockerElectricalSuppliesFilled
   entities:
   - uid: 3114
     components:
@@ -48863,7 +48861,7 @@ entities:
     - type: Transform
       pos: 22.5,-14.5
       parent: 31
-- proto: HLLockerEngineerFilled
+- proto: LockerEngineerFilled
   entities:
   - uid: 548
     components:
@@ -48892,35 +48890,35 @@ entities:
     - type: Transform
       pos: -9.5,14.5
       parent: 31
-- proto: HLLockerFreezer
+- proto: LockerFreezer
   entities:
   - uid: 4175
     components:
     - type: Transform
       pos: -11.5,-3.5
       parent: 31
-- proto: HLLockerFreezerVaultFilled
+- proto: LockerFreezerVaultFilled
   entities:
   - uid: 3849
     components:
     - type: Transform
       pos: -0.5,18.5
       parent: 31
-- proto: HLLockerHeadOfPersonnelFilled
+- proto: LockerHeadOfPersonnelFilled
   entities:
   - uid: 6021
     components:
     - type: Transform
       pos: 9.5,21.5
       parent: 31
-- proto: HLLockerHeadOfSecurityFilledHardsuit
+- proto: LockerHeadOfSecurityFilledHardsuit
   entities:
   - uid: 4046
     components:
     - type: Transform
       pos: -9.5,22.5
       parent: 31
-- proto: HLLockerMedicalFilled
+- proto: LockerMedicalFilled
   entities:
   - uid: 802
     components:
@@ -48937,7 +48935,7 @@ entities:
     - type: Transform
       pos: 21.5,-7.5
       parent: 31
-- proto: HLLockerMedicineFilled
+- proto: LockerMedicineFilled
   entities:
   - uid: 4336
     components:
@@ -48949,28 +48947,28 @@ entities:
     - type: Transform
       pos: 12.5,-10.5
       parent: 31
-- proto: HLLockerParamedicFilled
+- proto: LockerParamedicFilled
   entities:
   - uid: 7489
     components:
     - type: Transform
       pos: 24.5,-7.5
       parent: 31
-- proto: HLLockerQuarterMasterFilled
+- proto: LockerQuarterMasterFilled
   entities:
   - uid: 8847
     components:
     - type: Transform
       pos: 27.5,10.5
       parent: 31
-- proto: HLLockerResearchDirectorFilledHardsuit
+- proto: LockerResearchDirectorFilledHardsuit
   entities:
   - uid: 9701
     components:
     - type: Transform
       pos: -5.5,-23.5
       parent: 31
-- proto: HLLockerSalvageSpecialistFilledHardsuit
+- proto: LockerSalvageSpecialistFilledHardsuit
   entities:
   - uid: 16
     components:
@@ -49004,7 +49002,7 @@ entities:
     - type: Transform
       pos: -7.5,-23.5
       parent: 31
-- proto: HLLockerSecurityFilled
+- proto: LockerSecurityFilled
   entities:
   - uid: 803
     components:
@@ -49021,14 +49019,14 @@ entities:
     - type: Transform
       pos: -11.5,13.5
       parent: 31
-- proto: HLLockerWardenFilledHardsuit
+- proto: LockerWardenFilledHardsuit
   entities:
   - uid: 5
     components:
     - type: Transform
       pos: 0.5,7.5
       parent: 31
-- proto: HLLockerWeldingSuppliesFilled
+- proto: LockerWeldingSuppliesFilled
   entities:
   - uid: 10904
     components:
@@ -49123,7 +49121,7 @@ entities:
     - type: Transform
       pos: -3.5,-43.5
       parent: 31
-- proto: MagazinePistol
+- proto: Magazine9x19mmPistolFMJ
   entities:
   - uid: 4977
     components:
@@ -49140,7 +49138,7 @@ entities:
     - type: Transform
       pos: -14.250454,20.691399
       parent: 31
-- proto: MagazinePistolSubMachineGunTopMounted
+- proto: Magazine46x30mmSubMachineGunTopMountedFMJ
   entities:
   - uid: 10123
     components:
@@ -50485,7 +50483,7 @@ entities:
     - type: Transform
       pos: -6.5,-19.5
       parent: 31
-- proto: PosterContrabandLustyExomorph
+- proto: PosterContrabandLurkingExomorph
   entities:
   - uid: 7828
     components:
@@ -51420,7 +51418,6 @@ entities:
       parent: 31
     - type: ApcPowerReceiver
       powerLoad: 0
-    - type: Timer
   - uid: 1324
     components:
     - type: Transform
@@ -58352,7 +58349,7 @@ entities:
     - type: Transform
       pos: -31.5,7.5
       parent: 31
-- proto: HLSuitStorageEngi
+- proto: SuitStorageEngi
   entities:
   - uid: 257
     components:
@@ -58398,7 +58395,7 @@ entities:
     - type: Transform
       pos: -13.5,11.5
       parent: 31
-- proto: HLSuitStorageSec
+- proto: SuitStorageSec
   entities:
   - uid: 768
     components:

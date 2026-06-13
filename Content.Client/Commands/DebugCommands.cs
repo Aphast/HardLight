@@ -8,9 +8,9 @@ using DrawDepth = Content.Shared.DrawDepth.DrawDepth;
 
 namespace Content.Client.Commands;
 
-internal sealed class ShowMarkersCommand : LocalizedCommands
+internal sealed partial class ShowMarkersCommand : LocalizedCommands
 {
-    [Dependency] private readonly IEntitySystemManager _entitySystemManager = default!;
+    [Dependency] private IEntitySystemManager _entitySystemManager = default!;
 
     public override string Command => "showmarkers";
 
@@ -22,9 +22,9 @@ internal sealed class ShowMarkersCommand : LocalizedCommands
     }
 }
 
-internal sealed class ShowSubFloor : LocalizedCommands
+internal sealed partial class ShowSubFloor : LocalizedCommands
 {
-    [Dependency] private readonly IEntitySystemManager _entitySystemManager = default!;
+    [Dependency] private IEntitySystemManager _entitySystemManager = default!;
 
     public override string Command => "showsubfloor";
 
@@ -36,9 +36,32 @@ internal sealed class ShowSubFloor : LocalizedCommands
     }
 }
 
-internal sealed class NotifyCommand : LocalizedCommands
+internal sealed partial class ShowSubFloorForever : LocalizedCommands
 {
-    [Dependency] private readonly IEntitySystemManager _entitySystemManager = default!;
+    [Dependency] private IEntitySystemManager _entitySystemManager = default!;
+
+    public const string CommandName = "showsubfloorforever";
+    public override string Command => CommandName;
+
+    public override string Help => LocalizationManager.GetString($"cmd-{Command}-help", ("command", Command));
+
+    public override void Execute(IConsoleShell shell, string argStr, string[] args)
+    {
+        _entitySystemManager.GetEntitySystem<SubFloorHideSystem>().ShowAll = true;
+
+        var entMan = IoCManager.Resolve<IEntityManager>();
+        var components = entMan.EntityQuery<SubFloorHideComponent, SpriteComponent>(true);
+
+        foreach (var (_, sprite) in components)
+        {
+            sprite.DrawDepth = (int) DrawDepth.Overlays;
+        }
+    }
+}
+
+internal sealed partial class NotifyCommand : LocalizedCommands
+{
+    [Dependency] private IEntitySystemManager _entitySystemManager = default!;
 
     public override string Command => "notify";
 

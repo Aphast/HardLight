@@ -7,18 +7,15 @@ using System.Linq;
 
 namespace Content.Server.Botany;
 
-public sealed class MutationSystem : EntitySystem
+public sealed partial class MutationSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _robustRandom = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IRobustRandom _robustRandom = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
     private RandomPlantMutationListPrototype _randomMutations = default!;
-
-    private static readonly ProtoId<RandomPlantMutationListPrototype> RandomPlantMutationsId = "RandomPlantMutations";
-    private const int MaxRandomMutationPasses = 16;
 
     public override void Initialize()
     {
-        _randomMutations = _prototypeManager.Index(RandomPlantMutationsId);
+        _randomMutations = _prototypeManager.Index<RandomPlantMutationListPrototype>("RandomPlantMutations");
     }
 
     /// <summary>
@@ -28,65 +25,20 @@ public sealed class MutationSystem : EntitySystem
     /// <param name="severity"></param>
     public void CheckRandomMutations(EntityUid plantHolder, ref SeedData seed, float severity)
     {
-        for (var pass = 0; pass < MaxRandomMutationPasses; pass++)
+        foreach (var mutation in _randomMutations.mutations)
         {
-            var restartMutationPass = false;
-
-            foreach (var mutation in _randomMutations.mutations)
+            if (Random(Math.Min(mutation.BaseOdds * severity, 1.0f)))
             {
-                if (!Random(Math.Min(mutation.BaseOdds * severity, 1.0f)))
-                    continue;
-
-                var category = PlantMutationCategories.GetCategory(mutation.Name);
-                var previousGrowthStages = seed.GrowthStages;
-                var previousSubtypeName = seed.Name;
-
-                if (category != null)
-                {
-                    seed.EnsureMutationCategoryState(category.Value);
-                    seed.RestoreMutationCategoryState(category.Value);
-                }
-
                 if (mutation.AppliesToPlant)
                 {
                     var args = new EntityEffectBaseArgs(plantHolder, EntityManager);
                     mutation.Effect.Effect(args);
-
-                    var plant = Comp<Components.PlantHolderComponent>(plantHolder);
-                    if (plant.Seed != null)
-                        seed = plant.Seed;
                 }
-
-                if (category == PlantMutationCategory.Stages)
-                    seed.GrowthStages = Math.Min(seed.GrowthStages, previousGrowthStages);
-
-                if (category != null)
-                {
-                    seed.Mutations.RemoveAll(existing => PlantMutationCategories.GetCategory(existing.Name) == category.Value);
-
-                    if (mutation.Persists)
-                        seed.Mutations.Add(mutation);
-
-                    if (category == PlantMutationCategory.Subtypes && seed.Name != previousSubtypeName)
-                    {
-                        seed.MutationCategoryStates.RemoveAll(state => state.Category == PlantMutationCategory.Subtypes);
-                        restartMutationPass = true;
-                        break;
-                    }
-
-                    continue;
-                }
-
                 // Stat adjustments do not persist by being an attached effect, they just change the stat.
                 if (mutation.Persists && !seed.Mutations.Any(m => m.Name == mutation.Name))
                     seed.Mutations.Add(mutation);
             }
-
-            if (!restartMutationPass)
-                return;
         }
-
-        Log.Warning($"Random mutation subtype chain hit the safety cap for {plantHolder} while evaluating seed {seed.Name}.");
     }
 
     /// <summary>
@@ -145,11 +97,7 @@ public sealed class MutationSystem : EntitySystem
         // LINQ Explanation
         // For the list of mutation effects on both plants, use a 50% chance to pick each one.
         // Union all of the chosen mutations into one list, and pick ones with a Distinct (unique) name.
-        result.MutationCategoryStates.Clear();
-        result.Mutations = result.Mutations.Where(m => Random(0.5f))
-            .Union(a.Mutations.Where(m => Random(0.5f)))
-            .DistinctBy(PlantMutationCategories.GetIdentity)
-            .ToList();
+        result.Mutations = result.Mutations.Where(m => Random(0.5f)).Union(a.Mutations.Where(m => Random(0.5f))).DistinctBy(m => m.Name).ToList();
 
         // Hybrids have a high chance of being seedless. Balances very
         // effective hybrid crossings.

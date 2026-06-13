@@ -1,21 +1,18 @@
 using Content.Server.Construction.Components;
-using Content.Server.Construction.Conditions; //Hardlight
 using Content.Shared.Construction;
 using Content.Shared.Construction.Prototypes;
 using Content.Shared.Construction.Steps;
 using Content.Shared.Examine;
 using Content.Shared.Popups;
-using Content.Shared.Tag; //Hardlight
 using Content.Shared.Verbs;
 using Robust.Shared.Player;
 using Robust.Shared.Utility;
-using System.Linq; //Hardlight
 
 namespace Content.Server.Construction
 {
     public sealed partial class ConstructionSystem
     {
-        [Dependency] private readonly SharedPopupSystem _popup = default!;
+        [Dependency] private SharedPopupSystem _popup = default!;
 
         private readonly Dictionary<ConstructionPrototype, ConstructionGuide> _guideCache = new();
 
@@ -53,20 +50,7 @@ namespace Content.Server.Construction
             if (GetCurrentNode(uid, component) is not {} currentNode)
                 return;
 
-            //Hardlight: Retrieving entity tags to approve/deny deconstruction path edges
-            TryComp<TagComponent>(uid, out var tagComponentReference);
-
-            var validEdges = new List<ConstructionGraphEdge>();
-
-            if (tagComponentReference != null && graph.Nodes != null)
-            {
-                var entityTags = tagComponentReference.Tags.Select(item => item.Id).ToArray();
-
-                validEdges = ListOnlyEdgesWithValidTags(entityTags, graph);
-            }
-
-            if (graph.Path(currentNode.Name, component.DeconstructionNode, validEdges) is not {} path || path.Length == 0)
-            //End Hardlight
+            if (graph.Path(currentNode.Name, component.DeconstructionNode) is not {} path || path.Length == 0)
                 return;
 
             Verb verb = new();
@@ -92,35 +76,6 @@ namespace Content.Server.Construction
 
             args.Verbs.Add(verb);
         }
-
-        //Hardlight: The node/edge iteration to select which edges need to be negated for the deconstruction path
-        private List<ConstructionGraphEdge> ListOnlyEdgesWithValidTags(string[] entityTags, ConstructionGraphPrototype graph)
-        {
-            var validEdges = new List<ConstructionGraphEdge>();
-
-            HasTag tagElement;
-
-            foreach (ConstructionGraphEdge testEdge in graph.Nodes.SelectMany(n => n.Value.Edges))
-            {
-                validEdges.Add(testEdge);
-
-                foreach (IGraphCondition condition in testEdge.Conditions)
-                {
-                    if (condition.GetType() == typeof(HasTag))
-                    {
-                        tagElement = (HasTag)condition;
-
-                        if (!entityTags.Contains(tagElement.Tag))
-                        {
-                            validEdges.Remove(testEdge);
-                        }
-                    }
-                }
-            }
-
-            return validEdges;
-        }
-        //End Hardlight
 
         private void HandleConstructionExamined(EntityUid uid, ConstructionComponent component, ExaminedEvent args)
         {

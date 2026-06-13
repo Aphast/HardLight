@@ -8,20 +8,18 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Client.Stealth;
 
-public sealed class StealthSystem : SharedStealthSystem
+public sealed partial class StealthSystem : SharedStealthSystem
 {
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IPrototypeManager _protoMan = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
 
-    private static readonly ProtoId<ShaderPrototype> StealthShaderId = "Stealth";
     private ShaderInstance _shader = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        _shader = _protoMan.Index(StealthShaderId).InstanceUnique();
+        _shader = _protoMan.Index<ShaderPrototype>("Stealth").InstanceUnique();
 
         SubscribeLocalEvent<StealthComponent, ComponentShutdown>(OnShutdown);
         SubscribeLocalEvent<StealthComponent, ComponentStartup>(OnStartup);
@@ -42,7 +40,7 @@ public sealed class StealthSystem : SharedStealthSystem
         if (!Resolve(uid, ref component, ref sprite, false))
             return;
 
-        _sprite.SetColor((uid, sprite), Color.White);
+        sprite.Color = Color.White;
         sprite.PostShader = enabled ? _shader : null;
         sprite.GetScreenTexture = enabled;
         sprite.RaiseShaderEvent = enabled;
@@ -88,13 +86,14 @@ public sealed class StealthSystem : SharedStealthSystem
         reference.X = -reference.X;
         var visibility = GetVisibility(uid, component);
 
-        // actual visual visibility effect is limited to +/- 1.
-        visibility = Math.Clamp(visibility, -1f, 1f);
+        // Goobstation - Proper invisibility: changes -1 to -1.5
+        // actual visual visibility effect is limited to -1.5 to 1.
+        visibility = Math.Clamp(visibility, -1.5f, 1f);
 
         _shader.SetParameter("reference", reference);
         _shader.SetParameter("visibility", visibility);
 
         visibility = MathF.Max(0, visibility);
-        _sprite.SetColor((uid, args.Sprite), new Color(visibility, visibility, 1, 1));
+        args.Sprite.Color = new Color(visibility, visibility, 1, 1);
     }
 }

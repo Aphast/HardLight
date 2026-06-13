@@ -1,13 +1,14 @@
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype;
+using Content.Shared._Mono.Radar;
 
 namespace Content.Shared.Movement.Components;
 
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class JetpackComponent : Component
 {
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityUid? JetpackUser;
 
     [ViewVariables(VVAccess.ReadWrite), DataField("moleUsage")]
@@ -15,7 +16,7 @@ public sealed partial class JetpackComponent : Component
 
     [DataField] public EntProtoId ToggleAction = "ActionToggleJetpack";
 
-    public EntityUid? ToggleActionEntity;
+    [DataField, AutoNetworkedField] public EntityUid? ToggleActionEntity;
 
     [ViewVariables(VVAccess.ReadWrite), DataField("acceleration")]
     public float Acceleration = 1f;
@@ -25,4 +26,10 @@ public sealed partial class JetpackComponent : Component
 
     [ViewVariables(VVAccess.ReadWrite), DataField("weightlessModifier")]
     public float WeightlessModifier = 1.2f;
+
+    /// <summary>
+    /// Mono - Determines the range that a jetpack shows up on blip radar.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite), DataField]
+    public float DetectionRange = 256f;
 }

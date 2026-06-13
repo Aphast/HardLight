@@ -1,19 +1,19 @@
+using System.Numerics;
 using Content.Shared.Mobs;
 using Robust.Client.Graphics;
 using Robust.Client.Player;
 using Robust.Shared.Enums;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
-using System.Numerics;
 
 namespace Content.Client.UserInterface.Systems.DamageOverlays.Overlays;
 
-public sealed class DamageOverlay : Overlay
+public sealed partial class DamageOverlay : Overlay
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IEntityManager _entityManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
 
     public override OverlaySpace Space => OverlaySpace.WorldSpace;
 
@@ -26,9 +26,9 @@ public sealed class DamageOverlay : Overlay
     /// <summary>
     /// Handles the red pulsing overlay
     /// </summary>
-    public float PainLevel = 0f;
+    public float BruteLevel = 0f;
 
-    private float _oldPainLevel = 0f;
+    private float _oldBruteLevel = 0f;
 
     /// <summary>
     /// Handles the darkening overlay.
@@ -50,12 +50,10 @@ public sealed class DamageOverlay : Overlay
     {
         // TODO: Replace
         IoCManager.InjectDependencies(this);
-        _oxygenShader = _prototypeManager.Index(GradientCircleMaskId).InstanceUnique();
-        _critShader = _prototypeManager.Index(GradientCircleMaskId).InstanceUnique();
-        _bruteShader = _prototypeManager.Index(GradientCircleMaskId).InstanceUnique();
+        _oxygenShader = _prototypeManager.Index<ShaderPrototype>("GradientCircleMask").InstanceUnique();
+        _critShader = _prototypeManager.Index<ShaderPrototype>("GradientCircleMask").InstanceUnique();
+        _bruteShader = _prototypeManager.Index<ShaderPrototype>("GradientCircleMask").InstanceUnique();
     }
-
-    private static readonly ProtoId<ShaderPrototype> GradientCircleMaskId = "GradientCircleMask";
 
     protected override void Draw(in OverlayDrawArgs args)
     {
@@ -77,8 +75,8 @@ public sealed class DamageOverlay : Overlay
         var handle = args.WorldHandle;
         var distance = args.ViewportBounds.Width;
 
-        var time = (float)_timing.RealTime.TotalSeconds;
-        var lastFrameTime = (float)_timing.FrameTime.TotalSeconds;
+        var time = (float) _timing.RealTime.TotalSeconds;
+        var lastFrameTime = (float) _timing.FrameTime.TotalSeconds;
 
         // If they just died then lerp out the white overlay.
         if (State != MobState.Dead)
@@ -95,14 +93,14 @@ public sealed class DamageOverlay : Overlay
             DeadLevel = 0f;
         }
 
-        if (!MathHelper.CloseTo(_oldPainLevel, PainLevel, 0.001f))
+        if (!MathHelper.CloseTo(_oldBruteLevel, BruteLevel, 0.001f))
         {
-            var diff = PainLevel - _oldPainLevel;
-            _oldPainLevel += GetDiff(diff, lastFrameTime);
+            var diff = BruteLevel - _oldBruteLevel;
+            _oldBruteLevel += GetDiff(diff, lastFrameTime);
         }
         else
         {
-            _oldPainLevel = PainLevel;
+            _oldBruteLevel = BruteLevel;
         }
 
         if (!MathHelper.CloseTo(_oldOxygenLevel, OxygenLevel, 0.001f))
@@ -138,7 +136,7 @@ public sealed class DamageOverlay : Overlay
 
         // Makes debugging easier don't @ me
         float level = 0f;
-        level = _oldPainLevel;
+        level = _oldBruteLevel;
 
         // TODO: Lerping
         if (level > 0f && _oldCritLevel <= 0f)
@@ -168,7 +166,7 @@ public sealed class DamageOverlay : Overlay
         }
         else
         {
-            _oldPainLevel = PainLevel;
+            _oldBruteLevel = BruteLevel;
         }
 
         level = State != MobState.Critical ? _oldOxygenLevel : 1f;

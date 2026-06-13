@@ -438,18 +438,3 @@
     graph: ShellShotgun12_gaugeHiPowerBuckshotGraph
     node: shell
 
-- type: entity
-  id: ShellShotgun12_gaugeFlechette
-  name: shotgun shell (12 gauge flechette)
-  parent: BaseShellShotgun12_gauge
-  components:
-  - type: CartridgeAmmo
-    proto: Pellet12_gaugeFlechette
-    deleteOnSpawn: true
-  - type: Sprite
-    layers:
-      - state: blank
-        map: [ "enum.AmmoVisualLayers.Base" ]
-  - type: Construction
-    graph: ShellShotgun12_gaugeFlechetteGraph
-    node: shell

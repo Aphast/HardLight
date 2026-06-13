@@ -9,9 +9,9 @@ using Robust.Shared.Physics.Events;
 namespace Content.Server.Stunnable
 {
     [UsedImplicitly]
-    internal sealed class StunOnCollideSystem : EntitySystem
+    internal sealed partial class StunOnCollideSystem : EntitySystem
     {
-        [Dependency] private readonly StunSystem _stunSystem = default!;
+        [Dependency] private StunSystem _stunSystem = default!;
 
         public override void Initialize()
         {
@@ -28,7 +28,7 @@ namespace Content.Server.Stunnable
                 _stunSystem.TryStun(target, TimeSpan.FromSeconds(component.StunAmount), true, status);
 
                 _stunSystem.TryKnockdown(target, TimeSpan.FromSeconds(component.KnockdownAmount), true,
-                    status: status);
+                    status);
 
                 _stunSystem.TrySlowdown(target, TimeSpan.FromSeconds(component.SlowdownAmount), true,
                     component.WalkSpeedMultiplier, component.RunSpeedMultiplier, status);

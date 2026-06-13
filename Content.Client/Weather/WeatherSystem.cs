@@ -9,16 +9,17 @@ using Robust.Shared.GameStates;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Player;
+using Robust.Shared.Prototypes;
 using AudioComponent = Robust.Shared.Audio.Components.AudioComponent;
 
 namespace Content.Client.Weather;
 
-public sealed class WeatherSystem : SharedWeatherSystem
+public sealed partial class WeatherSystem : SharedWeatherSystem
 {
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly AudioSystem _audio = default!;
-    [Dependency] private readonly MapSystem _mapSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private MapSystem _mapSystem = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
     public override void Initialize()
     {
@@ -45,7 +46,7 @@ public sealed class WeatherSystem : SharedWeatherSystem
             return;
         }
 
-        if (!Timing.IsFirstTimePredicted || weatherProto.Sound == null)
+        if (weatherProto.Sound == null)
             return;
 
         weather.Stream ??= _audio.PlayGlobal(weatherProto.Sound, Filter.Local(), true)?.Entity;
@@ -124,16 +125,26 @@ public sealed class WeatherSystem : SharedWeatherSystem
 
     protected override bool SetState(EntityUid uid, WeatherState state, WeatherComponent comp, WeatherData weather, WeatherPrototype weatherProto)
     {
-        if (!base.SetState(uid, state, comp, weather, weatherProto))
-            return false;
-
         if (!Timing.IsFirstTimePredicted)
             return true;
 
+        if (!base.SetState(uid, state, comp, weather, weatherProto))
+            return false;
+
         // TODO: Fades (properly)
-        weather.Stream = _audio.Stop(weather.Stream);
-        weather.Stream = _audio.PlayGlobal(weatherProto.Sound, Filter.Local(), true)?.Entity;
+
         return true;
+    }
+
+    protected override WeatherData? EndWeather(EntityUid uid, WeatherComponent component, ProtoId<WeatherPrototype> proto)
+    {
+        if (base.EndWeather(uid, component, proto) is not { } data)
+            return null;
+
+        // `QueueDel(stream)` is effectively an analogue to `_audio.Stop(stream)` here,
+        // however the difference being that the former doesn't care about prediction.
+        QueueDel(data.Stream);
+        return data;
     }
 
     private void OnWeatherHandleState(EntityUid uid, WeatherComponent component, ref ComponentHandleState args)

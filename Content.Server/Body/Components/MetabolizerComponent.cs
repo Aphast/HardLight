@@ -1,5 +1,4 @@
 using Content.Server.Body.Systems;
-using Content.Server.Floofstation.Traits;
 using Content.Shared.Body.Prototypes;
 using Content.Shared.FixedPoint;
 using Robust.Shared.Prototypes;
@@ -45,7 +44,7 @@ namespace Content.Server.Body.Components
         ///     List of metabolizer types that this organ is. ex. Human, Slime, Felinid, w/e.
         /// </summary>
         [DataField]
-        [Access(typeof(MetabolizerSystem), typeof(VampirismSystem), Other = AccessPermissions.ReadExecute)] // Floof: VamprismSystem
+        [Access(typeof(MetabolizerSystem), Other = AccessPermissions.ReadExecute)] // FIXME Friends
         public HashSet<ProtoId<MetabolizerTypePrototype>>? MetabolizerTypes = null;
 
         /// <summary>
@@ -82,10 +81,5 @@ namespace Content.Server.Body.Components
 
         [DataField("rateModifier")]
         public FixedPoint2 MetabolismRateModifier = 1.0;
-
-        // Frontier: skip metabolizing effects
-        [DataField]
-        public bool SkipEffects = false;
-        // End Frontier
     }
 }

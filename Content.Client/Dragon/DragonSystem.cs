@@ -4,10 +4,9 @@ using Robust.Shared.GameStates;
 
 namespace Content.Client.Dragon;
 
-public sealed class DragonSystem : EntitySystem
+public sealed partial class DragonSystem : EntitySystem
 {
-    [Dependency] private readonly SharedPointLightSystem _lights = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private SharedPointLightSystem _lights = default!;
 
     public override void Initialize()
     {
@@ -32,7 +31,7 @@ public sealed class DragonSystem : EntitySystem
         switch (state.State)
         {
             case DragonRiftState.Charging:
-                _sprite.LayerSetColor((uid, sprite), 0, Color.FromHex("#569fff"));
+                sprite?.LayerSetColor(0, Color.FromHex("#569fff"));
 
                 if (light != null)
                 {
@@ -40,7 +39,7 @@ public sealed class DragonSystem : EntitySystem
                 }
                 break;
             case DragonRiftState.AlmostFinished:
-                _sprite.LayerSetColor((uid, sprite), 0, Color.FromHex("#cf4cff"));
+                sprite?.LayerSetColor(0, Color.FromHex("#cf4cff"));
 
                 if (light != null)
                 {
@@ -48,7 +47,7 @@ public sealed class DragonSystem : EntitySystem
                 }
                 break;
             case DragonRiftState.Finished:
-                _sprite.LayerSetColor((uid, sprite), 0, Color.FromHex("#edbc36"));
+                sprite?.LayerSetColor(0, Color.FromHex("#edbc36"));
 
                 if (light != null)
                 {

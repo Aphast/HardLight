@@ -17,7 +17,7 @@ public sealed partial class MaskComponent : Component
     /// <summary>
     /// Action for toggling a mask (e.g., pulling the mask down or putting it back up)
     /// </summary>
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityUid? ToggleActionEntity;
 
     /// <summary>

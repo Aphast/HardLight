@@ -1,12 +1,3 @@
-// SPDX-FileCopyrightText: 2021 ike709
-// SPDX-FileCopyrightText: 2022 Vordenburg
-// SPDX-FileCopyrightText: 2022 mirrorcult
-// SPDX-FileCopyrightText: 2022 wrexbe
-// SPDX-FileCopyrightText: 2025 Steve
-// SPDX-FileCopyrightText: 2025 bitcrushing
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 using Robust.Shared.Serialization;
 
 namespace Content.Shared.Atmos.Piping.Trinary.Components
@@ -25,27 +16,12 @@ namespace Content.Shared.Atmos.Piping.Trinary.Components
         public bool Enabled { get; }
         public HashSet<Gas>? FilterGases { get; } // Funky Station
 
-        public bool HighFlow { get; }
-        public float MaxTransferRate { get; }
-
-        public GasFilterBoundUserInterfaceState(string filterLabel, float transferRate, bool enabled, HashSet<Gas>? filterGases)
+        public GasFilterBoundUserInterfaceState(string filterLabel, float transferRate, bool enabled, HashSet<Gas>? filterGases) // Funky Station
         {
             FilterLabel = filterLabel;
             TransferRate = transferRate;
             Enabled = enabled;
             FilterGases = filterGases; // Funky Station
-            HighFlow = false;
-            MaxTransferRate = transferRate;
-        }
-
-        public GasFilterBoundUserInterfaceState(string filterLabel, float transferRate, bool enabled, HashSet<Gas>? filterGases, bool highFlow, float maxTransferRate)
-        {
-            FilterLabel = filterLabel;
-            TransferRate = transferRate;
-            Enabled = enabled;
-            FilterGases = filterGases; // Funky Station
-            HighFlow = highFlow;
-            MaxTransferRate = maxTransferRate;
         }
     }
 

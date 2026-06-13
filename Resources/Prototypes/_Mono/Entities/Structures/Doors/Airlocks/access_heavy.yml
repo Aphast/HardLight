@@ -26,6 +26,15 @@
     containers:
       board: [ DoorElectronicsArmory ]
 
+- type: entity
+  parent: AirlockHeavyTSFMC
+  id: AirlockHeavyTsfEngineeringLocked
+  suffix: TSF Engineering, Locked
+  components:
+  - type: ContainerFill
+    containers:
+      board: [ DoorElectronicsTsfEngineer ]
+
 # PDV
 
 - type: entity
@@ -44,6 +53,24 @@
   - type: ContainerFill
     containers:
       board: [ DoorElectronicsPirate ]
+
+- type: entity
+  parent: AirlockHeavyPDV
+  id: AirlockHeavyPDVCommandLocked
+  suffix: PDV Command, Locked
+  components:
+  - type: ContainerFill
+    containers:
+      board: [ DoorElectronicsPdvCommand ]
+
+- type: entity
+  parent: AirlockHeavyPDV
+  id: AirlockHeavyGrandVizierLocked
+  suffix: Grand Vizier, Locked
+  components:
+  - type: ContainerFill
+    containers:
+      board: [ DoorElectronicsGrandVizier ]
 
 # USSP
 
@@ -91,8 +118,8 @@
   components:
   - type: Sprite
     sprite: _Mono/Structures/Doors/HeavyAirlocks/Standard/security.rsi
-  - type: Paintable
-    group: null
+  - type: PaintableAirlock
+    department: Security
 
 - type: entity
   parent: AirlockHeavySecurity
@@ -130,8 +157,8 @@
   components:
   - type: Sprite
     sprite: _Mono/Structures/Doors/HeavyAirlocks/Standard/command.rsi
-  - type: Paintable
-    group: null
+  - type: PaintableAirlock
+    department: Command
 
 - type: entity
   parent: AirlockHeavyCommand

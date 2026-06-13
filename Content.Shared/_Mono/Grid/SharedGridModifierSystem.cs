@@ -9,6 +9,7 @@ public abstract class SharedGridModifierSystem : EntitySystem
     {
         foreach (var (uid, comp) in EntityManager.GetAllComponents(compType, true))
         {
+
             var xform = Transform(uid);
 
             if (xform.GridUid != gridUid)

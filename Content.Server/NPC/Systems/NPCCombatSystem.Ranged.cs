@@ -1,31 +1,34 @@
-using Content.Server.Destructible; // VRS (Triad #3732)
+using System.Numerics;
+using Content.Server.Destructible; // Mono
 using Content.Server.NPC.Components;
+using Content.Shared._Goobstation.Weapons.SmartGun;
 using Content.Shared.CombatMode;
-using Content.Shared.Damage.Components; // VRS (Triad #3732)
+using Content.Shared.Damage.Components;
 using Content.Shared.Interaction;
-using Content.Shared.NPC.Components; // VRS (Triad #3732)
+using Content.Shared.NPC.Components; // Mono
 using Content.Shared.Physics;
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
+using Content.Shared.Wieldable.Components;
 using Robust.Shared.Map;
 using Robust.Shared.Physics.Components;
-using Robust.Shared.Random; //Frontier
 
 namespace Content.Server.NPC.Systems;
 
 public sealed partial class NPCCombatSystem
 {
-    [Dependency] private readonly SharedCombatModeSystem _combat = default!;
-    [Dependency] private readonly RotateToFaceSystem _rotate = default!;
-    [Dependency] private readonly DestructibleSystem _destructible = default!; // VRS (Triad #3732)
+    [Dependency] private SharedCombatModeSystem _combat = default!;
+    [Dependency] private RotateToFaceSystem _rotate = default!;
+    [Dependency] private SharedLaserPointerSystem _pointer = default!; // Goobstation
+    [Dependency] private DestructibleSystem _destructible = default!;
 
     private EntityQuery<CombatModeComponent> _combatQuery;
     private EntityQuery<NPCSteeringComponent> _steeringQuery;
     private EntityQuery<RechargeBasicEntityAmmoComponent> _rechargeQuery;
     private EntityQuery<PhysicsComponent> _physicsQuery;
     private EntityQuery<TransformComponent> _xformQuery;
-    private EntityQuery<RequireProjectileTargetComponent> _requireTargetQuery; // VRS (Triad #3732)
-    private EntityQuery<NpcFactionMemberComponent> _factionQuery; // VRS (Triad #3732)
+    private EntityQuery<RequireProjectileTargetComponent> _requireTargetQuery; // Mono
+    private EntityQuery<NpcFactionMemberComponent> _factionQuery; // Mono
 
     // TODO: Don't predict for hitscan
     private const float ShootSpeed = 20f;
@@ -42,8 +45,8 @@ public sealed partial class NPCCombatSystem
         _rechargeQuery = GetEntityQuery<RechargeBasicEntityAmmoComponent>();
         _steeringQuery = GetEntityQuery<NPCSteeringComponent>();
         _xformQuery = GetEntityQuery<TransformComponent>();
-        _requireTargetQuery = GetEntityQuery<RequireProjectileTargetComponent>(); // VRS (Triad #3732)
-        _factionQuery = GetEntityQuery<NpcFactionMemberComponent>(); // VRS (Triad #3732)
+        _requireTargetQuery = GetEntityQuery<RequireProjectileTargetComponent>(); // Mono
+        _factionQuery = GetEntityQuery<NpcFactionMemberComponent>(); // Mono
 
         SubscribeLocalEvent<NPCRangedCombatComponent, ComponentStartup>(OnRangedStartup);
         SubscribeLocalEvent<NPCRangedCombatComponent, ComponentShutdown>(OnRangedShutdown);
@@ -67,21 +70,39 @@ public sealed partial class NPCCombatSystem
         {
             _combat.SetInCombatMode(uid, false, combat);
         }
+
+        // Goobstation
+        if (_gun.TryGetGun(uid, out var gunUid, out _) && TryComp(gunUid, out LaserPointerComponent? laser) &&
+            TryComp(gunUid, out WieldableComponent? wieldable) && TryComp(gunUid, out TransformComponent? xform))
+            _pointer.AddOrRemoveLine(GetNetEntity(gunUid), laser, wieldable, xform, null, null);
     }
 
     private void UpdateRanged(float frameTime)
     {
-        var query = EntityQueryEnumerator<NPCRangedCombatComponent, TransformComponent>();
+        var query = EntityQueryEnumerator<NPCRangedCombatComponent>();
 
-        while (query.MoveNext(out var uid, out var comp, out var xform))
+        while (query.MoveNext(out var uid, out var comp))
         {
-            if (comp.Status == CombatStatus.Unspecified)
+            var xform = Transform(uid); // Mono
+
+            if (!_gun.TryGetGun(uid, out var gunUid, out var gun))
+            {
+                comp.Status = CombatStatus.NoWeapon;
+                comp.ShootAccumulator = 0f;
                 continue;
+            }
+
+            if (comp.Status == CombatStatus.Unspecified)
+            {
+                UpdatePointerLineNoTarget(gunUid); // Goobstation
+                continue;
+            }
 
             if (_steeringQuery.TryGetComponent(uid, out var steering) && steering.Status == SteeringStatus.NoPath)
             {
                 comp.Status = CombatStatus.TargetUnreachable;
                 comp.ShootAccumulator = 0f;
+                UpdatePointerLineNoTarget(gunUid); // Goobstation
                 continue;
             }
 
@@ -90,6 +111,7 @@ public sealed partial class NPCCombatSystem
             {
                 comp.Status = CombatStatus.TargetUnreachable;
                 comp.ShootAccumulator = 0f;
+                UpdatePointerLineNoTarget(gunUid); // Goobstation
                 continue;
             }
 
@@ -105,47 +127,28 @@ public sealed partial class NPCCombatSystem
                 _combat.SetInCombatMode(uid, true, combatMode);
             }
 
-            if (!_gun.TryGetGun(uid, out var gunUid, out var gun))
-            {
-                comp.Status = CombatStatus.NoWeapon;
-                comp.ShootAccumulator = 0f;
-                continue;
-            }
-
             var ammoEv = new GetAmmoCountEvent();
             RaiseLocalEvent(gunUid, ref ammoEv);
+
+            var worldPos = _transform.GetWorldPosition(xform);
+            var targetPos = _transform.GetWorldPosition(targetXform);
 
             if (ammoEv.Count == 0)
             {
                 // Recharging then?
                 if (_rechargeQuery.HasComponent(gunUid))
                 {
+                    UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
                     continue;
                 }
 
                 comp.Status = CombatStatus.Unspecified;
                 comp.ShootAccumulator = 0f;
+                UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
                 continue;
             }
 
             comp.LOSAccumulator -= frameTime;
-
-            var worldPos = _transform.GetWorldPosition(xform);
-            var targetPos = _transform.GetWorldPosition(targetXform);
-            
-            // Frontier -- Ranged NPC miss chance
-            if (_random.Prob(comp.MissChance))
-            {
-                targetPos = targetPos + _random.NextVector2(1.0f, 2.0f);
-            }
-            // End Frontier
-
-            // Frontier -- Ranged NPC miss chance
-            if (_random.Prob(comp.MissChance))
-            {
-                targetPos = targetPos + _random.NextVector2(1.0f, 2.0f);
-            }
-            // End Frontier
 
             // We'll work out the projected spot of the target and shoot there instead of where they are.
             var distance = (targetPos - worldPos).Length();
@@ -156,11 +159,8 @@ public sealed partial class NPCCombatSystem
             if (comp.LOSAccumulator < 0f)
             {
                 comp.LOSAccumulator += UnoccludedCooldown;
-
-                // For consistency with NPC steering.
-                var obstructedMask = comp.UseOpaqueForLOSChecks ? CollisionGroup.Opaque : (CollisionGroup.Impassable | CollisionGroup.InteractImpassable);
-                // VRS (Triad #3732): use InRangeGoodTarget to allow shooting through destroyable obstacles
-                comp.TargetInLOS = InRangeGoodTarget((gunUid, gun), uid, comp.Target, distance, comp.ShotsThreshold, obstructedMask);
+                // Mono
+                comp.TargetInLOS = InRangeGoodTarget((gunUid, gun), uid, comp.Target, distance, comp.ShotsThreshold, comp.ObstructedMask, comp.BulletMask);
             }
 
             if (!comp.TargetInLOS)
@@ -173,6 +173,7 @@ public sealed partial class NPCCombatSystem
                     steering.ForceMove = true;
                 }
 
+                UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
                 continue;
             }
 
@@ -185,6 +186,7 @@ public sealed partial class NPCCombatSystem
 
             if (comp.ShootAccumulator < comp.ShootDelay)
             {
+                UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
                 continue;
             }
 
@@ -197,6 +199,7 @@ public sealed partial class NPCCombatSystem
 
             if (!_rotate.TryRotateTo(uid, goalRotation, frameTime, comp.AccuracyThreshold, rotationSpeed?.Theta ?? double.MaxValue, xform))
             {
+                UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
                 continue;
             }
 
@@ -209,13 +212,16 @@ public sealed partial class NPCCombatSystem
             // TODO: Check if we can face
 
             if (!Enabled || !_gun.CanShoot(gun))
+            {
+                UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
                 continue;
+            }
 
             EntityCoordinates targetCordinates;
 
             if (_mapManager.TryFindGridAt(xform.MapID, targetPos, out var gridUid, out var mapGrid))
             {
-                targetCordinates = new EntityCoordinates(gridUid, mapGrid.WorldToLocal(targetSpot));
+                targetCordinates = new EntityCoordinates(gridUid, _map.WorldToLocal(gridUid, mapGrid, targetSpot));
             }
             else
             {
@@ -223,6 +229,8 @@ public sealed partial class NPCCombatSystem
             }
 
             comp.Status = CombatStatus.Normal;
+
+            UpdatePointerLine(gunUid, targetPos, worldPos, comp.Target); // Goobstation
 
             if (gun.NextFire > _timing.CurTime)
             {
@@ -234,17 +242,44 @@ public sealed partial class NPCCombatSystem
         }
     }
 
-    // VRS (Triad #3732)
+    // Goobstation - Helper methods moved outside the loop to avoid redefinition
+    private void UpdatePointerLineNoTarget(EntityUid gunUid)
+    {
+        if (TryComp(gunUid, out LaserPointerComponent? pointer) && TryComp(gunUid, out WieldableComponent? wieldable))
+        {
+            _pointer.AddOrRemoveLine(GetNetEntity(gunUid),
+                pointer,
+                wieldable,
+                _xformQuery.Comp(gunUid),
+                null,
+                null);
+        }
+    }
+
+    private void UpdatePointerLine(EntityUid gunUid, Vector2 targetPos, Vector2 worldPos, EntityUid target)
+    {
+        if (TryComp(gunUid, out LaserPointerComponent? pointer) && TryComp(gunUid, out WieldableComponent? wieldable))
+        {
+            _pointer.AddOrRemoveLine(GetNetEntity(gunUid),
+                pointer,
+                wieldable,
+                _xformQuery.Comp(gunUid),
+                targetPos - worldPos,
+                target);
+        }
+    }
+
+    // Mono
     public bool InRangeGoodTarget(Entity<GunComponent?> gun, EntityUid source, EntityUid target, float distance, float shotsThreshold, CollisionGroup obstructedMask = CollisionGroup.Opaque, CollisionGroup bulletMask = CollisionGroup.Impassable | CollisionGroup.BulletImpassable)
     {
         if (!Resolve(gun, ref gun.Comp, false))
             return false;
 
-        var dmg = _gun.GetNextDamage(gun).GetTotal().Float();
+        var dmg = _gun.GetNextDamage(gun).GetTotal().Float(); // this will be wrong but damageable is evil and i have no idea how to do this better
         var destroyAccum = 0f;
         var firerate = gun.Comp.FireRateModified;
         var threshold = shotsThreshold;
-        // For consistency with NPC steering.
+        // For consistency with NPC steering.                                                  // Mono
         return _interaction.InRangeUnobstructed(source, target, distance + 0.1f, obstructedMask,
             predicate: (EntityUid uid) => {
                 if (_physicsQuery.TryGetComponent(uid, out var physics)

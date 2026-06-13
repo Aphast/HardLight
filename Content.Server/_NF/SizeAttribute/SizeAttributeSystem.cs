@@ -3,85 +3,36 @@ using Robust.Server.GameObjects;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Collision.Shapes;
 using Robust.Shared.Physics.Systems;
-using Content.Server.Sprite; // HardLight
 using Content.Shared._NF.SizeAttribute;
 using Content.Shared.Nyanotrasen.Item.PseudoItem;
-using Content.Shared.Humanoid;
-using Content.Shared.Silicons.Borgs.Components; // HardLight
+using Content.Shared.Sprite;
 
 namespace Content.Server.SizeAttribute
 {
-    public sealed class SizeAttributeSystem : EntitySystem
+    public sealed partial class SizeAttributeSystem : EntitySystem
     {
-        [Dependency] private readonly IEntityManager _entityManager = default!;
-        [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-        [Dependency] private readonly AppearanceSystem _appearance = default!;
-        [Dependency] private readonly ScaleVisualsSystem _scaleVisuals = default!; // HardLight
+        [Dependency] private IEntityManager _entityManager = default!;
+        [Dependency] private SharedPhysicsSystem _physics = default!;
+        [Dependency] private AppearanceSystem _appearance = default!;
         public override void Initialize()
         {
             base.Initialize();
             SubscribeLocalEvent<SizeAttributeComponent, ComponentInit>(OnComponentInit);
-            SubscribeLocalEvent<TallWhitelistComponent, ComponentInit>(OnTallWhitelistInit); // HardLight
-            SubscribeLocalEvent<ShortWhitelistComponent, ComponentInit>(OnShortWhitelistInit); // HardLight
         }
 
         private void OnComponentInit(EntityUid uid, SizeAttributeComponent component, ComponentInit args)
         {
-            TryApplySizeAttribute(uid, component); // HardLight
-        }
-
-        // HardLight start
-        private void OnTallWhitelistInit(EntityUid uid, TallWhitelistComponent _, ComponentInit args)
-        {
-            if (TryComp(uid, out SizeAttributeComponent? sizeAttribute))
-                TryApplySizeAttribute(uid, sizeAttribute);
-        }
-
-        private void OnShortWhitelistInit(EntityUid uid, ShortWhitelistComponent _, ComponentInit args)
-        {
-            if (TryComp(uid, out SizeAttributeComponent? sizeAttribute))
-                TryApplySizeAttribute(uid, sizeAttribute);
-        }
-
-        private void TryApplySizeAttribute(EntityUid uid, SizeAttributeComponent component)
-        {
-            if (component.Applied)
-                return;
-
             if (component.Tall && TryComp<TallWhitelistComponent>(uid, out var tallComp))
             {
-                var resolvedScale = ResolveScale(uid, tallComp.Scale, tallComp.BorgScale);
-                Scale(uid,
-                    resolvedScale,
-                    tallComp.Density,
-                    tallComp.DensityMultiplier,
-                    tallComp.CosmeticOnly,
-                    tallComp.BorgFixtureRadius);
+                Scale(uid, component, tallComp.Scale, tallComp.Density, tallComp.CosmeticOnly);
                 PseudoItem(uid, component, tallComp.PseudoItem, tallComp.Shape, tallComp.StoredOffset, tallComp.StoredRotation);
-                component.Applied = true;
             }
             else if (component.Short && TryComp<ShortWhitelistComponent>(uid, out var shortComp))
             {
-                var resolvedScale = ResolveScale(uid, shortComp.Scale, shortComp.BorgScale);
-                Scale(uid,
-                    resolvedScale,
-                    shortComp.Density,
-                    shortComp.DensityMultiplier,
-                    shortComp.CosmeticOnly,
-                    shortComp.BorgFixtureRadius);
+                Scale(uid, component, shortComp.Scale, shortComp.Density, shortComp.CosmeticOnly);
                 PseudoItem(uid, component, shortComp.PseudoItem, shortComp.Shape, shortComp.StoredOffset, shortComp.StoredRotation);
-                component.Applied = true;
             }
         }
-
-        private float ResolveScale(EntityUid uid, float defaultScale, float? borgScale)
-        {
-            if (_entityManager.HasComponent<BorgChassisComponent>(uid) && borgScale is { } overrideScale)
-                return overrideScale;
-
-            return defaultScale;
-        }
-        // HardLight end
 
         private void PseudoItem(EntityUid uid, SizeAttributeComponent _, bool active, List<Box2i>? shape, Vector2i? storedOffset, float storedRotation)
         {
@@ -104,63 +55,39 @@ namespace Content.Server.SizeAttribute
             }
         }
 
-        // HardLight start
-        private void Scale(
-            EntityUid uid,
-            float scale,
-            float density,
-            float densityMultiplier,
-            bool cosmeticOnly,
-            float? borgFixtureRadius)
+        private void Scale(EntityUid uid, SizeAttributeComponent component, float scale, float density, bool cosmeticOnly)
         {
-            if (scale <= 0f)
+            if (scale <= 0f && density <= 0f)
                 return;
 
-            var isBorg = _entityManager.HasComponent<BorgChassisComponent>(uid);
-
-            // Borgs do not use humanoid visuals, so they need sprite scale visuals instead.
-            if (isBorg)
-                _scaleVisuals.SetSpriteScale(uid, new Vector2(scale, scale));
+            _entityManager.EnsureComponent<ScaleVisualsComponent>(uid);
 
             var appearanceComponent = _entityManager.EnsureComponent<AppearanceComponent>(uid);
-            _appearance.SetData(uid, HumanoidVisuals.Scale, new Vector2(scale, scale), appearanceComponent);
+            if (!_appearance.TryGetData<Vector2>(uid, ScaleVisuals.Scale, out var oldScale, appearanceComponent))
+                oldScale = Vector2.One;
+
+            _appearance.SetData(uid, ScaleVisuals.Scale, oldScale * scale, appearanceComponent);
 
             if (!cosmeticOnly && _entityManager.TryGetComponent(uid, out FixturesComponent? manager))
             {
                 foreach (var (id, fixture) in manager.Fixtures)
                 {
-                    if (!fixture.Hard)
-                        continue;
+                    if (!fixture.Hard || fixture.Density <= 1f)
+                        continue; // This will skip the flammable fixture and any other fixture that is not supposed to contribute to mass
 
                     switch (fixture.Shape)
                     {
                         case PhysShapeCircle circle:
-                            var radius = circle.Radius * scale;
-                            if (isBorg)
-                            {
-                                if (borgFixtureRadius is { } overrideRadius && overrideRadius > 0f)
-                                    radius = overrideRadius * scale;
-                            }
-
-                            _physics.SetPositionRadius(uid, id, fixture, circle, circle.Position * scale, radius, manager);
+                            _physics.SetPositionRadius(uid, id, fixture, circle, circle.Position * scale, circle.Radius * scale, manager);
                             break;
                         default:
-                            // Skip unsupported shapes instead of crashing on initialization.
-                            continue;
+                            throw new NotImplementedException();
                     }
 
-                    if (density > 0f)
-                    {
-                        _physics.SetDensity(uid, id, fixture, density);
-                    }
-                    else if (densityMultiplier > 0f && densityMultiplier != 1f)
-                    {
-                        _physics.SetDensity(uid, id, fixture, fixture.Density * densityMultiplier);
-                    }
+                    _physics.SetDensity(uid, id, fixture, density);
                 }
             }
         }
-        // HardLight end
     }
 
     [ByRefEvent]

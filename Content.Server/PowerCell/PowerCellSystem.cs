@@ -1,15 +1,23 @@
-using Content.Server.Emp;
+using System.Diagnostics.CodeAnalysis;
+using Content.Server.Kitchen.Components;
 using Content.Server.Power.Components;
+using Content.Server.Power.EntitySystems;
+using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Examine;
+using Content.Shared.Popups;
+using Content.Shared.Power;
+using Content.Shared.Power.Components;
 using Content.Shared.PowerCell;
 using Content.Shared.PowerCell.Components;
 using Content.Shared.Rounding;
+using Content.Shared.UserInterface;
 using Robust.Shared.Containers;
 using System.Diagnostics.CodeAnalysis;
 using Content.Server.Kitchen.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.UserInterface;
 using Content.Shared.Containers.ItemSlots;
+using Content.Shared.Mech.Components;
 using Content.Shared.Popups;
 using ActivatableUISystem = Content.Shared.UserInterface.ActivatableUISystem;
 
@@ -20,13 +28,13 @@ namespace Content.Server.PowerCell;
 /// </summary>
 public sealed partial class PowerCellSystem : SharedPowerCellSystem
 {
-    [Dependency] private readonly ActivatableUISystem _activatable = default!;
-    [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly ItemSlotsSystem _itemSlotsSystem = default!;
-    [Dependency] private readonly SharedAppearanceSystem _sharedAppearanceSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly RiggableSystem _riggableSystem = default!;
+    [Dependency] private ActivatableUISystem _activatable = default!;
+    [Dependency] private BatterySystem _battery = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private ItemSlotsSystem _itemSlotsSystem = default!;
+    [Dependency] private SharedAppearanceSystem _sharedAppearanceSystem = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private RiggableSystem _riggableSystem = default!;
 
     public override void Initialize()
     {
@@ -34,7 +42,6 @@ public sealed partial class PowerCellSystem : SharedPowerCellSystem
 
         SubscribeLocalEvent<PowerCellComponent, ChargeChangedEvent>(OnChargeChanged);
         SubscribeLocalEvent<PowerCellComponent, ExaminedEvent>(OnCellExamined);
-        SubscribeLocalEvent<PowerCellComponent, EmpAttemptEvent>(OnCellEmpAttempt);
 
         SubscribeLocalEvent<PowerCellDrawComponent, ChargeChangedEvent>(OnDrawChargeChanged);
         SubscribeLocalEvent<PowerCellDrawComponent, PowerCellChangedEvent>(OnDrawCellChanged);
@@ -42,9 +49,6 @@ public sealed partial class PowerCellSystem : SharedPowerCellSystem
         SubscribeLocalEvent<PowerCellSlotComponent, ExaminedEvent>(OnCellSlotExamined);
         // funny
         SubscribeLocalEvent<PowerCellSlotComponent, BeingMicrowavedEvent>(OnSlotMicrowaved);
-
-        SubscribeLocalEvent<PowerCellSlotComponent, GetChargeEvent>(OnGetCharge);
-        SubscribeLocalEvent<PowerCellSlotComponent, ChangeChargeEvent>(OnChangeCharge);
     }
 
     private void OnSlotMicrowaved(EntityUid uid, PowerCellSlotComponent component, BeingMicrowavedEvent args)
@@ -77,6 +81,12 @@ public sealed partial class PowerCellSystem : SharedPowerCellSystem
         {
             if (itemSlot.Item == uid)
                 RaiseLocalEvent(container.Owner, new PowerCellChangedEvent(false));
+        }
+        // Mono edit - Also check if there are any batteries in mech
+        else if (_containerSystem.TryGetContainingContainer((uid, null, null), out var mechContainer)
+                 && mechContainer.Contains(uid))
+        {
+            RaiseLocalEvent(mechContainer.Owner, new PowerCellChangedEvent(false));
         }
     }
 
@@ -221,23 +231,15 @@ public sealed partial class PowerCellSystem : SharedPowerCellSystem
         OnBatteryExamined(uid, battery, args);
     }
 
-    private void OnCellEmpAttempt(EntityUid uid, PowerCellComponent component, EmpAttemptEvent args)
-    {
-        var parent = Transform(uid).ParentUid;
-        // relay the attempt event to the slot so it can cancel it
-        if (HasComp<PowerCellSlotComponent>(parent))
-            RaiseLocalEvent(parent, args);
-    }
-
     private void OnCellSlotExamined(EntityUid uid, PowerCellSlotComponent component, ExaminedEvent args)
     {
-        TryGetBatteryFromSlot(uid, out var battery);
-        OnBatteryExamined(uid, battery, args);
+        TryGetBatteryFromSlot(uid, out var batteryEnt, out var battery); // Goobstation
+        OnBatteryExamined(batteryEnt.GetValueOrDefault(uid), battery, args); // Goobstation
     }
 
-    private void OnBatteryExamined(EntityUid uid, BatteryComponent? component, ExaminedEvent args)
+    public void OnBatteryExamined(EntityUid uid, BatteryComponent? component, ExaminedEvent args) // WD EDIT
     {
-        if (component != null)
+        if (Resolve(uid, ref component, false)) // WD EDIT
         {
             var charge = component.CurrentCharge / component.MaxCharge * 100;
             args.PushMarkup(Loc.GetString("power-cell-component-examine-details", ("currentCharge", $"{charge:F0}")));
@@ -246,38 +248,5 @@ public sealed partial class PowerCellSystem : SharedPowerCellSystem
         {
             args.PushMarkup(Loc.GetString("power-cell-component-examine-details-no-battery"));
         }
-    }
-
-    private void OnGetCharge(Entity<PowerCellSlotComponent> entity, ref GetChargeEvent args)
-    {
-        if (!TryGetBatteryFromSlot(entity, out var batteryUid, out _))
-            return;
-
-        RaiseLocalEvent(batteryUid.Value, ref args);
-    }
-
-    private void OnChangeCharge(Entity<PowerCellSlotComponent> entity, ref ChangeChargeEvent args)
-    {
-        if (!TryGetBatteryFromSlot(entity, out var batteryUid, out _))
-            return;
-
-        RaiseLocalEvent(batteryUid.Value, ref args);
-    }
-
-    /// <summary>
-    /// Enables or disables power draw updates for an entity with a PowerCellDrawComponent.
-    /// </summary>
-    public void SetPowerCellDrawEnabled(EntityUid uid, bool enabled, PowerCellDrawComponent? component = null)
-    {
-        if (!Resolve(uid, ref component, false))
-            return;
-
-        if (component.Enabled == enabled)
-            return;
-
-        component.Enabled = enabled;
-        // Nudge next update so state is reflected promptly
-        component.NextUpdateTime = Timing.CurTime;
-        Dirty(uid, component);
     }
 }

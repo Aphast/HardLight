@@ -12,6 +12,7 @@ using Content.Shared.Popups;
 using Content.Shared.Power;
 using Content.Shared.Tools.Components;
 using Content.Shared.Wires;
+using Content.Shared._Mono.NoHack;
 using Robust.Server.GameObjects;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
@@ -19,15 +20,15 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Wires;
 
-public sealed class WiresSystem : SharedWiresSystem
+public sealed partial class WiresSystem : SharedWiresSystem
 {
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly ConstructionSystem _construction = default!;
+    [Dependency] private IPrototypeManager _protoMan = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private UserInterfaceSystem _uiSystem = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private ConstructionSystem _construction = default!;
 
     // This is where all the wire layouts are stored.
     [ViewVariables] private readonly Dictionary<string, WireLayout> _layouts = new();
@@ -39,7 +40,7 @@ public sealed class WiresSystem : SharedWiresSystem
     {
         base.Initialize();
 
-        /* SubscribeLocalEvent<RoundRestartCleanupEvent>(Reset); */
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(Reset);
 
         // this is a broadcast event
         SubscribeLocalEvent<WiresComponent, PanelChangedEvent>(OnPanelChanged);
@@ -608,8 +609,7 @@ public sealed class WiresSystem : SharedWiresSystem
 
     private void TryDoWireAction(EntityUid target, EntityUid user, EntityUid toolEntity, int id, WiresAction action, WiresComponent? wires = null, ToolComponent? tool = null)
     {
-        // VRS: NoHackComponent prevents wire interactions on protected POI infrastructure.
-        if (HasComp<Content.Shared._Mono.NoHack.NoHackComponent>(target))
+        if (HasComp<NoHackComponent>(target))
             return;
 
         if (!Resolve(target, ref wires)
@@ -858,11 +858,11 @@ public sealed class WiresSystem : SharedWiresSystem
         _layouts.Add(id, layout);
     }
 
-/*     private void Reset(RoundRestartCleanupEvent args)
+    private void Reset(RoundRestartCleanupEvent args)
     {
         _layouts.Clear();
     }
-    #endregion */
+    #endregion
 }
 
 public sealed class Wire
@@ -972,4 +972,3 @@ public sealed class WireLayout
         }
     }
 }
-#endregion

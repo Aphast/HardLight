@@ -1,7 +1,7 @@
 using Content.Server.Access.Systems;
 using Content.Server.Humanoid;
 using Content.Server.IdentityManagement;
-using Content.Server.Mind;
+using Content.Server.Mind.Commands;
 using Content.Server.PDA;
 using Content.Server.Station.Components;
 using Content.Shared.Access.Components;
@@ -27,10 +27,13 @@ using Robust.Shared.Random;
 using Robust.Shared.Utility;
 using Content.Server.Spawners.Components;
 using Content.Shared._NF.Bank.Components; // DeltaV
+using Content.Server._Mono.MonoCoins; // Mono
 using Content.Server._NF.Bank; // Frontier
 using Content.Server.Preferences.Managers; // Frontier
 using System.Linq;
 using Content.Shared.NameIdentifier; // Frontier
+using Content.Server._EinsteinEngines.Silicon.IPC;
+using Content.Shared.Radio.Components; // Goobstation
 
 namespace Content.Server.Station.Systems;
 
@@ -39,23 +42,24 @@ namespace Content.Server.Station.Systems;
 /// Also provides helpers for spawning in the player's mob.
 /// </summary>
 [PublicAPI]
-public sealed class StationSpawningSystem : SharedStationSpawningSystem
+public sealed partial class StationSpawningSystem : SharedStationSpawningSystem
 {
-    [Dependency] private readonly SharedAccessSystem _accessSystem = default!;
-    [Dependency] private readonly ActorSystem _actors = default!;
-    [Dependency] private readonly IdCardSystem _cardSystem = default!;
-    [Dependency] private readonly IConfigurationManager _configurationManager = default!;
-    [Dependency] private readonly HumanoidAppearanceSystem _humanoidSystem = default!;
-    [Dependency] private readonly IdentitySystem _identity = default!;
-    [Dependency] private readonly MetaDataSystem _metaSystem = default!;
-    [Dependency] private readonly PdaSystem _pdaSystem = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly MindSystem _mindSystem = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IDependencyCollection _dependencyCollection = default!; // Frontier
-    [Dependency] private readonly IServerPreferencesManager _preferences = default!; // Frontier
+    [Dependency] private SharedAccessSystem _accessSystem = default!;
+    [Dependency] private ActorSystem _actors = default!;
+    [Dependency] private IdCardSystem _cardSystem = default!;
+    [Dependency] private IConfigurationManager _configurationManager = default!;
+    [Dependency] private HumanoidAppearanceSystem _humanoidSystem = default!;
+    [Dependency] private IdentitySystem _identity = default!;
+    [Dependency] private MetaDataSystem _metaSystem = default!;
+    [Dependency] private PdaSystem _pdaSystem = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IDependencyCollection _dependencyCollection = default!; // Frontier
+    [Dependency] private IServerPreferencesManager _preferences = default!; // Frontier
+    [Dependency] private InternalEncryptionKeySpawner _internalEncryption = default!; // Goobstation
 
-    [Dependency] private readonly BankSystem _bank = default!; // Frontier
+    [Dependency] private BankSystem _bank = default!; // Frontier
+    [Dependency] private MonoCoinsManager _coins = default!; // Mono
     private bool _randomizeCharacters;
 
     /// <inheritdoc/>
@@ -140,18 +144,13 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
         {
             DebugTools.Assert(entity is null);
             var jobEntity = EntityManager.SpawnEntity(prototype.JobEntity, coordinates);
-            _mindSystem.MakeSentient(jobEntity);
+            MakeSentientCommand.MakeSentient(jobEntity, EntityManager);
 
             // Make sure custom names get handled, what is gameticker control flow whoopy.
             if (loadout != null)
             {
                 EquipRoleName(jobEntity, loadout, roleProto!);
             }
-
-            // Frontier: equip loadouts on custom job entities
-            if (prototype?.StartingGear is not null)
-                EquipStartingGear(jobEntity, prototype.StartingGear, raiseEvent: false);
-            // End Frontier: equip loadouts on custom job entities
 
             DoJobSpecials(job, jobEntity);
             _identity.QueueIdentityUpdate(jobEntity);
@@ -184,23 +183,15 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
             profile = HumanoidCharacterProfile.RandomWithSpecies(speciesId);
         }
 
-        if (profile != null)
-        {
-            _humanoidSystem.LoadProfile(entity.Value, profile);
-            _metaSystem.SetEntityName(entity.Value, profile.Name);
 
-            if (profile.FlavorText != "" && _configurationManager.GetCVar(CCVars.FlavorText))
-            {
-                AddComp<DetailExaminableComponent>(entity.Value).Content = profile.FlavorText;
-            }
-        }
 
         if (loadout != null)
         {
             /// Frontier: overwriting EquipRoleLoadout
             //EquipRoleLoadout(entity.Value, loadout, roleProto!);
-            var initialBankBalance = profile!.BankBalance; //Frontier
-            var bankBalance = profile!.BankBalance; //Frontier
+            long initialBankBalance = profile!.BankBalance; //Frontier
+            initialBankBalance += session == null ? 0l : _coins.GetMonoCoinsBalance(session.UserId) ?? 0l;
+            var bankBalance = initialBankBalance; //Frontier
             bool hasBalance = false; // Frontier
 
             // Note: since this is stored per character, we don't have a cached
@@ -235,6 +226,12 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
                         bankBalance -= int.Max(0, loadoutProto.Price); // Treat negatives as zero.
                         EquipStartingGear(entity.Value, loadoutProto, raiseEvent: false);
                         equippedItems.Add(loadoutProto.ID);
+
+                        // Add support for IPC encryption keys from loadout headsets
+                        if (HasComp<EncryptionKeyHolderComponent>(entity.Value))
+                        {
+                            _internalEncryption.TryInsertEncryptionKey(entity.Value, loadoutProto); // Removed EntityManager
+                        }
                     }
                 }
 
@@ -264,6 +261,13 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
 
                         EquipStartingGear(entity.Value, loadoutProto, raiseEvent: false);
                         equippedItems.Add(fallback);
+
+                        // Add support for IPC encryption keys from loadout headsets
+                        if (HasComp<EncryptionKeyHolderComponent>(entity.Value))
+                        {
+                            _internalEncryption.TryInsertEncryptionKey(entity.Value, loadoutProto); // Removed EntityManager
+                        }
+
                         // Minimum number of items equipped, no need to load more prototypes.
                         if (equippedItems.Count >= groupPrototype.MinLimit)
                             break;
@@ -274,29 +278,50 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
             // Frontier: do not re-equip roleLoadout, make sure we equip job startingGear,
             // and deduct loadout costs from a bank account if we have one.
             if (prototype?.StartingGear is not null)
+            {
                 EquipStartingGear(entity.Value, prototype.StartingGear, raiseEvent: false);
+
+                // Add support for IPC encryption keys from job starting gear headsets
+                if (HasComp<EncryptionKeyHolderComponent>(entity.Value) &&
+                    _prototypeManager.TryIndex(prototype.StartingGear, out var startingGearProto))
+                {
+                    _internalEncryption.TryInsertEncryptionKey(entity.Value, startingGearProto);
+                }
+            }
 
             var bankComp = EnsureComp<BankAccountComponent>(entity.Value);
 
             if (hasBalance)
             {
-                _bank.TryBankWithdraw(session!, prefs!, profile!, initialBankBalance - bankBalance, out var newBalance);
+                // also spend long-term currency on this
+                _bank.TryBankWithdraw(session!, prefs!, profile!, (int)(initialBankBalance - bankBalance), out var newBalance, true);
             }
             /// End Frontier: overwriting EquipRoleLoadout
         }
 
-        // Far Horizons Start - Subspecies
-        if (species.Loadout != null && _prototypeManager.TryIndex(species.Loadout.Value, out var speciesLoadoutProto) && profile != null && profile.SpeciesLoadout != null)
-            EquipRoleLoadout(entity.Value, profile.SpeciesLoadout, speciesLoadoutProto);
-        // Far Horizons End
-
         var gearEquippedEv = new StartingGearEquippedEvent(entity.Value);
         RaiseLocalEvent(entity.Value, ref gearEquippedEv);
 
-        if (prototype != null && TryComp(entity.Value, out MetaDataComponent? metaData))
+        if (profile != null)
         {
-            // FRONTIER MERGE: do custom borg/pirate names still work?
-            SetPdaAndIdCardData(entity.Value, metaData.EntityName, prototype, station);
+            // Frontier: allow pseudonyms
+            var name = loadout != null && !string.IsNullOrEmpty(loadout.EntityName) ? loadout.EntityName : profile.Name;
+            // Janky hack for borgs
+            if (TryComp<NameIdentifierComponent>(entity.Value, out var identifier))
+            {
+                // Append our name identifier (why have a pseudonym for a role that has a complete name identifier group?)
+                name = $"{name} {identifier.FullIdentifier}";
+            }
+            // End Frontier
+            if (prototype != null)
+                SetPdaAndIdCardData(entity.Value, name, prototype, station); // Frontier: profile.Name<name
+
+            _humanoidSystem.LoadProfile(entity.Value, profile);
+            _metaSystem.SetEntityName(entity.Value, name); // Frontier: profile.Name<name
+            if (profile.FlavorText != "" && _configurationManager.GetCVar(CCVars.FlavorText))
+            {
+                AddComp<DetailExaminableComponent>(entity.Value).Content = profile.FlavorText;
+            }
         }
 
         DoJobSpecials(job, entity.Value);

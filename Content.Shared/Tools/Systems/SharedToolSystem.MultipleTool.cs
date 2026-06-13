@@ -12,7 +12,6 @@ public abstract partial class SharedToolSystem
         SubscribeLocalEvent<MultipleToolComponent, ComponentStartup>(OnMultipleToolStartup);
         SubscribeLocalEvent<MultipleToolComponent, ActivateInWorldEvent>(OnMultipleToolActivated);
         SubscribeLocalEvent<MultipleToolComponent, AfterAutoHandleStateEvent>(OnMultipleToolHandleState);
-        SubscribeLocalEvent<MultipleToolComponent, Interaction.Events.UseInHandEvent>(OnMultipleToolUseInHand); // HardLight - allow Z key to cycle modes
     }
 
     private void OnMultipleToolHandleState(EntityUid uid, MultipleToolComponent component, ref AfterAutoHandleStateEvent args)
@@ -34,16 +33,6 @@ public abstract partial class SharedToolSystem
 
         args.Handled = CycleMultipleTool(uid, multiple, args.User);
     }
-
-    // HardLight - allow Z key to cycle modes
-    private void OnMultipleToolUseInHand(EntityUid uid, MultipleToolComponent multiple, Interaction.Events.UseInHandEvent args)
-    {
-        if (args.Handled)
-            return;
-
-        args.Handled = CycleMultipleTool(uid, multiple, args.User);
-    }
-    // End HardLight
 
     public bool CycleMultipleTool(EntityUid uid, MultipleToolComponent? multiple = null, EntityUid? user = null)
     {

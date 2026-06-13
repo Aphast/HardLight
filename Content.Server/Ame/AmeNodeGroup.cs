@@ -9,7 +9,6 @@ using Content.Shared.NodeContainer;
 using Content.Shared.NodeContainer.NodeGroups;
 using Robust.Server.GameObjects;
 using Robust.Shared.Map.Components;
-using Robust.Shared.Map;
 using Robust.Shared.Random;
 
 namespace Content.Server.Ame;
@@ -18,11 +17,11 @@ namespace Content.Server.Ame;
 /// Node group class for handling the Antimatter Engine's console and parts.
 /// </summary>
 [NodeGroup(NodeGroupID.AMEngine)]
-public sealed class AmeNodeGroup : BaseNodeGroup
+public sealed partial class AmeNodeGroup : BaseNodeGroup
 {
-    [Dependency] private readonly IChatManager _chat = default!;
-    [Dependency] private readonly IEntityManager _entMan = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private IChatManager _chat = default!;
+    [Dependency] private IEntityManager _entMan = default!;
+    [Dependency] private IRobustRandom _random = default!;
 
     /// <summary>
     /// The AME controller which is currently in control of this node group.
@@ -174,12 +173,15 @@ public sealed class AmeNodeGroup : BaseNodeGroup
         // Balanced around a single core AME with injection level 2 producing 120KW.
         // Two core with four injection is 150kW. Two core with two injection is 90kW.
 
-        // Increasing core count creates diminishing returns, increasing injection amount increases 
+        // Increasing core count creates diminishing returns, increasing injection amount increases
         // Unlike the previous solution, increasing fuel and cores always leads to an increase in power, even if by very small amounts.
         // Increasing core count without increasing fuel always leads to reduced power as well.
         // At 18+ cores and 2 inject, the power produced is less than 0, the Max ensures the AME can never produce "negative" power.
         // return MathF.Max(200000f * MathF.Log10(2 * fuel * MathF.Pow(cores, (float)-0.5)), 0); // Frontier: preferring old calculation for now
-        return 45000f * fuel * fuel / cores; // Hardlight: 2000000f -> 90000f (8MW -> 180kW)
+        // return 200000f * MathF.Log10(fuel * fuel) * MathF.Pow(0.75f, cores - 1); // Frontier: preferring old calculation for now
+        if (cores > 0 && fuel > 0) // Mono - default zero power unless conditions are met
+            return 200000f * MathF.Log10(fuel * fuel) * MathF.Pow( 1.11111f, fuel / 2f - 1); // Mono - Exponential scaling at high injection
+        return 0;
     }
 
     public int GetTotalStability()

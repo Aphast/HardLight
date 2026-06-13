@@ -11,8 +11,8 @@ namespace Content.Client.Atmos.EntitySystems;
 [UsedImplicitly]
 public sealed partial class AtmosPipeAppearanceSystem : SharedAtmosPipeAppearanceSystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
 
     public override void Initialize()
     {
@@ -46,7 +46,7 @@ public sealed partial class AtmosPipeAppearanceSystem : SharedAtmosPipeAppearanc
     {
         var sprite = entity.Comp;
 
-        foreach (var layerKey in Enum.GetValues<PipeConnectionLayer>())
+        foreach (PipeConnectionLayer layerKey in Enum.GetValues(typeof(PipeConnectionLayer)))
         {
             for (byte i = 0; i < numberOfPipeLayers; i++)
             {

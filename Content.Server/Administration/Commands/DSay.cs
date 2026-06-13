@@ -1,14 +1,14 @@
 using Content.Server.Chat.Systems;
 using Content.Shared.Administration;
-using Content.Shared.Chat;
+using Content.Shared.Chat; // Einstein Engines - Language
 using Robust.Shared.Console;
 
 namespace Content.Server.Administration.Commands
 {
     [AdminCommand(AdminFlags.Moderator)]
-    sealed class DSay : IConsoleCommand
+    sealed partial class DSay : IConsoleCommand
     {
-        [Dependency] private readonly IEntityManager _e = default!;
+        [Dependency] private IEntityManager _e = default!;
 
         public string Command => "dsay";
 

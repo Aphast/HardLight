@@ -20,7 +20,7 @@ public sealed partial class CCVars
     ///     Should users be able to see their own notes? Admins will be able to see and set notes regardless
     /// </summary>
     public static readonly CVarDef<bool> SeeOwnNotes =
-        CVarDef.Create("admin.see_own_notes", true, CVar.ARCHIVE | CVar.REPLICATED | CVar.SERVER);
+        CVarDef.Create("admin.see_own_notes", false, CVar.ARCHIVE | CVar.REPLICATED | CVar.SERVER);
 
     /// <summary>
     ///     Should the server play a quick sound to the active admins whenever a new player joins?
@@ -64,12 +64,6 @@ public sealed partial class CCVars
     /// </summary>
     public static readonly CVarDef<string> ServerBanDefaultSeverity =
         CVarDef.Create("admin.server_ban_default_severity", "High", CVar.ARCHIVE | CVar.SERVER | CVar.REPLICATED);
-    
-    /// <summary>  
-    ///     Default severity for imprisonment # KS14
-    /// </summary>
-    public static readonly CVarDef<string> ImprisonmentDefaultSeverity =
-        CVarDef.Create("admin.imprisonment_default_severity", "medium", CVar.ARCHIVE | CVar.SERVER | CVar.REPLICATED);
 
     /// <summary>
     ///     Whether a server ban will ban the player's ip by default.
@@ -146,7 +140,7 @@ public sealed partial class CCVars
     ///     If 0, appearing as a new player is disabled.
     /// </summary>
     public static readonly CVarDef<int> NewPlayerThreshold =
-        CVarDef.Create("admin.new_player_threshold", 300, CVar.ARCHIVE | CVar.REPLICATED | CVar.SERVER);
+        CVarDef.Create("admin.new_player_threshold", 0, CVar.ARCHIVE | CVar.REPLICATED | CVar.SERVER);
 
     /// <summary>
     ///     How long an admin client can go without any input before being considered AFK.

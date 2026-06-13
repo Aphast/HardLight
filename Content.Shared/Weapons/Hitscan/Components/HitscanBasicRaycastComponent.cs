@@ -1,19 +1,23 @@
-// SPDX-FileCopyrightText: 2025 Avalon
-//
-// SPDX-License-Identifier: MPL-2.0
-
-using Robust.Shared.GameObjects;
-using Robust.Shared.Serialization.Manager.Attributes;
+using Content.Shared.Physics;
+using Robust.Shared.GameStates;
 
 namespace Content.Shared.Weapons.Hitscan.Components;
 
 /// <summary>
-/// Stub component describing basic hitscan raycast settings.
-/// Prototype field: maxDistance (meters/tiles).
+/// A basic raycast system that will shoot in a straight line when triggered.
 /// </summary>
-[RegisterComponent]
+[RegisterComponent, NetworkedComponent]
 public sealed partial class HitscanBasicRaycastComponent : Component
 {
-    [DataField("maxDistance")]
-    public float MaxDistance { get; set; } = 0f;
+    /// <summary>
+    /// Maximum distance the raycast will travel before giving up. Reflections will reset the distance traveled
+    /// </summary>
+    [DataField]
+    public float MaxDistance = 20.0f;
+
+    /// <summary>
+    /// The collision mask the hitscan ray uses to collide with other objects. See the enum for more information
+    /// </summary>
+    [DataField]
+    public CollisionGroup CollisionMask = CollisionGroup.Opaque;
 }

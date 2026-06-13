@@ -31,24 +31,24 @@ using Robust.Shared.Player;
 namespace Content.Server.Bed.Cryostorage;
 
 /// <inheritdoc/>
-public sealed class CryostorageSystem : SharedCryostorageSystem
+public sealed partial class CryostorageSystem : SharedCryostorageSystem
 {
-    [Dependency] private readonly IChatManager _chatManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly AudioSystem _audio = default!;
-    [Dependency] private readonly AccessReaderSystem _accessReader = default!;
-    [Dependency] private readonly ChatSystem _chatSystem = default!;
-    [Dependency] private readonly ClimbSystem _climb = default!;
-    [Dependency] private readonly ContainerSystem _container = default!;
-    [Dependency] private readonly GhostSystem _ghostSystem = default!;
-    [Dependency] private readonly HandsSystem _hands = default!;
-    [Dependency] private readonly ServerInventorySystem _inventory = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly StationSystem _station = default!;
-    [Dependency] private readonly StationJobsSystem _stationJobs = default!;
-    [Dependency] private readonly StationRecordsSystem _stationRecords = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly UserInterfaceSystem _ui = default!;
+    [Dependency] private IChatManager _chatManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private AccessReaderSystem _accessReader = default!;
+    [Dependency] private ChatSystem _chatSystem = default!;
+    [Dependency] private ClimbSystem _climb = default!;
+    [Dependency] private ContainerSystem _container = default!;
+    [Dependency] private GhostSystem _ghostSystem = default!;
+    [Dependency] private HandsSystem _hands = default!;
+    [Dependency] private ServerInventorySystem _inventory = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private StationSystem _station = default!;
+    [Dependency] private StationJobsSystem _stationJobs = default!;
+    [Dependency] private StationRecordsSystem _stationRecords = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private UserInterfaceSystem _ui = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -173,13 +173,10 @@ public sealed class CryostorageSystem : SharedCryostorageSystem
         var station = _station.GetOwningStation(ent);
         var name = Name(ent.Owner);
 
-        if (station is not { } stationUid) // HardLight
-            return;
-
         if (!TryComp<CryostorageComponent>(cryostorageEnt, out var cryostorageComponent))
             return;
 
-        // If we have a session, we use that to add back in all the job slots the player had.
+        // if we have a session, we use that to add back in all the job slots the player had.
         if (userId != null)
         {
             foreach (var uniqueStation in _station.GetStationsSet())
@@ -224,18 +221,21 @@ public sealed class CryostorageSystem : SharedCryostorageSystem
         UpdateCryostorageUIState((cryostorageEnt.Value, cryostorageComponent));
         AdminLog.Add(LogType.Action, LogImpact.High, $"{ToPrettyString(ent):player} was entered into cryostorage inside of {ToPrettyString(cryostorageEnt.Value)}");
 
+        if (!TryComp<StationRecordsComponent>(station, out var stationRecords))
+            return;
+
         var jobName = Loc.GetString("earlyleave-cryo-job-unknown");
-        var recordId = _stationRecords.GetRecordByName(stationUid, name); // HardLight: station.Value<stationUid
+        var recordId = _stationRecords.GetRecordByName(station.Value, name);
         if (recordId != null)
         {
-            var key = new StationRecordKey(recordId.Value, stationUid); // HardLight: station.Value<stationUid
-            if (_stationRecords.TryGetRecord<GeneralStationRecord>(key, out var entry)) // HardLight: Removed stationRecords
+            var key = new StationRecordKey(recordId.Value, station.Value);
+            if (_stationRecords.TryGetRecord<GeneralStationRecord>(key, out var entry, stationRecords))
                 jobName = entry.JobTitle;
 
-            _stationRecords.RemoveRecord(key); // HardLight: Removed stationRecords
+            _stationRecords.RemoveRecord(key, stationRecords);
         }
 
-        _chatSystem.DispatchStationAnnouncement(stationUid, // HardLight: station.Value<stationUid
+        _chatSystem.DispatchStationAnnouncement(station.Value,
             Loc.GetString(
                 "earlyleave-cryo-announcement",
                 ("character", name),
@@ -252,7 +252,7 @@ public sealed class CryostorageSystem : SharedCryostorageSystem
         if (!CryoSleepRejoiningEnabled || !IsInPausedMap(uid))
             return;
 
-        // How did you destroy these? they're indestructible.
+        // how did you destroy these? they're indestructible.
         if (comp.Cryostorage is not { } cryostorage ||
             TerminatingOrDeleted(cryostorage) ||
             !TryComp<CryostorageComponent>(cryostorage, out var cryostorageComponent))

@@ -1,39 +1,33 @@
 - type: technology
   id: XenopsychologyResearch
   name: research-technology-xenopsychology
-  icon:
-    sprite: Objects/Specific/Research/anomalyscanner.rsi
-    state: icon
-  entityIcon: AnomalyScanner
+  entityIcon: MachineCarpCaller
   discipline: Experimental
   tier: 1
   cost: 35000
   recipeUnlocks:
+  - CarpCallerMachineCircuitboard
   - ClothingOuterHardsuitCarp
   technologyPrerequisites:
   - BasicParts
   position: 1, -5
+
 - type: technology
   id: BluespaceTethering
   name: research-technology-bluespace-tethering
-  icon:
-    sprite: _Mono/Clothing/Shoes/Boots/voidboots.rsi
-    state: icon
   entityIcon: ClothingShoesBootsMagVoid
   discipline: Experimental
-  tier: 2
+  tier: 2 # normal magboots are t1 so t2
   cost: 25000
   recipeUnlocks:
   - ClothingShoesBootsMagVoid
   technologyPrerequisites:
   - MagnetsTech
   position: -2, -2
+
 - type: technology
   id: BasicResearch
   name: research-technology-basic-research
-  icon:
-    sprite: Objects/Specific/Research/anomalyscanner.rsi
-    state: icon
   entityIcon: AnomalyScanner
   discipline: Experimental
   tier: 1
@@ -53,12 +47,10 @@
   technologyPrerequisites:
   - BasicParts
   position: -1, -1
+
 - type: technology
   id: AdvancedResearch
   name: research-technology-advanced-research
-  icon:
-    sprite: Objects/Weapons/Guns/Revolvers/chimp.rsi
-    state: base
   entityIcon: WeaponPistolCHIMP
   discipline: Experimental
   tier: 2
@@ -66,23 +58,22 @@
   recipeUnlocks:
   - WeaponGauntletGorilla
   - ArtifactCrusherMachineCircuitboard
-  - NFWeaponPistolCHIMP
+  - WeaponPistolCHIMP
   - AnomalySynchronizerCircuitboard
   - AnomalyVesselExperimentalCircuitboard
   technologyPrerequisites:
   - BasicResearch
   position: -1, -2
+
 - type: technology
   id: DataFarmingTechnology
   name: research-technology-data-farms
-  icon:
-    sprite: Objects/Specific/Research/anomalyscanner.rsi
-    state: icon
-  entityIcon: ResearchDisk10000
+  entityIcon: DatafarmCrypto
   discipline: Experimental
   tier: 3
   cost: 25000
-  recipeUnlocks: []
+  recipeUnlocks:
+  - DataFarmResearchCircuitboard
   technologyPrerequisites:
   - SuperParts
   position: 1, 18

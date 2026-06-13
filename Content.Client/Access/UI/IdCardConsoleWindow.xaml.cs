@@ -16,8 +16,8 @@ namespace Content.Client.Access.UI
     [GenerateTypedNameReferences]
     public sealed partial class IdCardConsoleWindow : DefaultWindow
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly ILogManager _logManager = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private ILogManager _logManager = default!;
         private readonly ISawmill _logMill = default!;
 
         private readonly IdCardConsoleBoundUserInterface _owner;
@@ -32,7 +32,7 @@ namespace Content.Client.Access.UI
         private bool _interfaceEnabled = false;
 
         // The job that will be picked if the ID doesn't have a job on the station.
-        private static ProtoId<JobPrototype> _defaultJob = "Mercenary"; // Frontier: Passenger<Contractor
+        private static ProtoId<JobPrototype> _defaultJob = "Contractor"; // Frontier: Passenger<Contractor
 
         public IdCardConsoleWindow(IdCardConsoleBoundUserInterface owner, IPrototypeManager prototypeManager,
             List<ProtoId<AccessLevelPrototype>> accessLevels)
@@ -210,23 +210,14 @@ namespace Content.Client.Access.UI
                                        new List<ProtoId<AccessLevelPrototype>>());
 
             var jobIndex = _jobPrototypeIds.IndexOf(state.TargetIdJobPrototype);
-            // If the job index is < 0 that means they don't have a job registered in the station records
-            // or the IdCardComponent's JobPrototype field.
+            // If the job index is < 0 that means they don't have a job registered in the station records.
             // For example, a new ID from a box would have no job index.
             if (jobIndex < 0)
             {
                 jobIndex = _jobPrototypeIds.IndexOf(_defaultJob);
             }
 
-            if (jobIndex < 0 && _jobPrototypeIds.Count > 0)
-            {
-                jobIndex = 0;
-            }
-
-            if (jobIndex >= 0)
-            {
-                JobPresetOptionButton.SelectId(jobIndex);
-            }
+            JobPresetOptionButton.SelectId(jobIndex);
 
             _lastFullName = state.TargetIdFullName;
             _lastJobTitle = state.TargetIdJobTitle;
@@ -272,8 +263,6 @@ namespace Content.Client.Access.UI
         {
             // Don't send this if it isn't dirty.
             var jobProtoDirty = _lastJobProto != null &&
-                                JobPresetOptionButton.SelectedId >= 0 &&
-                                JobPresetOptionButton.SelectedId < _jobPrototypeIds.Count &&
                                 _jobPrototypeIds[JobPresetOptionButton.SelectedId] != _lastJobProto;
 
             _owner.SubmitData(

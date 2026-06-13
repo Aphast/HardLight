@@ -60,31 +60,5 @@ public sealed partial class CCVars
     public static readonly CVarDef<float> SpeechBubbleBackgroundOpacity =
         CVarDef.Create("accessibility.speech_bubble_background_opacity", 0.75f, CVar.CLIENTONLY | CVar.ARCHIVE);
 
-    /// <summary>
-    /// If enabled, censors character nudity by forcing clothes markings on characters, selected by the client.
-    /// Both this and AccessibilityServerCensorNudity must be false to display nudity on the client.
-    /// </summary>
-    public static readonly CVarDef<bool> AccessibilityClientCensorNudity =
-        CVarDef.Create("accessibility.censor_nudity", false, CVar.CLIENTONLY | CVar.ARCHIVE);
 
-    /// <summary>
-    /// If enabled, censors character nudity by forcing clothes markings on characters, selected by the server.
-    /// Both this and AccessibilityClientCensorNudity must be false to display nudity on the client.
-    /// </summary>
-    public static readonly CVarDef<bool> AccessibilityServerCensorNudity =
-            CVarDef.Create("accessibility.server_censor_nudity", false, CVar.ARCHIVE | CVar.REPLICATED | CVar.SERVER);
-
-    #region Starlight
-    /// <summary>
-    /// If enabled, job icons in chat and status icons are not animated.
-    /// </summary>
-    public static readonly CVarDef<bool> DisableJobIconAnimation =
-        CVarDef.Create("accessibility.disable_job_icon_animation", false, CVar.CLIENTONLY | CVar.ARCHIVE);
-
-    /// <summary>
-    /// HardLight: If enabled, language icons are hidden in chat and speech bubbles.
-    /// </summary>
-    public static readonly CVarDef<bool> DisableLanguageIcons =
-        CVarDef.Create("accessibility.disable_language_icons", false, CVar.CLIENTONLY | CVar.ARCHIVE);
-    #endregion Starlight
 }

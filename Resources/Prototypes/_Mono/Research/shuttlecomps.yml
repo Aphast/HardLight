@@ -1,70 +1,13 @@
 - type: technology
-  id: ShuttleArmamentComponentsResearch
-  name: research-technology-shuttle-armaments-components
-  icon:
-    sprite: _Mono/Structures/ShuttleComponents/shield.rsi
-    state: control
-  discipline: Arsenal
-  tier: 3
-  position: -4, 9
-  cost: 20000
-  recipeUnlocks:
-  - GunneryControlComputerCircuitboard
-  - MachineGCSLowCircuitboard
-  - MachineGCSMediumCircuitboard
-  - MachineGCSHighCircuitboard
-  - MachineGCSUltraCircuitboard
-- type: technology
-  id: ShuttleRadarResearch
-  name: research-technology-shuttle-radar-components
-  icon:
-    sprite: Structures/Shuttles/iff.rsi
-    state: helm
-  discipline: CivilianServices
-  tier: 3
-  position: -7, 8
-  cost: 20000
-  recipeUnlocks:
-  - AdvancedRadarConsoleCircuitboard
-- type: technology
-  id: ShuttleCtla25DriveResearch
-  name: research-technology-bluespace-drive-ctla25
-  icon:
-    sprite: _Mono/Structures/ShuttleComponents/drive.rsi
-    state: control
-  discipline: Experimental
-  tier: 2
-  position: -6, 8
-  cost: 5000
-  recipeUnlocks:
-  - MachineDriveCTLA25Circuitboard
-- type: technology
-  id: ShuttleCtlaAdvancedDriveResearch
-  name: research-technology-bluespace-drive-ctla-advanced
-  icon:
-    sprite: _Mono/Structures/ShuttleComponents/drive.rsi
-    state: control
-  discipline: Experimental
-  tier: 3
-  cost: 45000
-
-  recipeUnlocks:
-  - MachineDriveCTLA25sCircuitboard
-  - MachineDriveCTLA50Circuitboard
-  technologyPrerequisites:
-  - PortableFission
-  position: -6, 9
-- type: technology
   id: ShuttleAdvancedComponents
   name: research-technology-shuttle-advanced-components
-  icon:
-    sprite: Structures/Shuttles/iff.rsi
-    state: helm
   entityIcon: ComputerAdvancedRadar
   discipline: CivilianServices
   tier: 3
   cost: 55000
   recipeUnlocks:
+#  - ShieldControlComputerCircuitboard
+#  - MachineShieldMS225Circuitboard
   - GunneryControlComputerCircuitboard
   - MachineGCSLowCircuitboard
   - MachineGCSMediumCircuitboard
@@ -77,3 +20,19 @@
   - Shuttlecraft
   - SuperParts
   position: -6, 7
+
+
+- type: technology
+  id: ShuttleCtlaAdvancedDriveResearch
+  name: research-technology-bluespace-drive-ctla-advanced
+  entityIcon: MachineFTLDrive50
+  discipline: Experimental
+  tier: 3
+  cost: 45000
+  recipeUnlocks:
+  - MachineDriveCTLA25sCircuitboard
+  - MachineDriveCTLA50Circuitboard
+  technologyPrerequisites:
+  - ShuttleAdvancedComponents
+  - PortableFission
+  position: -6, 9

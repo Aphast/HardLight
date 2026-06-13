@@ -34,10 +34,4 @@ public sealed partial class ShockOnTriggerComponent : Component
     [DataField(customTypeSerializer: typeof(TimeOffsetSerializer))]
     [AutoPausedField]
     public TimeSpan NextTrigger = TimeSpan.Zero;
-
-    /// <summary>
-    /// Whether this shock bypasses insulation on the target.
-    /// </summary>
-    [DataField]
-    public bool IgnoreInsulation = false;
 }

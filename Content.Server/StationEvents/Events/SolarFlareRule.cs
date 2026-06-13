@@ -12,10 +12,10 @@ using Content.Shared.Light.Components;
 
 namespace Content.Server.StationEvents.Events;
 
-public sealed class SolarFlareRule : StationEventSystem<SolarFlareRuleComponent>
+public sealed partial class SolarFlareRule : StationEventSystem<SolarFlareRuleComponent>
 {
-    [Dependency] private readonly PoweredLightSystem _poweredLight = default!;
-    [Dependency] private readonly SharedDoorSystem _door = default!;
+    [Dependency] private PoweredLightSystem _poweredLight = default!;
+    [Dependency] private SharedDoorSystem _door = default!;
 
     private float _effectTimer = 0;
 
@@ -47,11 +47,8 @@ public sealed class SolarFlareRule : StationEventSystem<SolarFlareRuleComponent>
             var lightQuery = EntityQueryEnumerator<PoweredLightComponent>();
             while (lightQuery.MoveNext(out var lightEnt, out var light))
             {
-                // Frontier: shielded lights
-                var prob = component.LightBreakChancePerSecond * light.SolarFlareShieldingCoefficient;
-                if (RobustRandom.Prob(prob))
+                if (RobustRandom.Prob(component.LightBreakChancePerSecond))
                     _poweredLight.TryDestroyBulb(lightEnt, light);
-                // End Frontier: shielded lights
             }
             var airlockQuery = EntityQueryEnumerator<AirlockComponent, DoorComponent>();
             while (airlockQuery.MoveNext(out var airlockEnt, out var airlock, out var door))
@@ -70,7 +67,7 @@ public sealed class SolarFlareRule : StationEventSystem<SolarFlareRuleComponent>
             if (!GameTicker.IsGameRuleActive(uid, gameRule))
                 continue;
 
-            if (!flare.AllChannels && !flare.AffectedChannels.Contains(args.Channel.ID)) // Frontier: add flare.AllChannels
+            if (!flare.AffectedChannels.Contains(args.Channel.ID))
                 continue;
 
             if (!flare.OnlyJamHeadsets || (HasComp<HeadsetComponent>(args.RadioReceiver) || HasComp<HeadsetComponent>(args.RadioSource)))

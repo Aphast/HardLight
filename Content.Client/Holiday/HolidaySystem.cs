@@ -7,11 +7,10 @@ using Robust.Shared.Serialization.TypeSerializers.Implementations;
 
 namespace Content.Client.Holiday;
 
-public sealed class HolidaySystem : EntitySystem
+public sealed partial class HolidaySystem : EntitySystem
 {
-    [Dependency] private readonly IResourceCache _rescache = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IResourceCache _rescache = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -30,6 +29,6 @@ public sealed class HolidaySystem : EntitySystem
 
         var path = SpriteSpecifierSerializer.TextureRoot / rsistring;
         if (_rescache.TryGetResource(path, out RSIResource? rsi))
-            _sprite.SetBaseRsi((ent.Owner, args.Sprite), rsi.RSI);
+            args.Sprite.BaseRSI = rsi.RSI;
     }
 }

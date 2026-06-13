@@ -47,9 +47,6 @@
     {
       "name": "handle-equipped-BELT",
       "directions": 4
-    },
-    {
-      "name": "abductor"
     }
   ]
 }

@@ -12,14 +12,13 @@ using Content.Shared.Construction.Prototypes;
 
 namespace Content.Server.Construction;
 
-public sealed class MachineFrameSystem : EntitySystem
+public sealed partial class MachineFrameSystem : EntitySystem
 {
-    [Dependency] private readonly IComponentFactory _factory = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly TagSystem _tag = default!;
-    [Dependency] private readonly StackSystem _stack = default!;
-    [Dependency] private readonly ConstructionSystem _construction = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private TagSystem _tag = default!;
+    [Dependency] private StackSystem _stack = default!;
+    [Dependency] private ConstructionSystem _construction = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
 
     public override void Initialize()
     {
@@ -87,7 +86,7 @@ public sealed class MachineFrameSystem : EntitySystem
             if (component.ComponentProgress[compName] >= info.Amount)
                 continue;
 
-            var registration = _factory.GetRegistration(compName);
+            var registration = Factory.GetRegistration(compName);
 
             if (!HasComp(args.Used, registration.Type))
                 continue;
@@ -95,7 +94,7 @@ public sealed class MachineFrameSystem : EntitySystem
             // Insert the entity, if it hasn't already been inserted
             if (!args.Handled)
             {
-                if (!_container.TryRemoveFromContainer(args.Used))
+                if (!_container.TryRemoveFromContainer(args.Used, false, out var wasInContainer) && wasInContainer) // Goobstation - if it wasn't in container that's fine
                     return;
 
                 args.Handled = true;
@@ -127,7 +126,7 @@ public sealed class MachineFrameSystem : EntitySystem
             // Insert the entity, if it hasn't already been inserted
             if (!args.Handled)
             {
-                if (!_container.TryRemoveFromContainer(args.Used))
+                if (!_container.TryRemoveFromContainer(args.Used, false, out var wasInContainer) && wasInContainer) // Goobstation
                     return;
 
                 args.Handled = true;
@@ -152,7 +151,7 @@ public sealed class MachineFrameSystem : EntitySystem
         if (!TryComp<MachineBoardComponent>(used, out var machineBoard))
             return false;
 
-        // VRS (Triad #3703) - board and frame matching
+        // Mono - board and frame matching
         if (machineBoard.FrameSize != null && machineBoard.FrameSize != component.FrameSize)
         {
             _popupSystem.PopupEntity(Loc.GetString("machine-frame-board-wrong-size"), uid);
@@ -164,9 +163,8 @@ public sealed class MachineFrameSystem : EntitySystem
             _popupSystem.PopupEntity(Loc.GetString("machine-frame-board-wrong-size"), uid);
             return true;
         }
-        // End VRS
-
-        if (!_container.TryRemoveFromContainer(used))
+        // End Mono
+        if (!_container.TryRemoveFromContainer(used, false, out var wasInContainer) && wasInContainer) // Goobstation
             return false;
 
         if (!_container.Insert(used, component.BoardContainer))
@@ -255,7 +253,7 @@ public sealed class MachineFrameSystem : EntitySystem
         var count = stack.Count;
         if (count < needed)
         {
-            if (!_container.TryRemoveFromContainer(used))
+            if (!_container.TryRemoveFromContainer(used, false, out var wasInContainer) && wasInContainer) // Goobstation
                 return false;
 
             if (!_container.Insert(used, component.PartContainer))
@@ -415,7 +413,7 @@ public sealed class MachineFrameSystem : EntitySystem
             // I have many regrets.
             foreach (var (compName, _) in component.ComponentRequirements)
             {
-                var registration = _factory.GetRegistration(compName);
+                var registration = Factory.GetRegistration(compName);
 
                 if (!HasComp(part, registration.Type))
                     continue;

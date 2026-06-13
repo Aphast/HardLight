@@ -34,18 +34,13 @@ namespace Content.Client.Input
             common.AddFunction(ContentKeyFunctions.RotateStoredItem);
             common.AddFunction(ContentKeyFunctions.SaveItemLocation);
             common.AddFunction(ContentKeyFunctions.Point);
+            common.AddFunction(ContentKeyFunctions.ToggleStanding); // WD EDIT
+            common.AddFunction(ContentKeyFunctions.ToggleFocus); // Mono
             common.AddFunction(ContentKeyFunctions.ZoomOut);
             common.AddFunction(ContentKeyFunctions.ZoomIn);
             common.AddFunction(ContentKeyFunctions.ResetZoom);
             common.AddFunction(ContentKeyFunctions.InspectEntity);
             common.AddFunction(ContentKeyFunctions.ToggleRoundEndSummaryWindow);
-
-            // DeltaV - Begin NanoChat keybinds
-            common.AddFunction(ContentKeyFunctions.NanoChatNavigateUp);
-            common.AddFunction(ContentKeyFunctions.NanoChatNavigateDown);
-            common.AddFunction(ContentKeyFunctions.NanoChatNavigateUpUnread);
-            common.AddFunction(ContentKeyFunctions.NanoChatNavigateDownUnread);
-            // DeltaV - End NanoChat keybinds
 
             // Not in engine, because engine cannot check for sanbox/admin status before starting placement.
             common.AddFunction(ContentKeyFunctions.EditorCopyObject);
@@ -69,7 +64,7 @@ namespace Content.Client.Input
             human.AddFunction(ContentKeyFunctions.AltUseItemInHand);
             human.AddFunction(ContentKeyFunctions.OpenCharacterMenu);
             human.AddFunction(ContentKeyFunctions.OpenEmotesMenu);
-            human.AddFunction(ContentKeyFunctions.OpenLanguageMenu); // Starlight
+            human.AddFunction(ContentKeyFunctions.OpenLanguageMenu); // Einstein Engines - Language
             human.AddFunction(ContentKeyFunctions.ActivateItemInWorld);
             human.AddFunction(ContentKeyFunctions.ThrowItemInHand);
             human.AddFunction(ContentKeyFunctions.AltActivateItemInWorld);
@@ -80,12 +75,30 @@ namespace Content.Client.Input
             human.AddFunction(ContentKeyFunctions.OpenInventoryMenu);
             human.AddFunction(ContentKeyFunctions.SmartEquipBackpack);
             human.AddFunction(ContentKeyFunctions.SmartEquipBelt);
+            human.AddFunction(ContentKeyFunctions.SmartEquipPocket1);
+            human.AddFunction(ContentKeyFunctions.SmartEquipPocket2);
+            human.AddFunction(ContentKeyFunctions.SmartEquipSuitStorage);
             human.AddFunction(ContentKeyFunctions.SmartEquipWallet); // Frontier
-            human.AddFunction(ContentKeyFunctions.SmartEquipSuitStorage); // Hardlight
+            // Mono Edit
+            human.AddFunction(ContentKeyFunctions.SmartEquipID);
+            human.AddFunction(ContentKeyFunctions.SmartEquipShoes);
+            human.AddFunction(ContentKeyFunctions.SmartEquipOuterClothing);
+            human.AddFunction(ContentKeyFunctions.EquipBackpack);
+            human.AddFunction(ContentKeyFunctions.EquipBelt);
+            human.AddFunction(ContentKeyFunctions.EquipPocket1);
+            human.AddFunction(ContentKeyFunctions.EquipPocket2);
+            human.AddFunction(ContentKeyFunctions.EquipSuitStorage);
+            human.AddFunction(ContentKeyFunctions.EquipWallet);
+            human.AddFunction(ContentKeyFunctions.EquipID);
+            // Mono End
             human.AddFunction(ContentKeyFunctions.OpenBackpack);
             human.AddFunction(ContentKeyFunctions.OpenBelt);
-            human.AddFunction(ContentKeyFunctions.ToggleStanding); // EE
-            human.AddFunction(ContentKeyFunctions.ToggleCrawlingUnder); // EE
+            // Mono
+            human.AddFunction(ContentKeyFunctions.OpenPocket1);
+            human.AddFunction(ContentKeyFunctions.OpenPocket2);
+            human.AddFunction(ContentKeyFunctions.OpenSuitStorage);
+            human.AddFunction(ContentKeyFunctions.OpenOuterClothing);
+            // Mono End
             human.AddFunction(ContentKeyFunctions.OpenWallet); // Frontier
             human.AddFunction(ContentKeyFunctions.MouseMiddle);
             human.AddFunction(ContentKeyFunctions.RotateObjectClockwise);
@@ -98,7 +111,6 @@ namespace Content.Client.Input
             human.AddFunction(ContentKeyFunctions.Arcade1);
             human.AddFunction(ContentKeyFunctions.Arcade2);
             human.AddFunction(ContentKeyFunctions.Arcade3);
-            human.AddFunction(ContentKeyFunctions.LookUp); // EE
             // Shitmed Change Start - TODO: Add hands, feet and groin targeting.
             human.AddFunction(ContentKeyFunctions.TargetHead);
             human.AddFunction(ContentKeyFunctions.TargetTorso);
@@ -111,9 +123,6 @@ namespace Content.Client.Input
             human.AddFunction(ContentKeyFunctions.TargetRightLeg);
             human.AddFunction(ContentKeyFunctions.TargetRightFoot);
             // Shitmed Change End
-            // Hardlight change start
-            human.AddFunction(ContentKeyFunctions.OfferItem);
-            // Hardlight change end
 
             // actions should be common (for ghosts, mobs, etc)
             common.AddFunction(ContentKeyFunctions.OpenActionsMenu);
@@ -152,7 +161,6 @@ namespace Content.Client.Input
             common.AddFunction(ContentKeyFunctions.OpenSandboxWindow);
             common.AddFunction(ContentKeyFunctions.OpenTileSpawnWindow);
             common.AddFunction(ContentKeyFunctions.OpenDecalSpawnWindow);
-            common.AddFunction(ContentKeyFunctions.OpenConsentWindow); // Floofstation
             common.AddFunction(ContentKeyFunctions.OpenAdminMenu);
             common.AddFunction(ContentKeyFunctions.OpenGuidebook);
         }

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using Robust.Server.GameObjects;
 using Robust.Shared.ContentPack;
 using Robust.Shared.EntitySerialization.Systems;
 using Robust.Shared.Map.Events;
@@ -15,14 +16,12 @@ namespace Content.Server.Maps;
 /// <summary>
 ///     Performs basic map migration operations by listening for engine <see cref="MapLoaderSystem"/> events.
 /// </summary>
-public sealed class MapMigrationSystem : EntitySystem
+public sealed partial class MapMigrationSystem : EntitySystem
 {
-#if DEBUG // Frontier
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-#endif // Frontier
-    [Dependency] private readonly IResourceManager _resMan = default!;
+    [Dependency] private IPrototypeManager _protoMan = default!;
+    [Dependency] private IResourceManager _resMan = default!;
 
-    private static readonly string[] MigrationFiles = { "/migration.yml", "/nf_migration.yml", "/hl_migration.yml" }; // Frontier: use array of migration files // HardLight: include hl_migration.yml so HL prototype renames apply on map load
+    private static readonly string[] MigrationFiles = { "/migration.yml", "/nf_migration.yml", "/mono_migration.yml" }; // Monolith: custom migration file
 
     public override void Initialize()
     {
@@ -41,8 +40,7 @@ public sealed class MapMigrationSystem : EntitySystem
             {
                 var newId = ((ValueDataNode)node).Value;
                 if (!string.IsNullOrEmpty(newId) && newId != "null")
-                    DebugTools.Assert(_protoMan.HasIndex<EntityPrototype>(newId),
-                        $"{newId} is not an entity prototype.");
+                    DebugTools.Assert(_protoMan.HasIndex<EntityPrototype>(newId), $"{newId} is not an entity prototype.");
             }
         }
         // End Delta-V
@@ -62,7 +60,7 @@ public sealed class MapMigrationSystem : EntitySystem
             if (!TryReadFile(migrationFile, out var mapping))
                 continue;
 
-            mappings ??= new();
+            mappings = mappings ?? new List<MappingDataNode>();
             mappings.Add(mapping);
         }
 

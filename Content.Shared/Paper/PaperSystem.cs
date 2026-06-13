@@ -4,44 +4,38 @@ using Content.Shared.UserInterface;
 using Content.Shared.Database;
 using Content.Shared.Examine;
 using Content.Shared.Interaction;
-using Content.Shared.Random.Helpers;
 using Content.Shared.Popups;
 using Content.Shared.Tag;
 using Robust.Shared.Player;
 using Robust.Shared.Audio.Systems;
 using static Content.Shared.Paper.PaperComponent;
-using Robust.Shared.Prototypes;
-using Robust.Shared.Random;
 using Content.Shared.Timing; // Frontier
 using Content.Shared.Access.Systems; // Frontier
 using Content.Shared.Verbs; // Frontier
-using Content.Shared.Ghost; // Frontier
+using Content.Shared.Ghost;
+using Content.Shared.Mobs; // Frontier
+using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Paper;
 
-public sealed class PaperSystem : EntitySystem
+public sealed partial class PaperSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-    [Dependency] private readonly TagSystem _tagSystem = default!;
-    [Dependency] private readonly SharedUserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly MetaDataSystem _metaSystem = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly UseDelaySystem _useDelay = default!; // Frontier
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedInteractionSystem _interaction = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
+    [Dependency] private TagSystem _tagSystem = default!;
+    [Dependency] private SharedUserInterfaceSystem _uiSystem = default!;
+    [Dependency] private MetaDataSystem _metaSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedIdCardSystem _idCardSystem = default!; // Frontier
+    [Dependency] private UseDelaySystem _useDelay = default!; // Frontier
 
     private const int ReapplyLimit = 10; // Frontier: limits on reapplied stamps
     private const int StampLimit = 100; // Frontier: limits on total stamps on a page (should be able to get a signature from everybody on the server on a page)
-    private static readonly ProtoId<TagPrototype> NFPaperStampProtectedTag = "NFPaperStampProtected"; // Frontier
-    private static readonly ProtoId<TagPrototype> NFWriteIgnoreUnprotectedStampsTag = "NFWriteIgnoreUnprotectedStamps"; // Frontier
 
     private static readonly ProtoId<TagPrototype> WriteIgnoreStampsTag = "WriteIgnoreStamps";
     private static readonly ProtoId<TagPrototype> WriteTag = "Write";
-
-    private EntityQuery<PaperComponent> _paperQuery;
 
     public override void Initialize()
     {
@@ -53,13 +47,10 @@ public sealed class PaperSystem : EntitySystem
         SubscribeLocalEvent<PaperComponent, ExaminedEvent>(OnExamined);
         SubscribeLocalEvent<PaperComponent, InteractUsingEvent>(OnInteractUsing);
         SubscribeLocalEvent<PaperComponent, PaperInputTextMessage>(OnInputTextMessage);
-        SubscribeLocalEvent<PaperComponent, GetVerbsEvent<AlternativeVerb>>(AddSignVerb); // Frontier - Sign verb hook
-
-        SubscribeLocalEvent<RandomPaperContentComponent, MapInitEvent>(OnRandomPaperContentMapInit);
 
         SubscribeLocalEvent<ActivateOnPaperOpenedComponent, PaperWriteEvent>(OnPaperWrite);
 
-        _paperQuery = GetEntityQuery<PaperComponent>();
+        SubscribeLocalEvent<PaperComponent, GetVerbsEvent<AlternativeVerb>>(AddSignVerb); // Frontier - Sign verb hook
     }
 
     private void OnMapInit(Entity<PaperComponent> entity, ref MapInitEvent args)
@@ -149,7 +140,7 @@ public sealed class PaperSystem : EntitySystem
     {
         // only allow editing if there are no stamps or when using a cyberpen
         var editable = entity.Comp.StampedBy.Count == 0 || _tagSystem.HasTag(args.Used, WriteIgnoreStampsTag)
-                       || _tagSystem.HasTag(args.Used, NFWriteIgnoreUnprotectedStampsTag) && !_tagSystem.HasTag(entity, NFPaperStampProtectedTag); // Frontier: protected stamps
+                       || _tagSystem.HasTag(args.Used, "NFWriteIgnoreUnprotectedStamps") && !_tagSystem.HasTag(entity, "NFPaperStampProtected"); // Frontier: protected stamps
         if (_tagSystem.HasTag(args.Used, WriteTag))
         {
             if (editable)
@@ -185,7 +176,7 @@ public sealed class PaperSystem : EntitySystem
                     return;
                 }
 
-                var writeEvent = new PaperWriteEvent(args.User, entity);
+                var writeEvent = new PaperWriteEvent(entity, args.User);
                 RaiseLocalEvent(args.Used, ref writeEvent);
 
                 entity.Comp.Mode = PaperAction.Write;
@@ -202,7 +193,7 @@ public sealed class PaperSystem : EntitySystem
         {
             // Frontier: assign DisplayStampInfo before stamp
             var stampInfo = GetStampInfo(stampComp);
-            if (_tagSystem.HasTag(args.Used, WriteTag))
+            if (_tagSystem.HasTag(args.Used, "Write"))
             {
                 TrySign(entity, args.User, args.Used);
             }
@@ -228,7 +219,7 @@ public sealed class PaperSystem : EntitySystem
 
                 // Note: mode is not changed here, anyone with an open paper may still save changes.
                 if (stampComp.Protected)
-                    _tagSystem.AddTag(entity, NFPaperStampProtectedTag);
+                    _tagSystem.AddTag(entity, "NFPaperStampProtected");
                 // End Frontier
 
                 UpdateUserInterface(entity);
@@ -257,10 +248,8 @@ public sealed class PaperSystem : EntitySystem
         {
             SetContent(entity, args.Text);
 
-            var paperStatus = string.IsNullOrWhiteSpace(args.Text) ? PaperStatus.Blank : PaperStatus.Written;
-
             if (TryComp<AppearanceComponent>(entity, out var appearance))
-                _appearance.SetData(entity, PaperVisuals.Status, paperStatus, appearance);
+                _appearance.SetData(entity, PaperVisuals.Status, PaperStatus.Written, appearance);
 
             if (TryComp(entity, out MetaDataComponent? meta))
                 _metaSystem.SetEntityDescription(entity, "", meta);
@@ -274,30 +263,6 @@ public sealed class PaperSystem : EntitySystem
 
         entity.Comp.Mode = PaperAction.Read;
         UpdateUserInterface(entity);
-    }
-
-    private void OnRandomPaperContentMapInit(Entity<RandomPaperContentComponent> ent, ref MapInitEvent args)
-    {
-        if (!_paperQuery.TryComp(ent, out var paperComp))
-        {
-            Log.Warning($"{EntityManager.ToPrettyString(ent)} has a {nameof(RandomPaperContentComponent)} but no {nameof(PaperComponent)}!");
-            RemCompDeferred(ent, ent.Comp);
-            return;
-        }
-        var dataset = _protoMan.Index(ent.Comp.Dataset);
-        // Intentionally not using the Pick overload that directly takes a LocalizedDataset,
-        // because we want to get multiple attributes from the same pick.
-        var pick = _random.Pick(dataset.Values);
-
-        // Name
-        _metaSystem.SetEntityName(ent, Loc.GetString(pick));
-        // Description
-        _metaSystem.SetEntityDescription(ent, Loc.GetString($"{pick}.desc"));
-        // Content
-        SetContent((ent, paperComp), Loc.GetString($"{pick}.content"));
-
-        // Our work here is done
-        RemCompDeferred(ent, ent.Comp);
     }
 
     private void OnPaperWrite(Entity<ActivateOnPaperOpenedComponent> entity, ref PaperWriteEvent args)
@@ -325,33 +290,7 @@ public sealed class PaperSystem : EntitySystem
         return true;
     }
 
-    /// <summary>
-    ///     Copy any stamp information from one piece of paper to another.
-    /// </summary>
-    public void CopyStamps(Entity<PaperComponent?> source, Entity<PaperComponent?> target)
-    {
-        if (!Resolve(source, ref source.Comp) || !Resolve(target, ref target.Comp))
-            return;
-
-        target.Comp.StampedBy = new List<StampDisplayInfo>(source.Comp.StampedBy);
-        target.Comp.StampState = source.Comp.StampState;
-        Dirty(target);
-
-        // Frontier: apply stamp protection
-        if (_tagSystem.HasTag(source, NFPaperStampProtectedTag))
-            _tagSystem.AddTag(target, NFPaperStampProtectedTag);
-        // End Frontier: apply stamp protection
-
-        if (TryComp<AppearanceComponent>(target, out var appearance))
-        {
-            // delete any stamps if the stamp state is null
-            _appearance.SetData(target, PaperVisuals.Stamp, target.Comp.StampState ?? "", appearance);
-        }
-    }
-
-    // Frontier: stamp functions
-    #region Frontier
-    // stamp precondition
+    // FRONTIER - stamp precondition
     private bool CanStamp(StampDisplayInfo stampInfo, PaperComponent paperComp)
     {
         if (paperComp.StampedBy.Count >= StampLimit)
@@ -362,21 +301,21 @@ public sealed class PaperSystem : EntitySystem
             return !paperComp.StampedBy.Contains(stampInfo); // Original precondition
     }
 
-    // stamp reapplication: checks if a given stamp is delayed
+    // FRONTIER - stamp reapplication: checks if a given stamp is delayed
     private bool StampDelayed(EntityUid stampUid)
     {
         return TryComp<UseDelayComponent>(stampUid, out var delay) &&
             _useDelay.IsDelayed((stampUid, delay), "stamp");
     }
 
-    // stamp reapplication: resets the delay on a given stamp
+    // FRONTIER - stamp reapplication: resets the delay on a given stamp
     private void DelayStamp(EntityUid stampUid)
     {
         if (TryComp<UseDelayComponent>(stampUid, out var delay))
             _useDelay.TryResetDelay(stampUid, false, delay, "stamp");
     }
 
-    // Pen signing: Adds the sign verb for pen signing
+    // FRONTIER - Pen signing: Adds the sign verb for pen signing
     private void AddSignVerb(EntityUid uid, PaperComponent component, GetVerbsEvent<AlternativeVerb> args)
     {
         if (!args.CanAccess || !args.CanInteract)
@@ -387,7 +326,7 @@ public sealed class PaperSystem : EntitySystem
             return;
 
         // Pens have a `Write` tag.
-        if (!args.Using.HasValue || !_tagSystem.HasTag(args.Using.Value, WriteTag))
+        if (!args.Using.HasValue || !_tagSystem.HasTag(args.Using.Value, "Write"))
             return;
 
         AlternativeVerb verb = new()
@@ -396,14 +335,13 @@ public sealed class PaperSystem : EntitySystem
             {
                 TrySign((uid, component), args.User, args.Using.Value);
             },
-            Text = Loc.GetString("paper-component-verb-sign"),
-            Priority = 4 // Starlight
+            Text = Loc.GetString("paper-component-verb-sign")
             // Icon = Don't have an icon yet. Todo for later.
         };
         args.Verbs.Add(verb);
     }
 
-    // TrySign method, attempts to place a signature
+    // FRONTIER - TrySign method, attempts to place a signature
     public bool TrySign(Entity<PaperComponent> paper, EntityUid signer, EntityUid pen)
     {
         if (!TryComp<StampComponent>(pen, out var stamp))
@@ -452,8 +390,6 @@ public sealed class PaperSystem : EntitySystem
 
         return false;
     }
-    #endregion Frontier
-    // End Frontier
 
     public void SetContent(Entity<PaperComponent> entity, string content)
     {

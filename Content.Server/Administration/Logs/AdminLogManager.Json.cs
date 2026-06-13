@@ -61,8 +61,7 @@ public sealed partial class AdminLogManager
                 _ => null
             };
 
-            if (_entityManager.TryGetComponent(entityId, out ActorComponent? actor)
-                && actor.PlayerSession != null)
+            if (_entityManager.TryGetComponent(entityId, out ActorComponent? actor))
             {
                 players.Add(actor.PlayerSession.UserId.UserId);
             }

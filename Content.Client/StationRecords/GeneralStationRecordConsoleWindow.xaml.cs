@@ -12,7 +12,7 @@ namespace Content.Client.StationRecords;
 [GenerateTypedNameReferences]
 public sealed partial class GeneralStationRecordConsoleWindow : DefaultWindow
 {
-    [Dependency] private readonly IPrototypeManager _prototype = default!; // Frontier
+    [Dependency] private IPrototypeManager _prototype = default!; // Frontier
 
     public Action<uint?>? OnKeySelected;
 
@@ -147,16 +147,10 @@ public sealed partial class GeneralStationRecordConsoleWindow : DefaultWindow
         if (state.RecordListing == null)
         {
             RecordListingStatus.Visible = true;
+            RecordListing.Visible = true;
             RecordListingStatus.Text = Loc.GetString("general-station-record-console-empty-state");
-            // HardLight start
-            RecordListing.Clear();
-            RecordListing.ClearSelected();
-            RecordListing.Visible = false;
-
-            RecordContainer.RemoveAllChildren();
-            RecordContainer.Visible = false;
-            RecordContainerStatus.Visible = false;
-            // HardLight end
+            RecordContainer.Visible = true;
+            RecordContainerStatus.Visible = true;
             return;
         }
 
@@ -165,20 +159,20 @@ public sealed partial class GeneralStationRecordConsoleWindow : DefaultWindow
         RecordContainer.Visible = true;
         PopulateRecordListing(state.RecordListing!, state.SelectedKey);
 
+        RecordContainerStatus.Visible = state.Record == null;
+
         if (state.Record != null)
         {
-            RecordContainerStatus.Visible = false; // HardLight: state.SelectedKey == null<false
+            RecordContainerStatus.Visible = state.SelectedKey == null;
+            RecordContainerStatus.Text = state.SelectedKey == null
+                ? Loc.GetString("general-station-record-console-no-record-found")
+                : Loc.GetString("general-station-record-console-select-record-info");
             PopulateRecordContainer(state.Record, state.CanDeleteEntries, state.SelectedKey);
-            return; // HardLight
         }
-
-        // HardLight start
-        RecordContainer.RemoveAllChildren();
-        RecordContainerStatus.Visible = true;
-        RecordContainerStatus.Text = state.SelectedKey == null
-            ? Loc.GetString("general-station-record-console-select-record-info")
-            : Loc.GetString("general-station-record-console-no-record-found");
-        // HardLight end
+        else
+        {
+            RecordContainer.RemoveAllChildren();
+        }
     }
     private void PopulateRecordListing(Dictionary<uint, string> listing, uint? selected)
     {

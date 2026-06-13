@@ -11,7 +11,7 @@ namespace Content.Server._NF.CrateMachine;
 /// </summary>
 public sealed partial class CrateMachineSystem : SharedCrateMachineSystem
 {
-    [Dependency] private readonly AppearanceSystem _appearanceSystem = default!;
+    [Dependency] private AppearanceSystem _appearanceSystem = default!;
 
     /// <summary>
     /// Keep track of time in this function, in order to process the animation.
@@ -25,14 +25,6 @@ public sealed partial class CrateMachineSystem : SharedCrateMachineSystem
         while (query.MoveNext(out var uid, out var crateMachine, out var receiver))
         {
             if (!receiver.Powered)
-                continue;
-
-            // Skip idle machines: no animation in progress and crate already taken.
-            // ProcessClosingAnimation needs to fire if crate is present (DidTakeCrate flips false),
-            // so only short-circuit when both timers are inactive AND we already think the crate is taken.
-            if (crateMachine.OpeningTimeRemaining <= 0 &&
-                crateMachine.ClosingTimeRemaining <= 0 &&
-                crateMachine.DidTakeCrate)
                 continue;
 
             ProcessOpeningAnimation(uid, frameTime, crateMachine);

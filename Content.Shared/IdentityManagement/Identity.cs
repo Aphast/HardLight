@@ -50,24 +50,12 @@ public static class Identity
     ///     This is an extension method because of its simplicity, and if it was any harder to call it might not
     ///     be used enough for loc.
     /// </summary>
-    /// <param name="viewer">
-    ///     If this entity can see through identities, this method will always return the actual target entity.
-    /// </param>
-    public static EntityUid Entity(EntityUid uid, IEntityManager ent, EntityUid? viewer = null)
+    public static EntityUid Entity(EntityUid uid, IEntityManager ent)
     {
-        if (!uid.IsValid() || !ent.TryGetComponent(uid, out MetaDataComponent? meta))
-            return uid;
-
-        if (meta.EntityLifeStage <= EntityLifeStage.Initializing)
-            return uid;
-
         if (!ent.TryGetComponent<IdentityComponent>(uid, out var identity))
             return uid;
 
-        if (viewer != null && CanSeeThroughIdentity(uid, viewer.Value, ent))
-            return uid;
-
-        return identity.IdentityEntitySlot?.ContainedEntity ?? uid;
+        return identity.IdentityEntitySlot.ContainedEntity ?? uid;
     }
 
     public static bool CanSeeThroughIdentity(EntityUid uid, EntityUid viewer, IEntityManager ent)

@@ -34,15 +34,13 @@ namespace Content.Server.Destructible.Thresholds.Behaviors
             if (!system.PrototypeManager.TryIndex(randomInventory, out VendingMachineInventoryPrototype? packPrototype))
                 return;
 
-            var startingInventory = VendingMachineInventoryResolver.ResolveRegular(system.PrototypeManager, packPrototype);
-
-            foreach (var (entityId, count) in startingInventory)
+            foreach (var (entityId, count) in packPrototype.StartingInventory)
             {
                 var toSpawn = (int) Math.Round(count * Percent);
 
                 if (toSpawn == 0) continue;
 
-                if (EntityPrototypeHelpers.HasComponent<StackComponent>(entityId, system.PrototypeManager, system.ComponentFactory))
+                if (EntityPrototypeHelpers.HasComponent<StackComponent>(entityId, system.PrototypeManager, system.EntityManager.ComponentFactory))
                 {
                     var spawned = system.EntityManager.SpawnEntity(entityId, xform.Coordinates.Offset(system.Random.NextVector2(-Offset, Offset)));
                     system.StackSystem.SetCount(spawned, toSpawn);

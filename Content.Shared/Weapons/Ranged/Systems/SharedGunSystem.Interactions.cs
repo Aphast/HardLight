@@ -16,25 +16,15 @@ public abstract partial class SharedGunSystem
 
         using (args.PushGroup(nameof(GunComponent)))
         {
-            // Emberfall - Add caliber info
-            if (TryGetGunCaliber(uid, component, out var caliber))
-            {
-                args.PushMarkup(Loc.GetString("gun-examine-caliber",
-                    ("color", FireRateExamineColor),
-                    ("caliber", caliber)));
-            }
-            // End Emberfall
-
             args.PushMarkup(Loc.GetString("gun-selected-mode-examine", ("color", ModeExamineColor),
                 ("mode", GetLocSelector(component.SelectedMode))));
+
+            if (component.DamageModifier != 1f)
+                args.PushMarkup(Loc.GetString("gun-damage-modifier-examine", ("color", FireRateExamineColor),
+                    ("damage", $"{component.DamageModifier.ToString("#.##")}")));
+
             //args.PushMarkup(Loc.GetString("gun-fire-rate-examine", ("color", FireRateExamineColor), // Emberfall
             //    ("fireRate", $"{component.FireRateModified:0.0}"))); // Emberfall
-
-            // VRS (Triad #3731)
-            if (component.DamageModifier != 1f)
-                args.PushMarkup(Loc.GetString("gun-damage-modifier-examine",
-                    ("color", FireRateExamineColor),
-                    ("modifier", $"{component.DamageModifier:P0}")));
         }
     }
 

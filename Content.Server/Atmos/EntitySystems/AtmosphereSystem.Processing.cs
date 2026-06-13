@@ -1,8 +1,6 @@
 using Content.Server.Atmos.Components;
 using Content.Server.Atmos.Piping.Components;
 using Content.Shared.Atmos;
-using Robust.Shared.Player;
-using Robust.Shared;
 using Content.Shared.Atmos.Components;
 using Content.Shared.Maps;
 using Robust.Shared.Map;
@@ -15,7 +13,7 @@ namespace Content.Server.Atmos.EntitySystems
 {
     public sealed partial class AtmosphereSystem
     {
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
 
         private readonly Stopwatch _simulationStopwatch = new();
 
@@ -47,9 +45,6 @@ namespace Content.Server.Atmos.EntitySystems
         }
 
         private readonly List<Entity<GridAtmosphereComponent, GasTileOverlayComponent, MapGridComponent, TransformComponent>> _currentRunAtmosphere = new();
-        private readonly Dictionary<MapId, List<MapCoordinates>> _atmosDeviceActorPositionsByMap = new();
-        private readonly Stack<List<MapCoordinates>> _freeAtmosDeviceActorPositionLists = new();
-        private bool _atmosDeviceActorPositionsValid;
 
         /// <summary>
         ///     Revalidates all invalid coordinates in a grid atmosphere.
@@ -324,7 +319,7 @@ namespace Content.Server.Atmos.EntitySystems
             Entity<GridAtmosphereComponent, GasTileOverlayComponent, MapGridComponent, TransformComponent> ent)
         {
             var atmosphere = ent.Comp1;
-            if(!atmosphere.ProcessingPaused)
+            if (!atmosphere.ProcessingPaused)
                 QueueRunTiles(atmosphere.CurrentRunTiles, atmosphere.ActiveTiles);
 
             var number = 0;
@@ -472,6 +467,66 @@ namespace Content.Server.Atmos.EntitySystems
             return true;
         }
 
+        /// <summary>
+        /// Processes all entities with a <see cref="DeltaPressureComponent"/>, doing damage to them
+        /// depending on certain pressure differential conditions.
+        /// </summary>
+        /// <returns>True if we've finished processing all entities that required processing this run,
+        /// otherwise, false.</returns>
+        private bool ProcessDeltaPressure(Entity<GridAtmosphereComponent, GasTileOverlayComponent, MapGridComponent, TransformComponent> ent)
+        {
+            var atmosphere = ent.Comp1;
+            var count = atmosphere.DeltaPressureEntities.Count;
+            if (!atmosphere.ProcessingPaused)
+            {
+                atmosphere.DeltaPressureCursor = 0;
+                atmosphere.DeltaPressureDamageResults.Clear();
+            }
+
+            var remaining = count - atmosphere.DeltaPressureCursor;
+            var batchSize = Math.Max(50, DeltaPressureParallelProcessPerIteration);
+            var toProcess = Math.Min(batchSize, remaining);
+
+            var timeCheck1 = 0;
+            while (atmosphere.DeltaPressureCursor < count)
+            {
+                var job = new DeltaPressureParallelJob(this,
+                    atmosphere,
+                    atmosphere.DeltaPressureCursor,
+                    DeltaPressureParallelBatchSize);
+                _parallel.ProcessNow(job, toProcess);
+
+                atmosphere.DeltaPressureCursor += toProcess;
+
+                if (timeCheck1++ < LagCheckIterations)
+                    continue;
+
+                timeCheck1 = 0;
+                if (_simulationStopwatch.Elapsed.TotalMilliseconds >= AtmosMaxProcessTime)
+                    return false;
+            }
+
+            var timeCheck2 = 0;
+            while (atmosphere.DeltaPressureDamageResults.TryDequeue(out var result))
+            {
+                PerformDamage(result.Ent,
+                    result.Pressure,
+                    result.DeltaPressure);
+
+                if (timeCheck2++ < LagCheckIterations)
+                    continue;
+
+                timeCheck2 = 0;
+                // Process the rest next time.
+                if (_simulationStopwatch.Elapsed.TotalMilliseconds >= AtmosMaxProcessTime)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private bool ProcessPipeNets(GridAtmosphereComponent atmosphere)
         {
             if (!atmosphere.ProcessingPaused)
@@ -515,6 +570,8 @@ namespace Content.Server.Atmos.EntitySystems
                 num--;
             if (!ExcitedGroups)
                 num--;
+            if (!DeltaPressureDamage)
+                num--;
             if (!Superconduction)
                 num--;
             return num * AtmosTime;
@@ -535,23 +592,11 @@ namespace Content.Server.Atmos.EntitySystems
                 }
             }
 
-            EnsureAtmosDeviceActorPositions();
-
-            if (!_atmosDeviceActorPositionsByMap.TryGetValue(ent.Comp4.MapID, out var actorPositions) || actorPositions.Count == 0)
-            {
-                atmosphere.CurrentRunAtmosDevices.Clear();
-                return true;
-            }
-
-            var range = _cfg.GetCVar(CVars.NetMaxUpdateRange) * 2f;
             var time = _gameTiming.CurTime;
             var number = 0;
             var ev = new AtmosDeviceUpdateEvent(RealAtmosTime(), (ent, ent.Comp1, ent.Comp2), map);
             while (atmosphere.CurrentRunAtmosDevices.TryDequeue(out var device))
             {
-                if (!HasPlayerInRange(device.Owner, actorPositions, range))
-                    continue;
-
                 RaiseLocalEvent(device, ref ev);
                 device.Comp.LastProcess = time;
 
@@ -569,57 +614,9 @@ namespace Content.Server.Atmos.EntitySystems
             return true;
         }
 
-        private void EnsureAtmosDeviceActorPositions()
-        {
-            if (_atmosDeviceActorPositionsValid)
-                return;
-
-            foreach (var positions in _atmosDeviceActorPositionsByMap.Values)
-            {
-                positions.Clear();
-                _freeAtmosDeviceActorPositionLists.Push(positions);
-            }
-
-            _atmosDeviceActorPositionsByMap.Clear();
-
-            var actors = EntityQueryEnumerator<ActorComponent>();
-            while (actors.MoveNext(out var actorUid, out _))
-            {
-                var actorCoords = _transformSystem.GetMapCoordinates(actorUid);
-                if (actorCoords.MapId == MapId.Nullspace)
-                    continue;
-
-                if (!_atmosDeviceActorPositionsByMap.TryGetValue(actorCoords.MapId, out var actorPositions))
-                {
-                    actorPositions = _freeAtmosDeviceActorPositionLists.Count > 0
-                        ? _freeAtmosDeviceActorPositionLists.Pop()
-                        : new List<MapCoordinates>();
-                    _atmosDeviceActorPositionsByMap.Add(actorCoords.MapId, actorPositions);
-                }
-
-                actorPositions.Add(actorCoords);
-            }
-
-            _atmosDeviceActorPositionsValid = true;
-        }
-
-        private bool HasPlayerInRange(EntityUid uid, IReadOnlyList<MapCoordinates> actorPositions, float range)
-        {
-            var devicePosition = _transformSystem.GetMapCoordinates(uid);
-
-            foreach (var actorPosition in actorPositions)
-            {
-                if (actorPosition.InRange(devicePosition, range))
-                    return true;
-            }
-
-            return false;
-        }
-
         private void UpdateProcessing(float frameTime)
         {
             _simulationStopwatch.Restart();
-            _atmosDeviceActorPositionsValid = false;
 
             if (!_simulationPaused)
             {
@@ -645,8 +642,7 @@ namespace Content.Server.Atmos.EntitySystems
                     || TerminatingOrDeleted(xform.MapUid.Value)
                     || xform.MapID == MapId.Nullspace)
                 {
-                    // This can happen when entities are deleted mid-processing, not an error
-                    Log.Debug($"Skipping atmos processing for entity without valid map. Entity: {ToPrettyString(owner)}. Map: {ToPrettyString(xform?.MapUid)}. MapId: {xform?.MapID}");
+                    Log.Error($"Attempted to process atmos without a map? Entity: {ToPrettyString(owner)}. Map: {ToPrettyString(xform?.MapUid)}. MapId: {xform?.MapID}");
                     continue;
                 }
 
@@ -720,6 +716,18 @@ namespace Content.Server.Atmos.EntitySystems
                         }
 
                         atmosphere.ProcessingPaused = false;
+                        atmosphere.State = DeltaPressureDamage
+                            ? AtmosphereProcessingState.DeltaPressure
+                            : AtmosphereProcessingState.Hotspots;
+                        continue;
+                    case AtmosphereProcessingState.DeltaPressure:
+                        if (!ProcessDeltaPressure(ent))
+                        {
+                            atmosphere.ProcessingPaused = true;
+                            return;
+                        }
+
+                        atmosphere.ProcessingPaused = false;
                         atmosphere.State = AtmosphereProcessingState.Hotspots;
                         continue;
                     case AtmosphereProcessingState.Hotspots:
@@ -787,6 +795,7 @@ namespace Content.Server.Atmos.EntitySystems
         ActiveTiles,
         ExcitedGroups,
         HighPressureDelta,
+        DeltaPressure,
         Hotspots,
         Superconductivity,
         PipeNet,

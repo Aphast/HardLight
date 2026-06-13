@@ -15,12 +15,13 @@ using Content.Shared.Stacks;
 
 namespace Content.Server._EinsteinEngines.Silicon.BlindHealing;
 
-public sealed class BlindHealingSystem : SharedBlindHealingSystem
+public sealed partial class BlindHealingSystem : SharedBlindHealingSystem
 {
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly BlindableSystem _blindableSystem = default!;
-    [Dependency] private readonly StackSystem _stackSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private BlindableSystem _blindableSystem = default!;
+    [Dependency] private StackSystem _stackSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
 
     public override void Initialize()
     {
@@ -42,7 +43,7 @@ public sealed class BlindHealingSystem : SharedBlindHealingSystem
 
         _blindableSystem.AdjustEyeDamage((args.Target.Value, blindComp), -blindComp.EyeDamage);
 
-        //_adminLogger.Add(LogType.Healed, $"{ToPrettyString(args.User):user} repaired {ToPrettyString(uid):target}'s vision");
+        _adminLogger.Add(LogType.Healed, $"{ToPrettyString(args.User):user} repaired {ToPrettyString(uid):target}'s vision");
 
         var str = Loc.GetString("comp-repairable-repair",
             ("target", uid),

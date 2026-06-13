@@ -16,17 +16,16 @@ namespace Content.Shared.Bed.Cryostorage;
 /// <summary>
 /// This handles <see cref="CryostorageComponent"/>
 /// </summary>
-public abstract class SharedCryostorageSystem : EntitySystem
+public abstract partial class SharedCryostorageSystem : EntitySystem
 {
-    [Dependency] private   readonly IConfigurationManager _configuration = default!;
-    [Dependency] private   readonly SharedMapSystem _map = default!;
-    [Dependency] private   readonly MetaDataSystem _metaData = default!; // HardLight
-    [Dependency] private   readonly ISharedPlayerManager _player = default!;
-    [Dependency] private   readonly MobStateSystem _mobState = default!;
-    [Dependency] private   readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] protected readonly IGameTiming Timing = default!;
-    [Dependency] protected readonly ISharedAdminLogManager AdminLog = default!;
-    [Dependency] protected readonly SharedMindSystem Mind = default!;
+    [Dependency] private   IConfigurationManager _configuration = default!;
+    [Dependency] private   IMapManager _mapManager = default!;
+    [Dependency] private   ISharedPlayerManager _player = default!;
+    [Dependency] private   MobStateSystem _mobState = default!;
+    [Dependency] private   SharedAppearanceSystem _appearance = default!;
+    [Dependency] protected IGameTiming Timing = default!;
+    [Dependency] protected ISharedAdminLogManager AdminLog = default!;
+    [Dependency] protected SharedMindSystem Mind = default!;
 
     protected EntityUid? PausedMap { get; private set; }
 
@@ -169,28 +168,10 @@ public abstract class SharedCryostorageSystem : EntitySystem
         if (PausedMap != null && Exists(PausedMap))
             return;
 
-        PausedMap = _map.CreateMap();
-        _metaData.SetEntityName(PausedMap.Value, "Cryospace"); // HardLight
-        _map.SetPaused(PausedMap.Value, true);
+        var map = _mapManager.CreateMap();
+        _mapManager.SetMapPaused(map, true);
+        PausedMap = _mapManager.GetMapEntityId(map);
     }
-
-    // HardLight start
-    // Call this to get the paused map, creating it if it doesn't exist.
-    public EntityUid GetOrCreatePausedMap()
-    {
-        EnsurePausedMap();
-        return PausedMap!.Value;
-    }
-
-    // Call this to get the paused map, or null if it doesn't exist.
-    public EntityUid? GetPausedMap()
-    {
-        if (PausedMap != null && Exists(PausedMap.Value))
-            return PausedMap.Value;
-
-        return null;
-    }
-    // HardLight end
 
     public bool IsInPausedMap(Entity<TransformComponent?> entity)
     {

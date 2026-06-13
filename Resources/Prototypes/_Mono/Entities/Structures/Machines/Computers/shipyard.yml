@@ -1,14 +1,14 @@
 - type: entity
   id: ComputerShipyardUSSP
-  parent: [BaseStructureDisableToolUse, BaseStructureDestructible, ComputerShipyardBase]
+  parent: ComputerShipyardBase
   name: USSP shipyard console
   description: Used to buy ships from USSP naval reserves.
   components:
   - type: ActivatableUI
-    key: enum.ShipyardConsoleUiKey.USSP # HardLight
+    key: enum.ShipyardConsoleUiKey.Ussp
   - type: UserInterface
     interfaces:
-      enum.ShipyardConsoleUiKey.USSP: # HardLight
+      enum.ShipyardConsoleUiKey.Ussp:
         type: ShipyardConsoleBoundUserInterface
   - type: Sprite
     sprite: _NF/Structures/Machines/computers.rsi
@@ -18,11 +18,67 @@
     - map: ["computerLayerKeyboard"]
       state: generic_keyboard
     - map: ["computerLayerScreen"]
-      state: shipyard_blackmarket
+      state: shipyard_ussp
     - map: ["computerLayerKeys"]
-      state: blackmarket_key
+      state: telesci_key
   - type: ShipyardConsole
-    shipyardChannel: USSP # HardLight
-    secretShipyardChannel: ColSec # HardLight
+    shipyardChannel: Ussp
+    secretShipyardChannel: Nfsd
     ignoreBaseSaleRate: true # Fixed 70% sale rate.
     canTransferDeed: false
+
+- type: entity
+  id: ComputerShipyardSHM
+  parent: ComputerShipyardBase
+  name: SHM shipyard console
+  description: Used to transfer ships from the SHM employ reserves.
+  components:
+  - type: ActivatableUI
+    key: enum.ShipyardConsoleUiKey.SHM
+  - type: UserInterface
+    interfaces:
+      enum.ShipyardConsoleUiKey.SHM:
+        type: ShipyardConsoleBoundUserInterface
+  - type: Sprite
+    sprite: _Mono/Structures/Machines/computers.rsi
+    layers:
+    - map: ["computerLayerBody"]
+      state: computer_not_rot
+    - map: ["computerLayerKeyboard"]
+      state: gunnery_keyboard
+    - map: ["computerLayerScreen"]
+      state: shipyard_SHM
+    - map: ["computerLayerKeys"]
+      state: gunnery_keys
+    - type: ShipyardConsole
+      shipyardChannel: SHM
+      secretShipyardChannel: Nfsd
+      canTransferDeed: false
+
+- type: entity
+  id: ComputerShipyardDrakeIndustries
+  parent: ComputerShipyardBase
+  name: drake industries shipyard console
+  description: Used by Drake Industries affiliates to purchase specialty cargo shuttles.
+  components:
+  - type: ActivatableUI
+    key: enum.ShipyardConsoleUiKey.DrakeIndustries
+  - type: UserInterface
+    interfaces:
+      enum.ShipyardConsoleUiKey.DrakeIndustries:
+        type: ShipyardConsoleBoundUserInterface
+  - type: Sprite
+    sprite: _Mono/Structures/Machines/computers.rsi
+    layers:
+    - map: ["computerLayerBody"]
+      state: computer_not_rot
+    - map: ["computerLayerKeyboard"]
+      state: gunnery_keyboard
+    - map: ["computerLayerScreen"]
+      state: shipyard_DrakeIndustries
+    - map: ["computerLayerKeys"]
+      state: gunnery_keys
+    - type: ShipyardConsole
+      shipyardChannel: SHM
+      secretShipyardChannel: Nfsd
+      canTransferDeed: false

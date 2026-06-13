@@ -21,7 +21,7 @@ using static Robust.Client.GameObjects.SpriteComponent;
 
 namespace Content.Client.Clothing;
 
-public sealed class ClientClothingSystem : ClothingSystem
+public sealed partial class ClientClothingSystem : ClothingSystem
 {
     public const string Jumpsuit = "jumpsuit";
 
@@ -36,26 +36,22 @@ public sealed class ClientClothingSystem : ClothingSystem
         {"eyes", "EYES"},
         {"ears", "EARS"},
         {"mask", "MASK"},
-        { "outerClothing", "OUTERCLOTHING"},
-        { Jumpsuit, "INNERCLOTHING"},
+        {"outerClothing", "OUTERCLOTHING"},
+        {Jumpsuit, "INNERCLOTHING"},
         {"neck", "NECK"},
         {"back", "BACKPACK"},
-        { "belt", "BELT"},
-        {"accessory1", "ACCESSORY"},
-        {"accessory2", "ACCESSORYALT"},
-        { "gloves", "HAND"},
+        {"belt", "BELT"},
+        {"gloves", "HAND"},
         {"shoes", "FEET"},
         {"id", "IDCARD"},
         {"pocket1", "POCKET1"},
         {"pocket2", "POCKET2"},
         {"suitstorage", "SUITSTORAGE"},
-
     };
 
-    [Dependency] private readonly IResourceCache _cache = default!;
-    [Dependency] private readonly InventorySystem _inventorySystem = default!;
-    [Dependency] private readonly DisplacementMapSystem _displacement = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private IResourceCache _cache = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
+    [Dependency] private DisplacementMapSystem _displacement = default!;
 
     public override void Initialize()
     {
@@ -78,10 +74,10 @@ public sealed class ClientClothingSystem : ClothingSystem
         UpdateAllSlots(uid, component);
 
         // No clothing equipped -> make sure the layer is hidden, though this should already be handled by on-unequip.
-        if (_sprite.LayerMapTryGet((uid, args.Sprite), HumanoidVisualLayers.StencilMask, out var layer, false))
+        if (args.Sprite.LayerMapTryGet(HumanoidVisualLayers.StencilMask, out var layer))
         {
             DebugTools.Assert(!args.Sprite[layer].Visible);
-            _sprite.LayerSetVisible((uid, args.Sprite), layer, false);
+            args.Sprite.LayerSetVisible(layer, false);
         }
     }
 
@@ -196,9 +192,9 @@ public sealed class ClientClothingSystem : ClothingSystem
         RenderEquipment(uid, item, clothing.InSlot, component, null, clothing);
     }
 
-    private void OnDidUnequip(Entity<SpriteComponent> entity, ref DidUnequipEvent args)
+    private void OnDidUnequip(EntityUid uid, SpriteComponent component, DidUnequipEvent args)
     {
-        if (!TryComp(entity, out InventorySlotsComponent? inventorySlots))
+        if (!TryComp(uid, out InventorySlotsComponent? inventorySlots))
             return;
 
         if (!inventorySlots.VisualLayerKeys.TryGetValue(args.Slot, out var revealedLayers))
@@ -208,7 +204,7 @@ public sealed class ClientClothingSystem : ClothingSystem
         // may eventually bloat the player with lots of invisible layers.
         foreach (var layer in revealedLayers)
         {
-            _sprite.RemoveLayer(entity.AsNullable(), layer);
+            component.RemoveLayer(layer);
         }
         revealedLayers.Clear();
     }
@@ -251,7 +247,7 @@ public sealed class ClientClothingSystem : ClothingSystem
         {
             foreach (var key in revealedLayers)
             {
-                _sprite.RemoveLayer((equipee, sprite), key);
+                sprite.RemoveLayer(key);
             }
             revealedLayers.Clear();
         }
@@ -272,7 +268,7 @@ public sealed class ClientClothingSystem : ClothingSystem
 
         // temporary, until layer draw depths get added. Basically: a layer with the key "slot" is being used as a
         // bookmark to determine where in the list of layers we should insert the clothing layers.
-        var slotLayerExists = _sprite.LayerMapTryGet((equipee, sprite), slot, out var index, false);
+        bool slotLayerExists = sprite.LayerMapTryGet(slot, out var index);
 
         // Select displacement maps
         var displacementData = inventory.Displacements.GetValueOrDefault(slot); //Default unsexed map
@@ -306,16 +302,16 @@ public sealed class ClientClothingSystem : ClothingSystem
             {
                 index++;
                 // note that every insertion requires reshuffling & remapping all the existing layers.
-                _sprite.AddBlankLayer((equipee, sprite), index);
-                _sprite.LayerMapSet((equipee, sprite), key, index);
+                sprite.AddBlankLayer(index);
+                sprite.LayerMapSet(key, index);
 
                 if (layerData.Color != null)
-                    _sprite.LayerSetColor((equipee, sprite), key, layerData.Color.Value);
+                    sprite.LayerSetColor(key, layerData.Color.Value);
                 if (layerData.Scale != null)
-                    _sprite.LayerSetScale((equipee, sprite), key, layerData.Scale.Value);
+                    sprite.LayerSetScale(key, layerData.Scale.Value);
             }
             else
-                index = _sprite.LayerMapReserve((equipee, sprite), key);
+                index = sprite.LayerMapReserveBlank(key);
 
             if (sprite[index] is not Layer layer)
                 continue;
@@ -326,39 +322,20 @@ public sealed class ClientClothingSystem : ClothingSystem
                 && layer.RSI == null
                 && TryComp(equipment, out SpriteComponent? clothingSprite))
             {
-                _sprite.LayerSetRsi(layer, clothingSprite.BaseRSI);
+                layer.SetRsi(clothingSprite.BaseRSI);
             }
 
-            _sprite.LayerSetData((equipee, sprite), index, layerData);
-            _sprite.LayerSetOffset(layer, layer.Offset + slotDef.Offset);
-
-            // Frontier: species-specific layering
-            if (layer.RSI != null
-                && inventory.SpeciesId != null
-                && layerData.State != null
-                && !layerData.State.EndsWith(inventory.SpeciesId))
-            {
-                var speciesLayer = $"{layerData.State}-{inventory.SpeciesId}";
-                if (layer.RSI.TryGetState(speciesLayer, out _))
-                    layer.State = speciesLayer;
-            }
-            // End Frontier: species-specific layering
+            sprite.LayerSetData(index, layerData);
+            layer.Offset += slotDef.Offset;
 
             if (displacementData is not null)
             {
-                // Frontier: revise race check
                 //Checking that the state is not tied to the current race. In this case we don't need to use the displacement maps.
-                //if (layerData.State is not null && inventory.SpeciesId is not null && layerData.State.EndsWith(inventory.SpeciesId))
-                //    continue;
-                if (layer.State.Name is not null && inventory.SpeciesId is not null && layer.State.Name.EndsWith(inventory.SpeciesId))
+                if (layerData.State is not null && inventory.SpeciesId is not null && layerData.State.EndsWith(inventory.SpeciesId))
                     continue;
-                // End Frontier: revise race check
 
-                if (_displacement.TryAddDisplacement(displacementData, sprite, index, key, out var displacementKey))
-                {
-                    revealedLayers.Add(displacementKey);
+                if (_displacement.TryAddDisplacement(displacementData, sprite, index, key, revealedLayers))
                     index++;
-                }
             }
         }
 

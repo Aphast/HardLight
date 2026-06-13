@@ -1,3 +1,4 @@
+using Content.Shared.Damage.Systems;
 using Robust.Shared.GameStates;
 
 namespace Content.Shared.Damage.Components;
@@ -11,4 +12,8 @@ public sealed partial class RequireProjectileTargetComponent : Component
 {
     [DataField, AutoNetworkedField]
     public bool Active = true;
+
+    // Goobstation - Crawl fix
+    [DataField, AutoNetworkedField]
+    public bool IgnoreThrow = false;
 }

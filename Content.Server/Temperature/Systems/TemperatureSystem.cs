@@ -17,13 +17,13 @@ using Content.Shared.Projectiles;
 
 namespace Content.Server.Temperature.Systems;
 
-public sealed class TemperatureSystem : EntitySystem
+public sealed partial class TemperatureSystem : EntitySystem
 {
-    [Dependency] private readonly AlertsSystem _alerts = default!;
-    [Dependency] private readonly AtmosphereSystem _atmosphere = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly TemperatureSystem _temperature = default!;
+    [Dependency] private AlertsSystem _alerts = default!;
+    [Dependency] private AtmosphereSystem _atmosphere = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private TemperatureSystem _temperature = default!;
 
     /// <summary>
     ///     All the components that will have their damage updated at the end of the tick.
@@ -36,7 +36,8 @@ public sealed class TemperatureSystem : EntitySystem
 
     private float _accumulatedFrametime;
 
-    public static readonly ProtoId<AlertCategoryPrototype> TemperatureAlertCategory = new("Temperature");
+    [ValidatePrototypeId<AlertCategoryPrototype>]
+    public const string TemperatureAlertCategory = "Temperature";
 
     public override void Initialize()
     {
@@ -131,6 +132,10 @@ public sealed class TemperatureSystem : EntitySystem
     {
         if (!Resolve(uid, ref temperature, false))
             return;
+        
+        // _Mono: No need if there's no heat to check
+        if (heatAmount == 0)
+            return;
 
         if (!ignoreHeatResistance)
         {
@@ -182,10 +187,7 @@ public sealed class TemperatureSystem : EntitySystem
 
     private void OnRejuvenate(EntityUid uid, TemperatureComponent comp, RejuvenateEvent args)
     {
-        if (TryComp<ThermalRegulatorComponent>(uid, out var regulator)) // Frontier: Look for normal body temperature and use it
-            ForceChangeTemperature(uid, regulator.NormalBodyTemperature, comp);
-        else
-            ForceChangeTemperature(uid, Atmospherics.T20C, comp);
+        ForceChangeTemperature(uid, Atmospherics.T20C, comp);
     }
 
     private void ServerAlert(EntityUid uid, AlertsComponent status, OnTemperatureChangeEvent args)
@@ -322,15 +324,11 @@ public sealed class TemperatureSystem : EntitySystem
         var temperatureQuery = GetEntityQuery<TemperatureComponent>();
         var transformQuery = GetEntityQuery<TransformComponent>();
         var thresholdsQuery = GetEntityQuery<ContainerTemperatureDamageThresholdsComponent>();
-
-        if (!transformQuery.TryGetComponent(uid, out var xform))
-            return;
-
         // We only need to update thresholds if the thresholds changed for the entity's ancestors.
         var oldThresholds = args.OldParent != null
             ? RecalculateParentThresholds(args.OldParent.Value, transformQuery, thresholdsQuery)
             : (null, null);
-        var newThresholds = RecalculateParentThresholds(xform.ParentUid, transformQuery, thresholdsQuery);
+        var newThresholds = RecalculateParentThresholds(transformQuery.GetComponent(uid).ParentUid, transformQuery, thresholdsQuery);
 
         if (oldThresholds != newThresholds)
         {
@@ -365,10 +363,7 @@ public sealed class TemperatureSystem : EntitySystem
     {
         RecalculateAndApplyParentThresholds(root, temperatureQuery, transformQuery, tempThresholdsQuery);
 
-        if (!transformQuery.TryGetComponent(root, out var xform))
-            return;
-
-        var enumerator = xform.ChildEnumerator;
+        var enumerator = Transform(root).ChildEnumerator;
         while (enumerator.MoveNext(out var child))
         {
             RecursiveThresholdUpdate(child, temperatureQuery, transformQuery, tempThresholdsQuery);
@@ -391,10 +386,7 @@ public sealed class TemperatureSystem : EntitySystem
             return;
         }
 
-        if (!transformQuery.TryGetComponent(uid, out var xform))
-            return;
-
-        var newThresholds = RecalculateParentThresholds(xform.ParentUid, transformQuery, tempThresholdsQuery);
+        var newThresholds = RecalculateParentThresholds(transformQuery.GetComponent(uid).ParentUid, transformQuery, tempThresholdsQuery);
         temperature.ParentHeatDamageThreshold = newThresholds.Item1;
         temperature.ParentColdDamageThreshold = newThresholds.Item2;
     }

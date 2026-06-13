@@ -1,6 +1,5 @@
 using Content.Server.Construction.Components;
 using Content.Server.Power.Components;
-using Content.Shared._NF.BindToStation; // Frontier
 using Content.Shared.Computer;
 using Content.Shared.Power;
 using Robust.Shared.Containers;
@@ -9,7 +8,7 @@ namespace Content.Server.Construction;
 
 public sealed partial class ConstructionSystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
 
     private void InitializeComputer()
     {
@@ -32,14 +31,6 @@ public sealed partial class ConstructionSystem
     private void OnCompMapInit(Entity<ComputerComponent> component, ref MapInitEvent args)
     {
         CreateComputerBoard(component);
-        // Frontier - we mirror the bind to grid component from any existing machine board onto the resultant machine to prevent high-grading
-        var boardContainer = _container.EnsureContainer<Container>(component.Owner, "board");
-        foreach (var board in boardContainer.ContainedEntities)
-        {
-            if (TryComp<BindToStationComponent>(board, out var binding))
-                _bindToStation.BindToStation(component.Owner, binding.BoundStation, binding.Enabled);
-        }
-        // End Frontier
     }
 
     private void OnCompPowerChange(EntityUid uid, ComputerComponent component, ref PowerChangedEvent args)

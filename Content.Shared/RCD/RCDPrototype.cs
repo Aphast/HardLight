@@ -1,5 +1,4 @@
 using Content.Shared.Physics;
-using Robust.Shared.Maths;
 using Robust.Shared.Physics.Collision.Shapes;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
@@ -7,7 +6,7 @@ using Robust.Shared.Utility;
 namespace Content.Shared.RCD;
 
 /// <summary>
-/// Contains the parameters for an RCD construction / operation
+/// Contains the parameters for a RCD construction / operation
 /// </summary>
 [Prototype("rcd")]
 public sealed partial class RCDPrototype : IPrototype
@@ -37,28 +36,13 @@ public sealed partial class RCDPrototype : IPrototype
     /// Texture path for this prototypes menu icon
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadOnly)]
-    public SpriteSpecifier? Sprite { get; private set; }
+    public SpriteSpecifier? Sprite { get; private set; } = null;
 
     /// <summary>
     /// The entity prototype that will be constructed (mode dependent)
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadOnly)]
-    public string? Prototype { get; private set; }
-
-    /// <summary>
-    /// VRS: For <see cref="RcdMode.ConstructTile"/>, optional mapping from the player's construction direction to a
-    /// <see cref="Content.Shared.Maps.ContentTileDefinition"/> id. When set, the tile placed for that direction is
-    /// chosen from this map; missing directions fall back to <see cref="Prototype"/>. Lets a single radial-menu
-    /// recipe rotate through a family of related tiles instead of needing one menu entry per facing.
-    /// </summary>
-    [DataField, ViewVariables(VVAccess.ReadOnly)]
-    public Dictionary<Direction, string>? ConstructTileByDirection { get; private set; }
-
-    /// <summary>
-    /// If true, allows placing the entity once per direction (North, West, South and East)
-    /// </summary>
-    [DataField, ViewVariables(VVAccess.ReadOnly)]
-    public bool AllowMultiDirection { get; private set; }
+    public string? Prototype { get; private set; } = string.Empty;
 
     /// <summary>
     /// Number of charges consumed when the operation is completed
@@ -76,10 +60,10 @@ public sealed partial class RCDPrototype : IPrototype
     /// The visual effect that plays during this operation
     /// </summary>
     [DataField("fx"), ViewVariables(VVAccess.ReadOnly)]
-    public EntProtoId? Effect { get; private set; }
+    public EntProtoId? Effect { get; private set; } = null;
 
     /// <summary>
-    /// A list of rules that govern where the entity prototype can be constructed
+    /// A list of rules that govern where the entity prototype can be contructed
     /// </summary>
     [DataField("rules"), ViewVariables(VVAccess.ReadOnly)]
     public HashSet<RcdConstructionRule> ConstructionRules { get; private set; } = new();
@@ -100,7 +84,10 @@ public sealed partial class RCDPrototype : IPrototype
     [DataField, ViewVariables(VVAccess.ReadOnly)]
     public Box2? CollisionBounds
     {
-        get => _collisionBounds;
+        get
+        {
+            return _collisionBounds;
+        }
 
         private set
         {
@@ -116,13 +103,13 @@ public sealed partial class RCDPrototype : IPrototype
         }
     }
 
-    private Box2? _collisionBounds;
+    private Box2? _collisionBounds = null;
 
     /// <summary>
     /// The polygon shape associated with the prototype CollisionBounds (if set)
     /// </summary>
     [ViewVariables(VVAccess.ReadOnly)]
-    public PolygonShape? CollisionPolygon { get; private set; }
+    public PolygonShape? CollisionPolygon { get; private set; } = null;
 
     /// <summary>
     /// Governs how the local rotation of the constructed entity will be set

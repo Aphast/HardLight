@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Content.Client.PDA;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Clothing.EntitySystems;
@@ -9,10 +9,9 @@ using Robust.Shared.Prototypes;
 namespace Content.Client.Clothing.Systems;
 
 // All valid items for chameleon are calculated on client startup and stored in dictionary.
-public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
+public sealed partial class ChameleonClothingSystem : SharedChameleonClothingSystem
 {
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IComponentFactory _factory = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
 
     private static readonly SlotFlags[] IgnoredSlots =
     {
@@ -23,7 +22,6 @@ public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
     private static readonly SlotFlags[] Slots = Enum.GetValues<SlotFlags>().Except(IgnoredSlots).ToArray();
 
     private readonly Dictionary<SlotFlags, List<string>> _data = new();
-    [Dependency] private readonly SpriteSystem _sprite = default!;
 
     public override void Initialize()
     {
@@ -49,14 +47,14 @@ public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
     {
         base.UpdateSprite(uid, proto);
         if (TryComp(uid, out SpriteComponent? sprite)
-            && proto.TryGetComponent(out SpriteComponent? otherSprite, _factory))
+            && proto.TryGetComponent(out SpriteComponent? otherSprite, Factory))
         {
-            _sprite.CopySprite((otherSprite.Owner, otherSprite), (uid, sprite));
+            sprite.CopyFrom(otherSprite);
         }
 
         // Edgecase for PDAs to include visuals when UI is open
         if (TryComp(uid, out PdaBorderColorComponent? borderColor)
-            && proto.TryGetComponent(out PdaBorderColorComponent? otherBorderColor, _factory))
+            && proto.TryGetComponent(out PdaBorderColorComponent? otherBorderColor, Factory))
         {
             borderColor.BorderColor = otherBorderColor.BorderColor;
             borderColor.AccentHColor = otherBorderColor.AccentHColor;
@@ -90,7 +88,7 @@ public sealed class ChameleonClothingSystem : SharedChameleonClothingSystem
             // check if this is valid clothing
             if (!IsValidTarget(proto))
                 continue;
-            if (!proto.TryGetComponent(out ClothingComponent? item, _factory))
+            if (!proto.TryGetComponent(out ClothingComponent? item, Factory))
                 continue;
 
             // sort item by their slot flags

@@ -202,33 +202,6 @@
     clothingPrototype: ClothingHeadHelmetHardsuitNfsdGold
 
 - type: entity
-  parent: ClothingOuterHardsuitBaseNFNfsd
-  id: ClothingOuterHardsuitNfsdSheriff
-  name: ColSec M92 tacsuit
-  description: A heavy tacsuit, capable of taking a lot of physical damage.
-  components:
-  - type: Sprite
-    sprite: _NF/Clothing/OuterClothing/Hardsuits/nfsd_sheriff.rsi
-  - type: Clothing
-    sprite: _NF/Clothing/OuterClothing/Hardsuits/nfsd_sheriff.rsi
-  - type: ToggleableClothing
-    clothingPrototype: ClothingHeadHelmetHardsuitNfsdSheriff
-  - type: ExplosionResistance
-    damageCoefficient: 0.5
-  - type: Armor
-    modifiers:
-      coefficients:
-        Blunt: 0.4
-        Slash: 0.25
-        Piercing: 0.4
-        Heat: 0.55
-        Radiation: 0.55
-        Caustic: 0.75
-  - type: ClothingSpeedModifier
-    walkModifier: 0.9
-    sprintModifier: 0.9
-
-- type: entity
   parent: ClothingOuterHardsuitNfsdBronze
   id: ClothingOuterHardsuitNfsdBrigmedic
   name: ColSec M73-M tacsuit
@@ -249,38 +222,6 @@
         Heat: 0.45
         Radiation: 0.35
         Caustic: 0.35
-
-- type: entity
-  parent: [BaseC2ContrabandUnredeemable, ClothingOuterHardsuitJuggernaut, BaseC3ExpeditionContraband] # Jugger Suit
-  id: ClothingOuterHardsuitNfsdExperimental
-  name: ColSec M92-X tacsuit
-  description: A experimental modification of the M92 tacsuit for spec-ops units of ColSec. Externally the same, internally its higher-quality alloys and fabric.
-  components:
-  - type: Sprite
-    sprite: _NF/Clothing/OuterClothing/Hardsuits/nfsd_experimental.rsi
-  - type: Clothing
-    sprite: _NF/Clothing/OuterClothing/Hardsuits/nfsd_experimental.rsi
-  - type: ToggleableClothing
-    clothingPrototype: ClothingHeadHelmetHardsuitNfsdExperimental
-  - type: PressureProtection
-    highPressureMultiplier: 0.2
-    lowPressureMultiplier: 1000
-  - type: ExplosionResistance
-    damageCoefficient: 0.3
-  - type: Armor
-    modifiers:
-      coefficients:
-        Blunt: 0.2
-        Slash: 0.25
-        Piercing: 0.25
-        Heat: 0.15
-        Radiation: 0.1
-        Caustic: 0.15
-  - type: ClothingSpeedModifier
-    walkModifier: 0.75
-    sprintModifier: 0.65
-  - type: FactionClothing
-    faction: NanoTrasen
 
 #Security Combat Hardsuit
 - type: entity

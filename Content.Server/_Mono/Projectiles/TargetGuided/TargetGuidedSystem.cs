@@ -4,7 +4,6 @@ using Content.Shared.Projectiles;
 using Content.Server._Mono.FireControl;
 using Content.Shared._Mono.FireControl;
 using Robust.Server.GameObjects;
-using Robust.Shared.Physics.Components;
 using EntityCoordinates = Robust.Shared.Map.EntityCoordinates;
 
 namespace Content.Server._Mono.Projectiles.TargetGuided;
@@ -12,11 +11,12 @@ namespace Content.Server._Mono.Projectiles.TargetGuided;
 /// <summary>
 /// Handles the logic for cursor-guided projectiles.
 /// </summary>
-public sealed class TargetGuidedSystem : EntitySystem
+public sealed partial class TargetGuidedSystem : EntitySystem
 {
-    [Dependency] private readonly SharedTransformSystem _transform = null!;
-    [Dependency] private readonly RotateToFaceSystem _rotateToFace = null!;
-    [Dependency] private readonly PhysicsSystem _physics = null!;
+    [Dependency] private SharedTransformSystem _transform = null!;
+    [Dependency] private RotateToFaceSystem _rotateToFace = null!;
+    [Dependency] private PhysicsSystem _physics = null!;
+    [Dependency] private FireControlSystem _fireControl = null!;
 
     public override void Initialize()
     {
@@ -36,8 +36,8 @@ public sealed class TargetGuidedSystem : EntitySystem
     {
         base.Update(frameTime);
 
-        var query = EntityQueryEnumerator<TargetGuidedComponent, PhysicsComponent, TransformComponent>();
-        while (query.MoveNext(out var uid, out var guidedComp, out var body, out var xform))
+        var query = EntityQueryEnumerator<TargetGuidedComponent, TransformComponent>();
+        while (query.MoveNext(out var uid, out var guidedComp, out var xform))
         {
             // Update lifetime
             guidedComp.CurrentLifetime += frameTime;
@@ -57,14 +57,6 @@ public sealed class TargetGuidedSystem : EntitySystem
             if (guidedComp.CurrentSpeed < guidedComp.LaunchSpeed)
             {
                 guidedComp.CurrentSpeed = guidedComp.LaunchSpeed;
-            }
-
-            var heading = _transform.GetWorldRotation(xform).ToWorldVec();
-
-            if (!guidedComp.InheritedVelocityInitialized)
-            {
-                guidedComp.InheritedVelocity = body.LinearVelocity - heading * guidedComp.CurrentSpeed;
-                guidedComp.InheritedVelocityInitialized = true;
             }
 
             // Accelerate up to max speed
@@ -100,7 +92,7 @@ public sealed class TargetGuidedSystem : EntitySystem
             if (guidedComp.ControlPermanentlyLost && guidedComp.FixedDirection.HasValue)
             {
                 // Use the fixed direction when control is permanently lost
-                _physics.SetLinearVelocity(uid, guidedComp.InheritedVelocity + guidedComp.FixedDirection.Value.ToWorldVec() * guidedComp.CurrentSpeed, body: body);
+                _physics.SetLinearVelocity(uid, guidedComp.FixedDirection.Value.ToWorldVec() * guidedComp.CurrentSpeed);
 
                 // Also set the transform rotation to match the fixed direction to prevent visual stuttering
                 _transform.SetWorldRotation(xform, guidedComp.FixedDirection.Value);
@@ -108,7 +100,7 @@ public sealed class TargetGuidedSystem : EntitySystem
             else
             {
                 // Normal operation - use current rotation
-                _physics.SetLinearVelocity(uid, guidedComp.InheritedVelocity + _transform.GetWorldRotation(xform).ToWorldVec() * guidedComp.CurrentSpeed, body: body);
+                _physics.SetLinearVelocity(uid, _transform.GetWorldRotation(xform).ToWorldVec() * guidedComp.CurrentSpeed);
             }
         }
     }
@@ -132,8 +124,8 @@ public sealed class TargetGuidedSystem : EntitySystem
         if (component.TargetPosition.HasValue)
         {
             // Convert both coordinates to map positions to compare them
-            var currentMapPos = _transform.ToMapCoordinates(coordinates);
-            var previousMapPos = _transform.ToMapCoordinates(component.TargetPosition.Value);
+            var currentMapPos = coordinates.ToMap(EntityManager, _transform);
+            var previousMapPos = component.TargetPosition.Value.ToMap(EntityManager, _transform);
 
             // Check if they're on the same map and calculate distance
             if (currentMapPos.MapId == previousMapPos.MapId)
@@ -166,7 +158,7 @@ public sealed class TargetGuidedSystem : EntitySystem
             return;
 
         // Get the positions in map coordinates
-        var targetPos = _transform.ToMapCoordinates(guidedComp.TargetPosition.Value);
+        var targetPos = guidedComp.TargetPosition.Value.ToMap(EntityManager, _transform);
         var missilePos = _transform.ToMapCoordinates(xform.Coordinates);
 
         // Skip if on different maps
@@ -204,7 +196,7 @@ public sealed class TargetGuidedSystem : EntitySystem
         // Check if controlling console still exists
         if (component.ControllingConsole.HasValue)
         {
-            if (!Exists(component.ControllingConsole.Value))
+            if (!EntityManager.EntityExists(component.ControllingConsole.Value))
                 return true;
 
             // Check if console is still powered/functioning

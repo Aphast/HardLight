@@ -26,7 +26,6 @@ namespace Content.Server.Database
             options.ConfigureWarnings(x =>
             {
                 x.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
-                x.Ignore(RelationalEventId.PendingModelChangesWarning);
 #if DEBUG
                 // for tests
                 x.Ignore(CoreEventId.SensitiveDataLoggingEnabledWarning);
@@ -56,7 +55,13 @@ namespace Content.Server.Database
             );
 
             modelBuilder
-                .Entity<BanAddress>()
+                .Entity<ServerBan>()
+                .Property(e => e.Address)
+                .HasColumnType("TEXT")
+                .HasConversion(ipMaskConverter);
+
+            modelBuilder
+                .Entity<ServerRoleBan>()
                 .Property(e => e.Address)
                 .HasColumnType("TEXT")
                 .HasConversion(ipMaskConverter);

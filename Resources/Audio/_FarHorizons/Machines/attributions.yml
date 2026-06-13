@@ -1,8 +1,3 @@
-- files: ["alarm_beep.ogg"]
-  license: "CC0-1.0"
-  copyright: "Created by JW_Audio, clipped and converted Mono and .ogg by Jhrushbe"
-  source: https://freesound.org/people/JW_Audio/sounds/816661/
-
 - files: ["alarm_buzzer.ogg"]
   license: "CC-BY-4.0"
   copyright: "Created by NoahBangs, clipped and converted Mono and .ogg by Jhrushbe"
@@ -27,8 +22,3 @@
   license: "CC-BY-4.0"
   copyright: "Created by Tecc_Source, converted Mono by Jhrushbe"
   source: https://freesound.org/people/Tecc_Source/sounds/746819/
-
-- files: ["relay_click.ogg"]
-  license: "CC0-1.0"
-  copyright: "Created by bassmosphere, remixed and converted Mono and .ogg by Jhrushbe"
-  source: https://freesound.org/people/bassmosphere/sounds/384698/

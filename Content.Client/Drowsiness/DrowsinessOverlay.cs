@@ -8,13 +8,13 @@ using Robust.Shared.Timing;
 
 namespace Content.Client.Drowsiness;
 
-public sealed class DrowsinessOverlay : Overlay
+public sealed partial class DrowsinessOverlay : Overlay
 {
-    [Dependency] private readonly IEntityManager _entityManager = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IEntitySystemManager _sysMan = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private IEntityManager _entityManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IEntitySystemManager _sysMan = default!;
+    [Dependency] private IGameTiming _timing = default!;
 
     public override OverlaySpace Space => OverlaySpace.WorldSpace;
     public override bool RequestScreenTexture => true;
@@ -29,10 +29,8 @@ public sealed class DrowsinessOverlay : Overlay
     public DrowsinessOverlay()
     {
         IoCManager.InjectDependencies(this);
-        _drowsinessShader = _prototypeManager.Index(DrowsinessShaderId).InstanceUnique();
+        _drowsinessShader = _prototypeManager.Index<ShaderPrototype>("Drowsiness").InstanceUnique();
     }
-
-    private static readonly ProtoId<ShaderPrototype> DrowsinessShaderId = "Drowsiness";
 
     protected override void FrameUpdate(FrameEventArgs args)
     {

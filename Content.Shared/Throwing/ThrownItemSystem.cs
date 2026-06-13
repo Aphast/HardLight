@@ -15,14 +15,14 @@ namespace Content.Shared.Throwing
     /// <summary>
     ///     Handles throwing landing and collisions.
     /// </summary>
-    public sealed class ThrownItemSystem : EntitySystem
+    public sealed partial class ThrownItemSystem : EntitySystem
     {
-        [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly SharedBroadphaseSystem _broadphase = default!;
-        [Dependency] private readonly FixtureSystem _fixtures = default!;
-        [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-        [Dependency] private readonly SharedGravitySystem _gravity = default!;
+        [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private SharedBroadphaseSystem _broadphase = default!;
+        [Dependency] private FixtureSystem _fixtures = default!;
+        [Dependency] private SharedPhysicsSystem _physics = default!;
+        [Dependency] private SharedGravitySystem _gravity = default!;
 
         private const string ThrowingFixture = "throw-fixture";
 
@@ -137,20 +137,16 @@ namespace Content.Shared.Throwing
                 _adminLogger.Add(LogType.ThrowHit, LogImpact.Low,
                     $"{ToPrettyString(thrown):thrown} thrown by {ToPrettyString(component.Thrower.Value):thrower} hit {ToPrettyString(target):target}.");
 
-            // Hardlight: Clean this up and specify thrower in DoHitEvent
-            RaiseLocalEvent(target, new ThrowHitByEvent(component.Thrower, thrown, target, component), true);
-            RaiseLocalEvent(thrown, new ThrowDoHitEvent(component.Thrower, thrown, target, component), true);
+            if (component.Thrower is not null)// Nyano - Summary: Gotta check if there was a thrower. 
+                RaiseLocalEvent(target, new ThrowHitByEvent(component.Thrower.Value, thrown, target, component), true); // Nyano - Summary: Gotta update for who threw it.
+            else
+                RaiseLocalEvent(target, new ThrowHitByEvent(null, thrown, target, component), true); // Nyano - Summary: No thrower. 
+            RaiseLocalEvent(thrown, new ThrowDoHitEvent(thrown, target, component), true);
         }
 
         public override void Update(float frameTime)
         {
             base.Update(frameTime);
-
-            // TODO predicted throwing - remove this check
-            // We don't want to predict landing or stopping, since throwing isn't actually predicted.
-            // If we do, the landing/stop will occur prematurely on the client.
-            if (_gameTiming.InPrediction)
-                return;
 
             var query = EntityQueryEnumerator<ThrownItemComponent, PhysicsComponent>();
             while (query.MoveNext(out var uid, out var thrown, out var physics))

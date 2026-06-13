@@ -1,15 +1,16 @@
+using Content.Shared._Mono.Blocking;
 using Content.Shared.Damage;
-using Content.Shared.Damage.Prototypes;
-using Robust.Shared.Audio;
+using Content.Shared.Item.ItemToggle.Components;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
+using Content.Shared.Blocking.Components;
 
 namespace Content.Shared.Blocking;
 
-public sealed partial class BlockingSystem
+public sealed partial class BlockingSystem : SharedBlockingSystem // Mono
 {
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
 
     private void InitializeUser()
     {
@@ -42,7 +43,7 @@ public sealed partial class BlockingSystem
 
     private void OnUserDamageModified(EntityUid uid, BlockingUserComponent component, DamageModifyEvent args)
     {
-        if (TryComp<BlockingComponent>(component.BlockingItem, out var blocking))
+        if (TryComp<BlockingComponent>(component.BlockingItem, out var blocking)) // Mono
         {
             if (args.Damage.GetTotal() <= 0)
                 return;
@@ -51,9 +52,14 @@ public sealed partial class BlockingSystem
             if (!TryComp<DamageableComponent>(component.BlockingItem, out var dmgComp))
                 return;
 
+            if (TryComp<ItemToggleComponent>(component.BlockingItem, out var toggleComponent) && !toggleComponent.Activated) // Mono
+                return;
+
             var blockFraction = blocking.IsBlocking ? blocking.ActiveBlockFraction : blocking.PassiveBlockFraction;
             blockFraction = Math.Clamp(blockFraction, 0, 1);
-            _damageable.TryChangeDamage(component.BlockingItem, blockFraction * args.OriginalDamage);
+            _damageable.TryChangeDamage(component.BlockingItem,
+                blockFraction * args.OriginalDamage,
+                armorPenetration: args.ArmorPenetration); // Goob edit
 
             var modify = new DamageModifierSet();
             foreach (var key in dmgComp.Damage.DamageDict.Keys)
@@ -61,7 +67,8 @@ public sealed partial class BlockingSystem
                 modify.Coefficients.TryAdd(key, 1 - blockFraction);
             }
 
-            args.Damage = DamageSpecifier.ApplyModifierSet(args.Damage, modify);
+            args.Damage = DamageSpecifier.ApplyModifierSet(args.Damage,
+                DamageSpecifier.PenetrateArmor(modify ,args.ArmorPenetration)); // Goob edit
 
             if (blocking.IsBlocking && !args.Damage.Equals(args.OriginalDamage))
             {

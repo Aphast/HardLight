@@ -14,7 +14,6 @@ using Content.Shared.Coordinates;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
 using Robust.Shared.Prototypes;
-using Content.Server._NF.Cargo.Systems;
 
 namespace Content.Server._NF.Contraband.Systems;
 
@@ -23,11 +22,11 @@ namespace Content.Server._NF.Contraband.Systems;
 /// </summary>
 public sealed partial class ContrabandTurnInSystem : SharedContrabandTurnInSystem
 {
-    [Dependency] private readonly IPrototypeManager _protoMan = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly StackSystem _stack = default!;
-    [Dependency] private readonly StationSystem _station = default!;
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
+    [Dependency] private IPrototypeManager _protoMan = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private StackSystem _stack = default!;
+    [Dependency] private StationSystem _station = default!;
+    [Dependency] private UserInterfaceSystem _uiSystem = default!;
 
     private EntityQuery<MobStateComponent> _mobQuery;
     private EntityQuery<TransformComponent> _xformQuery;
@@ -66,6 +65,9 @@ public sealed partial class ContrabandTurnInSystem : SharedContrabandTurnInSyste
     {
         var player = args.Actor;
 
+        if (player == null)
+            return;
+
         UpdatePalletConsoleInterface(uid, component);
     }
 
@@ -80,6 +82,9 @@ public sealed partial class ContrabandTurnInSystem : SharedContrabandTurnInSyste
     private void OnPalletAppraise(EntityUid uid, ContrabandPalletConsoleComponent component, ContrabandPalletAppraiseMessage args)
     {
         var player = args.Actor;
+
+        if (player == null)
+            return;
 
         UpdatePalletConsoleInterface(uid, component);
     }
@@ -112,7 +117,7 @@ public sealed partial class ContrabandTurnInSystem : SharedContrabandTurnInSyste
 
         if (station != null)
         {
-            var ev = new NFEntitySoldEvent(toSell, gridUid);
+            var ev = new EntitySoldEvent(toSell, gridUid);
             RaiseLocalEvent(ref ev);
         }
 
@@ -152,11 +157,14 @@ public sealed partial class ContrabandTurnInSystem : SharedContrabandTurnInSyste
                         continue;
 
                     var value = comp.TurnInValues[console.RewardType];
+                    // Mono Begin - Accounting for stacks of contraband
+                    if (TryComp<StackComponent>(ent, out var stackcomp))
+                        value *= stackcomp.Count;
+                    // Mono End
                     if (value <= 0)
                         continue;
-
-                    toSell.Add(ent); // HardLight: Moved down to prevent items marked as contraband but without a FUC value from being sold for nothing.
                     amount += value;
+                    toSell.Add(ent); // Mono - Moved down to not sell valueless contraband
                 }
             }
         }
@@ -191,6 +199,9 @@ public sealed partial class ContrabandTurnInSystem : SharedContrabandTurnInSyste
     private void OnPalletSale(EntityUid uid, ContrabandPalletConsoleComponent component, ContrabandPalletSellMessage args)
     {
         var player = args.Actor;
+
+        if (player == null)
+            return;
 
         if (Transform(uid).GridUid is not EntityUid gridUid)
         {

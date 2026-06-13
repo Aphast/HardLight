@@ -1,10 +1,3 @@
-// SPDX-FileCopyrightText: 2025 jhrushbe <capnmerry@gmail.com>
-// SPDX-FileCopyrightText: 2025 rottenheadphones <juaelwe@outlook.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
-//
-// SPDX-License-Identifier: CC-BY-NC-SA-3.0
-
-
 using Robust.Shared.GameStates;
 using Robust.Shared.Audio;
 using Content.Shared.Containers.ItemSlots;
@@ -14,7 +7,6 @@ using Content.Shared.Materials;
 using Content.Shared.DeviceLinking;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype;
 using Robust.Shared.Serialization;
-using Robust.Shared.Timing;
 using System.Numerics;
 
 namespace Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
@@ -22,8 +14,6 @@ namespace Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
 // Ported and modified from goonstation by Jhrushbe.
 // CC-BY-NC-SA-3.0
 // https://github.com/goonstation/goonstation/blob/ff86b044/code/obj/nuclearreactor/nuclearreactor.dm
-// Performance optimizations adapted from Far-Horizons-SS14/Far-Horizons-SS14#1000
-// and ss14Starlight/space-station-14#3967.
 
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class NuclearReactorComponent : Component
@@ -51,11 +41,6 @@ public sealed partial class NuclearReactorComponent : Component
     public ReactorPartComponent?[,] ComponentGrid;
 
     /// <summary>
-    /// Dictionary mapping grid positions to spawned entity UIDs for reactor parts removed from the grid
-    /// </summary>
-    public Dictionary<Vector2i, EntityUid> GridEntities = new();
-
-    /// <summary>
     /// Dictionary of data that determines the reactor grid's visuals
     /// </summary>
     [AutoNetworkedField]
@@ -68,18 +53,13 @@ public sealed partial class NuclearReactorComponent : Component
     public List<ReactorNeutron>[,] FluxGrid;
 
     /// <summary>
-    /// Scratch buffer for neutron movement. Avoids List.Remove and flux snapshot allocations.
-    /// </summary>
-    public List<ReactorNeutron>[,] FluxGridScratch;
-
-    /// <summary>
     /// Number of neutrons that hit the edge of the reactor grid last tick
     /// </summary>
     [ViewVariables]
     public float RadiationLevel = 0;
 
     /// <summary>
-    /// Gas mixture currently in the reactor
+    /// Gas mixtrue currently in the reactor
     /// </summary>
     public GasMixture? AirContents;
 
@@ -134,13 +114,13 @@ public sealed partial class NuclearReactorComponent : Component
     /// <summary>
     /// Sound that plays globally on meltdown
     /// </summary>
-    public SoundSpecifier MeltdownSound = new SoundPathSpecifier("/Audio/_FarHorizons/Machines/meltdown_siren.ogg");
+    public SoundSpecifier MeltdownSound = new SoundPathSpecifier("/Audio/_FarHorizons/Machines/meltdown_siren.ogg"); // Mono - You may think we would have it commented out, but it only plays on its station, so its fine Probably
 
     /// <summary>
     /// Radio channel to send alerts to
     /// </summary>
     [DataField]
-    public string EngineeringChannel = "Engineering";
+    public string EngineeringChannel = "Traffic"; // Mono
 
     /// <summary>
     /// Last reported temperature during overheat events
@@ -157,8 +137,8 @@ public sealed partial class NuclearReactorComponent : Component
     /// <summary>
     /// Alert level to set after meltdown
     /// </summary>
-    [DataField]
-    public string MeltdownAlertLevel = "yellow";
+    //[DataField]
+    //public string MeltdownAlertLevel = "yellow"; // Mono - comment out
 
     /// <summary>
     /// The minimum radiation from the melted reactor
@@ -174,7 +154,7 @@ public sealed partial class NuclearReactorComponent : Component
     public float RadiationStability = 2;
 
     /// <summary>
-    /// The soft maximum radiation the reactor is expected to produce, beyond which radiation increases logarithmically. Also used for alarms and UI.
+    /// The maximum radiation the reactor can emit during normal operation
     /// </summary>
     [DataField]
     public float MaximumRadiation = 50;
@@ -331,12 +311,6 @@ public sealed partial class NuclearReactorComponent : Component
     [ViewVariables(VVAccess.ReadWrite)]
     public SignalState InsertPortState = SignalState.Low;
     #endregion
-
-    /// <summary>
-    /// Stopwatch that keeps track of how long the reactor is taking to process.
-    /// </summary>
-    [ViewVariables]
-    public readonly Stopwatch SimTime = new();
 
     #region Debug
     [ViewVariables(VVAccess.ReadOnly)]

@@ -175,7 +175,7 @@ public abstract partial class SharedHandsSystem : EntitySystem
         if (!Resolve(entity, ref item, false))
             return false;
 
-        if (TryComp(entity, out PhysicsComponent? physics) && physics.BodyType == BodyType.Static)
+        if (TryComp(entity, out PhysicsComponent? physics) && physics.BodyType == BodyType.Static && !item.PickupStatic) // Mono
             return false;
 
         if (checkActionBlocker && !_actionBlocker.CanPickup(uid, entity))
@@ -244,8 +244,6 @@ public abstract partial class SharedHandsSystem : EntitySystem
             return;
         }
         RaiseLocalEvent(entity, new PickedUpEvent(uid, entity), false); // Frontier
-
-        _interactionSystem.DoContactInteraction(uid, entity); //Possibly fires twice if manually picked up via interacting with the object
 
         if (log)
         {

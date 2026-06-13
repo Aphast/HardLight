@@ -2,7 +2,6 @@
 using System.Linq;
 using Content.Server._NF.Bank;
 using Content.Server._NF.Medical.Components;
-using Content.Server.Administration.Logs;
 using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
 using Content.Server.Popups;
@@ -15,7 +14,6 @@ using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.Reagent;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Prototypes;
-using Content.Shared.Database;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
 using Content.Shared.Power;
@@ -43,7 +41,6 @@ public sealed partial class MedicalBountySystem : EntitySystem
     [Dependency] PowerReceiverSystem _power = default!;
     [Dependency] SharedAppearanceSystem _appearance = default!;
     [Dependency] BankSystem _bank = default!;
-    [Dependency] IAdminLogManager _adminLog = default!;
 
     private List<MedicalBountyPrototype> _cachedPrototypes = new();
 
@@ -54,8 +51,7 @@ public sealed partial class MedicalBountySystem : EntitySystem
         _proto.PrototypesReloaded += OnPrototypesReloaded;
 
         SubscribeLocalEvent<MedicalBountyComponent, ComponentStartup>(InitializeMedicalBounty);
-        SubscribeLocalEvent<MedicalBountyComponent, MobStateChangedEvent>(OnMobStateChanged);
-
+        
         SubscribeLocalEvent<MedicalBountyRedemptionComponent, RedeemMedicalBountyMessage>(RedeemMedicalBounty);
         SubscribeLocalEvent<MedicalBountyRedemptionComponent, EntInsertedIntoContainerMessage>(OnEntityInserted);
         SubscribeLocalEvent<MedicalBountyRedemptionComponent, EntRemovedFromContainerMessage>(OnEntityRemoved);
@@ -92,41 +88,67 @@ public sealed partial class MedicalBountySystem : EntitySystem
                 return; // Nothing to do, keep bounty at null.
         }
 
-        // Precondition: check entity can fulfill bounty conditions
-        if (!TryComp<DamageableComponent>(entity, out var damageable) ||
-            !TryComp<BloodstreamComponent>(entity, out var bloodstream))
+        // Precondition: check entity can fulfill bounty conditions - only require DamageableComponent
+        if (!TryComp<DamageableComponent>(entity, out var damageable))
+        {
+            Log.Warning($"Medical bounty entity {ToPrettyString(entity)} missing DamageableComponent, skipping initialization");
             return;
+        }
+
+        // Check if entity has bloodstream for reagent injection
+        var hasBloodstream = TryComp<BloodstreamComponent>(entity, out var bloodstream);
+
+        var entityName = MetaData(entity).EntityName;
+        Log.Info($"Initializing medical bounty for {entityName} ({ToPrettyString(entity)}), hasBloodstream: {hasBloodstream}");
 
         // Apply damage from prototype, keep track of value
+        // Filter damage types to only those supported by the entity
         DamageSpecifier damageToApply = new DamageSpecifier();
         var bountyValueAccum = component.Bounty.BaseReward;
+        var supportedDamageTypes = damageable.Damage.DamageDict.Keys.ToHashSet();
+
         foreach (var (damageType, damageValue) in component.Bounty.DamageSets)
         {
             if (!_proto.TryIndex<DamageTypePrototype>(damageType, out var damageProto))
                 continue;
 
+            // Check if this damage type is supported by the entity
+            if (!supportedDamageTypes.Contains(damageType))
+            {
+                Log.Info($"Skipping unsupported damage type {damageType} for {entityName}");
+                continue;
+            }
+
             var randomDamage = _random.Next(damageValue.MinDamage, damageValue.MaxDamage + 1);
             bountyValueAccum += randomDamage * damageValue.ValuePerPoint;
             damageToApply += new DamageSpecifier(damageProto, randomDamage);
+            Log.Info($"Adding {randomDamage} {damageType} damage to {entityName}");
         }
+
         _damageable.TryChangeDamage(entity, damageToApply, true, damageable: damageable);
 
-        // Inject reagents into chemical solution, if any
-        foreach (var (reagentType, reagentValue) in component.Bounty.Reagents)
+        // Inject reagents into chemical solution, if any (only if entity has bloodstream)
+        if (hasBloodstream && bloodstream != null)
         {
-            if (!_proto.HasIndex<ReagentPrototype>(reagentType))
-                continue;
+            foreach (var (reagentType, reagentValue) in component.Bounty.Reagents)
+            {
+                if (!_proto.HasIndex<ReagentPrototype>(reagentType))
+                    continue;
 
-            Solution soln = new Solution();
-            var reagentQuantity = _random.Next(reagentValue.MinQuantity, reagentValue.MaxQuantity + 1);
-            soln.AddReagent(reagentType, reagentQuantity);
-            if (_bloodstream.TryAddToChemicals(entity, soln, bloodstream))
-                bountyValueAccum += reagentQuantity * reagentValue.ValuePerPoint;
+                Solution soln = new Solution();
+                var reagentQuantity = _random.Next(reagentValue.MinQuantity, reagentValue.MaxQuantity + 1);
+                soln.AddReagent(reagentType, reagentQuantity);
+                if (_bloodstream.TryAddToChemicals(entity, soln, bloodstream))
+                    bountyValueAccum += reagentQuantity * reagentValue.ValuePerPoint;
+            }
         }
 
         // Bounty calculation completed, set output state.
         component.MaxBountyValue = bountyValueAccum;
         component.BountyInitialized = true;
+
+        // Log final bounty value for debugging
+        Log.Info($"Medical bounty initialization complete for {entityName}: MaxBountyValue={bountyValueAccum}, TotalDamage={damageable.TotalDamage}");
     }
 
     private void RedeemMedicalBounty(EntityUid uid, MedicalBountyRedemptionComponent component, RedeemMedicalBountyMessage ev)
@@ -175,31 +197,22 @@ public sealed partial class MedicalBountySystem : EntitySystem
             }
         }
 
-        string successString = "medical-bounty-redemption-success";
-        if (TryComp<MedicalBountyBankPaymentComponent>(ev.Actor, out var bankPayment))
-        {
-            successString = "medical-bounty-redemption-success-to-station";
-            // Find the fractions of the whole to pay out.
-            _bank.TrySectorDeposit(bankPayment!.Account, bountyPayout, LedgerEntryType.MedicalBountyTax);
-            _adminLog.Add(LogType.MedicalBountyRedeemed, LogImpact.Low, $"{ToPrettyString(ev.Actor):actor} redeemed the medical bounty for {ToPrettyString(bountyUid):subject}. Base value: {bountyPayout} (paid to station accounts).");
-        }
-        else if (bountyPayout > 0)
+        // Spawn cash on the machine
+        if (bountyPayout > 0)
         {
             // Use SpawnMultiple in case spesos ever have a limit.
             _stack.SpawnMultiple("SpaceCash", bountyPayout, Transform(uid).Coordinates);
 
-            _adminLog.Add(LogType.MedicalBountyRedeemed, LogImpact.Low, $"{ToPrettyString(ev.Actor):actor} redeemed the medical bounty for {ToPrettyString(bountyUid):subject}. Base value: {bountyPayout}.");
-        }
-        // Pay tax accounts
-        foreach (var (account, taxCoeff) in component.TaxAccounts)
-        {
-            _bank.TrySectorDeposit(account, (int)(bountyPayout * taxCoeff), LedgerEntryType.MedicalBountyTax);
+            // Pay tax accounts
+            foreach (var (account, taxCoeff) in component.TaxAccounts)
+            {
+                _bank.TrySectorDeposit(account, (int)(bountyPayout * taxCoeff), LedgerEntryType.MedicalBountyTax);
+            }
         }
 
-        _container.Remove(bountyUid, container, destination: Transform(uid).Coordinates);
         QueueDel(bountyUid);
 
-        _popup.PopupEntity(Loc.GetString(successString), uid);
+        _popup.PopupEntity(Loc.GetString("medical-bounty-redemption-success"), uid);
         _audio.PlayPvs(component.RedeemSound, uid);
         UpdateUserInterface(uid, component);
     }
@@ -231,34 +244,22 @@ public sealed partial class MedicalBountySystem : EntitySystem
         if (!_ui.HasUi(uid, MedicalBountyRedemptionUiKey.Key))
             return;
 
-        var actor = _ui.GetActors(uid, MedicalBountyRedemptionUiKey.Key).FirstOrDefault();
-
         if (!_power.IsPowered(uid))
         {
             _ui.CloseUis(uid);
             return;
         }
 
-        _ui.SetUiState(uid, MedicalBountyRedemptionUiKey.Key, GetUserInterfaceState(uid, component, actor));
+        _ui.SetUiState(uid, MedicalBountyRedemptionUiKey.Key, GetUserInterfaceState(uid, component));
     }
 
-    public void OnMobStateChanged(EntityUid uid, MedicalBountyComponent _, MobStateChangedEvent args)
+    private MedicalBountyRedemptionUIState GetUserInterfaceState(EntityUid uid, MedicalBountyRedemptionComponent component)
     {
-        if (args.NewMobState == MobState.Critical ||
-            args.NewMobState == MobState.Alive)
-        {
-            RemComp<StinkyTraitComponent>(uid);
-        }
-    }
-
-    private MedicalBountyRedemptionUIState GetUserInterfaceState(EntityUid uid, MedicalBountyRedemptionComponent component, EntityUid actor)
-    {
-        var paidToStation = HasComp<MedicalBountyBankPaymentComponent>(actor);
         // Check that the medical redeemer has a valid medical bounty inside
         if (!_container.TryGetContainer(uid, component.BodyContainer, out var container) ||
             container.ContainedEntities.Count <= 0)
         {
-            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.NoBody, 0, paidToStation);
+            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.NoBody, 0);
         }
 
         // Assumption: only one object can be stored in the MedicalBountyRedemption entity
@@ -270,20 +271,20 @@ public sealed partial class MedicalBountySystem : EntitySystem
             !TryComp<DamageableComponent>(bountyUid, out var damageable) ||
             !TryComp<MobStateComponent>(bountyUid, out var mobState))
         {
-            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.NoBounty, 0, paidToStation);
+            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.NoBounty, 0);
         }
 
         // Check that the entity inside is sufficiently healed.
         var bounty = medicalBounty.Bounty;
         if (damageable.TotalDamage > bounty.MaximumDamageToRedeem)
         {
-            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.TooDamaged, 0, paidToStation);
+            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.TooDamaged, 0);
         }
 
         // Check that the mob is alive.
         if (mobState.CurrentState != Shared.Mobs.MobState.Alive)
         {
-            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.NotAlive, 0, paidToStation);
+            return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.NotAlive, 0);
         }
 
         // Bounty is redeemable, calculate amount of reward to pay out.
@@ -300,6 +301,6 @@ public sealed partial class MedicalBountySystem : EntitySystem
             }
         }
 
-        return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.Valid, int.Max(bountyPayout, 0), paidToStation);
+        return new MedicalBountyRedemptionUIState(MedicalBountyRedemptionStatus.Valid, int.Max(bountyPayout, 0));
     }
 }

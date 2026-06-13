@@ -16,12 +16,21 @@
     containers:
       ballistic-ammo: !type:Container
   - type: Sprite
-    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/635x40mm_caseless.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/6.35x40mm_caseless.rsi
   - type: MagazineVisuals
     magState: mag
     steps: 4
     zeroVisible: false
   - type: Appearance
+  - type: EmitSoundOnPickup
+    sound:
+      path: /Audio/_Goobstation/Items/handling/ammobox_pickup.ogg
+  - type: EmitSoundOnDrop
+    sound:
+      path: /Audio/_Goobstation/Items/handling/ammobox_drop.ogg
+  - type: EmitSoundOnLand
+    sound:
+      path: /Audio/_Goobstation/Items/handling/ammobox_drop.ogg
 
 # Boxes
 - type: entity
@@ -56,13 +65,17 @@
 - type: entity
   parent: BaseAmmoBox635x40mmCaseless
   id: AmmoBox635x40mmCaselessBigRubber
-  name: ammunition box (635x40mm Caseless rubber)
+  name: big ammunition box (635x40mm Caseless rubber)
+  suffix: Big
   components:
+  - type: Item
+    shape:
+    - 0,0,1,1
   - type: BallisticAmmoProvider
     capacity: 200
     proto: Cartridge635x40mmCaselessRubber
   - type: Sprite
-    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/635x40mm_caseless.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/6.35x40mm_caseless.rsi
     layers:
     - state: base-b
       map: ["enum.GunVisualLayers.Base"]
@@ -83,7 +96,7 @@
   - type: BallisticAmmoProvider
     proto: Cartridge635x40mmCaselessRubber
   - type: Sprite
-    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/635x40mm_caseless.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/6.35x40mm_caseless.rsi
     layers:
     - state: base
       map: ["enum.GunVisualLayers.Base"]
@@ -94,13 +107,17 @@
 - type: entity
   parent: BaseAmmoBox635x40mmCaseless
   id: AmmoBox635x40mmCaselessBig
-  name: ammunition box (635x40mm Caseless)
+  name: big ammunition box (635x40mm Caseless)
+  suffix: Big
   components:
+  - type: Item
+    shape:
+    - 0,0,1,1
   - type: BallisticAmmoProvider
-    capacity: 200
+    capacity: 240
     proto: Cartridge635x40mmCaseless
   - type: Sprite
-    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/635x40mm_caseless.rsi
+    sprite: _Mono/Objects/Weapons/Guns/Ammunition/Boxes/6.35x40mm_caseless.rsi
     layers:
     - state: base-b
       map: ["enum.GunVisualLayers.Base"]

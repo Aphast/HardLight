@@ -1,3 +1,6 @@
+// Copyright Rane (elijahrane@gmail.com) 2025
+// All rights reserved. Relicensed under AGPL with permission
+
 namespace Content.Server._Mono.FireControl;
 
 [RegisterComponent]
@@ -20,4 +23,10 @@ public sealed partial class FireControlServerComponent : Component
 
     [ViewVariables]
     public int UsedProcessingPower;
+
+    [ViewVariables, DataField]
+    public int MaxConsoles = 1;
+
+    [ViewVariables, DataField]
+    public bool EnforceMaxConsoles;
 }

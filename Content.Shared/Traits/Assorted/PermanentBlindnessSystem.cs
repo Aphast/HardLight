@@ -9,9 +9,10 @@ namespace Content.Shared.Traits.Assorted;
 /// <summary>
 /// This handles permanent blindness, both the examine and the actual effect.
 /// </summary>
-public sealed class PermanentBlindnessSystem : EntitySystem
+public sealed partial class PermanentBlindnessSystem : EntitySystem
 {
-    [Dependency] private readonly BlindableSystem _blinding = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private BlindableSystem _blinding = default!;
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -23,7 +24,7 @@ public sealed class PermanentBlindnessSystem : EntitySystem
 
     private void OnExamined(Entity<PermanentBlindnessComponent> blindness, ref ExaminedEvent args)
     {
-        if (args.IsInDetailsRange && blindness.Comp.Blindness == 0)
+        if (args.IsInDetailsRange && !_net.IsClient && blindness.Comp.Blindness == 0)
         {
             args.PushMarkup(Loc.GetString("permanent-blindness-trait-examined", ("target", Identity.Entity(blindness, EntityManager))));
         }
@@ -44,8 +45,6 @@ public sealed class PermanentBlindnessSystem : EntitySystem
     {
         if(!TryComp<BlindableComponent>(blindness.Owner, out var blindable))
             return;
-
-        blindable.GlassesFixable = blindness.Comp.GlassesFixable; // starlight
 
         if (blindness.Comp.Blindness != 0)
             _blinding.SetMinDamage((blindness.Owner, blindable), blindness.Comp.Blindness);

@@ -15,22 +15,23 @@ using Content.Shared.IdentityManagement;
 using Content.Shared.Security.Components;
 using System.Linq;
 using Content.Shared.Roles.Jobs;
-using Content.Server._NF.SectorServices;
+using Content.Server._NF.SectorServices; // Frontier
 
 namespace Content.Server.CriminalRecords.Systems;
 
 /// <summary>
 /// Handles all UI for criminal records console
 /// </summary>
-public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleSystem
+public sealed partial class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleSystem
 {
-    [Dependency] private readonly AccessReaderSystem _access = default!;
-    [Dependency] private readonly CriminalRecordsSystem _criminalRecords = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly RadioSystem _radio = default!;
-    [Dependency] private readonly StationRecordsSystem _records = default!;
-    [Dependency] private readonly SectorServiceSystem _sectorService = default!;
-    [Dependency] private readonly UserInterfaceSystem _ui = default!;
+    [Dependency] private AccessReaderSystem _access = default!;
+    [Dependency] private CriminalRecordsSystem _criminalRecords = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private RadioSystem _radio = default!;
+    [Dependency] private StationRecordsSystem _records = default!;
+    // [Dependency] private StationSystem _station = default!; // Frontier
+    [Dependency] private UserInterfaceSystem _ui = default!;
+    [Dependency] private SectorServiceSystem _sectorService = default!; // Frontier
 
     public override void Initialize()
     {
@@ -74,20 +75,6 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
         {
             ent.Comp.Filter = new StationRecordsFilter(msg.Type, msg.Value);
             UpdateUserInterface(ent);
-        }
-    }
-
-    public void ClearTransientStateOnGrid(EntityUid gridUid)
-    {
-        var query = EntityManager.EntityQueryEnumerator<CriminalRecordsConsoleComponent, TransformComponent>();
-        while (query.MoveNext(out _, out var console, out var xform))
-        {
-            if (xform.GridUid != gridUid)
-                continue;
-
-            console.ActiveKey = null;
-            console.Filter = null;
-            console.FilterStatus = SecurityStatus.None;
         }
     }
 
@@ -221,7 +208,9 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
     private void UpdateUserInterface(Entity<CriminalRecordsConsoleComponent> ent)
     {
         var (uid, console) = ent;
-        if (!_records.TryGetAuthoritativeRecords(out var owningStation, out var stationRecords)) // HardLight: TryComp<StationRecordsComponent><_records.TryGetAuthoritativeRecords; added out var
+        var owningStation = _sectorService.GetServiceEntity(); // Frontier: _station.GetOwningStation < _sectorService.GetServiceEntity
+
+        if (!TryComp<StationRecordsComponent>(owningStation, out var stationRecords))
         {
             _ui.SetUiState(uid, CriminalRecordsConsoleKey.Key, new CriminalRecordsConsoleState());
             return;
@@ -231,7 +220,7 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
         var listing = _records.BuildListing((owningStation, stationRecords), console.Filter); // Frontier: owningStation.Value<owningStation
 
         // filter the listing by the selected criminal record status
-        // if NONE, dont filter by status, just show all crew
+        //if NONE, dont filter by status, just show all crew
         if (console.FilterStatus != SecurityStatus.None)
         {
             listing = listing
@@ -274,8 +263,15 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
         if (ent.Comp.ActiveKey is not { } id)
             return false;
 
-        if (!_records.TryGetAuthoritativeRecords(out var station, out var stationRecords)) // HardLight
+        // Frontier: sector-wide records
+        // checking the console's station since the user might be off-grid using on-grid console
+        // if (_station.GetOwningStation(ent) is not { } station)
+        //     return false;
+        var station = _sectorService.GetServiceEntity();
+
+        if (!TryComp<StationRecordsComponent>(station, out var stationRecords))
             return false;
+        // End Frontier
 
         key = new StationRecordKey(id, station);
         mob = user;
@@ -302,7 +298,7 @@ public sealed class CriminalRecordsConsoleSystem : SharedCriminalRecordsConsoleS
         if (station.IsValid() && _records.GetRecordByName(station, name) is { } id) // Frontier: "station != null" < station.IsValid(), station.Value < station
         {
             if (_records.TryGetRecord<CriminalRecord>(new StationRecordKey(id, station), // Frontier: station.Value<station
-                out var record) && record != null)
+                    out var record))
             {
                 if (record.Status != SecurityStatus.None)
                 {

@@ -29,7 +29,7 @@ public sealed partial class CCVars
     ///     When to start dropping logs
     /// </summary>
     public static readonly CVarDef<int> AdminLogsDropThreshold =
-        CVarDef.Create("adminlogs.drop_threshold", 10000, CVar.SERVERONLY);
+        CVarDef.Create("adminlogs.drop_threshold", 20000, CVar.SERVERONLY);
 
     /// <summary>
     ///     How many logs to send to the client at once
@@ -39,11 +39,4 @@ public sealed partial class CCVars
 
     public static readonly CVarDef<string> AdminLogsServerName =
         CVarDef.Create("adminlogs.server_name", "unknown", CVar.SERVERONLY);
-
-    /// <summary>
-    /// Any session below this playtime will send an admin alert whenever they cause a LogImpact.High log.
-    /// Set to -1 to disable.
-    /// </summary>
-    public static readonly CVarDef<int> AdminLogsHighLogPlaytime =
-        CVarDef.Create("adminlogs.high_log_playtime", 5, CVar.SERVERONLY);
 }

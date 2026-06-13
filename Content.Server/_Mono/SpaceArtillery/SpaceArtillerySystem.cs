@@ -1,21 +1,22 @@
 using System.Numerics;
+using Content.Server._Mono.AmmoLoader;
 using Content.Server._Mono.FireControl;
-using Content.Server._Mono.NPC.HTN;
+using Content.Server.Power.Components;
 using Content.Shared.DeviceLinking.Events;
 using Content.Server.DeviceLinking.Systems;
-using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Weapons.Ranged.Systems;
+using Content.Shared._Mono.AmmoLoader;
 using Content.Shared._Mono.ShipGuns;
 using Content.Shared._Mono.SpaceArtillery;
 using Content.Shared.Camera;
 using Content.Shared.DeviceLinking;
 using Content.Shared.Examine;
 using Content.Shared.Power;
+using Content.Shared.Power.Components;
 using Content.Shared.Projectiles;
 using Content.Shared.Weapons.Ranged.Events;
 using Robust.Shared.Map;
-using Robust.Shared.Physics.Events;
 using Robust.Shared.Player;
 using SpaceArtilleryComponent = Content.Server._Mono.SpaceArtillery.Components.SpaceArtilleryComponent;
 
@@ -23,12 +24,13 @@ namespace Content.Server._Mono.SpaceArtillery;
 
 public sealed partial class SpaceArtillerySystem : EntitySystem
 {
-    [Dependency] private readonly GunSystem _gun = default!;
-    [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SharedTransformSystem _xform = default!;
-    [Dependency] private readonly SharedCameraRecoilSystem _recoilSystem = default!;
-    [Dependency] private readonly FireControlSystem _fireControl = default!;
-    [Dependency] private readonly ShipAggroSystem _aggro = default!;
+    [Dependency] private GunSystem _gun = default!;
+    [Dependency] private DeviceLinkSystem _deviceLink = default!;
+    [Dependency] private BatterySystem _battery = default!;
+    [Dependency] private SharedTransformSystem _xform = default!;
+    [Dependency] private SharedCameraRecoilSystem _recoilSystem = default!;
+    [Dependency] private FireControlSystem _fireControl = default!;
+    [Dependency] private AmmoLoaderSystem _ammoLoader = default!;
 
     private const float DISTANCE = 100;
     private const float BIG_DAMAGE = 1000;
@@ -45,28 +47,7 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
         SubscribeLocalEvent<SpaceArtilleryComponent, SignalReceivedEvent>(OnSignalReceived);
         SubscribeLocalEvent<SpaceArtilleryComponent, ChargeChangedEvent>(OnBatteryChargeChanged);
         SubscribeLocalEvent<ShipWeaponProjectileComponent, ProjectileHitEvent>(OnProjectileHit);
-        SubscribeLocalEvent<ShipWeaponProjectileComponent, PreventCollideEvent>(OnShipProjectilePreventCollide);
         SubscribeLocalEvent<ShipGunClassComponent, ExaminedEvent>(OnExamined);
-    }
-
-    /// <summary>
-    /// Ship-gun projectiles spawn on the firing ship's grid; without this they can collide with
-    /// the firing ship's own hull on the first physics step.
-    /// </summary>
-    private void OnShipProjectilePreventCollide(EntityUid uid, ShipWeaponProjectileComponent component, ref PreventCollideEvent args)
-    {
-        if (args.Cancelled)
-            return;
-
-        if (!TryComp<ProjectileComponent>(uid, out var projectile) || projectile.Weapon == null)
-            return;
-
-        var weaponGrid = _xform.GetGrid(projectile.Weapon.Value);
-        if (weaponGrid == null)
-            return;
-
-        if (args.OtherEntity == weaponGrid.Value || _xform.GetGrid(args.OtherEntity) == weaponGrid)
-            args.Cancelled = true;
     }
 
 
@@ -74,6 +55,15 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
     {
         if (!TryComp<DeviceLinkSinkComponent>(uid, out var source))
             return;
+
+        if (args.Port == component.SpaceArtilleryLoadPort)
+        {
+            if (TryComp<AmmoLoaderComponent>(args.Trigger, out var loader) && args.Trigger != null)
+            {
+                _ammoLoader.TryTransferAmmoTo(new Entity<AmmoLoaderComponent>(args.Trigger.Value, loader), uid);
+            }
+            return;
+        }
 
         if (args.Port != component.SpaceArtilleryFirePort)
             OnMalfunction(uid, component);
@@ -84,7 +74,7 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
             return;
 
         if (apc is { Powered: true } || battery?.CurrentCharge >= component.PowerUseActive)
-            TryFireArtillery(uid, component);
+            TryFireArtillery(uid, Transform(uid), component);
         else
             OnMalfunction(uid, component);
     }
@@ -116,17 +106,15 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
         }
     }
 
-    private void TryFireArtillery(EntityUid uid, SpaceArtilleryComponent component)
+    private void TryFireArtillery(EntityUid uid, TransformComponent xform, SpaceArtilleryComponent component)
     {
-        var xform = Transform(uid);
-
         if (xform.GridUid == null && !xform.MapUid.HasValue)
         {
             return;
         }
 
         var parentGrid = xform.GridUid;
-        if (!xform.Anchored)
+        if (HasComp<SpaceArtilleryDisabledGridComponent>(parentGrid) || !xform.Anchored)
         {
             return;
         }
@@ -137,26 +125,21 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
             return;
         }
 
-        // Check if ShootCoordinates is already set (e.g., by fire control system)
-        // If not, calculate a default target based on the gun's facing direction
-        EntityCoordinates targetCoordinates;
+        var worldPosX = _xform.GetWorldPosition(uid).X;
+        var worldPosY = _xform.GetWorldPosition(uid).Y;
+        var worldRot = _xform.GetWorldRotation(uid) + Math.PI;
+        var targetSpot = new Vector2(worldPosX - DISTANCE * (float)Math.Sin(worldRot), worldPosY + DISTANCE * (float)Math.Cos(worldRot));
 
-        if (gun.ShootCoordinates != null)
-        {
-            // Use the coordinates provided by the fire control system
-            targetCoordinates = gun.ShootCoordinates.Value;
-        }
-        else
-        {
-            // No fire control - calculate target based on gun's facing direction
-            var localRot = xform.LocalRotation;
-            var localDirection = localRot.ToVec();
-            var localTargetPos = xform.LocalPosition + localDirection * DISTANCE;
-            targetCoordinates = new EntityCoordinates(xform.ParentUid, localTargetPos);
-            gun.ShootCoordinates = targetCoordinates;
-        }
+        // Create coordinates for the target and source positions
+        var sourceCoordinates = xform.Coordinates;
+        var targetCoordinates = new EntityCoordinates(xform.MapUid!.Value, targetSpot);
 
-        // Call AttemptShoot with the target coordinates
+        // We need to set the ShootCoordinates for the gun component
+        // This is important to ensure it uses the proper calculations in SharedGunSystem
+        gun.ShootCoordinates = targetCoordinates;
+
+        // Call AttemptShoot with the correct signature that includes target coordinates
+        // This will eventually call GunSystem.Shoot which correctly handles grid velocity
         _gun.AttemptShoot(uid, gunUid, gun, targetCoordinates);
     }
 
@@ -189,9 +172,6 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
         if (grid == null)
             return;
 
-        // Notify any AI ship core on the hit grid so it can wake up and chase.
-        _aggro.NotifyGridHit(grid.Value);
-
         var players = Filter.Empty();
         players.AddInGrid((EntityUid)grid);
 
@@ -201,8 +181,9 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
                 continue;
 
             var vector = _xform.GetWorldPosition(uid) - _xform.GetWorldPosition(playerEnt);
+            var normalized = float.IsNaN(vector.Normalized().X) ? Vector2.Zero : vector.Normalized();
 
-            _recoilSystem.KickCamera(playerEnt, vector.Normalized() * (float)hitEvent.Damage.GetTotal() / BIG_DAMAGE * BIG_DAMGE_KICK);
+            _recoilSystem.KickCamera(playerEnt, normalized * (float)hitEvent.Damage.GetTotal() / BIG_DAMAGE * BIG_DAMGE_KICK);
         }
     }
 

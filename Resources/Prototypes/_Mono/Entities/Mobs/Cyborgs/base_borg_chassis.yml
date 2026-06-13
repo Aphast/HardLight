@@ -75,20 +75,26 @@
   - type: IntrinsicRadioTransmitter
     channels:
     - Common
-    - Faction
     - Nfsd
     - Traffic
   - type: ActiveRadio
     channels:
     - Common
-    - Faction
     - Nfsd
     - Traffic
-  # VRS: CollectiveMindComponent is a Triad/Starlight feature not present in VRS yet; commented out.
-#   - type: CollectiveMind
-#     channels:
-#     - Binary
-#     defaultChannel: Binary
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - SolCommon
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - SolCommon
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
   - type: ShowSyndicateIcons
   - type: MovementAlwaysTouching
   - type: Speech
@@ -126,20 +132,26 @@
   - type: IntrinsicRadioTransmitter
     channels:
     - Common
-    - Faction
     - Freelance
     - Traffic
   - type: ActiveRadio
     channels:
     - Common
-    - Faction
     - Freelance
     - Traffic
-  # VRS: CollectiveMindComponent is a Triad/Starlight feature not present in VRS yet; commented out.
-#   - type: CollectiveMind
-#     channels:
-#     - Binary
-#     defaultChannel: Binary
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - Freespeak
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - Freespeak
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
   - type: ShowSyndicateIcons
   - type: MovementAlwaysTouching
   - type: Speech

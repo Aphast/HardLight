@@ -19,12 +19,12 @@ namespace Content.Server.Singularity.EntitySystems;
 /// Handles their accumulation of energy upon consuming entities (see <see cref="EventHorizonComponent"/>) and gradual dissipation.
 /// Also handles synchronizing server-side components with the singuarities level.
 /// </summary>
-public sealed class SingularitySystem : SharedSingularitySystem
+public sealed partial class SingularitySystem : SharedSingularitySystem
 {
 #region Dependencies
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly PvsOverrideSystem _pvs = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private PvsOverrideSystem _pvs = default!;
 #endregion Dependencies
 
     /// <summary>
@@ -256,12 +256,7 @@ public sealed class SingularitySystem : SharedSingularitySystem
     public void OnConsumed(EntityUid uid, SinguloFoodComponent comp, ref EventHorizonConsumedEntityEvent args)
     {
         if (EntityManager.TryGetComponent<SingularityComponent>(args.EventHorizonUid, out var singulo))
-        {
-            // Calculate the percentage change (positive or negative)
-            var percentageChange = singulo.Energy * (comp.EnergyFactor - 1f);
-            // Apply both the flat and percentage changes
-            AdjustEnergy(args.EventHorizonUid, comp.Energy + percentageChange, singularity: singulo);
-        }
+            AdjustEnergy(args.EventHorizonUid, comp.Energy, singularity: singulo);
     }
 
     /// <summary>

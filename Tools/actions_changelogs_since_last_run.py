@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-
 """
 Sends updates to a Discord webhook for new changelog entries since the last GitHub Actions publish run.
 
 Automatically figures out the last run and changelog contents with the GitHub API.
 """
+# yes I just stole this from goob.
 
 import itertools
 import os
@@ -15,14 +15,14 @@ import requests
 import yaml
 
 DEBUG = False
-DEBUG_CHANGELOG_FILE_OLD = Path("Resources/Changelog/Old.yml")
+# DEBUG_CHANGELOG_FILE_OLD = Path("Resources/Changelog/Old.yml") # not set up yet
 GITHUB_API_URL = os.environ.get("GITHUB_API_URL", "https://api.github.com")
 
 # https://discord.com/developers/docs/resources/webhook
 DISCORD_SPLIT_LIMIT = 2000
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
-CHANGELOG_FILE = os.environ.get("CHANGELOG_DIR", "Resources/Changelog/Frontier.yml") # HL: Use github vars...
+CHANGELOG_FILE = "Resources/Changelog/Monolith.yml" # Monolith
 
 TYPES_TO_EMOJI = {"Fix": "🐛", "Add": "🆕", "Remove": "❌", "Tweak": "⚒️"}
 
@@ -34,14 +34,14 @@ def main():
         print("No discord webhook URL found, skipping discord send")
         return
 
-    if DEBUG:
+#    if DEBUG:
         # to debug this script locally, you can use
         # a separate local file as the old changelog
-        last_changelog_stream = DEBUG_CHANGELOG_FILE_OLD.read_text()
-    else:
+#        last_changelog_stream = DEBUG_CHANGELOG_FILE_OLD.read_text()
+#    else:
         # when running this normally in a GitHub actions workflow,
         # it will get the old changelog from the GitHub API
-        last_changelog_stream = get_last_changelog()
+    last_changelog_stream = get_last_changelog()
 
     last_changelog = yaml.safe_load(last_changelog_stream)
     with open(CHANGELOG_FILE, "r") as f:

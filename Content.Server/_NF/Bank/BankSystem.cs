@@ -1,4 +1,6 @@
 using System.Threading;
+using Content.Server._Mono.MonoCoins;
+using Content.Server.Database;
 using Content.Server.Preferences.Managers;
 using Content.Server.GameTicking;
 using Content.Shared._NF.Bank;
@@ -7,16 +9,20 @@ using Content.Shared.Preferences;
 using Robust.Shared.Player;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using Content.Shared._Mono.CCVar; // Mono
 using Content.Shared._Mono.Traits.Physical;
 using Content.Shared._NF.Bank.Events;
 using Content.Shared.GameTicking;
+using Robust.Shared.Network;
 
 namespace Content.Server._NF.Bank;
 
 public sealed partial class BankSystem : SharedBankSystem
 {
-    [Dependency] private readonly IServerPreferencesManager _prefsManager = default!;
-    [Dependency] private readonly ISharedPlayerManager _playerManager = default!;
+    [Dependency] private IServerPreferencesManager _prefsManager = default!;
+    [Dependency] private ISharedPlayerManager _playerManager = default!;
+    [Dependency] private IServerDbManager _db = default!;
+    [Dependency] private MonoCoinsManager _coins = default!;
 
     private ISawmill _log = default!;
 
@@ -60,7 +66,7 @@ public sealed partial class BankSystem : SharedBankSystem
     {
         if (amount <= 0)
         {
-            _log.Info($"TryBankWithdraw: {amount} is invalid");
+            _log.Info($"TryBankWithdraw: {amount} is invalid from Uid {mobUid}");
             return false;
         }
 
@@ -111,11 +117,18 @@ public sealed partial class BankSystem : SharedBankSystem
     /// <param name="mobUid">The UID that the bank account is connected to, typically the player controlled mob</param>
     /// <param name="amount">The amount of spesos to remove from the bank account</param>
     /// <returns>true if the transaction was successful, false if it was not</returns>
-    public bool TryBankDeposit(EntityUid mobUid, int amount)
+    public bool TryBankDeposit(EntityUid mobUid, int amount, bool tax = true)
     {
+        // Mono start
+        if (!_cfg.GetCVar(MonoCVars.DepositEnabled))
+        {
+            _log.Info($"TryBankDeposit: DepositEnabled cvar is disabled.");
+            return false;
+        }
+        // Mono end
         if (amount <= 0)
         {
-            _log.Info($"TryBankDeposit: {amount} is invalid");
+            _log.Info($"TryBankDeposit: {amount} is invalid from Uid {mobUid}");
             return false;
         }
 
@@ -143,11 +156,21 @@ public sealed partial class BankSystem : SharedBankSystem
             return false;
         }
 
-        if (TryBankDeposit(session, prefs, profile, amount, out var newBalance))
+        int toSector = amount;
+        int toLongTerm = 0;
+        if (tax)
+        {
+            GetTaxedDepositAmount(amount, bank.Balance, out var afterTax, out var taxedAway);
+            toSector = afterTax;
+            toLongTerm = taxedAway;
+            _ = _coins.AddMonoCoinsAsync(session.UserId, taxedAway);
+        }
+
+        if (TryBankDeposit(session, prefs, profile, toSector, out var newBalance))
         {
             bank.Balance = newBalance.Value;
             Dirty(mobUid, bank);
-            _log.Info($"{mobUid} deposited {amount}");
+            _log.Info($"{mobUid} deposited {amount} (sector: {toSector}, savings: {toLongTerm})");
             return true;
         }
 
@@ -163,25 +186,41 @@ public sealed partial class BankSystem : SharedBankSystem
     /// <param name="profile">The profile of the character whose account is being withdrawn.</param>
     /// <param name="amount">The number of spesos to be withdrawn.</param>
     /// <param name="newBalance">The new value of the bank account.</param>
+    /// <param name="spendLongTerm">Whether to also, and preferentially, spend long-term currency.</param>
     /// <returns>true if the transaction was successful, false if it was not.  When successful, newBalance contains the character's new balance.</returns>
-    public bool TryBankWithdraw(ICommonSession session, PlayerPreferences prefs, HumanoidCharacterProfile profile, int amount, [NotNullWhen(true)] out int? newBalance)
+    public bool TryBankWithdraw(ICommonSession session, PlayerPreferences prefs, HumanoidCharacterProfile profile, int amount, [NotNullWhen(true)] out int? newBalance, bool spendLongTerm = false)
     {
         newBalance = null; // Default return
         if (amount <= 0)
         {
-            _log.Info($"TryBankWithdraw: {amount} is invalid");
+            _log.Info($"TryBankWithdraw: {amount} is invalid. Admin remove money variation.");
             return false;
         }
 
         int balance = profile.BankBalance;
+        long totalBalance = balance;
 
-        if (balance < amount)
+        if (spendLongTerm)
+        {
+            var longTermBank = _coins.GetMonoCoinsBalance(session.UserId);
+            totalBalance += longTermBank ?? 0l;
+        }
+
+        if (totalBalance < amount)
         {
             _log.Info($"TryBankWithdraw: {session.UserId} tried to withdraw {amount}, but has insufficient funds ({balance})");
             return false;
         }
 
-        balance -= amount;
+        int leftoverAmount = amount;
+        if (spendLongTerm)
+        {
+            var longTermBalance = totalBalance - balance;
+            var toSpend = (int)Math.Min(longTermBalance, (long)leftoverAmount);
+            leftoverAmount -= toSpend;
+            _ = _coins.AddMonoCoinsAsync(session.UserId, -toSpend);
+        }
+        balance -= leftoverAmount;
 
         var newProfile = profile.WithBankBalance(balance);
         var index = prefs.IndexOfCharacter(profile);
@@ -212,7 +251,7 @@ public sealed partial class BankSystem : SharedBankSystem
         newBalance = null; // Default return
         if (amount <= 0)
         {
-            _log.Info($"TryBankDeposit: {amount} is invalid");
+            _log.Info($"TryBankDeposit: {amount} is invalid. Admin add money variation.");
             return false;
         }
 
@@ -232,68 +271,94 @@ public sealed partial class BankSystem : SharedBankSystem
     }
 
     /// <summary>
-    /// Forces a withdrawal from a character's bank account, allowing the balance to go negative (into debt).
-    /// This should only be used in special cases where debt is acceptable (e.g., ship loading).
+    /// Attempts to remove money from an offline character's bank account.
+    /// This method works with offline players by directly modifying their preferences and saving to the database.
     /// </summary>
-    /// <param name="mobUid">The UID that the bank account is attached to, typically the player controlled mob</param>
-    /// <param name="amount">The integer amount to decrease the bank account by</param>
+    /// <param name="userId">The NetUserId of the offline player</param>
+    /// <param name="prefs">The player's preferences</param>
+    /// <param name="profile">The character profile to modify</param>
+    /// <param name="amount">The amount to withdraw</param>
     /// <returns>true if the transaction was successful, false if it was not</returns>
-    public bool TryBankWithdrawAllowDebt(EntityUid mobUid, int amount)
+    public async Task<bool> TryBankWithdrawOffline(NetUserId userId, PlayerPreferences prefs, HumanoidCharacterProfile profile, int amount)
     {
         if (amount <= 0)
         {
-            _log.Info($"TryBankWithdrawAllowDebt: {amount} is invalid");
+            _log.Info($"TryBankWithdrawOffline: {amount} is invalid");
             return false;
         }
 
-        if (!TryComp<BankAccountComponent>(mobUid, out var bank))
-        {
-            _log.Info($"TryBankWithdrawAllowDebt: {mobUid} has no bank account");
-            return false;
-        }
-
-        // Mono
-        if (HasComp<IronmanComponent>(mobUid))
-        {
-            _log.Info($"TryBankWithdrawAllowDebt: {mobUid} is blocked from withdrawals (Ironman)");
-            return false;
-        }
-
-        if (!_playerManager.TryGetSessionByEntity(mobUid, out var session))
-        {
-            _log.Info($"TryBankWithdrawAllowDebt: {mobUid} has no attached session");
-            return false;
-        }
-
-        if (!_prefsManager.TryGetCachedPreferences(session.UserId, out var prefs))
-        {
-            _log.Info($"TryBankWithdrawAllowDebt: {mobUid} has no cached prefs");
-            return false;
-        }
-
-        if (prefs.SelectedCharacter is not HumanoidCharacterProfile profile)
-        {
-            _log.Info($"TryBankWithdrawAllowDebt: {mobUid} has the wrong prefs type");
-            return false;
-        }
-
-        // Allow negative balance (debt)
         int balance = profile.BankBalance;
+
+        if (balance < amount)
+        {
+            _log.Info($"TryBankWithdrawOffline: {userId} tried to withdraw {amount}, but has insufficient funds ({balance})");
+            return false;
+        }
+
         balance -= amount;
 
         var newProfile = profile.WithBankBalance(balance);
         var index = prefs.IndexOfCharacter(profile);
         if (index == -1)
         {
-            _log.Info($"TryBankWithdrawAllowDebt: {session.UserId} tried to adjust the balance of {profile.Name}, but they were not in the user's character set.");
+            _log.Info($"TryBankWithdrawOffline: {userId} tried to adjust the balance of {profile.Name}, but they were not in the user's character set.");
             return false;
         }
-        _prefsManager.SetProfile(session.UserId, index, newProfile);
-        bank.Balance = balance;
-        Dirty(mobUid, bank);
-        _log.Info($"{mobUid} withdrew {amount} (allowing debt), new balance: {balance}");
-        // Update any active admin UI with new balance
-        RaiseLocalEvent(new BalanceChangedEvent(session, balance));
+
+        // Update preferences in cache if the player data exists
+        if (_prefsManager.TryGetCachedPreferences(userId, out var cachedPrefs))
+        {
+            _prefsManager.SetProfile(userId, index, newProfile);
+        }
+        else
+        {
+            // If not in cache, save directly to database
+            await _db.SaveCharacterSlotAsync(userId, newProfile, index);
+        }
+
+        _log.Info($"Offline player {userId} withdrew {amount}");
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to add money to an offline character's bank account.
+    /// This method works with offline players by directly modifying their preferences and saving to the database.
+    /// </summary>
+    /// <param name="userId">The NetUserId of the offline player</param>
+    /// <param name="prefs">The player's preferences</param>
+    /// <param name="profile">The character profile to modify</param>
+    /// <param name="amount">The amount to deposit</param>
+    /// <returns>true if the transaction was successful, false if it was not</returns>
+    public async Task<bool> TryBankDepositOffline(NetUserId userId, PlayerPreferences prefs, HumanoidCharacterProfile profile, int amount)
+    {
+        if (amount <= 0)
+        {
+            _log.Info($"TryBankDepositOffline: {amount} is invalid");
+            return false;
+        }
+
+        int newBalance = profile.BankBalance + amount;
+
+        var newProfile = profile.WithBankBalance(newBalance);
+        var index = prefs.IndexOfCharacter(profile);
+        if (index == -1)
+        {
+            _log.Info($"TryBankDepositOffline: {userId} tried to adjust the balance of {profile.Name}, but they were not in the user's character set.");
+            return false;
+        }
+
+        // Update preferences in cache if the player data exists
+        if (_prefsManager.TryGetCachedPreferences(userId, out var cachedPrefs))
+        {
+            _prefsManager.SetProfile(userId, index, newProfile);
+        }
+        else
+        {
+            // If not in cache, save directly to database
+            await _db.SaveCharacterSlotAsync(userId, newProfile, index);
+        }
+
+        _log.Info($"Offline player {userId} deposited {amount}");
         return true;
     }
 
@@ -344,6 +409,7 @@ public sealed partial class BankSystem : SharedBankSystem
             balance = 0;
             return true;
         }
+
         if (!_prefsManager.TryGetCachedPreferences(session.UserId, out var prefs))
         {
             _log.Info($"{session.UserId} has no cached prefs");
@@ -410,18 +476,9 @@ public sealed partial class BankSystem : SharedBankSystem
     /// <summary>
     /// Ensures the bank account listed in the lobby is accurate by ensuring the preferences cache is up-to-date.
     /// </summary>
-    private async void OnPlayerLobbyJoin(PlayerJoinedLobbyEvent args)
+    private void OnPlayerLobbyJoin(PlayerJoinedLobbyEvent args)
     {
-        try
-        {
-            await _prefsManager.RefreshPreferencesAsync(args.PlayerSession, CancellationToken.None);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception e)
-        {
-            _log.Error($"Failed to refresh lobby preferences for {args.PlayerSession}: {e}");
-        }
+        var cts = new CancellationToken();
+        _prefsManager.RefreshPreferencesAsync(args.PlayerSession, cts);
     }
 }

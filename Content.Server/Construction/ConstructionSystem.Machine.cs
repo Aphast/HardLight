@@ -1,7 +1,5 @@
 using System.Linq; // Frontier
-using Content.Server._NF.BindToStation; // Frontier
 using Content.Server.Construction.Components;
-using Content.Shared._NF.BindToStation; // Frontier
 using Content.Shared.Construction.Components;
 using Content.Shared.Construction.Prototypes;
 using Robust.Shared.Containers;
@@ -13,8 +11,7 @@ namespace Content.Server.Construction;
 
 public sealed partial class ConstructionSystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!; // Frontier
-    [Dependency] private readonly BindToStationSystem _bindToStation = default!; // Frontier
+    [Dependency] private IPrototypeManager _prototypeManager = default!; // Frontier
     private void InitializeMachines()
     {
         SubscribeLocalEvent<MachineComponent, ComponentInit>(OnMachineInit);
@@ -25,14 +22,6 @@ public sealed partial class ConstructionSystem
     {
         component.BoardContainer = _container.EnsureContainer<Container>(uid, MachineFrameComponent.BoardContainerName);
         component.PartContainer = _container.EnsureContainer<Container>(uid, MachineFrameComponent.PartContainerName);
-
-        // Frontier - we mirror the bind to grid component from any existing machine board onto the resultant machine to prevent high-grading
-        foreach (var board in component.BoardContainer.ContainedEntities)
-        {
-            if (TryComp<BindToStationComponent>(board, out var binding))
-                _bindToStation.BindToStation(uid, binding.BoundStation, binding.Enabled);
-        }
-        // End Frontier
     }
 
     private void OnMachineMapInit(EntityUid uid, MachineComponent component, MapInitEvent args)
@@ -93,15 +82,22 @@ public sealed partial class ConstructionSystem
         // Frontier: keep separate lists for upgradeable parts
         foreach (var (part, amount) in machineBoard.Requirements)
         {
-            var partProto = _prototypeManager.Index<MachinePartPrototype>(part);
+            // Mono - PartOverrides
+            var partProto = component.PartOverrides.ContainsKey(part)
+                ? component.PartOverrides[part]
+                : _prototypeManager.Index<MachinePartPrototype>(part).StockPartPrototype;
             for (var i = 0; i < amount; i++)
             {
-                var p = EntityManager.SpawnEntity(partProto.StockPartPrototype, xform.Coordinates);
+                var p = EntityManager.SpawnEntity(partProto, xform.Coordinates);
 
                 if (!_container.Insert(p, partContainer))
-                    throw new Exception($"Couldn't insert machine part of type {part} to machine with prototype {partProto.StockPartPrototype.ToString() ?? "N/A"}!");
+                    throw new Exception($"Couldn't insert machine part of type {part} to machine with prototype {partProto.ToString() ?? "N/A"}!");
             }
         }
         // End Frontier: keep separate lists for upgradeable parts
+
+        // Mono
+        if (component.PartOverrides.Count > 0)
+            RefreshParts(uid, component);
     }
 }

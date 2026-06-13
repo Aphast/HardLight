@@ -12,13 +12,13 @@ using Robust.Shared.Random;
 
 namespace Content.Server.Speech.EntitySystems;
 
-public sealed class VocalSystem : EntitySystem
+public sealed partial class VocalSystem : EntitySystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
-    [Dependency] private readonly ActionsSystem _actions = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private ChatSystem _chat = default!;
+    [Dependency] private ActionsSystem _actions = default!;
 
     public override void Initialize()
     {
@@ -64,11 +64,8 @@ public sealed class VocalSystem : EntitySystem
             return;
         }
 
-        if (component.EmoteSounds is not { } sounds)
-            return;
-
         // just play regular sound based on emote proto
-        args.Handled = _chat.TryPlayEmoteSound(uid, _proto.Index(sounds), args.Emote);
+        args.Handled = _chat.TryPlayEmoteSound(uid, component.EmoteSounds, args.Emote);
     }
 
     private void OnScreamAction(EntityUid uid, VocalComponent component, ScreamActionEvent args)
@@ -88,10 +85,7 @@ public sealed class VocalSystem : EntitySystem
             return true;
         }
 
-        if (component.EmoteSounds is not { } sounds)
-            return false;
-
-        return _chat.TryPlayEmoteSound(uid, _proto.Index(sounds), component.ScreamId);
+        return _chat.TryPlayEmoteSound(uid, component.EmoteSounds, component.ScreamId);
     }
 
     private void LoadSounds(EntityUid uid, VocalComponent component, Sex? sex = null)
@@ -103,10 +97,6 @@ public sealed class VocalSystem : EntitySystem
 
         if (!component.Sounds.TryGetValue(sex.Value, out var protoId))
             return;
-
-        if (!_proto.HasIndex(protoId))
-            return;
-
-        component.EmoteSounds = protoId;
+        _proto.TryIndex(protoId, out component.EmoteSounds);
     }
 }

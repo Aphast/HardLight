@@ -1,26 +1,29 @@
-// SPDX-FileCopyrightText: 2025 Avalon
-//
-// SPDX-License-Identifier: MPL-2.0
-
-using Robust.Shared.GameObjects;
-using Robust.Shared.Serialization.Manager.Attributes;
+using Robust.Shared.GameStates;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Weapons.Hitscan.Components;
 
 /// <summary>
-/// Stub component for configuring simple visual effects for hitscans.
-/// Prototype fields accept SpriteSpecifier for muzzle/travel/impact flashes.
+/// Provides basic visuals for hitscan weapons - works with <see cref="HitscanBasicRaycastComponent"/>
 /// </summary>
-[RegisterComponent]
+[RegisterComponent, NetworkedComponent]
 public sealed partial class HitscanBasicVisualsComponent : Component
 {
-    [DataField("muzzleFlash")]
-    public SpriteSpecifier? MuzzleFlash { get; set; }
+    /// <summary>
+    /// The muzzle flash from the hitscan weapon.
+    /// </summary>
+    [DataField]
+    public SpriteSpecifier? MuzzleFlash;
 
-    [DataField("travelFlash")]
-    public SpriteSpecifier? TravelFlash { get; set; }
+    /// <summary>
+    /// The "travel" sprite, this gets repeated until it hits the target.
+    /// </summary>
+    [DataField]
+    public SpriteSpecifier? TravelFlash;
 
-    [DataField("impactFlash")]
-    public SpriteSpecifier? ImpactFlash { get; set; }
+    /// <summary>
+    /// The sprite that gets shown on the impact of the laser.
+    /// </summary>
+    [DataField]
+    public SpriteSpecifier? ImpactFlash;
 }

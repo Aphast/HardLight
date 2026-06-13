@@ -1,29 +1,62 @@
+// HEAVILY EDITED
+// if wizden ever does something to this system we're FUCKED
+// regards.
+
+using System.Xml.Schema;
+using Content.Shared._White;
 using Content.Shared.Buckle;
 using Content.Shared.Buckle.Components;
-using Content.Shared.Climbing.Systems;
-using Content.Shared.Climbing.Components;
 using Content.Shared.Hands.Components;
 using Content.Shared.Movement.Systems;
 using Content.Shared.Physics;
+using Content.Shared.Projectiles;
 using Content.Shared.Rotation;
+using Content.Shared.Weapons.Ranged.Components;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Physics;
+using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
-using System.Linq;
+using Robust.Shared.Random;
+using Robust.Shared.Toolshed.Commands.Values;
 
 namespace Content.Shared.Standing;
 
-public sealed class StandingStateSystem : EntitySystem
+public sealed partial class StandingStateSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _movement = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly ClimbSystem _climb = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private MovementSpeedModifierSystem _movement = default!; // WD EDIT
+    [Dependency] private SharedBuckleSystem _buckle = default!; // WD EDIT
+    [Dependency] private SharedTransformSystem _transform = default!; // Mono
+    [Dependency] private IRobustRandom _random = default!; // Mono
 
     // If StandingCollisionLayer value is ever changed to more than one layer, the logic needs to be edited.
     private const int StandingCollisionLayer = (int) CollisionGroup.MidImpassable;
+
+    public override void Initialize()
+    {
+        base.Initialize();
+        SubscribeLocalEvent<StandingStateComponent, AttemptMobCollideEvent>(OnMobCollide);
+        SubscribeLocalEvent<StandingStateComponent, AttemptMobTargetCollideEvent>(OnMobTargetCollide);
+        SubscribeLocalEvent<StandingStateComponent, PreventCollideEvent>(PreventCollide); // Mono
+    }
+
+    private void OnMobTargetCollide(Entity<StandingStateComponent> ent, ref AttemptMobTargetCollideEvent args)
+    {
+        if (!ent.Comp.Standing)
+        {
+            args.Cancelled = true;
+        }
+    }
+
+    private void OnMobCollide(Entity<StandingStateComponent> ent, ref AttemptMobCollideEvent args)
+    {
+        if (!ent.Comp.Standing)
+        {
+            args.Cancelled = true;
+        }
+    }
 
     public bool IsDown(EntityUid uid, StandingStateComponent? standingState = null)
     {
@@ -33,11 +66,13 @@ public sealed class StandingStateSystem : EntitySystem
         return standingState.CurrentState is StandingState.Lying or StandingState.GettingUp;
     }
 
-    public bool Down(EntityUid uid, bool playSound = true, bool dropHeldItems = true,
+    public bool Down(EntityUid uid,
+        bool playSound = true,
+        bool dropHeldItems = true,
+        bool force = true,
         StandingStateComponent? standingState = null,
         AppearanceComponent? appearance = null,
-        HandsComponent? hands = null,
-        bool setDrawDepth = false)
+        HandsComponent? hands = null)
     {
         // TODO: This should actually log missing comps...
         if (!Resolve(uid, ref standingState, false))
@@ -54,17 +89,19 @@ public sealed class StandingStateSystem : EntitySystem
         // We do this BEFORE downing because something like buckle may be blocking downing but we want to drop hand items anyway
         // and ultimately this is just to avoid boilerplate in Down callers + keep their behavior consistent.
         if (dropHeldItems && hands != null)
-            RaiseLocalEvent(uid, new DropHandItemsEvent(), false);
+        {
+            var ev = new DropHandItemsEvent();
+            RaiseLocalEvent(uid, ref ev, false);
+        }
 
-        // Floof - this is absolutely not necessary
-        // if (TryComp(uid, out BuckleComponent? buckle) && buckle.Buckled)
-        //     return false;
+        if (!force)
+        {
+            var msg = new DownAttemptEvent();
+            RaiseLocalEvent(uid, msg, false);
 
-        var msg = new DownAttemptEvent();
-        RaiseLocalEvent(uid, msg, false);
-
-        if (msg.Cancelled)
-            return false;
+            if (msg.Cancelled)
+                return false;
+        }
 
         standingState.CurrentState = StandingState.Lying;
         Dirty(uid, standingState);
@@ -75,6 +112,7 @@ public sealed class StandingStateSystem : EntitySystem
 
         // Change collision masks to allow going under certain entities like flaps and tables
         if (TryComp(uid, out FixturesComponent? fixtureComponent))
+        {
             foreach (var (key, fixture) in fixtureComponent.Fixtures)
             {
                 if ((fixture.CollisionMask & StandingCollisionLayer) == 0)
@@ -83,19 +121,19 @@ public sealed class StandingStateSystem : EntitySystem
                 standingState.ChangedFixtures.Add(key);
                 _physics.SetCollisionMask(uid, key, fixture, fixture.CollisionMask & ~StandingCollisionLayer, manager: fixtureComponent);
             }
-
+        }
         // check if component was just added or streamed to client
         // if true, no need to play sound - mob was down before player could seen that
         if (standingState.LifeStage <= ComponentLifeStage.Starting)
             return true;
 
         if (playSound)
+        {
             _audio.PlayPredicted(standingState.DownSound, uid, null);
+        }
 
-        _movement.RefreshMovementSpeedModifiers(uid);
-
-        Climb(uid);
-
+        _movement.RefreshMovementSpeedModifiers(uid); // WD EDIT
+        _movement.RefreshWeightlessModifiers(uid); // Mono edit
         return true;
     }
 
@@ -107,31 +145,28 @@ public sealed class StandingStateSystem : EntitySystem
         // TODO: This should actually log missing comps...
         if (!Resolve(uid, ref standingState, false))
             return false;
-
         // Optional component.
         Resolve(uid, ref appearance, false);
 
         if (standingState.CurrentState is StandingState.Standing)
-            // || TryComp(uid, out BuckleComponent? buckle)
-            // && buckle.Buckled && !_buckle.TryUnbuckle(uid, uid, buckleComp: buckle)) // Floof - this is also not necessary
             return true;
+
+        if (TryComp(uid, out BuckleComponent? buckle) && buckle.Buckled && !_buckle.TryUnbuckle(uid, uid, buckleComp: buckle)) // WD EDIT
+            return false;
 
         if (!force)
         {
             var msg = new StandAttemptEvent();
             RaiseLocalEvent(uid, msg, false);
-
             if (msg.Cancelled)
                 return false;
         }
 
         standingState.CurrentState = StandingState.Standing;
-
         Dirty(uid, standingState);
         RaiseLocalEvent(uid, new StoodEvent(), false);
 
         _appearance.SetData(uid, RotationVisuals.RotationState, RotationState.Vertical, appearance);
-
         if (TryComp(uid, out FixturesComponent? fixtureComponent))
         {
             foreach (var key in standingState.ChangedFixtures)
@@ -141,47 +176,79 @@ public sealed class StandingStateSystem : EntitySystem
             }
         }
         standingState.ChangedFixtures.Clear();
-        _movement.RefreshMovementSpeedModifiers(uid);
-
-        Climb(uid);
-
+        _movement.RefreshMovementSpeedModifiers(uid); // WD EDIT
+        _movement.RefreshWeightlessModifiers(uid); // Mono edit
         return true;
     }
 
-    private void Climb(EntityUid uid)
+    /// Mono Method: Crawling causes some projectiles based on rng to miss you.
+    private void PreventCollide(Entity<StandingStateComponent> ent, ref PreventCollideEvent args)
     {
-        _climb.ForciblyStopClimbing(uid);
+        if (args.Cancelled)
+            return;
 
-        var entityDistances = new Dictionary<EntityUid, float>();
+        // ONLY apply collision prevention logic to projectiles
+        // This check must come FIRST to prevent non-projectiles from being affected
+        if (!TryComp<ProjectileComponent>(args.OtherEntity, out var projectile))
+            return;
 
-        foreach (var entity in _lookup.GetEntitiesIntersecting(uid)) // Floof - changed to GetEntitiesIntersecting to avoid climbing through walls
-            if (HasComp<ClimbableComponent>(entity))
-                entityDistances[entity] = (Transform(uid).Coordinates.Position - Transform(entity).Coordinates.Position).LengthSquared();
+        // Check distance between shooter and target, if too close, hit always.
+        if (projectile.Shooter is { } shooter && _transform.InRange(shooter, ent.Owner, ent.Comp.HitRange))
+            return;
 
-        if (entityDistances.Count > 0)
-            _climb.ForciblySetClimbing(uid, entityDistances.OrderBy(e => e.Value).First().Key);
+        if (ent.Comp.CurrentState != StandingState.Standing && _random.Prob(ent.Comp.LyingDodgeChance))
+            args.Cancelled = true;
     }
 }
 
-
-public sealed class DropHandItemsEvent : EventArgs { }
-
-/// <summary>
-///     Subscribe if you can potentially block a down attempt.
-/// </summary>
-public sealed class DownAttemptEvent : CancellableEntityEventArgs { }
+[ByRefEvent]
+public record struct DropHandItemsEvent();
 
 /// <summary>
-///     Subscribe if you can potentially block a stand attempt.
+/// Subscribe if you can potentially block a down attempt.
 /// </summary>
-public sealed class StandAttemptEvent : CancellableEntityEventArgs { }
+public sealed class DownAttemptEvent : CancellableEntityEventArgs
+{
+}
 
 /// <summary>
-///     Raised when an entity becomes standing
+/// Subscribe if you can potentially block a stand attempt.
 /// </summary>
-public sealed class StoodEvent : EntityEventArgs { }
+public sealed class StandAttemptEvent : CancellableEntityEventArgs
+{
+}
 
 /// <summary>
-///     Raised when an entity is not standing
+/// Raised when an entity becomes standing
 /// </summary>
-public sealed class DownedEvent : EntityEventArgs { }
+public sealed class StoodEvent : EntityEventArgs
+{
+}
+
+/// <summary>
+/// Raised when an entity is not standing
+/// </summary>
+public sealed class DownedEvent : EntityEventArgs
+{
+}
+
+/// <summary>
+/// Raised after an entity falls down.
+/// </summary>
+public sealed class FellDownEvent : EntityEventArgs
+{
+    public EntityUid Uid { get; }
+
+    public FellDownEvent(EntityUid uid)
+    {
+        Uid = uid;
+    }
+}
+
+/// <summary>
+/// Raised on the entity being thrown due to the holder falling down.
+/// </summary>
+[ByRefEvent]
+public record struct FellDownThrowAttemptEvent(EntityUid Thrower, bool Cancelled = false);
+
+

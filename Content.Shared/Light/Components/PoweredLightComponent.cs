@@ -4,6 +4,7 @@ using Robust.Shared.Audio;
 using Robust.Shared.Containers;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
 namespace Content.Shared.Light.Components
 {
@@ -48,9 +49,6 @@ namespace Content.Shared.Light.Components
         [AutoNetworkedField]
         public bool CurrentLit;
 
-        [DataField, AutoNetworkedField]
-        public bool IsBlinking;
-
         [DataField, AutoNetworkedField, AutoPausedField]
         public TimeSpan LastThunk;
 
@@ -84,20 +82,22 @@ namespace Content.Shared.Light.Components
         [DataField]
         public TimeSpan UnarmedHitStun = TimeSpan.FromSeconds(5);
 
-        /// <summary>
-        /// HardLight: I assume this was added by Frontier, but I have no evidence other than the fact that it doesn't come from upstream.
-        /// </summary>
-        [DataField]
+        [DataField("lightBreakChance")]
         public float LightBreakChance = 0.1f;
+    }
 
-        // Frontier: shielded lights
+    /// <summary>
+    /// Makes an entity with <see cref="PoweredLightComponent"/> toggle itself on and off.
+    /// </summary>
+    [RegisterComponent, NetworkedComponent, AutoGenerateComponentState, AutoGenerateComponentPause]
+    public sealed partial class BlinkingPoweredLightComponent : Component
+    {
         /// <summary>
-        /// Coefficient multiplied with the solar flare's LightBreakChancePerSecond.
-        /// Higher value means more likely to break, lower value means less likely.
-        /// 0 is totally immune to solar flares.
+        /// The time at which this component will remove itself, stopping the blinking.
+        /// If null then this light will keep blinking forever.
         /// </summary>
-        [DataField]
-        public float SolarFlareShieldingCoefficient = 1.0f;
-        // End Frontier: shielded lights
+        [DataField(customTypeSerializer: typeof(TimeOffsetSerializer))]
+        [AutoNetworkedField, AutoPausedField]
+        public TimeSpan? StopBlinkingTime;
     }
 }

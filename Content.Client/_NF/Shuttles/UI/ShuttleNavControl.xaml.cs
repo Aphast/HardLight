@@ -13,8 +13,10 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Client.Shuttles.UI
 {
-    public partial class ShuttleNavControl
+    public partial class ShuttleNavControl // Mono
     {
+        public InertiaDampeningMode DampeningMode { get; set; }
+
         /// <summary>
         /// Whether the shuttle is currently in FTL. This is used to disable the Park button
         /// while in FTL to prevent parking while traveling.

@@ -9,11 +9,11 @@ namespace Content.Server._Mono.Spawning;
 
 public sealed partial class GridSpawnerSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _proto = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly MapLoaderSystem _loader = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private MapLoaderSystem _loader = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
 
     public override void Initialize()
     {
@@ -25,18 +25,6 @@ public sealed partial class GridSpawnerSystem : EntitySystem
     private void OnInit(Entity<GridSpawnerComponent> ent, ref MapInitEvent args)
     {
         var xform = Transform(ent.Owner);
-
-        // Per-spawner minimum-distance gate: keep hostile worldgen spawners
-        // (e.g. xenoborg drones) out of the inner trade-hub area.
-        if (TryComp<MinSpawnDistanceFromOriginComponent>(ent.Owner, out var minDist))
-        {
-            var pos = _transform.GetWorldPosition(xform);
-            if (pos.LengthSquared() < minDist.Distance * minDist.Distance)
-            {
-                QueueDel(ent.Owner);
-                return;
-            }
-        }
 
         if (_loader.TryLoadGrid(xform.MapID, ent.Comp.Path, out var grid, offset: _transform.GetWorldPosition(xform)))
         {

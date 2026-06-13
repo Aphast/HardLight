@@ -4,7 +4,6 @@ using Content.Server.Body.Systems;
 using Content.Server.Construction;
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
-using Content.Shared._EinsteinEngines.Silicon.Components;
 using Content.Shared.Bed;
 using Content.Shared.Bed.Sleep;
 using Content.Shared.Body.Components;
@@ -16,18 +15,19 @@ using Content.Shared.Mobs.Systems;
 using Content.Shared.Power;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
+using Content.Shared._EinsteinEngines.Silicon.Components;
 
 namespace Content.Server.Bed
 {
-    public sealed class BedSystem : EntitySystem
+    public sealed partial class BedSystem : EntitySystem
     {
-        [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-        [Dependency] private readonly ActionsSystem _actionsSystem = default!;
-        [Dependency] private readonly EmagSystem _emag = default!;
-        [Dependency] private readonly SleepingSystem _sleepingSystem = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-        [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
-        [Dependency] private readonly IGameTiming _timing = default!;
+        [Dependency] private DamageableSystem _damageableSystem = default!;
+        [Dependency] private ActionsSystem _actionsSystem = default!;
+        [Dependency] private EmagSystem _emag = default!;
+        [Dependency] private SleepingSystem _sleepingSystem = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
+        [Dependency] private MobStateSystem _mobStateSystem = default!;
+        [Dependency] private IGameTiming _timing = default!;
 
         public override void Initialize()
         {

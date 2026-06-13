@@ -4,11 +4,9 @@ using Content.Shared.Weapons.Hitscan.Events;
 
 namespace Content.Server._Mono.Gatherable;
 
-// VRS: Ported from Triad_Sector — enables hitscan/laser weapons to gather from asteroids/mineable objects.
-public sealed class GatherableSystemHitscan : EntitySystem
+public sealed partial class GatherableSystemHitscan : EntitySystem
 {
-    [Dependency] private readonly GatherableSystem _gather = default!;
-
+    [Dependency] private GatherableSystem _gather = default!;
     public override void Initialize()
     {
         SubscribeLocalEvent<HitscanGatheringComponent, HitscanDamageDealtEvent>(OnHitscanHit);

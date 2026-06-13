@@ -54,11 +54,6 @@ namespace Content.Server.Voting
         IReadOnlyDictionary<object, int> VotesPerOption { get; }
 
         /// <summary>
-        /// Display text for each vote option, indexed by option ID.
-        /// </summary>
-        IReadOnlyList<string> OptionTexts { get; }
-
-        /// <summary>
         /// Invoked when this vote has successfully finished.
         /// </summary>
         event VoteFinishedEventHandler OnFinished;

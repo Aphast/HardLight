@@ -12,20 +12,18 @@ using Robust.Shared.Collections;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
-using Robust.Shared.Containers; // Far Horizons
 
 namespace Content.Shared.Station;
 
-public abstract class SharedStationSpawningSystem : EntitySystem
+public abstract partial class SharedStationSpawningSystem : EntitySystem
 {
-    [Dependency] protected readonly IPrototypeManager PrototypeManager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] protected readonly InventorySystem InventorySystem = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly SharedStorageSystem _storage = default!;
-    [Dependency] private readonly SharedTransformSystem _xformSystem = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!; // Far Horizons
+    [Dependency] protected IPrototypeManager PrototypeManager = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] protected InventorySystem InventorySystem = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
+    [Dependency] private SharedStorageSystem _storage = default!;
+    [Dependency] private SharedTransformSystem _xformSystem = default!;
 
     private EntityQuery<HandsComponent> _handsQuery;
     private EntityQuery<InventoryComponent> _inventoryQuery;
@@ -114,6 +112,14 @@ public abstract class SharedStationSpawningSystem : EntitySystem
             name = Loc.GetString(_random.Pick(nameData.Values));
         }
 
+        // Frontier: apply name modifiers
+        if (TryComp<NameIdentifierComponent>(entity, out var nameIdentifier))
+        {
+            // Append our name identifier (why have a pseudonym for a role that has a complete name identifier group?)
+            name = $"{name} {nameIdentifier.FullIdentifier}";
+        }
+        // End Frontier
+
         if (!string.IsNullOrEmpty(name))
         {
             _metadata.SetEntityName(entity, name);
@@ -194,27 +200,18 @@ public abstract class SharedStationSpawningSystem : EntitySystem
                 if (entProtos == null || entProtos.Count == 0)
                     continue;
 
-                // Far Horizons start
-                EntityUid? slotEnt = null;
-                StorageComponent? storage = null;
-                BaseContainer? container = null;
-
-                if ((inventoryComp != null &&
-                    InventorySystem.TryGetSlotEntity(entity, slotName, out slotEnt, inventoryComponent: inventoryComp) &&
-                    _storageQuery.TryComp(slotEnt, out storage) ||
-                    _container.TryGetContainer(entity, slotName, out container)))
+                if (inventoryComp != null &&
+                    InventorySystem.TryGetSlotEntity(entity, slotName, out var slotEnt, inventoryComponent: inventoryComp) &&
+                    _storageQuery.TryComp(slotEnt, out var storage))
                 {
+
                     foreach (var entProto in entProtos)
                     {
                         var spawnedEntity = Spawn(entProto, coords);
 
-                        if (container != null)
-                            _container.Insert(spawnedEntity, container);
-                        else
-                            _storage.Insert(slotEnt!.Value, spawnedEntity, out _, storageComp: storage!, playSound: false);
+                        _storage.Insert(slotEnt.Value, spawnedEntity, out _, storageComp: storage, playSound: false);
                     }
                 }
-                // Far Horizons end
             }
         }
 

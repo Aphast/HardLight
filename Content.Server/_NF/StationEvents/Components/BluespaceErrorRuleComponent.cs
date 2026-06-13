@@ -50,6 +50,13 @@ public sealed partial class BluespaceErrorRuleComponent : Component
     public bool DeleteGridsOnEnd = true;
 
     /// <summary>
+    /// Will actively extend the gamerule's duration as long as there's people near or on any of the rule's grids.
+    /// Prevents it being deleted from under you.
+    /// </summary>
+    [DataField]
+    public bool ExtendIfPopulated = true;
+
+    /// <summary>
     /// How much the grid is appraised at upon entering into existence, set after starting the event
     /// </summary>
     public double StartingValue = 0;
@@ -129,15 +136,15 @@ public sealed partial class BluespaceDungeonSpawnGroup : IBluespaceSpawnGroup
     /// <summary>
     /// Minimum distance from the map's origin to
     /// </summary>
-    public float MinimumDistance { get; set; }
+    public float MinimumDistance { get; }
 
-    public float MaximumDistance { get; set; }
-
-    /// <inheritdoc />
-    public List<LocId> NameLoc { get; set; } = new();
+    public float MaximumDistance { get; }
 
     /// <inheritdoc />
-    public ProtoId<LocalizedDatasetPrototype>? NameDataset { get; set; }
+    public List<LocId> NameLoc { get; } = new();
+
+    /// <inheritdoc />
+    public ProtoId<LocalizedDatasetPrototype>? NameDataset { get; }
 
     /// <inheritdoc />
     public BluespaceDatasetNameType NameDatasetType { get; set; } = BluespaceDatasetNameType.FTL;
@@ -167,12 +174,12 @@ public sealed partial class BluespaceGridSpawnGroup : IBluespaceSpawnGroup
     public List<ResPath> Paths = new();
 
     /// <inheritdoc />
-    public float MinimumDistance { get; set; }
+    public float MinimumDistance { get; }
 
     /// <inheritdoc />
-    public float MaximumDistance { get; set; }
-    public List<LocId> NameLoc { get; set; } = new();
-    public ProtoId<LocalizedDatasetPrototype>? NameDataset { get; set; }
+    public float MaximumDistance { get; }
+    public List<LocId> NameLoc { get; } = new();
+    public ProtoId<LocalizedDatasetPrototype>? NameDataset { get; }
 
     /// <inheritdoc />
     public BluespaceDatasetNameType NameDatasetType { get; set; } = BluespaceDatasetNameType.FTL;

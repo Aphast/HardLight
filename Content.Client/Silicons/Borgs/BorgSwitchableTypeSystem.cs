@@ -1,9 +1,9 @@
-﻿using Content.Shared._CD.Silicons.Borgs;
 using Content.Shared.Movement.Components;
 using Content.Shared.Silicons.Borgs;
 using Content.Shared.Silicons.Borgs.Components;
 using Robust.Client.GameObjects;
 using Robust.Client.ResourceManagement;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations;
 
 namespace Content.Client.Silicons.Borgs;
@@ -13,12 +13,13 @@ namespace Content.Client.Silicons.Borgs;
 /// </summary>
 /// <seealso cref="SharedBorgSwitchableTypeSystem"/>
 /// <seealso cref="BorgSwitchableTypeComponent"/>
-public sealed class BorgSwitchableTypeSystem : SharedBorgSwitchableTypeSystem
+public sealed partial class BorgSwitchableTypeSystem : SharedBorgSwitchableTypeSystem
 {
-    [Dependency] private readonly BorgSystem _borgSystem = default!;
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
-    [Dependency] private readonly IResourceCache _resourceCache = default!;
+    [Dependency] private BorgSystem _borgSystem = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IResourceCache _resourceCache = default!;
+    [Dependency] private SpriteSystem _sprite = default!;
 
     public override void Initialize()
     {
@@ -40,22 +41,20 @@ public sealed class BorgSwitchableTypeSystem : SharedBorgSwitchableTypeSystem
 
     protected override void UpdateEntityAppearance(
         Entity<BorgSwitchableTypeComponent> entity,
-        BorgTypePrototype prototype)
+        BorgTypePrototype prototype,
+        BorgSubtypePrototype subtypePrototype)
     {
-        // CD - added checks to stop sprite state errors
-        if (!TryComp<BorgSwitchableSubtypeComponent>(entity, out var subtype) ||
-            subtype.BorgSubtype != null)
-            return;
-
         if (TryComp(entity, out SpriteComponent? sprite))
         {
-            if (_resourceCache.TryGetResource<RSIResource>(
-                    SpriteSpecifierSerializer.TextureRoot / prototype.SpritePath,
-                    out var res))
+            var rsiPath = SpriteSpecifierSerializer.TextureRoot / subtypePrototype.SpritePath;
+            if (_resourceCache.TryGetResource<RSIResource>(rsiPath, out var resource))
             {
-                sprite.BaseRSI = res.RSI;
+                _sprite.LayerSetRsi((entity, sprite), BorgVisualLayers.Body, resource.RSI, prototype.SpriteBodyState);
+                _sprite.LayerSetRsi((entity, sprite), BorgVisualLayers.Light, resource.RSI, prototype.SpriteBodyState);
+                _sprite.LayerSetRsi((entity, sprite), BorgVisualLayers.LightStatus, resource.RSI, prototype.SpriteToggleLightState);
             }
             _sprite.LayerSetRsiState((entity, sprite), BorgVisualLayers.Body, prototype.SpriteBodyState);
+            _sprite.LayerSetRsiState((entity, sprite), BorgVisualLayers.LightStatus, prototype.SpriteBodyState);
             _sprite.LayerSetRsiState((entity, sprite), BorgVisualLayers.LightStatus, prototype.SpriteToggleLightState);
         }
 
@@ -92,6 +91,6 @@ public sealed class BorgSwitchableTypeSystem : SharedBorgSwitchableTypeSystem
             RemComp<SpriteMovementComponent>(entity);
         }
 
-        base.UpdateEntityAppearance(entity, prototype);
+        base.UpdateEntityAppearance(entity, prototype, subtypePrototype);
     }
 }

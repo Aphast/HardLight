@@ -3,7 +3,7 @@ using Robust.Shared.Prototypes;
 namespace Content.Shared._Mono.Grid;
 
 /// <summary>
-/// This prototype stores all grid modifiers to process them.
+/// This prototypes stores all grid modifiers to process them.
 /// </summary>
 [Prototype("gridModifier")]
 public sealed partial class GridModificationPrototype : IPrototype

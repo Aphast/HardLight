@@ -38,13 +38,6 @@ namespace Content.Shared.Chat
         public string? AudioPath;
         public float AudioVolume;
 
-        /// <summary>
-        /// For <see cref="ChatChannel.Radio"/> messages: the prototype ID of the radio channel (e.g. "Common", "Security").
-        /// Null for announcements or other radio messages that are not tied to a specific channel.
-        /// Used by the client to filter radio channels independently.
-        /// </summary>
-        public string? RadioChannelId;
-
         [NonSerialized]
         public bool Read;
 

@@ -10,11 +10,11 @@ using Robust.Shared.Random;
 namespace Content.Server.Spawners.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class ConditionalSpawnerSystem : EntitySystem
+    public sealed partial class ConditionalSpawnerSystem : EntitySystem
     {
-        [Dependency] private readonly IRobustRandom _robustRandom = default!;
-        [Dependency] private readonly GameTicker _ticker = default!;
-        [Dependency] private readonly EntityTableSystem _entityTable = default!;
+        [Dependency] private IRobustRandom _robustRandom = default!;
+        [Dependency] private GameTicker _ticker = default!;
+        [Dependency] private EntityTableSystem _entityTable = default!;
 
         public override void Initialize()
         {
@@ -135,7 +135,7 @@ namespace Content.Server.Spawners.EntitySystems
                 var yOffset = _robustRandom.NextFloat(-ent.Comp.Offset, ent.Comp.Offset);
                 var trueCoords = coords.Offset(new Vector2(xOffset, yOffset));
 
-                SpawnAtPosition(proto, trueCoords);
+                Spawn(proto, trueCoords);
             }
         }
     }

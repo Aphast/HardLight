@@ -2,34 +2,13 @@
 
 - type: entity
   id: BallisticArtilleryBase
-  parent: ConstructibleMachine #HL
   abstract: true
   placement:
     mode: SnapgridCenter
   components:
-  - type: CombatMode
-  - type: Speech
-    speechSounds: Borg
   - type: Damageable
     damageContainer: StructuralInorganic
-    damageModifierSet: StructuralMetallic
-  - type: Destructible
-    thresholds:
-    - trigger:
-        !type:DamageTrigger
-        damage: 4000
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-    - trigger:
-        !type:DamageTrigger
-        damage: 2000
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-      - !type:PlaySoundBehavior
-        sound:
-          collection: MetalBreak
+    damageModifierSet: WallDefense2
   - type: Clickable
   - type: InteractionOutline
   - type: Physics
@@ -42,18 +21,20 @@
           bounds: "-0.25,-0.25,0.25,0.25"
         density: 800
         mask:
-        - FullTileMask
+        - MachineMask
         layer:
-        - WallLayer
+        - MachineLayer
+  - type: Climbable
   - type: Transform
     anchored: true
   - type: Rotatable
     rotateWhilePulling: false
     rotateWhileAnchored: false
-    increment: 45
+    increment: 90
   - type: DeviceLinkSink
     ports:
     - SpaceArtilleryFire
+    - SpaceArtilleryLoad
   - type: SpaceArtillery
   - type: DeviceNetwork
     deviceNetId: Wireless
@@ -69,7 +50,12 @@
     visibleFromOtherGrids: true
     radarColor: "#9999FF"
     scale: 1
-    shape: square
+    gridConfig:
+      color: "#9999FF"
+      shape: Square
+      respectZoom: true
+      rotate: true
+      bounds: "-1,-1,1,1"
   - type: ShipGunType
     shipType: Kinetic
   - type: ShipGunClass
@@ -77,10 +63,15 @@
   - type: LightningTarget
     priority: 1
   - type: ThermalSignature # at least most have a thermal signature when firing
-  - type: Climbable # VRS (Triad #3387)
-  - type: ExaminableDamage # VRS (Triad #3387)
+  - type: Gun
+    selectedMode: FullAuto
+    availableModes:
+    - FullAuto
+  - type: ExaminableDamage
     messages: WindowMessages
-  - type: Repairable # VRS (Triad #3387)
+  - type: Repairable
+    qualities:
+    - Applicating
 
 - type: entity
   id: BallisticArtilleryUnanchorable
@@ -102,7 +93,6 @@
 
 - type: entity
   id: BallisticArtilleryBaseCartridge
-  parent: ConstructibleMachine #HL
   abstract: true
   placement:
     mode: SnapgridCenter
@@ -110,23 +100,6 @@
   - type: Damageable
     damageContainer: StructuralInorganic
     damageModifierSet: StructuralMetallic
-  - type: Destructible
-    thresholds:
-    - trigger:
-        !type:DamageTrigger
-        damage: 4000
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-    - trigger:
-        !type:DamageTrigger
-        damage: 2000
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-      - !type:PlaySoundBehavior
-        sound:
-          collection: MetalBreak
   - type: Clickable
   - type: InteractionOutline
   - type: Physics
@@ -142,11 +115,13 @@
         - MachineMask
         layer:
         - MachineLayer
+  - type: Climbable
   - type: Transform
     anchored: true
   - type: DeviceLinkSink
     ports:
     - SpaceArtilleryFire
+    - SpaceArtilleryLoad
   - type: SpaceArtillery
   - type: DeviceNetwork
     deviceNetId: Wireless
@@ -156,12 +131,20 @@
       ballistic-ammo: !type:Container
   - type: FireControllable
   - type: RadarBlip
-    visibleFromOtherGrids: true
+    visibleFromOtherGrids: false
     radarColor: "#9999FF"
     scale: 1
-    shape: square
+    gridConfig:
+      color: "#9999FF"
+      shape: Square
+      respectZoom: true
+      rotate: true
+      bounds: "-1,-1,1,1"
   - type: Gun
     fireRate: 3
+    selectedMode: FullAuto
+    availableModes:
+    - FullAuto
     soundGunshot:
       path: /Audio/Weapons/Guns/Gunshots/rocket_launcher.ogg
     soundEmpty:
@@ -177,10 +160,11 @@
     capacity: 2
     soundInsert:
       path: /Audio/Weapons/Guns/MagIn/batrifle_magin.ogg
-  - type: Climbable # VRS (Triad #3387)
-  - type: ExaminableDamage # VRS (Triad #3387)
+  - type: ExaminableDamage
     messages: WindowMessages
-  - type: Repairable # VRS (Triad #3387)
+  - type: Repairable
+    qualities:
+    - Applicating
 
 - type: entity
   id: BallisticArtilleryCartridge
@@ -189,6 +173,10 @@
   components:
   - type: Anchorable
     delay: 10
+  - type: Rotatable
+    rotateWhilePulling: false
+    rotateWhileAnchored: false
+    increment: 90
   - type: Pullable
   - type: PirateBountyItem # not putting this on the other, because like. how do you get a cyrexa for your bounty. thats stupid.
     id: ShipWeapon
@@ -202,7 +190,6 @@
 
 - type: entity
   id: BallisticArtilleryBaseMagazine
-  parent: ConstructibleMachine #HL
   abstract: true
   placement:
     mode: SnapgridCenter
@@ -211,22 +198,6 @@
     damageContainer: StructuralInorganic
     damageModifierSet: StructuralMetallic
   - type: Destructible
-    thresholds:
-    - trigger:
-        !type:DamageTrigger
-        damage: 4000
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-    - trigger:
-        !type:DamageTrigger
-        damage: 2000
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-      - !type:PlaySoundBehavior
-        sound:
-          collection: MetalBreak
   - type: Clickable
   - type: InteractionOutline
   - type: Physics
@@ -242,11 +213,13 @@
         - MachineMask
         layer:
         - MachineLayer
+  - type: Climbable
   - type: Transform
     anchored: true
   - type: DeviceLinkSink
     ports:
     - SpaceArtilleryFire
+    - SpaceArtilleryLoad
   - type: SpaceArtillery
   - type: DeviceNetwork
     deviceNetId: Wireless
@@ -256,12 +229,20 @@
       gun_magazine: !type:ContainerSlot
   - type: FireControllable
   - type: RadarBlip
-    visibleFromOtherGrids: true
+    visibleFromOtherGrids: false
     radarColor: "#9999FF"
     scale: 1
-    shape: square
+    gridConfig:
+      color: "#9999FF"
+      shape: Square
+      respectZoom: true
+      rotate: true
+      bounds: "-1,-1,1,1"
   - type: Gun
     fireRate: 3
+    selectedMode: FullAuto
+    availableModes:
+    - FullAuto
     soundGunshot:
       path: /Audio/Weapons/Guns/Gunshots/rocket_launcher.ogg
     soundEmpty:
@@ -284,10 +265,11 @@
           params:
             pitch: 2
         ejectSound: /Audio/Weapons/Guns/MagOut/smg_magout.ogg
-  - type: Climbable # VRS (Triad #3387)
-  - type: ExaminableDamage # VRS (Triad #3387)
+  - type: ExaminableDamage
     messages: WindowMessages
-  - type: Repairable # VRS (Triad #3387)
+  - type: Repairable
+    qualities:
+    - Applicating
 
 - type: entity
   id: BallisticArtilleryMagazine
@@ -296,6 +278,10 @@
   components:
   - type: Anchorable
     delay: 10
+  - type: Rotatable
+    rotateWhilePulling: false
+    rotateWhileAnchored: false
+    increment: 90
   - type: Pullable
   - type: PirateBountyItem # not putting this on the other, because like. how do you get a cyrexa for your bounty. thats stupid.
     id: ShipWeapon
@@ -306,3 +292,129 @@
   abstract: true
   components:
   - type: RequiresGrid
+
+# Durabilities - You can vary from this, this is just the main standard. Size of the gun is often used when deciding durability. More size, more likely to get hit.
+
+- type: entity
+  id: BallisticArtilleryTier1HP # Basic weapons, e.g PD. Reinforced wall level.
+  suffix: T1
+  abstract: true
+  components:
+  - type: Damageable
+    damageContainer: StructuralInorganic
+    damageModifierSet: WallDefense1
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 4000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+    - trigger:
+        !type:DamageTrigger
+        damage: 3500
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+
+- type: entity
+  id: BallisticArtilleryTier2HP # Normal weapons, slightly stronger than plastitanium. This is the baseline durability for your average sized anchorable weapon.
+  abstract: true
+  suffix: T2
+  components:
+  - type: Damageable
+    damageContainer: StructuralInorganic
+    damageModifierSet: WallDefense2
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 5000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+
+- type: entity
+  id: BallisticArtilleryTier3HP # Medium weapons. Reinforced plastitanium level. Typical for medium-class weapons. In-between heavy artillery and standard anchorables.
+  abstract: true
+  suffix: T3
+  components:
+  - type: Damageable
+    damageContainer: StructuralInorganic
+    damageModifierSet: WallDefense2
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 10000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+    - trigger:
+        !type:DamageTrigger
+        damage: 7500
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+
+- type: entity
+  id: BallisticArtilleryTier4HP # Capital Weapons. Cyrexas, main cannons. Anything really big.
+  abstract: true
+  suffix: T4
+  components:
+  - type: Damageable
+    damageContainer: StructuralInorganic
+    damageModifierSet: WallDefense3
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 15000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+    - trigger:
+        !type:DamageTrigger
+        damage: 10000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+
+- type: entity
+  id: BallisticArtilleryTier5HP # Supercapital class armament, station outpost weaponry and capital pre-fracture weaponry, around 4x Reinforced Plastitanium Health.
+  abstract: true
+  suffix: T5
+  components:
+  - type: Damageable
+    damageContainer: StructuralInorganic
+    damageModifierSet: WallDefense3
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 20000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+    - trigger:
+        !type:DamageTrigger
+        damage: 15000
+      behaviors:
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak

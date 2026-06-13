@@ -7,7 +7,6 @@ using Content.Shared.FixedPoint;
 using Content.Shared.Verbs;
 using JetBrains.Annotations;
 using Robust.Shared.Containers;
-using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 using System.Diagnostics.CodeAnalysis;
@@ -61,15 +60,14 @@ public partial record struct SolutionAccessAttemptEvent(string SolutionName)
 [UsedImplicitly]
 public abstract partial class SharedSolutionContainerSystem : EntitySystem
 {
-    private static readonly ProtoId<MixingCategoryPrototype> ElectrolysisCategory = "Electrolysis"; // HardLight
-    [Dependency] protected readonly IPrototypeManager PrototypeManager = default!;
-    [Dependency] protected readonly ChemicalReactionSystem ChemicalReactionSystem = default!;
-    [Dependency] protected readonly ExamineSystemShared ExamineSystem = default!;
-    [Dependency] protected readonly SharedAppearanceSystem AppearanceSystem = default!;
-    [Dependency] protected readonly SharedHandsSystem Hands = default!;
-    [Dependency] protected readonly SharedContainerSystem ContainerSystem = default!;
-    [Dependency] protected readonly MetaDataSystem MetaDataSys = default!;
-    [Dependency] protected readonly INetManager NetManager = default!;
+    [Dependency] protected IPrototypeManager PrototypeManager = default!;
+    [Dependency] protected ChemicalReactionSystem ChemicalReactionSystem = default!;
+    [Dependency] protected ExamineSystemShared ExamineSystem = default!;
+    [Dependency] protected SharedAppearanceSystem AppearanceSystem = default!;
+    [Dependency] protected SharedHandsSystem Hands = default!;
+    [Dependency] protected SharedContainerSystem ContainerSystem = default!;
+    [Dependency] protected MetaDataSystem MetaDataSys = default!;
+    [Dependency] protected INetManager NetManager = default!;
 
     public override void Initialize()
     {
@@ -81,20 +79,14 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         SubscribeLocalEvent<SolutionComponent, ComponentStartup>(OnSolutionStartup);
         SubscribeLocalEvent<SolutionComponent, ComponentShutdown>(OnSolutionShutdown);
         SubscribeLocalEvent<SolutionContainerManagerComponent, ComponentInit>(OnContainerManagerInit);
-        SubscribeLocalEvent<SolutionContainerManagerComponent, ComponentStartup>(OnContainerManagerStartup); // HardLight
         SubscribeLocalEvent<ExaminableSolutionComponent, ExaminedEvent>(OnExamineSolution);
         SubscribeLocalEvent<ExaminableSolutionComponent, GetVerbsEvent<ExamineVerb>>(OnSolutionExaminableVerb);
         SubscribeLocalEvent<SolutionContainerManagerComponent, MapInitEvent>(OnMapInit);
-
-        // Manual networking for ContainedSolutionComponent: see component for rationale.
-        SubscribeLocalEvent<ContainedSolutionComponent, ComponentGetState>(OnContainedSolutionGetState);
-        SubscribeLocalEvent<ContainedSolutionComponent, ComponentHandleState>(OnContainedSolutionHandleState);
 
         if (NetManager.IsServer)
         {
             SubscribeLocalEvent<SolutionContainerManagerComponent, ComponentShutdown>(OnContainerManagerShutdown);
             SubscribeLocalEvent<ContainedSolutionComponent, ComponentShutdown>(OnContainedSolutionShutdown);
-            SubscribeLocalEvent<ContainedSolutionComponent, ComponentStartup>(OnContainedSolutionStartup);
         }
     }
 
@@ -315,8 +307,7 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         var solution = comp.Solution;
 
         // Process reactions
-        var canProcessReactions = solution.CanReact || mixerComponent?.ReactionTypes.Contains(ElectrolysisCategory) == true; // HardLight: Electrolysis can always process reactions
-        if (needsReactionsProcessing && canProcessReactions) // HardLight: solution.CanReact<canProcessReactions
+        if (needsReactionsProcessing && solution.CanReact)
             ChemicalReactionSystem.FullyReactSolution(soln, mixerComponent);
 
         var overflow = solution.Volume - solution.MaxVolume;
@@ -548,24 +539,6 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         return true;
     }
 
-    public FixedPoint2 RemoveReagentAndReturn(Entity<SolutionComponent> soln, ReagentQuantity reagentQuantity) // Hardlight: This is technically the "newer" version of the API but updating the old one would break Fucking Everything so we just add this lmao
-    {
-        var (uid, comp) = soln;
-        var solution = comp.Solution;
-
-        var quant = solution.RemoveReagent(reagentQuantity);
-        if (quant <= FixedPoint2.Zero)
-            return FixedPoint2.Zero;
-
-        UpdateChemicals(soln);
-        return quant;
-    }
-
-    public FixedPoint2 RemoveReagentAndReturn(Entity<SolutionComponent> soln, ReagentId reagentId, FixedPoint2 quantity)
-    {
-        return RemoveReagentAndReturn(soln, new ReagentQuantity(reagentId, quantity)); // HL: As above
-    }
-
     /// <summary>
     ///     Removes reagent from a container.
     /// </summary>
@@ -711,6 +684,15 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         overflowingSolution = solution.SplitSolution(FixedPoint2.Max(FixedPoint2.Zero, solution.Volume - overflowThreshold));
         UpdateChemicals(soln);
         return true;
+    }
+
+    public void BurnFlammableReagents(Entity<SolutionComponent> soln, float fraction)
+    {
+        var (uid, comp) = soln;
+        var solution = comp.Solution;
+
+        solution.BurnFlammableReagents(fraction, PrototypeManager);
+        UpdateChemicals(soln);
     }
 
     /// <summary>
@@ -1012,32 +994,6 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
     private void OnMapInit(Entity<SolutionContainerManagerComponent> entity, ref MapInitEvent args)
     {
         EnsureAllSolutions(entity);
-
-        RefreshContainerSolutionAppearance(entity); // HardLight
-    }
-
-    private void OnContainerManagerStartup(Entity<SolutionContainerManagerComponent> entity, ref ComponentStartup args) // HardLight
-    {
-        EnsureAllSolutions(entity);
-        RefreshContainerSolutionAppearance(entity);
-    }
-
-    // HardLight: Update appearance for all contained solutions on startup.
-    private void RefreshContainerSolutionAppearance(Entity<SolutionContainerManagerComponent> entity)
-    {
-        if (!TryComp<AppearanceComponent>(entity, out var appearance))
-            return;
-
-        foreach (var name in entity.Comp.Containers)
-        {
-            if (!TryGetSolution((entity.Owner, (SolutionContainerManagerComponent?) entity.Comp), name, out Entity<SolutionComponent>? soln))
-                continue;
-
-            if (!TryComp<ContainedSolutionComponent>(soln.Value, out var contained))
-                continue;
-
-            UpdateAppearance((entity.Owner, appearance), (soln.Value.Owner, soln.Value.Comp, contained));
-        }
     }
 
     private void OnContainerManagerShutdown(Entity<SolutionContainerManagerComponent> entity, ref ComponentShutdown args)
@@ -1050,20 +1006,6 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         entity.Comp.Containers.Clear();
     }
 
-    private void OnContainedSolutionStartup(Entity<ContainedSolutionComponent> entity, ref ComponentStartup args)
-    {
-        var parent = Transform(entity).ParentUid;
-
-        if (!parent.IsValid())
-            return;
-
-        if (entity.Comp.Container == parent)
-            return;
-
-        entity.Comp.Container = parent;
-        Dirty(entity);
-    }
-
     private void OnContainedSolutionShutdown(Entity<ContainedSolutionComponent> entity, ref ComponentShutdown args)
     {
         if (TryComp(entity.Comp.Container, out SolutionContainerManagerComponent? container))
@@ -1074,29 +1016,6 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
 
         if (ContainerSystem.TryGetContainer(entity, $"solution@{entity.Comp.ContainerName}", out var solutionContainer))
             ContainerSystem.ShutdownContainer(solutionContainer);
-    }
-
-    private void OnContainedSolutionGetState(Entity<ContainedSolutionComponent> entity, ref ComponentGetState args)
-    {
-        // Use TryGetNetEntity so a stale Container reference (e.g. after the parent
-        // entity was deleted but this solution entity has not been cleaned up yet)
-        // does not log a stack trace from MetaQuery.Resolve every tick per player.
-        TryGetNetEntity(entity.Comp.Container, out var netContainer);
-
-        args.State = new ContainedSolutionComponentState
-        {
-            Container = netContainer ?? NetEntity.Invalid,
-            ContainerName = entity.Comp.ContainerName,
-        };
-    }
-
-    private void OnContainedSolutionHandleState(Entity<ContainedSolutionComponent> entity, ref ComponentHandleState args)
-    {
-        if (args.Current is not ContainedSolutionComponentState state)
-            return;
-
-        entity.Comp.Container = EnsureEntity<ContainedSolutionComponent>(state.Container, entity);
-        entity.Comp.ContainerName = state.ContainerName;
     }
 
     #endregion Event Handlers
@@ -1215,24 +1134,8 @@ public abstract partial class SharedSolutionContainerSystem : EntitySystem
         else
         {
             solutionComp = Comp<SolutionComponent>(solutionId);
-
-            if (!TryComp(solutionId, out ContainedSolutionComponent? relation))
-            {
-                relation = AddComp<ContainedSolutionComponent>(solutionId);
-                relation.ContainerName = name;
-            }
-
-            // Map-saved solution entities can still have stale runtime relation data here because
-            // the manager startup may run before the contained solution startup rebinds the parent.
-            if (relation.Container != uid || relation.ContainerName != name)
-            {
-                relation.Container = uid;
-                relation.ContainerName = name;
-                Dirty(solutionId, relation);
-            }
-
-            if (solutionComp.Solution.Name != name)
-                solutionComp.Solution.Name = name;
+            DebugTools.Assert(TryComp(solutionId, out ContainedSolutionComponent? relation) && relation.Container == uid && relation.ContainerName == name);
+            DebugTools.Assert(solutionComp.Solution.Name == name);
 
             var solution = solutionComp.Solution;
             solution.MaxVolume = FixedPoint2.Max(solution.MaxVolume, maxVol);

@@ -20,15 +20,14 @@ using static Robust.Shared.Input.Binding.PointerInputCmdHandler;
 namespace Content.Client.Tabletop
 {
     [UsedImplicitly]
-    public sealed class TabletopSystem : SharedTabletopSystem
+    public sealed partial class TabletopSystem : SharedTabletopSystem
     {
-        [Dependency] private readonly IInputManager _inputManager = default!;
-        [Dependency] private readonly IUserInterfaceManager _uiManger = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly AppearanceSystem _appearance = default!;
-        [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-        [Dependency] private readonly SpriteSystem _sprite = default!;
+        [Dependency] private IInputManager _inputManager = default!;
+        [Dependency] private IUserInterfaceManager _uiManger = default!;
+        [Dependency] private IPlayerManager _playerManager = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private AppearanceSystem _appearance = default!;
+        [Dependency] private SharedTransformSystem _transformSystem = default!;
 
         // Time in seconds to wait until sending the location of a dragged entity to the server again
         private const float Delay = 1f / 10; // 10 Hz
@@ -225,12 +224,12 @@ namespace Content.Client.Tabletop
             //  the appearance handle the rest
             if (_appearance.TryGetData<Vector2>(uid, TabletopItemVisuals.Scale, out var scale, args.Component))
             {
-                _sprite.SetScale((uid, args.Sprite), scale);
+                args.Sprite.Scale = scale;
             }
 
             if (_appearance.TryGetData<int>(uid, TabletopItemVisuals.DrawDepth, out var drawDepth, args.Component))
             {
-                _sprite.SetDrawDepth((uid, args.Sprite), drawDepth);
+                args.Sprite.DrawDepth = drawDepth;
             }
         }
 
@@ -282,7 +281,7 @@ namespace Content.Client.Tabletop
             if (eye == null)
                 return MapCoordinates.Nullspace;
 
-            var size = (Vector2)viewport.ViewportSize / EyeManager.PixelsPerMeter; // Convert to tiles instead of pixels
+            var size = (Vector2) viewport.ViewportSize / EyeManager.PixelsPerMeter; // Convert to tiles instead of pixels
             var eyePosition = eye.Position.Position;
             var eyeRotation = eye.Rotation;
             var eyeScale = eye.Scale;

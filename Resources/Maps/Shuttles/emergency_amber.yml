@@ -19,6 +19,7 @@ entities:
     - type: MetaData
       name: NT Evac Brick
     - type: Transform
+      parent: invalid
     - type: MapGrid
       chunks:
         0,0:
@@ -54,8 +55,6 @@ entities:
     - type: OccluderTree
     - type: SpreaderGrid
     - type: Shuttle
-    - type: WorldLoader
-      disabled: False
     - type: GridPathfinding
     - type: Gravity
       gravityShakeSound: !type:SoundPathSpecifier
@@ -3208,7 +3207,7 @@ entities:
     - type: Transform
       pos: -3.584198,-9.54459
       parent: 1
-- proto: HolopadColCommEvacShuttle
+- proto: HolopadCentCommEvacShuttle
   entities:
   - uid: 438
     components:

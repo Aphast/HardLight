@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Threading;
 using Content.Server.Administration.Logs;
+using Content.Server.Construction;
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Projectiles;
@@ -25,28 +26,24 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
 using Timer = Robust.Shared.Timing.Timer;
-using Content.Server.Construction; // Frontier
 
 namespace Content.Server.Singularity.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class EmitterSystem : SharedEmitterSystem
+    public sealed partial class EmitterSystem : SharedEmitterSystem
     {
-        private static readonly TimeSpan MinimumEmitterDelay = TimeSpan.FromMilliseconds(50);
-
-        [Dependency] private readonly IRobustRandom _random = default!;
-        [Dependency] private readonly IPrototypeManager _prototype = default!;
-        [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-        [Dependency] private readonly SharedPopupSystem _popup = default!;
-        [Dependency] private readonly ProjectileSystem _projectile = default!;
-        [Dependency] private readonly GunSystem _gun = default!;
+        [Dependency] private IRobustRandom _random = default!;
+        [Dependency] private IPrototypeManager _prototype = default!;
+        [Dependency] private IAdminLogManager _adminLogger = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
+        [Dependency] private SharedPopupSystem _popup = default!;
+        [Dependency] private ProjectileSystem _projectile = default!;
+        [Dependency] private GunSystem _gun = default!;
 
         public override void Initialize()
         {
             base.Initialize();
 
-            SubscribeLocalEvent<EmitterComponent, ComponentStartup>(OnStartup); // HardLight
             SubscribeLocalEvent<EmitterComponent, PowerConsumerReceivedChanged>(ReceivedChanged);
             SubscribeLocalEvent<EmitterComponent, PowerChangedEvent>(OnApcChanged);
             SubscribeLocalEvent<EmitterComponent, ActivateInWorldEvent>(OnActivate);
@@ -56,26 +53,6 @@ namespace Content.Server.Singularity.EntitySystems
             SubscribeLocalEvent<EmitterComponent, UpgradeExamineEvent>(OnUpgradeExamine);
             SubscribeLocalEvent<EmitterComponent, AnchorStateChangedEvent>(OnAnchorStateChanged);
             SubscribeLocalEvent<EmitterComponent, SignalReceivedEvent>(OnSignalReceived);
-        }
-
-        // HardLight: Ship load can restore stale runtime power values while the emitter itself starts in an off state.
-        // Normalize runtime state so the first toggle always performs a real power transition.
-        private void OnStartup(EntityUid uid, EmitterComponent component, ComponentStartup args)
-        {
-            component.TimerCancel?.Cancel();
-            component.TimerCancel = null;
-            component.IsPowered = false;
-
-            if (TryComp<PowerConsumerComponent>(uid, out var powerConsumer))
-                powerConsumer.DrawRate = component.IsOn ? component.PowerUseActive : 1;
-
-            if (TryComp<ApcPowerReceiverComponent>(uid, out var apcReceiver))
-                apcReceiver.Load = component.IsOn ? component.PowerUseActive : 1;
-
-            if (component.IsOn && TryComp<ApcPowerReceiverComponent>(uid, out apcReceiver) && apcReceiver.Powered)
-                PowerOn(uid, component);
-
-            UpdateAppearance(uid, component);
         }
 
         private void OnAnchorStateChanged(EntityUid uid, EmitterComponent component, ref AnchorStateChangedEvent args)
@@ -210,8 +187,6 @@ namespace Content.Server.Singularity.EntitySystems
             component.FireInterval = component.BaseFireInterval * MathF.Pow(component.FireRateMultiplier, fireRateRating - 1);
             component.FireBurstDelayMin = component.BaseFireBurstDelayMin * MathF.Pow(component.FireRateMultiplier, fireRateRating - 1);
             component.FireBurstDelayMax = component.BaseFireBurstDelayMax * MathF.Pow(component.FireRateMultiplier, fireRateRating - 1);
-
-            SanitizeTimings(component);
         }
 
         private void OnUpgradeExamine(EntityUid uid, EmitterComponent component, UpgradeExamineEvent args)
@@ -270,7 +245,6 @@ namespace Content.Server.Singularity.EntitySystems
             }
 
             component.IsPowered = true;
-            SanitizeTimings(component);
 
             component.FireShotCounter = 0;
             component.TimerCancel = new CancellationTokenSource();
@@ -287,10 +261,8 @@ namespace Content.Server.Singularity.EntitySystems
 
             // Any power-off condition should result in the timer for this method being cancelled
             // and thus not firing
-            if (!component.IsPowered || !component.IsOn)
-                return;
-
-            SanitizeTimings(component);
+            DebugTools.Assert(component.IsPowered);
+            DebugTools.Assert(component.IsOn);
 
             Fire(uid, component);
 
@@ -311,21 +283,6 @@ namespace Content.Server.Singularity.EntitySystems
             // Must be set while emitter powered.
             DebugTools.AssertNotNull(component.TimerCancel);
             Timer.Spawn(delay, () => ShotTimerCallback(uid, component), component.TimerCancel!.Token);
-        }
-
-        private static void SanitizeTimings(EmitterComponent component)
-        {
-            if (component.FireBurstSize < 1)
-                component.FireBurstSize = 1;
-
-            if (component.FireInterval < MinimumEmitterDelay)
-                component.FireInterval = MinimumEmitterDelay;
-
-            if (component.FireBurstDelayMin < MinimumEmitterDelay)
-                component.FireBurstDelayMin = MinimumEmitterDelay;
-
-            if (component.FireBurstDelayMax < component.FireBurstDelayMin)
-                component.FireBurstDelayMax = component.FireBurstDelayMin;
         }
 
         private void Fire(EntityUid uid, EmitterComponent component)

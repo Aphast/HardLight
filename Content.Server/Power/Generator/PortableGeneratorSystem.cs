@@ -10,7 +10,6 @@ using Robust.Server.GameObjects;
 using Robust.Shared.Player;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
-using Content.Shared.ActionBlocker; // Frontier
 
 namespace Content.Server.Power.Generator;
 
@@ -18,17 +17,16 @@ namespace Content.Server.Power.Generator;
 /// Implements logic for portable generators (the PACMAN). Primarily UI & power switching behavior.
 /// </summary>
 /// <seealso cref="PortableGeneratorComponent"/>
-public sealed class PortableGeneratorSystem : SharedPortableGeneratorSystem
+public sealed partial class PortableGeneratorSystem : SharedPortableGeneratorSystem
 {
-    [Dependency] private readonly UserInterfaceSystem _uiSystem = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly DoAfterSystem _doAfter = default!;
-    [Dependency] private readonly AudioSystem _audio = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly GeneratorSystem _generator = default!;
-    [Dependency] private readonly PowerSwitchableSystem _switchable = default!;
-    [Dependency] private readonly ActiveGeneratorRevvingSystem _revving = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!; // Frontier
+    [Dependency] private UserInterfaceSystem _uiSystem = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private DoAfterSystem _doAfter = default!;
+    [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private GeneratorSystem _generator = default!;
+    [Dependency] private PowerSwitchableSystem _switchable = default!;
+    [Dependency] private ActiveGeneratorRevvingSystem _revving = default!;
 
     public override void Initialize()
     {
@@ -81,9 +79,6 @@ public sealed class PortableGeneratorSystem : SharedPortableGeneratorSystem
         if (fuelGenerator.On || !Transform(uid).Anchored)
             return;
 
-        if (!_actionBlocker.CanComplexInteract(user)) // Frontier
-            return; // Frontier
-
         _doAfter.TryStartDoAfter(new DoAfterArgs(EntityManager, user, component.StartTime, new GeneratorStartedEvent(), uid, uid)
         {
             BreakOnDamage = true,
@@ -95,9 +90,6 @@ public sealed class PortableGeneratorSystem : SharedPortableGeneratorSystem
 
     private void StopGenerator(EntityUid uid, PortableGeneratorComponent component, EntityUid user)
     {
-        if (!_actionBlocker.CanComplexInteract(user)) // Frontier
-            return; // Frontier
-
         _generator.SetFuelGeneratorOn(uid, false);
     }
 
@@ -163,8 +155,6 @@ public sealed class PortableGeneratorSystem : SharedPortableGeneratorSystem
         if (!args.CanAccess || !args.CanInteract)
             return;
 
-        bool disabled = !_actionBlocker.CanComplexInteract(args.User); // Frontier
-
         var fuelGenerator = Comp<FuelGeneratorComponent>(uid);
         if (fuelGenerator.On)
         {
@@ -174,7 +164,7 @@ public sealed class PortableGeneratorSystem : SharedPortableGeneratorSystem
                 {
                     StopGenerator(uid, component, args.User);
                 },
-                Disabled = disabled, // Frontier
+                Disabled = false,
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/zap.svg.192dpi.png")),
                 Text = Loc.GetString("portable-generator-verb-stop"),
             };
@@ -204,7 +194,6 @@ public sealed class PortableGeneratorSystem : SharedPortableGeneratorSystem
             }
             else
             {
-                verb.Disabled = disabled; // Frontier
                 verb.Message = Loc.GetString(reliable
                     ? "portable-generator-verb-start-msg-reliable"
                     : "portable-generator-verb-start-msg-unreliable");

@@ -13,17 +13,17 @@ namespace Content.Client.Outline;
 /// <summary>
 ///     System used to indicate whether an entity is a valid target based on some criteria.
 /// </summary>
-public sealed class TargetOutlineSystem : EntitySystem
+public sealed partial class TargetOutlineSystem : EntitySystem
 {
-    [Dependency] private readonly IEyeManager _eyeManager = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly IInputManager _inputManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
+    [Dependency] private IEyeManager _eyeManager = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private IInputManager _inputManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
 
     private bool _enabled = false;
 
@@ -132,7 +132,7 @@ public sealed class TargetOutlineSystem : EntitySystem
         // TODO: Duplicated in SpriteSystem and DragDropSystem. Should probably be cached somewhere for a frame?
         var mousePos = _eyeManager.PixelToMap(_inputManager.MouseScreenPosition).Position;
         var bounds = new Box2(mousePos - LookupVector, mousePos + LookupVector);
-        var pvsEntities = _lookup.GetEntitiesIntersecting(_eyeManager.CurrentEye.Position.MapId, bounds, LookupFlags.Approximate | LookupFlags.Static);
+        var pvsEntities = _lookup.GetEntitiesIntersecting(_eyeManager.CurrentMap, bounds, LookupFlags.Approximate | LookupFlags.Static);
         var spriteQuery = GetEntityQuery<SpriteComponent>();
 
         foreach (var entity in pvsEntities)

@@ -17,16 +17,17 @@ using Content.Client._Corvax.Respawn; // Frontier
 namespace Content.Client.UserInterface.Systems.Ghost;
 
 // TODO hud refactor BEFORE MERGE fix ghost gui being too far up
-public sealed class GhostUIController : UIController, IOnSystemChanged<GhostSystem>, IOnSystemChanged<RespawnSystem>
+public sealed partial class GhostUIController : UIController, IOnSystemChanged<GhostSystem>, IOnSystemChanged<RespawnSystem>
 {
-    [Dependency] private readonly IEntityNetworkManager _net = default!;
-    [Dependency] private readonly IConsoleHost _consoleHost = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
+    [Dependency] private IEntityNetworkManager _net = default!;
+    [Dependency] private IConsoleHost _consoleHost = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
 
     [UISystemDependency] private readonly GhostSystem? _system = default;
     [UISystemDependency] private readonly RespawnSystem? _respawn = default;
 
     private GhostGui? Gui => UIManager.GetActiveUIWidgetOrNull<GhostGui>();
+    private bool _canUncryo = true; // Frontier. TODO: find a reliable way to update this, for now it just stays active all the time
 
     public override void Initialize()
     {
@@ -92,7 +93,7 @@ public sealed class GhostUIController : UIController, IOnSystemChanged<GhostSyst
 
         Gui.Visible = _system?.IsGhost ?? false;
         Gui.Update(_system?.AvailableGhostRoleCount, _system?.Player?.CanReturnToBody,
-            _cfg.GetCVar(NFCCVars.CryoReturnEnabled) ? _system?.Player?.CanReturnFromCryo : false);
+            _canUncryo && _cfg.GetCVar(NFCCVars.CryoReturnEnabled));
     }
 
     private void UpdateRespawn(TimeSpan? timeOfDeath)

@@ -73,13 +73,8 @@ public partial class RadiationSystem
             var rads = 0f;
             foreach (var source in _sources)
             {
-                // Validate source entity still exists and has the required components
-                if (TerminatingOrDeleted(source.Entity.Owner) || 
-                    !TryComp<TransformComponent>(source.Entity.Owner, out var sourceXform))
-                    continue;
-
                 // send ray towards destination entity
-                if (Irradiate(source, destUid, destTrs, destWorld, debug) is not {} ray)
+                if (Irradiate(source, destUid, destTrs, destWorld, debug) is not { } ray)
                     continue;
 
                 // add rads to total rad exposure
@@ -161,7 +156,7 @@ public partial class RadiationSystem
         // if source and destination on the same grid it's possible that
         // between them can be another grid (ie. shuttle in center of donut station)
         // however we can do simplification and ignore that case
-        if (GridcastSimplifiedSameGrid && destTrs.GridUid is {} gridUid && source.GridUid == gridUid)
+        if (GridcastSimplifiedSameGrid && destTrs.GridUid is { } gridUid && source.GridUid == gridUid)
         {
             if (!_gridQuery.TryGetComponent(gridUid, out var gridComponent))
                 return ray;
@@ -184,10 +179,6 @@ public partial class RadiationSystem
         // the ray will be updated with each grid that has some blockers
         foreach (var grid in _grids)
         {
-            // Validate grid entity still exists
-            if (TerminatingOrDeleted(grid.Owner))
-                continue;
-
             ray = Gridcast((grid.Owner, grid.Comp, Transform(grid)), ref ray, saveVisitedTiles, source.Transform, destTrs);
 
             // looks like last grid blocked all radiation
@@ -222,10 +213,6 @@ public partial class RadiationSystem
         // If ever grids are allowed to overlap, this might no longer be true. In that case, this should precompute and cache
         // inverse world matrices.
 
-        // Validate transform components are still valid before accessing their properties
-        if (TerminatingOrDeleted(sourceTrs.Owner) || TerminatingOrDeleted(destTrs.Owner))
-            return ray;
-
         Vector2 srcLocal = sourceTrs.ParentUid == grid.Owner
             ? sourceTrs.LocalPosition
             : Vector2.Transform(ray.Source, grid.Comp2.InvLocalMatrix);
@@ -235,12 +222,12 @@ public partial class RadiationSystem
             : Vector2.Transform(ray.Destination, grid.Comp2.InvLocalMatrix);
 
         Vector2i sourceGrid = new(
-            (int) Math.Floor(srcLocal.X / grid.Comp1.TileSize),
-            (int) Math.Floor(srcLocal.Y / grid.Comp1.TileSize));
+            (int)Math.Floor(srcLocal.X / grid.Comp1.TileSize),
+            (int)Math.Floor(srcLocal.Y / grid.Comp1.TileSize));
 
         Vector2i destGrid = new(
-            (int) Math.Floor(dstLocal.X / grid.Comp1.TileSize),
-            (int) Math.Floor(dstLocal.Y / grid.Comp1.TileSize));
+            (int)Math.Floor(dstLocal.X / grid.Comp1.TileSize),
+            (int)Math.Floor(dstLocal.Y / grid.Comp1.TileSize));
 
         // iterate tiles in grid line from source to destination
         var line = new GridLineEnumerator(sourceGrid, destGrid);

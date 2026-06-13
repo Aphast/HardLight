@@ -3,7 +3,11 @@ using Content.Shared.Shuttles.BUIStates;
 using Content.Shared.Shuttles.Events;
 using JetBrains.Annotations;
 using Robust.Client.UserInterface;
+using Robust.Shared.Log;
 using Robust.Shared.Map;
+
+// Mono
+using Content.Shared._Mono.Shuttles;
 
 namespace Content.Client.Shuttles.BUI;
 
@@ -24,13 +28,23 @@ public sealed partial class ShuttleConsoleBoundUserInterface : BoundUserInterfac
 
         _window.RequestFTL += OnFTLRequest;
         _window.RequestBeaconFTL += OnFTLBeaconRequest;
-        _window.RequestStationFTL += OnFTLStationRequest;
+        _window.RequestAutopilot += OnAutopilotRequest; // Mono
         _window.DockRequest += OnDockRequest;
         _window.UndockRequest += OnUndockRequest;
-        _window.ActivateExpeditionDisk += OnActivateExpeditionDisk;
-        _window.EndExpedition += OnEndExpedition;
-        _window.ActivateWEP += OnActivateWEP; // HL
+        _window.UndockAllRequest += OnUndockAllRequest;
+        _window.ToggleFTLLockRequest += OnToggleFTLLockRequest;
         NfOpen(); // Frontier
+    }
+
+    private void OnToggleFTLLockRequest(List<NetEntity> dockEntities, bool enabled)
+    {
+        Logger.DebugS("shuttle", $"ShuttleConsoleBUI: Sending FTL lock request with enabled={enabled}, entities={string.Join(", ", dockEntities)}");
+        SendMessage(new ToggleFTLLockRequestMessage(dockEntities, enabled));
+    }
+
+    private void OnUndockAllRequest(List<NetEntity> dockEntities)
+    {
+        SendMessage(new UndockAllRequestMessage(dockEntities));
     }
 
     private void OnUndockRequest(NetEntity entity)
@@ -59,15 +73,6 @@ public sealed partial class ShuttleConsoleBoundUserInterface : BoundUserInterfac
         });
     }
 
-    private void OnFTLStationRequest(NetEntity ent, Angle angle)
-    {
-        SendMessage(new ShuttleConsoleFTLStationDockMessage()
-        {
-            Station = ent,
-            Angle = angle,
-        });
-    }
-
     private void OnFTLRequest(MapCoordinates obj, Angle angle)
     {
         SendMessage(new ShuttleConsoleFTLPositionMessage()
@@ -77,22 +82,15 @@ public sealed partial class ShuttleConsoleBoundUserInterface : BoundUserInterfac
         });
     }
 
-    private void OnActivateExpeditionDisk()
+    // Mono
+    private void OnAutopilotRequest(MapCoordinates obj, Angle angle)
     {
-        SendMessage(new ShuttleConsoleExpeditionDiskActivateMessage());
+        SendMessage(new ShuttleConsoleAutopilotPositionMessage()
+        {
+            Coordinates = obj,
+            Angle = angle,
+        });
     }
-
-    private void OnEndExpedition()
-    {
-        SendMessage(new ShuttleConsoleExpeditionEndMessage());
-    }
-
-    // HL
-    private void OnActivateWEP()
-    {
-        SendMessage(new ShuttleConsoleWEPMessage());
-    }
-    // End HL
 
     protected override void Dispose(bool disposing)
     {

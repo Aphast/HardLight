@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -29,7 +29,7 @@ namespace Content.Benchmarks;
 [CategoriesColumn]
 public class ComponentQueryBenchmark
 {
-    public const string Map = "Maps/atlas.yml";
+    public const string Map = "Maps/saltern.yml";
 
     private TestPair _pair = default!;
     private IEntityManager _entMan = default!;

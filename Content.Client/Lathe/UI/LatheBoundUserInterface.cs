@@ -1,4 +1,3 @@
-using Content.Shared._NF.Lathe; // Frontier
 using Content.Shared.Lathe;
 using Content.Shared.Research.Components;
 using JetBrains.Annotations;
@@ -32,12 +31,11 @@ namespace Content.Client.Lathe.UI
                 SendMessage(new LatheQueueRecipeMessage(recipe, amount));
             };
 
-            // Frontier: lathe queue manipulation messages
-            _menu.QueueDeleteAction += index => SendMessage(new LatheDeleteRequestMessage(index));
-            _menu.QueueMoveUpAction += index => SendMessage(new LatheMoveRequestMessage(index, -1));
-            _menu.QueueMoveDownAction += index => SendMessage(new LatheMoveRequestMessage(index, 1));
-            _menu.DeleteFabricatingAction += () => SendMessage(new LatheAbortFabricationMessage());
-            // End Frontier
+            // <Mono>
+            _menu.OnLoopCheckboxPressed += (loop) => SendMessage(new LatheSetLoopingMessage(loop));
+            _menu.OnSkipCheckboxPressed += (skip) => SendMessage(new LatheSetSkipMessage(skip));
+            _menu.OnRecipeCancelled += (index) => SendMessage(new LatheRecipeCancelMessage(index));
+            // </Mono>
         }
 
         protected override void UpdateState(BoundUserInterfaceState state)
@@ -53,6 +51,8 @@ namespace Content.Client.Lathe.UI
                     _menu?.UpdateCategories();
                     _menu?.PopulateQueueList(msg.Queue);
                     _menu?.SetQueueInfo(msg.CurrentlyProducing);
+                    _menu?.SetLooping(msg.Looping); // Mono
+                    _menu?.SetSkipping(msg.Skipping); // Mono
                     break;
             }
         }

@@ -35,8 +35,9 @@
       - !type:PlaySoundBehavior
         sound:
           collection: MetalSlam
-  - type: Paintable
+  - type: PaintableAirlock
     group: HeavyStandard
+    department: Civilian
   - type: StaticPrice
     price: 500
   - type: Tag
@@ -84,8 +85,9 @@
       - !type:PlaySoundBehavior
         sound:
           collection: MetalSlam
-  - type: Paintable
+  - type: PaintableAirlock
     group: HeavyGlass
+    department: Civilian
   - type: StaticPrice
     price: 500
   - type: Tag
@@ -106,8 +108,8 @@
   components:
   - type: Sprite
     sprite: _Mono/Structures/Doors/HeavyAirlocks/Standard/engineering.rsi
-  - type: Paintable
-    group: null
+  - type: PaintableAirlock
+    department: Engineering
 
 - type: entity
   parent: AirlockHeavy

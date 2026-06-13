@@ -1,16 +1,12 @@
 using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
-using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.EntitySystems;
-using Solution = Content.Shared.Chemistry.Components.Solution;
 using Content.Server.Inventory;
 using Content.Server.Nutrition.Components;
 using Content.Shared.Nutrition.Components;
 using Content.Server.Popups;
 using Content.Server.Stack;
 using Content.Shared.Administration.Logs;
-using System;
-using System.Text;
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Organ;
 using Content.Shared.Chemistry;
@@ -45,26 +41,26 @@ namespace Content.Server.Nutrition.EntitySystems;
 /// <summary>
 /// Handles feeding attempts both on yourself and on the target.
 /// </summary>
-public sealed class FoodSystem : EntitySystem
+public sealed partial class FoodSystem : EntitySystem
 {
-    [Dependency] private readonly BodySystem _body = default!;
-    [Dependency] private readonly FlavorProfileSystem _flavorProfile = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly OpenableSystem _openable = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly ReactiveSystem _reaction = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly StackSystem _stack = default!;
-    [Dependency] private readonly StomachSystem _stomach = default!;
-    [Dependency] private readonly UtensilSystem _utensil = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private BodySystem _body = default!;
+    [Dependency] private FlavorProfileSystem _flavorProfile = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private OpenableSystem _openable = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private ReactiveSystem _reaction = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedInteractionSystem _interaction = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainer = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private StackSystem _stack = default!;
+    [Dependency] private StomachSystem _stomach = default!;
+    [Dependency] private UtensilSystem _utensil = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
     public const float MaxFeedDistance = 1.0f;
 
@@ -78,7 +74,6 @@ public sealed class FoodSystem : EntitySystem
         SubscribeLocalEvent<FoodComponent, AfterInteractEvent>(OnFeedFood);
         SubscribeLocalEvent<FoodComponent, GetVerbsEvent<AlternativeVerb>>(AddEatVerb);
         SubscribeLocalEvent<FoodComponent, ConsumeDoAfterEvent>(OnDoAfter);
-        SubscribeLocalEvent<FoodComponent, ComponentStartup>(OnFoodStartup);
         SubscribeLocalEvent<InventoryComponent, IngestionAttemptEvent>(OnInventoryIngestAttempt);
     }
 
@@ -185,7 +180,7 @@ public sealed class FoodSystem : EntitySystem
         if (forceFeed)
         {
             var userName = Identity.Entity(user, EntityManager);
-            _popup.PopupEntity(Loc.GetString("food-system-force-feed", ("user", userName)),
+            _popup.PopupEntity(Loc.GetString(foodComp.ForceFeedMessage, ("user", userName)), // Frontier - Loc
                 user, target);
 
             // logging
@@ -220,6 +215,7 @@ public sealed class FoodSystem : EntitySystem
             // do-after will stop if item is dropped when trying to feed someone else
             // or if the item started out in the user's own hands
             NeedHand = forceFeed || _hands.IsHolding(user, food),
+            MultiplyDelay = false, // Goobstation
         };
 
         _doAfter.TryStartDoAfter(doAfterArgs);
@@ -254,20 +250,9 @@ public sealed class FoodSystem : EntitySystem
         var forceFeed = args.User != args.Target;
 
         args.Handled = true;
-        StackComponent? stackComp = null;
-        if (TryComp<StackComponent>(entity, out var foundStack))
-            stackComp = foundStack;
+        var transferAmount = entity.Comp.TransferAmount != null ? FixedPoint2.Min((FixedPoint2) entity.Comp.TransferAmount, solution.Volume) : solution.Volume;
 
-        var stackCount = stackComp?.Count ?? 1;
-        var isStacked = stackCount > 1;
-        var sourceSolution = isStacked ? new Solution(solution) : solution;
-        var transferAmount = entity.Comp.TransferAmount != null
-            ? FixedPoint2.Min((FixedPoint2) entity.Comp.TransferAmount, sourceSolution.Volume)
-            : sourceSolution.Volume;
-
-        var split = isStacked
-            ? sourceSolution.SplitSolution(transferAmount)
-            : _solutionContainer.SplitSolution(soln.Value, transferAmount);
+        var split = _solutionContainer.SplitSolution(soln.Value, transferAmount);
 
         // Get the stomach with the highest available solution volume
         var highestAvailable = FixedPoint2.Zero;
@@ -292,7 +277,7 @@ public sealed class FoodSystem : EntitySystem
         if (stomachToUse == null)
         {
             _solutionContainer.TryAddSolution(soln.Value, split);
-            _popup.PopupEntity(forceFeed ? Loc.GetString("food-system-you-cannot-eat-any-more-other", ("target", args.Target.Value)) : Loc.GetString("food-system-you-cannot-eat-any-more"), args.Target.Value, args.User);
+            _popup.PopupEntity(forceFeed ? Loc.GetString(entity.Comp.CannotEatAnyMoreOtherMessage) : Loc.GetString(entity.Comp.CannotEatAnyMoreMessage), args.Target.Value, args.User); // Frontier - Loc
             return;
         }
 
@@ -305,9 +290,9 @@ public sealed class FoodSystem : EntitySystem
         {
             var targetName = Identity.Entity(args.Target.Value, EntityManager);
             var userName = Identity.Entity(args.User, EntityManager);
-            _popup.PopupEntity(Loc.GetString("food-system-force-feed-success", ("user", userName), ("flavors", flavors)), args.Target.Value, args.Target.Value); // Frontier: entity.Owner->args.Target.Value
+            _popup.PopupEntity(Loc.GetString(entity.Comp.ForceFeedSuccessMessage, ("user", userName), ("flavors", flavors)), args.Target.Value, args.Target.Value); // Frontier: entity.Owner->args.Target.Value
 
-            _popup.PopupEntity(Loc.GetString("food-system-force-feed-success-user", ("target", targetName)), args.User, args.User);
+            _popup.PopupEntity(Loc.GetString(entity.Comp.ForceFeedSuccessUserMessage, ("target", targetName)), args.User, args.User);
 
             // log successful force feed
             _adminLogger.Add(LogType.ForceFeed, LogImpact.Medium, $"{ToPrettyString(entity.Owner):user} forced {ToPrettyString(args.User):target} to eat {ToPrettyString(entity.Owner):food}");
@@ -330,15 +315,20 @@ public sealed class FoodSystem : EntitySystem
 
         args.Repeat = !forceFeed;
 
-        if (stackComp != null && stackComp.Count > 1)
-        {
-            // Consume a single item from the stack without altering remaining reagents.
-            _stack.SetCount(entity.Owner, stackComp.Count - 1);
-            return;
-        }
+        // Mono: Shut off. We love emergent mechanics!
+        //        _solutionContainer.SetCapacity(soln.Value, soln.Value.Comp.Solution.MaxVolume - transferAmount); // Frontier: remove food capacity after taking a bite.
 
-        _solutionContainer.SetCapacity(soln.Value, soln.Value.Comp.Solution.MaxVolume - transferAmount); // Frontier: remove food capacity after taking a bite.
-        if (GetUsesRemaining(entity.Owner, entity.Comp) > 0)
+        if (TryComp<StackComponent>(entity, out var stack))
+        {
+            //Not deleting whole stack piece will make troubles with grinding object
+            if (stack.Count > 1)
+            {
+                _stack.SetCount(entity.Owner, stack.Count - 1);
+                _solutionContainer.TryAddSolution(soln.Value, split);
+                return;
+            }
+        }
+        else if (GetUsesRemaining(entity.Owner, entity.Comp) > 0)
         {
             return;
         }
@@ -391,41 +381,6 @@ public sealed class FoodSystem : EntitySystem
         }
     }
 
-    private void OnFoodStartup(EntityUid uid, FoodComponent component, ComponentStartup args)
-    {
-        if (!TryComp<StackComponent>(uid, out _))
-            return;
-
-        if (!_solutionContainer.TryGetSolution(uid, component.Solution, out _, out var solution))
-            return;
-
-        var stackSig = EnsureComp<StackSignatureComponent>(uid);
-        var builder = new StringBuilder();
-        var prototypeId = Prototype(uid)?.ID;
-        if (prototypeId != null)
-            builder.Append(prototypeId).Append('|');
-
-        AppendSolutionSignature(builder, solution);
-
-        var signature = builder.ToString();
-        if (stackSig.Signature == signature)
-            return;
-
-        stackSig.Signature = signature;
-        Dirty(uid, stackSig);
-    }
-
-    private static void AppendSolutionSignature(StringBuilder builder, Solution solution)
-    {
-        foreach (var reagent in solution.Contents.OrderBy(r => r.Reagent.Prototype, StringComparer.Ordinal))
-        {
-            builder.Append(reagent.Reagent.Prototype)
-                .Append('=')
-                .Append(reagent.Quantity.Value)
-                .Append(';');
-        }
-    }
-
     private void AddEatVerb(Entity<FoodComponent> entity, ref GetVerbsEvent<AlternativeVerb> ev)
     {
         if (entity.Owner == ev.User ||
@@ -451,7 +406,7 @@ public sealed class FoodSystem : EntitySystem
                 TryFeed(user, user, entity, entity.Comp);
             },
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/cutlery.svg.192dpi.png")),
-            Text = Loc.GetString("food-system-verb-eat"),
+            Text = Loc.GetString(entity.Comp.VerbEat), // Frontier - Loc
             Priority = -1
         };
 
@@ -538,7 +493,7 @@ public sealed class FoodSystem : EntitySystem
         // If "required" field is set, try to block eating without proper utensils used
         if (component.UtensilRequired && (usedTypes & component.Utensil) != component.Utensil)
         {
-            _popup.PopupEntity(Loc.GetString("food-you-need-to-hold-utensil", ("utensil", component.Utensil ^ usedTypes)), user, user);
+            _popup.PopupEntity(Loc.GetString(component.UtensilMessage, ("utensil", component.Utensil ^ usedTypes)), user, user);  // Frontier - Loc
             return false;
         }
 

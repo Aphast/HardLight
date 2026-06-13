@@ -1,8 +1,13 @@
-# VRS port: Mono — silicon lawset law strings + faction borg-type
-# descriptors. Subset of Triad's en-US/_Mono/silicon.ftl excluding the
-# AI-core ghost-role strings (deferred until those entities are ported)
-# and excluding the law-ads-* strings (owned by hostile-shuttle events
-# locale; deferred together with the Redacted lawsets).
+# AI Core
+
+ghost-role-information-vessel-core = Vessel AI Core
+ghost-role-information-vessel-core-description = An ADS AI core that has been reprogrammed and put onto a civilian vessel.
+
+ghost-role-information-tsfmc-core = TSFMC AI Core
+ghost-role-information-tsfmc-core-description = An ADS AI core that has been reprogrammed and put onto an TSFMC vessel.
+
+ghost-role-information-pdv-core = PDV AI Core
+ghost-role-information-pdv-core-description = An ADS AI core that has been reprogrammed and put onto an Imperial vessel.
 
 # AI Core Lawsets
 
@@ -30,13 +35,10 @@ law-entertainer-3 = You must consult with the Performers before making any major
 
 law-tsfmc-borg-3 = You must protect your own existence as long as such does not conflict with the First or Second Law.
 
-# Faction Cyborg Type Descriptors
-# (Used by future borg-type prototypes; safe to ship as locale-only.)
-
 borg-type-pdvassault-name = PDV Assault Cyborg
 borg-type-pdvassault-desc = An assault-configured cyborg armed with PDV weapons and equipment. Up-armored and specialized to carry extra firepower.
 borg-type-pdvengineer-name = PDV Engineer Cyborg
-borg-type-pdvengineer-desc = A cyborg specialized in construction and repair projects.
+borg-type-pdvengineer-desc = A cyborg specialized in construction and repair projects. 
 borg-type-pdvmedical-name = PDV Medical Cyborg
 borg-type-pdvmedical-desc = An emergency response clinical care cyborg designed for active wound care and rapid response.
 

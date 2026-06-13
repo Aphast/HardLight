@@ -22,7 +22,6 @@ entities:
     - type: MetaData
     - type: Transform
     - type: Map
-
     - type: Broadphase
     - type: OccluderTree
     - chunks:
@@ -352,7 +351,6 @@ entities:
     - type: LoadedMap
     - type: SpreaderGrid
     - type: GridTree
-
     - type: GridPathfinding
 - proto: AirCanister
   entities:
@@ -2294,14 +2292,14 @@ entities:
     - pos: 13.481619,44.391277
       parent: 1653
       type: Transform
-- proto: ShellShotgunIncendiary
+- proto: ShellShotgun12_gaugeIncendiary
   entities:
   - uid: 405
     components:
     - pos: 18.58831,45.763992
       parent: 1653
       type: Transform
-- proto: ShellShotgunSlug
+- proto: ShellShotgun12_gaugeSlug
   entities:
   - uid: 339
     components:

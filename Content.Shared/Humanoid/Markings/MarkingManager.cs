@@ -6,9 +6,9 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Humanoid.Markings
 {
-    public sealed class MarkingManager
+    public sealed partial class MarkingManager
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
 
         private readonly List<MarkingPrototype> _index = new();
         public FrozenDictionary<MarkingCategories, FrozenDictionary<string, MarkingPrototype>> CategorizedMarkings = default!;
@@ -36,11 +36,12 @@ namespace Content.Shared.Humanoid.Markings
                 markingDict[prototype.MarkingCategory].Add(prototype.ID, prototype);
             }
 
-    Markings = _prototypeManager.EnumeratePrototypes<MarkingPrototype>().ToFrozenDictionary(x => x.ID);
-    CategorizedMarkings = markingDict.ToFrozenDictionary(
-        x => x.Key,
-        x => x.Value.ToFrozenDictionary());
-}
+            Markings = _prototypeManager.EnumeratePrototypes<MarkingPrototype>().ToFrozenDictionary(x => x.ID);
+            CategorizedMarkings = markingDict.ToFrozenDictionary(
+                x => x.Key,
+                x => x.Value.ToFrozenDictionary());
+        }
+
         public FrozenDictionary<string, MarkingPrototype> MarkingsByCategory(MarkingCategories category)
         {
             // all marking categories are guaranteed to have a dict entry
@@ -61,12 +62,12 @@ namespace Content.Shared.Humanoid.Markings
             string species)
         {
             var speciesProto = _prototypeManager.Index<SpeciesPrototype>(species);
-            var markingPoints = _prototypeManager.Index(speciesProto.MarkingPoints);
+            var onlyWhitelisted = _prototypeManager.Index<MarkingPointsPrototype>(speciesProto.MarkingPoints).OnlyWhitelisted;
             var res = new Dictionary<string, MarkingPrototype>();
 
             foreach (var (key, marking) in MarkingsByCategory(category))
             {
-                if ((markingPoints.OnlyWhitelisted || markingPoints.Points[category].OnlyWhitelisted) && marking.SpeciesRestrictions == null)
+                if (onlyWhitelisted && marking.SpeciesRestrictions == null)
                 {
                     continue;
                 }
@@ -124,7 +125,7 @@ namespace Content.Shared.Humanoid.Markings
             string species, Sex sex)
         {
             var speciesProto = _prototypeManager.Index<SpeciesPrototype>(species);
-            var onlyWhitelisted = _prototypeManager.Index(speciesProto.MarkingPoints).OnlyWhitelisted;
+            var onlyWhitelisted = _prototypeManager.Index<MarkingPointsPrototype>(speciesProto.MarkingPoints).OnlyWhitelisted;
             var res = new Dictionary<string, MarkingPrototype>();
 
             foreach (var (key, marking) in MarkingsByCategory(category))
@@ -196,7 +197,7 @@ namespace Content.Shared.Humanoid.Markings
             IoCManager.Resolve(ref prototypeManager);
 
             var speciesProto = prototypeManager.Index<SpeciesPrototype>(species);
-            var onlyWhitelisted = prototypeManager.Index(speciesProto.MarkingPoints).OnlyWhitelisted;
+            var onlyWhitelisted = prototypeManager.Index<MarkingPointsPrototype>(speciesProto.MarkingPoints).OnlyWhitelisted;
 
             if (!TryGetMarking(marking, out var prototype))
             {
@@ -227,7 +228,7 @@ namespace Content.Shared.Humanoid.Markings
             IoCManager.Resolve(ref prototypeManager);
 
             var speciesProto = prototypeManager.Index<SpeciesPrototype>(species);
-            var onlyWhitelisted = prototypeManager.Index(speciesProto.MarkingPoints).OnlyWhitelisted;
+            var onlyWhitelisted = prototypeManager.Index<MarkingPointsPrototype>(speciesProto.MarkingPoints).OnlyWhitelisted;
 
             if (onlyWhitelisted && prototype.SpeciesRestrictions == null)
             {
@@ -253,7 +254,7 @@ namespace Content.Shared.Humanoid.Markings
             IoCManager.Resolve(ref prototypeManager);
             var speciesProto = prototypeManager.Index<SpeciesPrototype>(species);
             if (
-                !prototypeManager.TryIndex(speciesProto.SpriteSet, out var baseSprites) ||
+                !prototypeManager.TryIndex(speciesProto.SpriteSet, out HumanoidSpeciesBaseSpritesPrototype? baseSprites) ||
                 !baseSprites.Sprites.TryGetValue(layer, out var spriteName) ||
                 !prototypeManager.TryIndex(spriteName, out HumanoidSpeciesSpriteLayer? sprite) ||
                 sprite == null ||
@@ -267,27 +268,5 @@ namespace Content.Shared.Humanoid.Markings
             alpha = sprite.LayerAlpha;
             return true;
         }
-
-        // Frontier: allow markings to force a specific color
-        public Color? MustMatchColor(string species, HumanoidVisualLayers layer, out float alpha, IPrototypeManager? prototypeManager = null)
-        {
-            IoCManager.Resolve(ref prototypeManager);
-            var speciesProto = prototypeManager.Index<SpeciesPrototype>(species);
-            if (
-                !prototypeManager.TryIndex(speciesProto.SpriteSet, out HumanoidSpeciesBaseSpritesPrototype? baseSprites) ||
-                !baseSprites.Sprites.TryGetValue(layer, out var spriteName) ||
-                !prototypeManager.TryIndex(spriteName, out HumanoidSpeciesSpriteLayer? sprite) ||
-                sprite == null ||
-                !sprite.ForcedColoring
-            )
-            {
-                alpha = 1f;
-                return null;
-            }
-
-            alpha = sprite.LayerAlpha;
-            return speciesProto.ForcedMarkingColor;
-        }
-        // End Frontier
     }
 }

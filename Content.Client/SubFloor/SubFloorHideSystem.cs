@@ -6,11 +6,10 @@ using Robust.Shared.Player;
 
 namespace Content.Client.SubFloor;
 
-public sealed class SubFloorHideSystem : SharedSubFloorHideSystem
+public sealed partial class SubFloorHideSystem : SharedSubFloorHideSystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly SpriteSystem _sprite = default!;
-    [Dependency] private readonly IUserInterfaceManager _ui = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IUserInterfaceManager _ui = default!;
 
     private bool _showAll;
 
@@ -76,7 +75,7 @@ public sealed class SubFloorHideSystem : SharedSubFloorHideSystem
         var hasVisibleLayer = false;
         foreach (var layerKey in component.VisibleLayers)
         {
-            if (!_sprite.LayerMapTryGet((uid, args.Sprite), layerKey, out var layerIndex, false))
+            if (!args.Sprite.LayerMapTryGet(layerKey, out var layerIndex))
                 continue;
 
             var layer = args.Sprite[layerIndex];
@@ -85,26 +84,20 @@ public sealed class SubFloorHideSystem : SharedSubFloorHideSystem
             hasVisibleLayer = true;
         }
 
-        _sprite.SetVisible((uid, args.Sprite), hasVisibleLayer || revealed);
+        args.Sprite.Visible = hasVisibleLayer || revealed;
 
-        if (ShowAll)
+        // allows a t-ray to show wires/pipes above carpets/puddles
+        if (scannerRevealed)
         {
-            // Allows sandbox mode to make wires visible over other stuff.
-            component.OriginalDrawDepth ??= args.Sprite.DrawDepth;
-            _sprite.SetDrawDepth((uid, args.Sprite), (int)Shared.DrawDepth.DrawDepth.Overdoors);
-        }
-        else if (scannerRevealed)
-        {
-            // Allows a t-ray to show wires/pipes above carpets/puddles.
             if (component.OriginalDrawDepth is not null)
                 return;
             component.OriginalDrawDepth = args.Sprite.DrawDepth;
             var drawDepthDifference = Shared.DrawDepth.DrawDepth.ThickPipe - Shared.DrawDepth.DrawDepth.Puddles;
-            _sprite.SetDrawDepth((uid, args.Sprite), args.Sprite.DrawDepth - (drawDepthDifference - 1));
+            args.Sprite.DrawDepth -= drawDepthDifference - 1;
         }
         else if (component.OriginalDrawDepth.HasValue)
         {
-            _sprite.SetDrawDepth((uid, args.Sprite), component.OriginalDrawDepth.Value);
+            args.Sprite.DrawDepth = component.OriginalDrawDepth.Value;
             component.OriginalDrawDepth = null;
         }
     }

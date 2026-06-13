@@ -23,12 +23,11 @@ namespace Content.Client._DV.Mail;
 ///     SecurityOfficer:
 ///     state: SecurityOfficer
 /// </remarks>
-public sealed class MailJobVisualizerSystem : VisualizerSystem<MailComponent>
+public sealed partial class MailJobVisualizerSystem : VisualizerSystem<MailComponent>
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly SpriteSystem _spriteSystem = default!;
-    private static readonly ProtoId<JobIconPrototype> UnknownIcon = "JobIconUnknown";
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private SpriteSystem _spriteSystem = default!;
 
     protected override void OnAppearanceChange(EntityUid uid, MailComponent component, ref AppearanceChangeEvent args)
     {
@@ -38,12 +37,11 @@ public sealed class MailJobVisualizerSystem : VisualizerSystem<MailComponent>
         _appearance.TryGetData(uid, MailVisuals.JobIcon, out string job, args.Component);
 
         if (string.IsNullOrEmpty(job))
-            job = UnknownIcon.ToString();
+            job = "JobIconUnknown";
 
         if (!_prototypeManager.TryIndex<JobIconPrototype>(job, out var icon))
         {
-            var fallback = _prototypeManager.Index<JobIconPrototype>(UnknownIcon).Icon;
-            args.Sprite.LayerSetTexture(MailVisualLayers.JobStamp, _spriteSystem.Frame0(fallback));
+            args.Sprite.LayerSetTexture(MailVisualLayers.JobStamp, _spriteSystem.Frame0(_prototypeManager.Index("JobIconUnknown")));
             return;
         }
 

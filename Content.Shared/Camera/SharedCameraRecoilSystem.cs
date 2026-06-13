@@ -8,7 +8,7 @@ using Robust.Shared.Serialization;
 namespace Content.Shared.Camera;
 
 [UsedImplicitly]
-public abstract class SharedCameraRecoilSystem : EntitySystem
+public abstract partial class SharedCameraRecoilSystem : EntitySystem
 {
     /// <summary>
     ///     Maximum rate of magnitude restore towards 0 kick.
@@ -30,8 +30,8 @@ public abstract class SharedCameraRecoilSystem : EntitySystem
     /// </summary>
     protected const float KickMagnitudeMax = 1f;
 
-    [Dependency] private readonly SharedContentEyeSystem _eye = default!;
-    [Dependency] private readonly INetManager _net = default!;
+    [Dependency] private SharedContentEyeSystem _eye = default!;
+    [Dependency] private INetManager _net = default!;
 
     public override void Initialize()
     {
@@ -58,14 +58,6 @@ public abstract class SharedCameraRecoilSystem : EntitySystem
 
         while (query.MoveNext(out var uid, out var recoil, out var eye))
         {
-            // Sanitize invalid values that can come from external kicks (e.g., projectiles/effects)
-            if (float.IsNaN(recoil.CurrentKick.X) || float.IsInfinity(recoil.CurrentKick.X) ||
-                float.IsNaN(recoil.CurrentKick.Y) || float.IsInfinity(recoil.CurrentKick.Y))
-            {
-                recoil.CurrentKick = Vector2.Zero;
-                recoil.LastKickTime = 0f;
-            }
-
             var magnitude = recoil.CurrentKick.Length();
             if (magnitude <= 0.005f)
             {
@@ -78,18 +70,10 @@ public abstract class SharedCameraRecoilSystem : EntitySystem
                 var restoreRate = MathHelper.Lerp(RestoreRateMin, RestoreRateMax, Math.Min(1, recoil.LastKickTime / RestoreRateRamp));
                 var restore = normalized * restoreRate * frameTime;
                 var (x, y) = recoil.CurrentKick - restore;
-                // Avoid Math.Sign on NaN/Infinity; clamp to zero when crossing sign or invalid
-                if (!(float.IsNaN(x) || float.IsInfinity(x)) && !(float.IsNaN(recoil.CurrentKick.X) || float.IsInfinity(recoil.CurrentKick.X)) &&
-                    Math.Sign(x) != Math.Sign(recoil.CurrentKick.X))
+                if (Math.Sign(x) != Math.Sign(recoil.CurrentKick.X))
                     x = 0;
 
-                if (!(float.IsNaN(y) || float.IsInfinity(y)) && !(float.IsNaN(recoil.CurrentKick.Y) || float.IsInfinity(recoil.CurrentKick.Y)) &&
-                    Math.Sign(y) != Math.Sign(recoil.CurrentKick.Y))
-                    y = 0;
-
-                if (float.IsNaN(x) || float.IsInfinity(x))
-                    x = 0;
-                if (float.IsNaN(y) || float.IsInfinity(y))
+                if (Math.Sign(y) != Math.Sign(recoil.CurrentKick.Y))
                     y = 0;
 
                 recoil.CurrentKick = new Vector2(x, y);

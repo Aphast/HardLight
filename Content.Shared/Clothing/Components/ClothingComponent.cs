@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Content.Shared.Clothing.EntitySystems;
 using Content.Shared.DoAfter;
 using Content.Shared.Inventory;
+using Content.Shared.Whitelist;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Serialization;
@@ -100,6 +101,19 @@ public sealed partial class ClothingComponent : Component
     /// </summary>
     [DataField]
     public TimeSpan StripDelay = TimeSpan.Zero;
+
+    /// <summary>
+    /// Mono: Whitelist required to wear clothing. Checks the wearer for whitelist.
+    /// Also checks organs for required components/tags if WhitelistCheckOrgan is true.
+    /// </summary>
+    [DataField]
+    public EntityWhitelist? Whitelist = null;
+
+    /// <summary>
+    /// Mono: Whether we should check organs for the whitelist in addition to the target.
+    /// </summary>
+    [DataField]
+    public bool WhitelistCheckOrgans = false;
 }
 
 [Serializable, NetSerializable]

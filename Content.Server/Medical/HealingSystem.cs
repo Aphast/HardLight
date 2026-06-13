@@ -2,7 +2,6 @@ using Content.Server.Administration.Logs;
 using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
 using Content.Server.Medical.Components;
-using Content.Server.Mobs.Components; // HardLight
 using Content.Server.Popups;
 using Content.Server.Stack;
 using Content.Shared.Chemistry.EntitySystems;
@@ -20,10 +19,6 @@ using Content.Shared.Mobs.Systems;
 using Content.Shared.Popups;
 using Content.Shared.Stacks;
 using Content.Shared.Body.Systems; // Shitmed Change
-using Content.Server._FarHorizons.Medical.ConditionalHealing; // Far Horizons
-using Content.Shared._FarHorizons.Medical.ConditionalHealing; // Far Horizons
-using Content.Shared.Eye.Blinding.Components; // Far Horizons
-using Content.Shared.Eye.Blinding.Systems; // Far Horizons
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Random;
 using Robust.Shared.Audio;
@@ -35,21 +30,20 @@ using System.Linq;
 
 namespace Content.Server.Medical;
 
-public sealed class HealingSystem : EntitySystem
+public sealed partial class HealingSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly BloodstreamSystem _bloodstreamSystem = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly StackSystem _stacks = default!;
-    [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private readonly MobThresholdSystem _mobThresholdSystem = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly SharedBodySystem _bodySystem = default!; // Shitmed Change
-    [Dependency] private readonly ConditionalHealingSystem _conditionalHealing = default!; // Far Horizons
-    [Dependency] private readonly BlindableSystem _blindable = default!; // Far Horizons
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private SharedTargetingSystem _targetingSystem = default!; // Shitmed Change
+    [Dependency] private BloodstreamSystem _bloodstreamSystem = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private StackSystem _stacks = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private MobThresholdSystem _mobThresholdSystem = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private SharedBodySystem _bodySystem = default!; // Shitmed Change
 
     public override void Initialize()
     {
@@ -63,40 +57,32 @@ public sealed class HealingSystem : EntitySystem
     {
         var dontRepeat = false;
 
-        if (args.Handled || args.Cancelled)
+        if (!TryComp(args.Used, out HealingComponent? healing))
             return;
 
-        if (!TryComp(args.Used, out HealingComponent? healing))
-        {
-            // Far Horizons, handle fake components from conditional healing
-            if(args.Used is null || _conditionalHealing.SelectBestMatch(args.Used.Value, entity) is not ConditionalHealingData healingData)
-                return;
-            healing = ConditionalHealingSystem.MakeComponent(healingData);
-        }
+        if (args.Handled || args.Cancelled)
+            return;
 
         if (healing.DamageContainers is not null &&
             entity.Comp.DamageContainerID is not null &&
             !healing.DamageContainers.Contains(entity.Comp.DamageContainerID))
         {
-            // Far Horizons, handle fake components from conditional healing
-            if(args.Used is null || _conditionalHealing.SelectBestMatch(args.Used.Value, entity) is not ConditionalHealingData fallbackData)
-                return;
-            healing = ConditionalHealingSystem.MakeComponent(fallbackData);
+            return;
         }
 
         // Heal some bloodloss damage.
         if (healing.BloodlossModifier != 0)
         {
-            if (!TryComp<BloodstreamComponent>(entity, out var bloodstream))
+            if (!TryComp<BloodstreamComponent>(entity.Owner, out var bloodstream))
                 return;
             var isBleeding = bloodstream.BleedAmount > 0;
             _bloodstreamSystem.TryModifyBleedAmount(entity.Owner, healing.BloodlossModifier);
             if (isBleeding != bloodstream.BleedAmount > 0)
             {
-                _popupSystem.PopupEntity(
-                    Loc.GetString("medical-item-stop-bleeding", ("target", Identity.Entity(entity.Owner, EntityManager))),
-                    entity,
-                    args.User);
+                if (entity.Owner == args.User)
+                    _popupSystem.PopupEntity(Loc.GetString("medical-item-stop-bleeding-self"), entity, args.User);
+                else
+                    _popupSystem.PopupEntity(Loc.GetString("medical-item-stop-bleeding", ("target", Identity.Entity(entity.Owner, EntityManager))), entity, args.User);
             }
         }
 
@@ -104,24 +90,9 @@ public sealed class HealingSystem : EntitySystem
         if (healing.ModifyBloodLevel != 0)
             _bloodstreamSystem.TryModifyBloodLevel(entity.Owner, healing.ModifyBloodLevel);
 
-        // Far Horizons
-        // Restores vision
-        if (healing.AdjustEyeDamage != 0 && TryComp(entity, out BlindableComponent? blindable))
-            _blindable.AdjustEyeDamage((entity, blindable), healing.AdjustEyeDamage);
+        var healed = _damageable.TryChangeDamage(entity.Owner, healing.Damage, true, origin: args.User, canSever: false); // Shitmed Change
 
-        // HardLight Change start
-        // Determines if the entity is a Synth and scales damage recovery accordingly.
-        var damageToApply = healing.Damage;
-        if (TryComp<HLSynthComponent>(entity.Owner, out _))
-        {
-            damageToApply = ScaleDamageSpecifier(healing.Damage, 0.5f);
-        }
-
-        var healed = _damageable.TryChangeDamage(entity.Owner, damageToApply, true, origin: args.User, canSever: false); // Shitmed Change
-
-        // HardLight Change end
-
-        if (healed == null && healing.BloodlossModifier != 0 && healing.AdjustEyeDamage != 0) // Far Horizons - added eye healing
+        if (healed == null && healing.BloodlossModifier != 0)
             return;
 
         var total = healed?.GetTotal() ?? FixedPoint2.Zero;
@@ -166,7 +137,7 @@ public sealed class HealingSystem : EntitySystem
         var healingDict = healing.Damage.DamageDict;
         foreach (var type in healingDict)
         {
-            if (damageableDict.TryGetValue(type.Key, out var damage) && damage.Value > 0)
+            if (damageableDict[type.Key].Value > 0)
             {
                 return true;
             }
@@ -174,19 +145,6 @@ public sealed class HealingSystem : EntitySystem
 
         return false;
     }
-
-    // HardLight Change Start
-    private DamageSpecifier ScaleDamageSpecifier(DamageSpecifier spec, float scale)
-    {
-        var scaled = new DamageSpecifier();
-        foreach (var kvp in spec.DamageDict)
-        {
-            scaled.DamageDict[kvp.Key] = kvp.Value * scale;
-        }
-        return scaled;
-    }
-
-    // HardLight Change End
 
     // Shitmed Change Start
     private bool IsPartDamaged(EntityUid user, EntityUid target)
@@ -223,7 +181,7 @@ public sealed class HealingSystem : EntitySystem
             args.Handled = true;
     }
 
-    public bool TryHeal(EntityUid uid, EntityUid user, EntityUid target, HealingComponent component) // Far Horizons
+    private bool TryHeal(EntityUid uid, EntityUid user, EntityUid target, HealingComponent component)
     {
         if (!TryComp<DamageableComponent>(target, out var targetDamage))
             return false;

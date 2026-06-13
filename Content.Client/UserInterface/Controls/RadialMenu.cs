@@ -1,10 +1,10 @@
+using Robust.Client.UserInterface;
+using Robust.Client.UserInterface.Controls;
+using Robust.Client.UserInterface.CustomControls;
 using System.Linq;
 using System.Numerics;
 using Content.Shared.Input;
 using Robust.Client.Graphics;
-using Robust.Client.UserInterface;
-using Robust.Client.UserInterface.Controls;
-using Robust.Client.UserInterface.CustomControls;
 using Robust.Shared.Input;
 
 namespace Content.Client.UserInterface.Controls;
@@ -143,8 +143,11 @@ public class RadialMenu : BaseWindow
         return children.First(x => x.Visible);
     }
 
-    public bool TryToMoveToNewLayer(Control newLayer)
+    public bool TryToMoveToNewLayer(string newLayer)
     {
+        if (newLayer == string.Empty)
+            return false;
+
         var currentLayer = GetCurrentActiveLayer();
 
         if (currentLayer == null)
@@ -158,7 +161,7 @@ public class RadialMenu : BaseWindow
                 continue;
 
             // Hide layers which are not of interest
-            if (result == true || child != newLayer)
+            if (result == true || child.Name != newLayer)
             {
                 child.Visible = false;
             }
@@ -181,19 +184,6 @@ public class RadialMenu : BaseWindow
             ContextualButton.SetOnlyStyleClass(BackButtonStyleClass);
 
         return result;
-    }
-
-    public bool TryToMoveToNewLayer(string targetLayerControlName)
-    {
-        foreach (var child in Children)
-        {
-            if (child.Name == targetLayerControlName && child is RadialContainer)
-            {
-                return TryToMoveToNewLayer(child);
-            }
-        }
-
-        return false;
     }
 
     public void ReturnToPreviousLayer()
@@ -228,11 +218,10 @@ public class RadialMenu : BaseWindow
 /// Base class for radial menu buttons. Excludes all actions except clicks and alt-clicks
 /// from interactions.
 /// </summary>
-[Virtual]
-public abstract class RadialMenuButtonBase : BaseButton
+public abstract class RadialMenuTextureButtonBase : BaseButton
 {
     /// <inheritdoc />
-    protected RadialMenuButtonBase()
+    protected RadialMenuTextureButtonBase()
     {
         EnableAllKeybinds = true;
     }
@@ -242,9 +231,7 @@ public abstract class RadialMenuButtonBase : BaseButton
     {
         if (args.Function == EngineKeyFunctions.UIClick
             || args.Function == ContentKeyFunctions.AltActivateItemInWorld)
-        {
             base.KeyBindUp(args);
-        }
     }
 }
 
@@ -255,14 +242,8 @@ public abstract class RadialMenuButtonBase : BaseButton
 /// works only if control have parent, and ActiveContainer property is set.
 /// Also considers all space outside of radial menu buttons as itself for clicking.
 /// </summary>
-public sealed class RadialMenuContextualCentralTextureButton : TextureButton
+public sealed class RadialMenuContextualCentralTextureButton : RadialMenuTextureButtonBase
 {
-    /// <inheritdoc />
-    public RadialMenuContextualCentralTextureButton()
-    {
-        EnableAllKeybinds = true;
-    }
-
     public float InnerRadius { get; set; }
 
     public Vector2? ParentCenter { get; set; }
@@ -279,25 +260,15 @@ public sealed class RadialMenuContextualCentralTextureButton : TextureButton
 
         var innerRadiusSquared = InnerRadius * InnerRadius;
 
-        // comparing to squared values is faster, then making sqrt
+        // comparing to squared values is faster then making sqrt
         return distSquared < innerRadiusSquared;
-    }
-
-    /// <inheritdoc />
-    protected override void KeyBindUp(GUIBoundKeyEventArgs args)
-    {
-        if (args.Function == EngineKeyFunctions.UIClick
-            || args.Function == ContentKeyFunctions.AltActivateItemInWorld)
-        {
-            base.KeyBindUp(args);
-        }
     }
 }
 
 /// <summary>
 /// Menu button for outer area of radial menu (covers everything 'outside').
 /// </summary>
-public sealed class RadialMenuOuterAreaButton : RadialMenuButtonBase
+public sealed class RadialMenuOuterAreaButton : RadialMenuTextureButtonBase
 {
     public float OuterRadius { get; set; }
 
@@ -321,30 +292,25 @@ public sealed class RadialMenuOuterAreaButton : RadialMenuButtonBase
 }
 
 [Virtual]
-public class RadialMenuButton : RadialMenuButtonBase
+public class RadialMenuTextureButton : RadialMenuTextureButtonBase
 {
     /// <summary>
-    /// Upon clicking this button the radial menu will be moved to the layer of this control.
+    /// Upon clicking this button the radial menu will be moved to the named layer
     /// </summary>
-    public Control? TargetLayer { get; set; }
-
-    /// <summary>
-    /// Other way to set navigation to other container, as <see cref="TargetLayer"/>,
-    /// but using <see cref="Control.Name"/> property of target <see cref="RadialContainer"/>.
-    /// </summary>
-    public string? TargetLayerControlName { get; set; }
+    public string TargetLayer { get; set; } = string.Empty;
 
     /// <summary>
     /// A simple texture button that can move the user to a different layer within a radial menu
     /// </summary>
-    public RadialMenuButton()
+    public RadialMenuTextureButton()
     {
+        EnableAllKeybinds = true;
         OnButtonUp += OnClicked;
     }
 
     private void OnClicked(ButtonEventArgs args)
     {
-        if (TargetLayer == null && TargetLayerControlName == null)
+        if (TargetLayer == string.Empty)
             return;
 
         var parent = FindParentMultiLayerContainer(this);
@@ -352,14 +318,7 @@ public class RadialMenuButton : RadialMenuButtonBase
         if (parent == null)
             return;
 
-        if (TargetLayer != null)
-        {
-            parent.TryToMoveToNewLayer(TargetLayer);
-        }
-        else
-        {
-            parent.TryToMoveToNewLayer(TargetLayerControlName!);
-        }
+        parent.TryToMoveToNewLayer(TargetLayer);
     }
 
     private RadialMenu? FindParentMultiLayerContainer(Control control)
@@ -408,7 +367,7 @@ public interface IRadialMenuItemWithSector
 }
 
 [Virtual]
-public class RadialMenuButtonWithSector : RadialMenuButton, IRadialMenuItemWithSector
+public class RadialMenuTextureButtonWithSector : RadialMenuTextureButton, IRadialMenuItemWithSector
 {
     private Vector2[]? _sectorPointsForDrawing;
 
@@ -421,13 +380,13 @@ public class RadialMenuButtonWithSector : RadialMenuButton, IRadialMenuItemWithS
     private bool _isWholeCircle;
     private Vector2? _parentCenter;
 
-    private Color _backgroundColorSrgb = Color.ToSrgb(new Color(70, 73, 102, 128));
-    private Color _hoverBackgroundColorSrgb = Color.ToSrgb(new Color(87, 91, 127, 128));
-    private Color _borderColorSrgb = Color.ToSrgb(new Color(173, 216, 230, 70));
-    private Color _hoverBorderColorSrgb = Color.ToSrgb(new Color(87, 91, 127, 128));
+    private Color _backgroundColorSrgb = Color.ToSrgb(new Color(30, 30, 33, 128));
+    private Color _hoverBackgroundColorSrgb = Color.ToSrgb(new Color(107, 107, 112, 128));
+    private Color _borderColorSrgb = Color.ToSrgb(new Color(255,255,255, 70));
+    private Color _hoverBorderColorSrgb = Color.ToSrgb(new Color(107, 107, 112, 128));
 
     /// <summary>
-    /// Marker, that controls if border of segment should be rendered. Is false by default.
+    /// Marker, that control should render border of segment. Is false by default.
     /// </summary>
     /// <remarks>
     /// By default color of border is same as color of background. Use <see cref="BorderColor"/>
@@ -439,6 +398,13 @@ public class RadialMenuButtonWithSector : RadialMenuButton, IRadialMenuItemWithS
     /// Marker, that control should render background of all sector. Is true by default.
     /// </summary>
     public bool DrawBackground { get; set; } = true;
+
+    /// <summary>
+    /// Marker, that control should render separator lines.
+    /// Separator lines are used to visually separate sector of radial menu items.
+    /// Is true by default
+    /// </summary>
+    public bool DrawSeparators { get; set; } = true;
 
     /// <summary>
     /// Color of background in non-hovered state. Accepts RGB color, works with sRGB for DrawPrimitive internally.
@@ -517,7 +483,7 @@ public class RadialMenuButtonWithSector : RadialMenuButton, IRadialMenuItemWithS
     /// <summary>
     /// A simple texture button that can move the user to a different layer within a radial menu
     /// </summary>
-    public RadialMenuButtonWithSector()
+    public RadialMenuTextureButtonWithSector()
     {
     }
 
@@ -553,7 +519,7 @@ public class RadialMenuButtonWithSector : RadialMenuButton, IRadialMenuItemWithS
             DrawAnnulusSector(handle, containerCenter, _innerRadius * UIScale, _outerRadius * UIScale, angleFrom, angleTo, borderColor, false);
         }
 
-        if (!_isWholeCircle && DrawBorder)
+        if (!_isWholeCircle && DrawSeparators)
         {
             DrawSeparatorLines(handle, containerCenter, _innerRadius * UIScale, _outerRadius * UIScale, angleFrom, angleTo, SeparatorColor);
         }

@@ -26,15 +26,12 @@ public sealed partial class NPCBlackboard : IEnumerable<KeyValuePair<string, obj
         {"InteractRange", SharedInteractionSystem.InteractionRange},
         {"MaximumIdleTime", 7f},
         {MedibotInjectRange, 4f},
-        {WeldbotWeldRange, 4f},
-        {PlantbotServiceRange, 4f},
-        {FillbotPickupRange, 10f},
         {MeleeMissChance, 0.3f},
         {"MeleeRange", 1f},
         {"MinimumIdleTime", 2f},
         {"MovementRangeClose", 0.2f},
         {"MovementRange", 1.5f},
-        {"RangedRange", 30f},
+        {"RangedRange", 10f},
         {"RotateSpeed", float.MaxValue},
         {"VisionRadius", 10f},
         {"AggroVisionRadius", 10f},
@@ -295,10 +292,9 @@ public sealed partial class NPCBlackboard : IEnumerable<KeyValuePair<string, obj
     public const string FollowTarget = "FollowTarget";
     public const string Inventory = "Inventory";
     public const string MedibotInjectRange = "MedibotInjectRange";
-    public const string WeldbotWeldRange = "WeldbotWeldRange";
-    public const string PlantbotServiceRange = "PlantbotServiceRange";
-    public const string FillbotPickupRange = "FillbotPickupRange";
+
     public const string MeleeMissChance = "MeleeMissChance";
+
     public const string Owner = "Owner";
     public const string OwnerCoordinates = "OwnerCoordinates";
     public const string MovementTarget = "MovementTarget";

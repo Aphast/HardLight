@@ -13,14 +13,14 @@ namespace Content.Shared.Actions;
 /// <summary>
 /// Handles storing & spawning action entities in a container.
 /// </summary>
-public sealed class ActionContainerSystem : EntitySystem
+public sealed partial class ActionContainerSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedActionsSystem _actions = default!;
-    [Dependency] private readonly INetManager _netMan = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly SharedMindSystem _mind = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private INetManager _netMan = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedMindSystem _mind = default!;
 
     public override void Initialize()
     {
@@ -88,25 +88,19 @@ public sealed class ActionContainerSystem : EntitySystem
 
         if (Exists(actionId))
         {
-            if (!comp.Container.Contains(actionId.Value)
-                || !_actions.TryGetActionData(actionId, out action)
-                || action.Container != uid)
+            if (!comp.Container.Contains(actionId.Value))
             {
-                Log.Warning($"Recreating stale action {ToPrettyString(actionId.Value)} for {ToPrettyString(uid)} because its container state is invalid.");
-
-                if (Exists(actionId.Value))
-                    Del(actionId.Value);
-
-                actionId = null;
-                action = null;
+                Log.Error($"Action {ToPrettyString(actionId.Value)} is not contained in the expected container {ToPrettyString(uid)}");
+                return false;
             }
-            else
-            {
-                DebugTools.Assert(Transform(actionId.Value).ParentUid == uid);
-                DebugTools.Assert(_container.IsEntityInContainer(actionId.Value));
-                DebugTools.Assert(action.Container == uid);
-                return true;
-            }
+
+            if (!_actions.TryGetActionData(actionId, out action))
+                return false;
+
+            DebugTools.Assert(Transform(actionId.Value).ParentUid == uid);
+            DebugTools.Assert(_container.IsEntityInContainer(actionId.Value));
+            DebugTools.Assert(action.Container == uid);
+            return true;
         }
 
         // Null prototypes are never valid entities, they mean that someone didn't provide a proper prototype.

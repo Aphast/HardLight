@@ -12,6 +12,6 @@ public sealed partial class PortalTimeoutComponent : Component
     /// <summary>
     ///     The portal that was entered. Null if coming from a hand teleporter, etc.
     /// </summary>
-    [ViewVariables, AutoNetworkedField]
+    [ViewVariables, DataField, AutoNetworkedField]
     public EntityUid? EnteredPortal;
 }

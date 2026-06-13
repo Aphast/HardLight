@@ -2,32 +2,23 @@
   categories: [ HideSpawnMenu ]
   parent: BaseBullet
   id: Bullet127x99mm
-  name: bullet (127x99mm anti-material)
+  name: bullet (12.7x99mm anti-material)
   components:
   - type: Projectile
     damage:
       types:
         Piercing: 65
-        Structural: 400 # if you were a wall would you like having a .50 cal anti materiel round go through you (this breaks a normal wall in 3 shots, one mag goes through four normal walls, 10 rounds to take down a reinforced wall)
-
-- type: entity
-  id: Bullet127x99mmImprovised
-  name: bullet (12.7x99mm improvised)
-  parent: BaseBullet
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: Projectile
-    damage:
-      types:
-        Piercing: 27.5
-        Blunt: 27.5
-        Structural: 340
+        Structural: 100
+    armorPenetration: 0.4
+  - type: Tracer
+    color: "#FFFFFFFF"
+    length: 3
 
 - type: entity
   categories: [ HideSpawnMenu ]
   parent: BaseBulletTrigger
   id: Bullet127x99mmExplosive
-  name: bullet (127x99mm high-explosive)
+  name: bullet (12.7x99mm high-explosive)
   components:
   - type: Projectile
     damage:
@@ -35,6 +26,7 @@
         Piercing: 10
         Heat: 8
         Structural: 20
+    armorPenetration: 0.15
   - type: ExplodeOnTrigger
   - type: Explosive
     explosionType: Default
@@ -52,3 +44,6 @@
     layers:
     - state: bullet
       shader: unshaded
+  - type: Tracer
+    color: "#FFFFFFFF"
+    length: 3

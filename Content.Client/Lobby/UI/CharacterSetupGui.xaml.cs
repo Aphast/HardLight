@@ -10,7 +10,6 @@ using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.UserInterface.XAML;
 using Robust.Shared.Configuration;
-using Robust.Shared.Log;
 using Robust.Shared.Prototypes;
 
 namespace Content.Client.Lobby.UI
@@ -21,11 +20,11 @@ namespace Content.Client.Lobby.UI
     [GenerateTypedNameReferences]
     public sealed partial class CharacterSetupGui : Control
     {
-        [Dependency] private readonly IClientPreferencesManager _preferencesManager = default!;
-        [Dependency] private readonly IEntityManager _entManager = default!;
-        [Dependency] private readonly IPrototypeManager _protomanager = default!;
-        [Dependency] private readonly IResourceCache _resourceCache = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
+        [Dependency] private IClientPreferencesManager _preferencesManager = default!;
+        [Dependency] private IEntityManager _entManager = default!;
+        [Dependency] private IPrototypeManager _protomanager = default!;
+        [Dependency] private IResourceCache _resourceCache = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
 
         private readonly Button _createNewCharacterButton;
 
@@ -65,34 +64,6 @@ namespace Content.Client.Lobby.UI
             StatsButton.OnPressed += _ => new PlaytimeStatsWindow().OpenCentered();
 
             _cfg.OnValueChanged(CCVars.SeeOwnNotes, p => AdminRemarksButton.Visible = p, true);
-
-            // HardLight: Self-heal if this GUI is constructed before prefs arrive.
-            // Without this, ReloadCharacterPickers silently early-returns to an empty
-            // list (see the ServerDataLoaded check below) and there is no other trigger
-            // to repaint short of toggling LobbyGui.SwitchState or restarting the client.
-            _preferencesManager.OnServerDataLoaded += OnPreferencesLoaded;
-        }
-
-        private void OnPreferencesLoaded()
-        {
-            if (Disposed)
-                return;
-            // Only repaint if we're actually visible in the tree AND the picker
-            // is currently empty -- avoids redundantly racing with
-            // LobbyUIController.PreferencesDataLoaded, which also triggers a
-            // ReloadCharacterPickers on this same event.
-            if (Parent == null)
-                return;
-            if (Characters.ChildCount > 0)
-                return;
-            ReloadCharacterPickers();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-                _preferencesManager.OnServerDataLoaded -= OnPreferencesLoaded;
-            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -120,37 +91,22 @@ namespace Content.Client.Lobby.UI
             foreach (var (slot, character) in _preferencesManager.Preferences!.Characters)
             {
                 numberOfFullSlots++;
-
-                // HardLight: isolate each picker construction. If one profile is corrupt
-                // (e.g. invalid species/loadout/company prototype) and CharacterPickerButton's
-                // constructor throws, we used to lose every subsequent slot, leaving only the
-                // first character visible. Skip the broken slot instead.
-                CharacterPickerButton characterPickerButton;
-                try
-                {
-                    characterPickerButton = new CharacterPickerButton(_entManager,
-                        _protomanager,
-                        characterButtonsGroup,
-                        character,
-                        slot == selectedSlot);
-                }
-                catch (Exception e)
-                {
-                    Logger.GetSawmill("lobby").Error($"Failed to build character picker for slot {slot}: {e}");
-                    continue;
-                }
+                var characterPickerButton = new CharacterPickerButton(_entManager,
+                    _protomanager,
+                    characterButtonsGroup,
+                    character,
+                    slot == selectedSlot);
 
                 Characters.AddChild(characterPickerButton);
 
-                var capturedSlot = slot;
                 characterPickerButton.OnPressed += args =>
                 {
-                    SelectCharacter?.Invoke(capturedSlot);
+                    SelectCharacter?.Invoke(slot);
                 };
 
                 characterPickerButton.OnDeletePressed += () =>
                 {
-                    DeleteCharacter?.Invoke(capturedSlot);
+                    DeleteCharacter?.Invoke(slot);
                 };
             }
 

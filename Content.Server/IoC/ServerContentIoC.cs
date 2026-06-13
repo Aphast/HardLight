@@ -1,4 +1,5 @@
-using Content.Server._Common.Consent;
+using Content.Server._Mono.Company; // Mono
+using Content.Server._Mono.MonoCoins; // Mono
 using Content.Server._NF.Auth;
 using Content.Server.Administration;
 using Content.Server.Administration.Logs;
@@ -9,13 +10,13 @@ using Content.Server.Chat.Managers;
 using Content.Server.Connection;
 using Content.Server.Database;
 using Content.Server.Discord;
+using Content.Server.Discord.DiscordLink;
 using Content.Server.Discord.WebhookMessages;
 using Content.Server.EUI;
 using Content.Server.GhostKick;
 using Content.Server.Info;
 using Content.Server.Mapping;
 using Content.Server.Maps;
-using Content.Server.MoMMI;
 using Content.Server.NodeContainer.NodeGroups;
 using Content.Server.Players.JobWhitelist;
 using Content.Server.Players.PlayTimeTracking;
@@ -31,8 +32,6 @@ using Content.Shared.Chat;
 using Content.Shared.Kitchen;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Players.RateLimiting;
-using Content.Server._FS.DiscordAuth; // Floofstation
-using Content.Server.Shuttles;
 
 namespace Content.Server.IoC
 {
@@ -43,8 +42,6 @@ namespace Content.Server.IoC
             IoCManager.Register<IChatManager, ChatManager>();
             IoCManager.Register<ISharedChatManager, ChatManager>();
             IoCManager.Register<IChatSanitizationManager, ChatSanitizationManager>();
-            IoCManager.Register<IMoMMILink, MoMMILink>();
-            IoCManager.Register<IServerConsentManager, ServerConsentManager>(); // Floofstation
             IoCManager.Register<IServerPreferencesManager, ServerPreferencesManager>();
             IoCManager.Register<IServerDbManager, ServerDbManager>();
             IoCManager.Register<RecipeManager, RecipeManager>();
@@ -83,8 +80,11 @@ namespace Content.Server.IoC
             IoCManager.Register<MultiServerKickManager>();
             IoCManager.Register<CVarControlManager>();
             IoCManager.Register<MiniAuthManager>(); //Frontier
-            IoCManager.Register<DiscordAuthManager>(); //Floofstation
-            IoCManager.Register<ServerIdentityService>();
+            IoCManager.Register<CompanyManager>(); // Mono
+            IoCManager.Register<MonoCoinsManager>(); // Mono
+
+            IoCManager.Register<DiscordLink>();
+            IoCManager.Register<DiscordChatLink>();
         }
     }
 }

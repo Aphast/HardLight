@@ -2,6 +2,7 @@ using Content.Server.Storage.Components;
 using Content.Shared.Materials;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Timing;
+using Content.Shared.Whitelist; // Mono
 using Content.Shared.Examine;   // Frontier
 using Content.Shared.Hands.Components;  // Frontier
 using Content.Shared.Verbs;     // Frontier
@@ -12,37 +13,31 @@ namespace Content.Shared.Storage.EntitySystems;
 /// <summary>
 /// <see cref="MaterialReclaimerMagnetPickupComponent"/>
 /// </summary>
-public sealed class MaterialReclaimerMagnetPickupSystem : EntitySystem
+public sealed partial class MaterialReclaimerMagnetPickupSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly SharedMaterialReclaimerSystem _storage = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private EntityLookupSystem _lookup = default!;
+    [Dependency] private SharedMaterialReclaimerSystem _storage = default!;
 
     private static readonly TimeSpan ScanDelay = TimeSpan.FromSeconds(1);
-    public TimeSpan NextScan = TimeSpan.Zero;
+    private const int MaxEntitiesToInsert = 15; // Mono
     private EntityQuery<PhysicsComponent> _physicsQuery;
 
     public override void Initialize()
     {
         base.Initialize();
         _physicsQuery = GetEntityQuery<PhysicsComponent>();
-        //SubscribeLocalEvent<MaterialReclaimerMagnetPickupComponent, MapInitEvent>(OnMagnetMapInit); // Mono
-        //SubscribeLocalEvent<MaterialReclaimerMagnetPickupComponent, EntityUnpausedEvent>(OnMagnetUnpaused); // Mono
+        SubscribeLocalEvent<MaterialReclaimerMagnetPickupComponent, MapInitEvent>(OnMagnetMapInit);
         SubscribeLocalEvent<MaterialReclaimerMagnetPickupComponent, ExaminedEvent>(OnExamined);  // Frontier
         SubscribeLocalEvent<MaterialReclaimerMagnetPickupComponent, GetVerbsEvent<AlternativeVerb>>(AddToggleMagnetVerb);    // Frontier
-        NextScan = _timing.CurTime + ScanDelay;
     }
-    /*
-    private void OnMagnetUnpaused(EntityUid uid, MaterialReclaimerMagnetPickupComponent component, ref EntityUnpausedEvent args)
-    {
-        component.NextScan += args.PausedTime;
-    }
+
 
     private void OnMagnetMapInit(EntityUid uid, MaterialReclaimerMagnetPickupComponent component, MapInitEvent args)
     {
-        component.NextScan = _timing.CurTime + TimeSpan.FromSeconds(1); // Need to add 1 sec to fix a weird time bug with it that make it never start the magnet
+        component.NextScan = _timing.CurTime;
     }
-    */ // Mono
+
     // Frontier, used to add the magnet toggle to the context menu
     private void AddToggleMagnetVerb(EntityUid uid, MaterialReclaimerMagnetPickupComponent component, GetVerbsEvent<AlternativeVerb> args)
     {
@@ -78,6 +73,7 @@ public sealed class MaterialReclaimerMagnetPickupSystem : EntitySystem
     // Frontier, used to toggle the magnet on the ore bag/box
     public bool ToggleMagnet(EntityUid uid, MaterialReclaimerMagnetPickupComponent comp)
     {
+        var query = EntityQueryEnumerator<MaterialReclaimerMagnetPickupComponent>();
         comp.MagnetEnabled = !comp.MagnetEnabled;
 
         return comp.MagnetEnabled;
@@ -86,33 +82,38 @@ public sealed class MaterialReclaimerMagnetPickupSystem : EntitySystem
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
+        var query = EntityQueryEnumerator<MaterialReclaimerMagnetPickupComponent, MaterialReclaimerComponent, TransformComponent>();
         var currentTime = _timing.CurTime;
 
-        if (currentTime < NextScan)
-            return;
-
-        NextScan += ScanDelay;
-
-        var query = EntityQueryEnumerator<MaterialReclaimerMagnetPickupComponent, MaterialReclaimerComponent, TransformComponent>();
         while (query.MoveNext(out var uid, out var comp, out var storage, out var xform))
         {
+            if (comp.NextScan > currentTime) // Reversed - Mono
+                continue;
+
+            comp.NextScan = currentTime + ScanDelay; // Mono: no need to rerun if built late in-round
 
             // Frontier - magnet disabled
             if (!comp.MagnetEnabled)
                 continue;
 
             var parentUid = xform.ParentUid;
+            var count = 0; // Mono
 
             foreach (var near in _lookup.GetEntitiesInRange(uid, comp.Range, LookupFlags.Dynamic | LookupFlags.Sundries))
             {
-                if (!_physicsQuery.TryGetComponent(near, out var physics) || physics.BodyStatus != BodyStatus.OnGround)
-                    continue;
+                if (count >= MaxEntitiesToInsert) // Mono
+                    break;
 
                 if (near == parentUid)
                     continue;
 
+                if (!_physicsQuery.TryGetComponent(near, out var physics) || physics.BodyStatus != BodyStatus.OnGround)
+                    continue;
+
                 if (!_storage.TryStartProcessItem(uid, near))
                     continue;
+
+                count++; // Mono
             }
         }
     }

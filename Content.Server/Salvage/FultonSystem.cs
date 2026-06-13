@@ -1,9 +1,5 @@
 using System.Numerics;
 using Content.Shared.Salvage.Fulton;
-using Content.Shared._NF.Implants.Components;
-using Content.Shared.Implants.Components;
-using Content.Shared._HL.Rescue.Rescue;
-using Content.Server.Radio.EntitySystems;
 using Robust.Shared.Containers;
 using Robust.Shared.Map;
 using Robust.Shared.Random;
@@ -13,9 +9,9 @@ namespace Content.Server.Salvage;
 /// <summary>
 /// Transports attached entities to the linked beacon after a timer has elapsed.
 /// </summary>
-public sealed class FultonSystem : SharedFultonSystem
+public sealed partial class FultonSystem : SharedFultonSystem
 {
-    [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private IRobustRandom _random = default!;
 
     public override void Initialize()
     {
@@ -57,17 +53,12 @@ public sealed class FultonSystem : SharedFultonSystem
 
     private void Fulton(EntityUid uid, FultonedComponent component)
     {
-        if (!TryComp(uid, out TransformComponent? xform))
-        {
-            RemCompDeferred<FultonedComponent>(uid);
-            return;
-        }
-
         if (!Deleted(component.Beacon) &&
             TryComp(component.Beacon, out TransformComponent? beaconXform) &&
             !Container.IsEntityOrParentInContainer(component.Beacon.Value, xform: beaconXform) &&
             CanFulton(uid))
         {
+            var xform = Transform(uid);
             var metadata = MetaData(uid);
             var oldCoords = xform.Coordinates;
             var offset = _random.NextVector2(1.5f);

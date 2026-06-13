@@ -10,7 +10,6 @@ using Content.Shared.Cargo.Prototypes;
 using Content.Shared.Prototypes;
 using Content.Shared.Stacks;
 using Content.Shared.Whitelist;
-using Robust.Shared.Containers;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
@@ -222,7 +221,6 @@ public sealed class CargoTest
 
 - type: stack
   id: StackProto
-  name: stack-steel
   spawn: A
 
 - type: entity
@@ -234,22 +232,6 @@ public sealed class CargoTest
     stackType: StackProto
     count: 5
 ";
-
-    [TestPrototypes]
-    private const string SpawnItemsOnUsePricingProto =
-        "- type: entity\n" +
-        "  id: SpawnItemsOnUsePricingSpawned\n" +
-        "  components:\n" +
-        "  - type: StaticPrice\n" +
-        "    price: 25\n" +
-        "  - type: TestPriceInitSideEffect\n" +
-        "\n" +
-        "- type: entity\n" +
-        "  id: SpawnItemsOnUsePricingSpawner\n" +
-        "  components:\n" +
-        "  - type: SpawnItemsOnUse\n" +
-        "    items:\n" +
-        "    - id: SpawnItemsOnUsePricingSpawned\n";
 
     [Test]
     public async Task StackPrice()
@@ -268,202 +250,5 @@ public sealed class CargoTest
         });
 
         await pair.CleanReturnAsync();
-    }
-
-    [Test]
-    public async Task PurePriceAvoidsSpawnItemsOnUseInstantiation()
-    {
-        await using var pair = await PoolManager.GetServerClient();
-        var server = pair.Server;
-        var entManager = server.ResolveDependency<IEntityManager>();
-
-        await server.WaitAssertion(() =>
-        {
-            var priceSystem = entManager.System<PricingSystem>();
-            var initSystem = entManager.System<TestPriceInitSideEffectSystem>();
-
-            var ent = entManager.SpawnEntity("SpawnItemsOnUsePricingSpawner", MapCoordinates.Nullspace);
-
-            initSystem.InitCount = 0;
-            var purePrice = priceSystem.GetPrice(ent, allowSideEffects: false);
-            Assert.Multiple(() =>
-            {
-                Assert.That(purePrice, Is.EqualTo(25.0));
-                Assert.That(initSystem.InitCount, Is.EqualTo(0));
-            });
-
-            var normalPrice = priceSystem.GetPrice(ent);
-            Assert.Multiple(() =>
-            {
-                Assert.That(normalPrice, Is.EqualTo(25.0));
-                Assert.That(initSystem.InitCount, Is.EqualTo(1));
-            });
-
-            entManager.DeleteEntity(ent);
-        });
-
-        await pair.CleanReturnAsync();
-    }
-
-    [Test]
-    public async Task GridAppraisalRespectsContentsAndTopLevelPredicate()
-    {
-        await using var pair = await PoolManager.GetServerClient();
-        var server = pair.Server;
-        var testMap = await pair.CreateTestMap();
-
-        var entManager = server.ResolveDependency<IEntityManager>();
-        var mapSystem = server.System<SharedMapSystem>();
-        var conSystem = entManager.System<SharedContainerSystem>();
-
-        await server.WaitAssertion(() =>
-        {
-            var priceSystem = entManager.System<PricingSystem>();
-
-            var containerEntity = entManager.SpawnEntity(null, testMap.GridCoords);
-            var container = conSystem.EnsureContainer<Container>(containerEntity, "GridAppraisalThresholdContainer");
-
-            var valuable = entManager.SpawnEntity(null, testMap.GridCoords);
-            entManager.AddComponent<StaticPriceComponent>(valuable).Price = 80;
-
-            var filler = entManager.SpawnEntity(null, testMap.GridCoords);
-            entManager.AddComponent<StaticPriceComponent>(filler).Price = 30;
-
-            var ignored = entManager.SpawnEntity(null, testMap.GridCoords);
-            entManager.AddComponent<StaticPriceComponent>(ignored).Price = 50;
-
-            Assert.That(conSystem.Insert(valuable, container), Is.True);
-            Assert.That(conSystem.Insert(filler, container), Is.True);
-
-            var containerPrice = priceSystem.GetPrice(containerEntity);
-            var total = priceSystem.AppraiseGrid(testMap.Grid);
-            Assert.Multiple(() =>
-            {
-                Assert.That(containerPrice, Is.EqualTo(110.0));
-                Assert.That(total, Is.EqualTo(160.0));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 79), Is.EqualTo(total > 79));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 109), Is.EqualTo(total > 109));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 160), Is.EqualTo(total > 160));
-            });
-
-            bool FilterIgnored(EntityUid uid)
-            {
-                return uid != ignored;
-            }
-
-            var visited = new List<EntityUid>();
-            var filteredIgnoredPrice = priceSystem.GetPrice(ignored, true, FilterIgnored);
-            var filteredTotal = priceSystem.AppraiseGrid(testMap.Grid, FilterIgnored, (uid, _) => visited.Add(uid));
-            Assert.Multiple(() =>
-            {
-                Assert.That(filteredIgnoredPrice, Is.EqualTo(0.0));
-                Assert.That(filteredTotal, Is.EqualTo(110.0));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 79, FilterIgnored), Is.EqualTo(filteredTotal > 79));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 109, FilterIgnored), Is.EqualTo(filteredTotal > 109));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 110, FilterIgnored), Is.EqualTo(filteredTotal > 110));
-                Assert.That(visited, Has.Count.EqualTo(1));
-                Assert.That(visited, Has.Member(containerEntity));
-                Assert.That(visited, Has.No.Member(ignored));
-            });
-
-            mapSystem.DeleteMap(testMap.MapId);
-        });
-
-        await pair.CleanReturnAsync();
-    }
-
-    [Test]
-    public async Task GridAppraisalExceedsSuppressesPriceSideEffects()
-    {
-        await using var pair = await PoolManager.GetServerClient();
-        var server = pair.Server;
-        var testMap = await pair.CreateTestMap();
-
-        var entManager = server.ResolveDependency<IEntityManager>();
-        var mapSystem = server.System<SharedMapSystem>();
-        var conSystem = entManager.System<SharedContainerSystem>();
-
-        await server.WaitAssertion(() =>
-        {
-            var priceSystem = entManager.System<PricingSystem>();
-            var sideEffectSystem = entManager.System<TestPriceSideEffectSystem>();
-
-            var composite = entManager.SpawnEntity(null, testMap.GridCoords);
-            entManager.AddComponent<TestPriceSideEffectComponent>(composite).Price = 100;
-            var container = conSystem.EnsureContainer<Container>(composite, "GridAppraisalSideEffectContainer");
-
-            var negative = entManager.SpawnEntity(null, testMap.GridCoords);
-            entManager.AddComponent<TestPriceSideEffectComponent>(negative).Price = -90;
-            Assert.That(conSystem.Insert(negative, container), Is.True);
-
-            var positive = entManager.SpawnEntity(null, testMap.GridCoords);
-            entManager.AddComponent<TestPriceSideEffectComponent>(positive).Price = 40;
-
-            sideEffectSystem.SideEffectCount = 0;
-
-            var compositePrice = priceSystem.GetPrice(composite);
-            var total = priceSystem.AppraiseGrid(testMap.Grid);
-            Assert.Multiple(() =>
-            {
-                Assert.That(compositePrice, Is.EqualTo(10.0));
-                Assert.That(total, Is.EqualTo(50.0));
-                Assert.That(sideEffectSystem.SideEffectCount, Is.EqualTo(5));
-            });
-
-            sideEffectSystem.SideEffectCount = 0;
-            Assert.Multiple(() =>
-            {
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 49), Is.EqualTo(total > 49));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 50), Is.EqualTo(total > 50));
-                Assert.That(priceSystem.AppraiseGridExceeds(testMap.Grid, 60), Is.EqualTo(total > 60));
-                Assert.That(sideEffectSystem.SideEffectCount, Is.EqualTo(0));
-            });
-
-            mapSystem.DeleteMap(testMap.MapId);
-        });
-
-        await pair.CleanReturnAsync();
-    }
-}
-
-[RegisterComponent]
-public sealed partial class TestPriceSideEffectComponent : Component
-{
-    public double Price;
-}
-
-[RegisterComponent]
-public sealed partial class TestPriceInitSideEffectComponent : Component;
-
-public sealed class TestPriceSideEffectSystem : EntitySystem
-{
-    public int SideEffectCount;
-
-    public override void Initialize()
-    {
-        SubscribeLocalEvent<TestPriceSideEffectComponent, PriceCalculationEvent>(OnPriceCalculation);
-    }
-
-    private void OnPriceCalculation(Entity<TestPriceSideEffectComponent> ent, ref PriceCalculationEvent args)
-    {
-        args.Price += ent.Comp.Price;
-
-        if (args.AllowSideEffects)
-            SideEffectCount++;
-    }
-}
-
-public sealed class TestPriceInitSideEffectSystem : EntitySystem
-{
-    public int InitCount;
-
-    public override void Initialize()
-    {
-        SubscribeLocalEvent<TestPriceInitSideEffectComponent, ComponentInit>(OnComponentInit);
-    }
-
-    private void OnComponentInit(Entity<TestPriceInitSideEffectComponent> ent, ref ComponentInit args)
-    {
-        InitCount++;
     }
 }

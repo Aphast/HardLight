@@ -10,10 +10,10 @@ using Robust.Client.Timing;
 
 namespace Content.Client.Wieldable;
 
-public sealed class WieldableSystem : SharedWieldableSystem
+public sealed partial class WieldableSystem : SharedWieldableSystem
 {
-    [Dependency] private readonly EyeCursorOffsetSystem _eyeOffset = default!;
-    [Dependency] private readonly IClientGameTiming _gameTiming = default!;
+    [Dependency] private EyeCursorOffsetSystem _eyeOffset = default!;
+    [Dependency] private IClientGameTiming _gameTiming = default!;
 
     public override void Initialize()
     {
@@ -29,10 +29,7 @@ public sealed class WieldableSystem : SharedWieldableSystem
             return;
 
         if (_gameTiming.IsFirstTimePredicted)
-        {
             cursorOffsetComp.CurrentPosition = Vector2.Zero;
-            cursorOffsetComp.TargetPosition = Vector2.Zero;
-        }
     }
 
     public void OnGetEyeOffset(Entity<CursorOffsetRequiresWieldComponent> entity, ref HeldRelayedEvent<GetEyeOffsetRelayedEvent> args)
@@ -41,9 +38,6 @@ public sealed class WieldableSystem : SharedWieldableSystem
             return;
 
         if (!wieldableComp.Wielded)
-            return;
-
-        if (TryComp(entity.Owner, out EyeCursorOffsetComponent? eyeOffsetComp) && !eyeOffsetComp.Enabled)
             return;
 
         var offset = _eyeOffset.OffsetAfterMouse(entity.Owner, null);

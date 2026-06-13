@@ -9,12 +9,6 @@
   "states": [
     {
       "name": "xeno_toxic"
-    },
-	{
-      "name": "xeno_toxic_large"
-    },
-	{
-      "name": "xeno_toxic_massive"
     }
   ]
 }

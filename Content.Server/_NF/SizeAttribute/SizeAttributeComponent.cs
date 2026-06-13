@@ -11,8 +11,5 @@ namespace Content.Server.SizeAttribute
 
         [DataField("tall")]
         public bool Tall = false;
-
-        // HardLight: Prevent duplicate multipliers when either paired component initializes later.
-        public bool Applied;
     }
 }

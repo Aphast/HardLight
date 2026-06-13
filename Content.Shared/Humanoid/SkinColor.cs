@@ -1,6 +1,4 @@
-using System.Security.Cryptography;
 using System.Numerics;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace Content.Shared.Humanoid;
 
@@ -15,16 +13,18 @@ public static class SkinColor
     public const float MaxFeathersHue = 174f / 360;
     public const float MinFeathersSaturation = 20f / 100;
     public const float MaxFeathersSaturation = 88f / 100;
-    public const float MinFeathersValue = 36f / 100;
-    public const float MaxFeathersValue = 55f / 100;
 
-    // Einstein Engines - Tajaran
-    public const float MinAnimalFurHue = 0f / 360; //Floof - widened customization
-    public const float MaxAnimalFurHue = 360f / 360; //Floof - widened customization
+        // Goobstation Section Start - Tajaran
+    public const float MinAnimalFurHue = 20f / 360;
+    public const float MaxAnimalFurHue = 45f / 360;
     public const float MinAnimalFurSaturation = 0f / 100;
     public const float MaxAnimalFurSaturation = 100f / 100;
     public const float MinAnimalFurValue = 0f / 100;
     public const float MaxAnimalFurValue = 100f / 100;
+    // Goobstation Section End - Tajaran
+
+    public const float MinFeathersValue = 36f / 100;
+    public const float MaxFeathersValue = 55f / 100;
 
     public static Color ValidHumanSkinTone => Color.FromHsv(new Vector4(0.07f, 0.2f, 1f, 1f));
 
@@ -213,12 +213,13 @@ public static class SkinColor
         return true;
     }
 
+/// Goobstation Section Start - Tajaran
     /// <summary>
     ///     Converts a Color proportionally to the allowed animal fur color range.
     ///     Will NOT preserve the specific input color even if it is within the allowed animal fur color range.
     /// </summary>
     /// <param name="color">Color to convert</param>
-    /// <returns>Vox feather coloration</returns>
+    /// <returns>Animal fur coloration</returns>
     public static Color ProportionalAnimalFurColor(Color color)
     {
         var newColor = Color.ToHsv(color);
@@ -266,6 +267,7 @@ public static class SkinColor
 
         return true;
     }
+    /// Goobstation Section End - Tajaran
 
     /// <summary>
     ///     This takes in a color, and returns a color guaranteed to be above MinHuesLightness
@@ -297,9 +299,7 @@ public static class SkinColor
             HumanoidSkinColor.TintedHues => VerifyTintedHues(color),
             HumanoidSkinColor.Hues => VerifyHues(color),
             HumanoidSkinColor.VoxFeathers => VerifyVoxFeathers(color),
-            HumanoidSkinColor.ShelegToned => VerifyShelegSkinTone(color), // Frontier: Sheleg
-            HumanoidSkinColor.AnimalFur => VerifyAnimalFur(color), // Einsetin Engines - Tajaran
-            HumanoidSkinColor.AnyColour => true, // Hardlight
+            HumanoidSkinColor.AnimalFur => VerifyAnimalFur(color),
             _ => false,
         };
     }
@@ -312,93 +312,10 @@ public static class SkinColor
             HumanoidSkinColor.TintedHues => ValidTintedHuesSkinTone(color),
             HumanoidSkinColor.Hues => MakeHueValid(color),
             HumanoidSkinColor.VoxFeathers => ClosestVoxColor(color),
-            HumanoidSkinColor.ShelegToned => ValidShelegSkinTone, // Frontier: Sheleg
-            HumanoidSkinColor.AnimalFur => ClosestAnimalFurColor(color), // Einsetin Engines - Tajaran
-            HumanoidSkinColor.AnyColour => color, // Hardlight
+            HumanoidSkinColor.AnimalFur => ClosestAnimalFurColor(color),
             _ => color
         };
     }
-
-    // Frontier: Sheleg
-    public static Color ValidShelegSkinTone => Color.FromHsv(new Vector4(210f / 360f, 0.5f, 0.8f, 1f));
-
-    public static Color ShelegSkinTone(int tone)
-    {
-        // 0 - 100, 0 being light blue and 100 being dark blue
-        // HSV based
-        //
-        // 0 - 20 changes the hue
-        // 20 - 100 changes the value
-        // 0 is 220 - 50 - 100
-        // 20 is 210 - 50 - 100
-        // 100 is 210 - 100 - 20
-
-        tone = Math.Clamp(tone, 0, 100);
-
-        var rangeOffset = tone - 20;
-
-        float hue = 210;
-        float sat = 50;
-        float val = 100;
-
-        if (rangeOffset <= 0)
-        {
-            hue += Math.Abs(rangeOffset) / 2; // Slight hue shift for lighter tones
-        }
-        else
-        {
-            sat += rangeOffset / 2;
-            val -= rangeOffset;
-        }
-
-        var color = Color.FromHsv(new Vector4(hue / 360, sat / 100, val / 100, 1.0f));
-
-        return color;
-    }
-
-    public static float ShelegSkinToneFromColor(Color color)
-    {
-        var hsv = Color.ToHsv(color);
-        // check for hue/value first, if hue is lower than this percentage
-        // and value is 1.0
-        // then it'll be hue
-        if (Math.Clamp(hsv.X, 210f / 360f, 220f / 360f) > 210f / 360f
-            && hsv.Z == 1.0)
-        {
-            return Math.Abs(220 - (hsv.X * 360));
-        }
-        // otherwise it'll directly be the saturation
-        else
-        {
-            return hsv.Y * 100;
-        }
-    }
-
-    public static bool VerifyShelegSkinTone(Color color)
-    {
-        var colorValues = Color.ToHsv(color);
-
-        var hue = Math.Round(colorValues.X * 360f);
-        var sat = Math.Round(colorValues.Y * 100f);
-        var val = Math.Round(colorValues.Z * 100f);
-        // rangeOffset makes it so that this value
-        // is 210 <= hue <= 220
-        if (hue < 210 || hue > 220)
-        {
-            return false;
-        }
-
-        // rangeOffset makes it so that these two values
-        // are 50 <= sat <= 100 and 20 <= val <= 100
-        // where saturation increases to 100 and value decreases to 20
-        if (sat < 50 || val < 20)
-        {
-            return false;
-        }
-
-        return true;
-    }
-    // End Frontier
 }
 
 public enum HumanoidSkinColor : byte
@@ -407,7 +324,5 @@ public enum HumanoidSkinColor : byte
     Hues,
     VoxFeathers, // Vox feathers are limited to a specific color range
     TintedHues, //This gives a color tint to a humanoid's skin (10% saturation with full hue range).
-    ShelegToned, // Frontier: Like human toned, but with a different color range for blue
-    AnimalFur, // Einstein Engines - limits coloration to more or less what earthen animals might have
-    AnyColour, // Hardlight
+    AnimalFur, // Goob - Tajaran
 }

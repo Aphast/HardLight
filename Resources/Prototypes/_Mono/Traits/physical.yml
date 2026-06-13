@@ -3,11 +3,9 @@
   name: trait-prybar-prosthetics-name
   description: trait-prybar-prosthetics-desc
   category: Physical
-  cost: 5
+  cost: 2
   components:
-    - type: Prying
-      speedModifier: 0.2
-      pryPowered: true
+  - type: PrybarProsthetics
 
 - type: trait
   id: Vigor
@@ -33,6 +31,7 @@
   - Vigor
   speciesBlacklist:
   - Felinid
+  - Tajaran
   blacklist:
     components:
     - BorgChassis
@@ -104,13 +103,13 @@
   name: trait-thieving-name
   description: trait-thieving-desc
   category: Physical
-  cost: 5
-  ##speciesBlacklist:
-  ##- Felinid
+  cost: 2
+  speciesBlacklist:
+  - Felinid
   components:
   - type: Thieving
-    stealthy: true
-    timeMultiplier: 0.67
+    stealthy: false
+    timeMultiplier: 0.5
     identifyHidden: true
 
 - type: trait
@@ -118,7 +117,7 @@
   name: trait-bionic-legs-name
   description: trait-bionic-legs-desc
   category: Physical
-  cost: 6 # Hardlight, change from 2 to 4
+  cost: 2
   components:
   - type: BionicLegs
 
@@ -136,7 +135,8 @@
     components:
     - BorgChassis
   components:
-  - type: OsteogenesisImperfecta # HardLight
+  - type: GlassJaw
+    critDecrease: 50
 
 - type: trait
   id: Hemophilia
@@ -185,9 +185,6 @@
       productionLength: 2
       entityProduced: MaterialWebSilk1
       hungerCost: 4
-    - type: Tag # Hardlight
-      tags:
-        - SpiderCraft
 
 - type: trait
   id: Feeble
@@ -199,6 +196,7 @@
    - Steadfast
   speciesBlacklist:
    - Felinid
+   - Tajaran
   components:
     - type: SlowOnDamage
       speedModifierThresholds:
@@ -210,28 +208,13 @@
   name: trait-trap-avoider-name
   description: trait-trap-avoider-desc
   category: Physical
-  cost: 5
+  cost: 3
   speciesBlacklist:
     - Felinid
+    - Tajaran
     - Harpy
   components:
     - type: TrapAvoider
-
-
-- type: trait
-  id: PsionicallyGifted
-  name: trait-psionically-gifted-name
-  description: trait-psionically-gifted-desc
-  category: Physical
-  cost: 6
-  speciesBlacklist:
-    - IPC
-  blacklist: # HardLight
-    components:
-    - BorgChassis
-  components:
-    - type: PsionicBonusChance
-      flatBonus: 1
 
 - type: trait
   id: SelfAware
@@ -253,7 +236,6 @@
   speciesBlacklist:
   - IPC
   - Dwarf
-  - Synth # HardLight
   blacklist:
     components:
     - BorgChassis
@@ -299,6 +281,7 @@
   - Feeble
   speciesBlacklist:
   - Felinid
+  - Tajaran
   blacklist:
     components:
     - BorgChassis
@@ -314,8 +297,6 @@
   description: trait-dermal-armor-desc
   category: Physical
   cost: 6
-  mutuallyExclusiveTraits:
-  - PoolToy
   components:
   - type: DamageProtectionBuff
     modifiers:
@@ -324,26 +305,45 @@
         coefficients:
           Shock: 1.25
         flatReductions:
-          Blunt: 1.5
-          Slash: 1.5
-          Piercing: 1.5
+          Blunt: 3.5
+          Slash: 3.5
+          Piercing: 3.5
+          
+- type: trait
+  id: HardenedLymphocytes
+  name: trait-hardened-lymphocytes-name
+  description: trait-hardened-lymphocytes-desc
+  category: Physical
+  cost: 4
+  speciesBlacklist:
+  - IPC
+  blacklist:
+    components:
+    - BorgChassis
+  components:
+  - type: DamageProtectionBuff
+    modifiers:
+      dermal:
+        id: HardenedLymphocytesTrait
+        flatReductions:
+          Radiation: 1
 
-#- type: trait
-#  id: Ironman
-#  name: trait-ironman-name
-#  description: trait-ironman-desc
-#  category: Physical
-#  cost: -5 # This shit was FREE for factions practically
-#  components:
-#  - type: Ironman
-#  traitGear: SpaceCash10000
+- type: trait
+  id: Ironman
+  name: trait-ironman-name
+  description: trait-ironman-desc
+  category: Physical
+  cost: -5 # This shit was FREE for factions practically
+  components:
+  - type: Ironman
+  traitGear: ShipVoucherFrontierIronMan
 
 - type: trait
   id: TemperatureTolerance
   name: trait-temperature-tolerance-name
   description: trait-temperature-tolerance-desc
   category: Physical
-  cost: 2
+  cost: 1
   components:
   - type: TemperatureProtection
     coolingCoefficient: 0.6
@@ -353,7 +353,7 @@
   name: trait-alcohol-tolerance-name
   description: trait-alcohol-tolerance-desc
   category: Physical
-  cost: 2
+  cost: 1
   mutuallyExclusiveTraits:
   - LightweightDrunk
   - LiquorLifeline
@@ -372,22 +372,55 @@
   name: trait-platelet-factories-name
   description: trait-platelet-factories-desc
   category: Physical
-  cost: 10
+  cost: 6
   mutuallyExclusiveTraits:
   - Hemophilia
-  - UnnaturalRegen
-  - NaturalRegen
-  - ShadekinRegeneration
-  - ExtremeShadekinRegeneration
   speciesBlacklist:
   - IPC
-  - Avali
-  - Synth # HardLight
   blacklist:
     components:
     - BorgChassis
   components:
   - type: PlateletFactories
     intervalSeconds: 1
-    healPerSecond: .3
+    damagePerInterval:
+      groups:
+        Brute: -1.5
+        Burn: -2
     critMultiplier: .25
+
+- type: trait
+  id: NaniteRepairDrones
+  name: trait-nanite-repair-drones-name
+  description: trait-nanite-repair-drones-desc
+  category: Physical
+  cost: 8
+  speciesBlacklist:
+  - Human
+  - Chitinid
+  - Oni
+  - Vulpkanin
+  - Vox
+  - Diona
+  - Moth
+  - Goblin
+  - Arachnid
+  - Resomi
+  - Harpy
+  - Reptilian
+  - Hydrakin
+  - Rodentia
+  - Dwarf
+  - SlimePerson
+  - Felinid
+  - Tajaran
+  blacklist:
+    components:
+    - BorgChassis
+  components:
+  - type: PlateletFactories
+    intervalSeconds: 1
+    damagePerInterval:
+      groups:
+        Brute: -1.5
+        Burn: -2

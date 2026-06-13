@@ -1,4 +1,6 @@
-﻿using System.Linq;
+using System.Linq;
+using Content.Server._Mono.Worldgen.Components;
+using Content.Server.Power.Components;
 using Content.Server.Worldgen.Components;
 using Content.Shared.Ghost;
 using Content.Shared.Mind.Components;
@@ -7,27 +9,29 @@ using Robust.Server.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Physics.Systems;
 using Robust.Shared.Timing;
-using Robust.Shared.Configuration; // HL: for IConfigurationManager
 
+// Mono maint note - this system no longer exists upstream and // Mono comments are not a requirement for that reason
 namespace Content.Server.Worldgen.Systems;
 
 /// <summary>
 ///     This handles putting together chunk entities and notifying them about important changes.
 /// </summary>
-public sealed class WorldControllerSystem : EntitySystem
+public sealed partial class WorldControllerSystem : EntitySystem
 {
-    [Dependency] private readonly TransformSystem _xformSys = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly ILogManager _logManager = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!; // VRS: world loader velocity compensation
+    [Dependency] private TransformSystem _xformSys = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
+    [Dependency] private ILogManager _logManager = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
 
+    // <Mono>
     private const int PlayerLoadRadius = 2;
-    // VRS: class-level field to avoid per-frame allocation (Mono #3882)
-    private readonly Dictionary<EntityUid, Dictionary<Vector2i, List<EntityUid>>> _chunksToLoad = new();
+    private float _updateInterval = 1f;
+    private float _updateAccumulator = 0f;
+    private Dictionary<EntityUid, Dictionary<Vector2i, List<EntityUid>>> _chunksToLoad = new();
+    // </Mono>
 
     private ISawmill _sawmill = default!;
-    [Dependency] private readonly IConfigurationManager _cfg = default!; // HL: to gate debug logs
 
     /// <inheritdoc />
     public override void Initialize()
@@ -90,7 +94,12 @@ public sealed class WorldControllerSystem : EntitySystem
     /// <inheritdoc />
     public override void Update(float frameTime)
     {
-        // VRS: reuse class-level dict to avoid per-frame allocation; clear it at the start of each tick (Mono #3882)
+        _updateAccumulator += frameTime;
+        if (_updateAccumulator < _updateInterval)
+            return;
+        _updateAccumulator -= _updateInterval; // Mono - Delay between updates
+
+        //there was a to-do here about every frame alloc but it turns out it's a nothing burger here.
         _chunksToLoad.Clear();
 
         var controllerEnum = EntityQueryEnumerator<WorldControllerComponent>();
@@ -109,31 +118,12 @@ public sealed class WorldControllerSystem : EntitySystem
             if (worldLoader.Disabled) // Frontier: disable world loading
                 continue; // Frontier
 
-            var mapOrNull = xform.MapUid;
-            if (mapOrNull is null)
-                continue;
-            var map = mapOrNull.Value;
-            if (!_chunksToLoad.ContainsKey(map))
-                continue;
-
-            var wc = _xformSys.GetWorldPosition(xform);
-            // VRS: preload ahead in the direction of travel so fast ships don't spawn asteroids on themselves (Mono #3882)
-            wc += _physics.GetMapLinearVelocity(uid, xform: xform);
-            var coords = WorldGen.WorldToChunkCoords(wc);
-            var chunkRadius = (int)Math.Ceiling(worldLoader.Radius / (float)WorldGen.ChunkSize) + 1;
-            var chunks = new GridPointsNearEnumerator(coords.Floored(), chunkRadius);
-
-            var set = _chunksToLoad[map];
-
-            while (chunks.MoveNext(out var chunk))
-            {
-                if (!set.TryGetValue(chunk.Value, out _))
-                    set[chunk.Value] = new List<EntityUid>(4);
-                set[chunk.Value].Add(uid);
-            }
+            // Mono edit
+            TryAddChunkLoader(uid, xform, (int) Math.Ceiling(worldLoader.Radius / (float) WorldGen.ChunkSize) + 1);
         }
 
         var mindEnum = EntityQueryEnumerator<MindContainerComponent, TransformComponent>();
+        var chunkLoaderEnum = EntityQueryEnumerator<ChunkLoaderComponent, TransformComponent>();
         var ghostQuery = GetEntityQuery<GhostComponent>();
 
         // Mindful entities get special privilege as they're always a player and we don't want the illusion being broken around them.
@@ -141,30 +131,26 @@ public sealed class WorldControllerSystem : EntitySystem
         {
             if (!mind.HasMind)
                 continue;
+
             if (ghostQuery.HasComponent(uid))
                 continue;
-            var mapOrNull = xform.MapUid;
-            if (mapOrNull is null)
-                continue;
-            var map = mapOrNull.Value;
-            if (!_chunksToLoad.ContainsKey(map))
-                continue;
 
-            var wc = _xformSys.GetWorldPosition(xform);
-            // VRS: preload ahead in the direction of travel (Mono #3882)
-            wc += _physics.GetMapLinearVelocity(uid, xform: xform);
-            var coords = WorldGen.WorldToChunkCoords(wc);
-            var chunks = new GridPointsNearEnumerator(coords.Floored(), PlayerLoadRadius);
-
-            var set = _chunksToLoad[map];
-
-            while (chunks.MoveNext(out var chunk))
-            {
-                if (!set.TryGetValue(chunk.Value, out _))
-                    set[chunk.Value] = new List<EntityUid>(4);
-                set[chunk.Value].Add(uid);
-            }
+            // Mono edit
+            TryAddChunkLoader(uid, xform, PlayerLoadRadius);
         }
+
+        // Mono edit - Component for loading chunks.
+        while (chunkLoaderEnum.MoveNext(out var uid, out var load, out var xform))
+        {
+            if (load.RequirePower && TryComp<ApcPowerReceiverComponent>(uid, out var receiver))
+            {
+                if (!receiver.Powered)
+                    continue;
+            }
+
+            TryAddChunkLoader(uid, xform, (int) Math.Ceiling(load.LoadingDistance / (float) WorldGen.ChunkSize) + 1);
+        }
+        // Mono edit end.
 
         var loadedEnum = EntityQueryEnumerator<LoadedChunkComponent, WorldChunkComponent>();
         var chunksUnloaded = 0;
@@ -174,14 +160,14 @@ public sealed class WorldControllerSystem : EntitySystem
         {
             var coords = chunk.Coordinates;
 
-            if (!_chunksToLoad.TryGetValue(chunk.Map, out var chunkDict) || !chunkDict.ContainsKey(coords))
+            if (!_chunksToLoad[chunk.Map].ContainsKey(coords))
             {
                 RemCompDeferred<LoadedChunkComponent>(uid);
                 chunksUnloaded++;
             }
         }
 
-        if (chunksUnloaded > 0 && _cfg.GetCVar(Content.Shared.HL.CCVar.HLCCVars.WorldChunkDebugLogs))
+        if (chunksUnloaded > 0)
             _sawmill.Debug($"Queued {chunksUnloaded} chunks for unload.");
 
         if (_chunksToLoad.All(x => x.Value.Count == 0))
@@ -209,7 +195,7 @@ public sealed class WorldControllerSystem : EntitySystem
             }
         }
 
-        if (count > 0 && _cfg.GetCVar(Content.Shared.HL.CCVar.HLCCVars.WorldChunkDebugLogs))
+        if (count > 0)
         {
             var timeSpan = _gameTiming.RealTime - startTime;
             _sawmill.Debug($"Loaded {count} chunks in {timeSpan.TotalMilliseconds:N2}ms.");
@@ -252,11 +238,6 @@ public sealed class WorldControllerSystem : EntitySystem
     private void StartupChunkEntity(EntityUid chunk, Vector2i coords, EntityUid map,
         WorldControllerComponent controller)
     {
-        if (TryComp<WorldControllerComponent>(chunk, out var existingController))
-        {
-            EntityManager.RemoveComponent(chunk, existingController);
-        }
-
         if (!TryComp<WorldChunkComponent>(chunk, out var chunkComponent))
         {
             _sawmill.Error($"Chunk {ToPrettyString(chunk)} is missing WorldChunkComponent.");
@@ -270,6 +251,46 @@ public sealed class WorldControllerSystem : EntitySystem
         chunkComponent.Map = map;
         var ev = new WorldChunkAddedEvent(chunk, coords);
         RaiseLocalEvent(map, ref ev, broadcast: true);
+    }
+
+    /// <summary>
+    /// Mono edit - This method will try to add entity to LoadedChunkComponent. If it fails - method returns False.
+    /// </summary>
+    /// <param name="uid"></param>
+    /// <param name="xform"></param>
+    /// <param name="_chunksToLoad"></param>
+    /// <param name="radius"></param>
+    /// <returns></returns>
+    private bool TryAddChunkLoader(
+        EntityUid uid,
+        TransformComponent xform,
+        int radius)
+    {
+        var mapOrNull = xform.MapUid;
+        if (mapOrNull is null)
+            return false;
+
+        var map = mapOrNull.Value;
+        if (!_chunksToLoad.ContainsKey(map))
+            return false;
+
+        var wc = _xformSys.GetWorldPosition(xform);
+        // Mono - load ahead a little
+        var mapVel = _physics.GetMapLinearVelocity(uid, xform: xform);
+        wc += mapVel * _updateInterval;
+        var coords = WorldGen.WorldToChunkCoords(wc);
+        var chunks = new GridPointsNearEnumerator(coords.Floored(), radius);
+
+        var set = _chunksToLoad[map];
+
+        while (chunks.MoveNext(out var chunk))
+        {
+            if (!set.TryGetValue(chunk.Value, out _))
+                set[chunk.Value] = new List<EntityUid>(4);
+            set[chunk.Value].Add(uid);
+        }
+
+        return true;
     }
 }
 

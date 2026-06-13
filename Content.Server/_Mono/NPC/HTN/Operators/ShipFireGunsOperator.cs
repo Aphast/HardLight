@@ -15,7 +15,7 @@ namespace Content.Server._Mono.NPC.HTN.Operators;
 /// </summary>
 public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalShutdown
 {
-    [Dependency] private readonly IEntityManager _entManager = default!;
+    [Dependency] private IEntityManager _entManager = default!;
     private PowerReceiverSystem _power = default!;
     private ShipTargetingSystem _targeting = default!;
 
@@ -44,36 +44,6 @@ public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalS
     public float LeadingAccuracy = 1f;
 
     /// <summary>
-    /// Whether hitscan weapons should fire in bursts with randomized short re-aim delays.
-    /// </summary>
-    [DataField]
-    public bool HitscanBurstEnabled = false;
-
-    /// <summary>
-    /// Minimum duration of a continuous hitscan burst in seconds.
-    /// </summary>
-    [DataField]
-    public float HitscanBurstMinDuration = 0.35f;
-
-    /// <summary>
-    /// Maximum duration of a continuous hitscan burst in seconds.
-    /// </summary>
-    [DataField]
-    public float HitscanBurstMaxDuration = 0.9f;
-
-    /// <summary>
-    /// Minimum delay between bursts in seconds.
-    /// </summary>
-    [DataField]
-    public float HitscanReaimMinDelay = 0.12f;
-
-    /// <summary>
-    /// Maximum delay between bursts in seconds.
-    /// </summary>
-    [DataField]
-    public float HitscanReaimMaxDelay = 0.3f;
-
-    /// <summary>
     /// Whether to require us to be anchored.
     /// Here because HTN does not allow us to continuously check a condition by itself.
     /// Ignored if we're not anchorable.
@@ -87,11 +57,7 @@ public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalS
     [DataField]
     public bool RequirePowered = true;
 
-    /// <summary>
-    /// Stop targeting if beyond this range.
-    /// </summary>
-    [DataField]
-    public float MaxTargetingRange = 250f;
+    private EntityCoordinates? wasTarget = null;
 
     private const string TargetingCancelToken = "ShipTargetingCancelToken";
 
@@ -131,13 +97,6 @@ public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalS
             return;
 
         comp.LeadingAccuracy = LeadingAccuracy;
-        comp.HitscanBurstEnabled = HitscanBurstEnabled;
-        comp.HitscanBurstMinDuration = HitscanBurstMinDuration;
-        comp.HitscanBurstMaxDuration = HitscanBurstMaxDuration;
-        comp.HitscanReaimMinDelay = HitscanReaimMinDelay;
-        comp.HitscanReaimMaxDelay = HitscanReaimMaxDelay;
-        comp.HitscanBurstTimeRemaining = 0f;
-        comp.HitscanReaimTimeRemaining = 0f;
     }
 
     public override HTNOperatorStatus Update(NPCBlackboard blackboard, float frameTime)
@@ -154,18 +113,26 @@ public sealed partial class ShipFireGunsOperator : HTNOperator, IHtnConditionalS
         )
             return HTNOperatorStatus.Failed;
 
+        // hack to update ShipMoveTo or such when we swap targets
+        if (wasTarget != null && wasTarget != target)
+        {
+            wasTarget = null;
+            return HTNOperatorStatus.Finished;
+        }
+
         // ensure we're still targeting if we e.g. move grids
         var comp = _targeting.Target(owner, target);
+
+        wasTarget = target;
+
         if (comp == null)
             return HTNOperatorStatus.Finished;
 
-        if (target.EntityId == EntityUid.Invalid || !xform.Coordinates.TryDistance(_entManager, target, out var distance) || distance > MaxTargetingRange)
+        if (target.EntityId == EntityUid.Invalid)
             return HTNOperatorStatus.Finished;
 
         if (ShutdownState == HTNPlanState.PlanFinished)
-        {
             return HTNOperatorStatus.Finished;
-        }
 
         return HTNOperatorStatus.Continuing;
     }

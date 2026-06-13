@@ -28,22 +28,15 @@ public sealed partial class GunSystem
         EntityUid? ent = null;
 
         // TODO: Combine with TakeAmmo
-        while (component.Entities.Count > 0)
+        if (component.Entities.Count > 0)
         {
             var existing = component.Entities[^1];
             component.Entities.RemoveAt(component.Entities.Count - 1);
 
-            if (!Exists(existing))
-                continue;
-
-            if (TryComp(existing, out TransformComponent? _))
-                Containers.Remove(existing, component.Container);
-
+            Containers.Remove(existing, component.Container);
             EnsureShootable(existing);
-            break;
         }
-
-        if (component.Entities.Count == 0 && ent == null && component.UnspawnedCount > 0)
+        else if (component.UnspawnedCount > 0 && !component.InfiniteUnspawned)
         {
             component.UnspawnedCount--;
             ent = Spawn(component.Proto, coordinates);

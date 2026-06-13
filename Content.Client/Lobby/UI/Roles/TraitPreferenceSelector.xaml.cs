@@ -11,11 +11,6 @@ namespace Content.Client.Lobby.UI.Roles;
 public sealed partial class TraitPreferenceSelector : Control
 {
     public int Cost;
-    public bool Visible
-    {
-        get => Container.Visible;
-        set => Container.Visible = value;
-    }
     private bool _preference;
 
     public bool Preference

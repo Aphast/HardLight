@@ -13,9 +13,9 @@ using Robust.Shared.Utility;
 namespace Content.Shared.Body.Systems;
 public partial class SharedBodySystem
 {
-    [Dependency] private readonly SharedHumanoidAppearanceSystem _humanoid = default!;
-    [Dependency] private readonly MarkingManager _markingManager = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+    [Dependency] private SharedHumanoidAppearanceSystem _humanoid = default!;
+    [Dependency] private MarkingManager _markingManager = default!;
+
     private void InitializePartAppearances()
     {
         base.Initialize();
@@ -75,7 +75,7 @@ public partial class SharedBodySystem
         {
             var category = MarkingCategoriesConversion.FromHumanoidVisualLayers(layer);
             if (bodyAppearance.MarkingSet.Markings.TryGetValue(category, out var markingList))
-                markingsByLayer[layer] = markingList.Select(m => new Marking(m.MarkingId, m.MarkingColors.ToList(), m.IsGlowing)).ToList();
+                markingsByLayer[layer] = markingList.Select(m => new Marking(m.MarkingId, m.MarkingColors.ToList())).ToList();
         }
 
         component.Markings = markingsByLayer;
@@ -83,8 +83,8 @@ public partial class SharedBodySystem
 
     private string? CreateIdFromPart(HumanoidAppearanceComponent bodyAppearance, HumanoidVisualLayers part)
     {
-        var speciesProto = _prototypeManager.Index(bodyAppearance.Species);
-        var baseSprites = _prototypeManager.Index<HumanoidSpeciesBaseSpritesPrototype>(speciesProto.SpriteSet);
+        var speciesProto = Prototypes.Index(bodyAppearance.Species);
+        var baseSprites = Prototypes.Index<HumanoidSpeciesBaseSpritesPrototype>(speciesProto.SpriteSet);
 
         if (!baseSprites.Sprites.ContainsKey(part))
             return null;
@@ -99,9 +99,6 @@ public partial class SharedBodySystem
         string markingId,
         bool remove = false)
     {
-        // Floofstation - DO NOT TOUCH MARKINGS CLIENT-SIDE, YOU ARE DUPLICATING THEM!!!
-        if (_net.IsClient && !IsClientSide(uid))
-            return;
 
         if (!Resolve(partAppearance, ref partAppearance.Comp))
             return;
@@ -119,18 +116,14 @@ public partial class SharedBodySystem
                     bodyAppearance.MarkingSet
                 );
 
-            var marking = new Marking(markingId, markingColors, true);
-            var dirty = false;
+            var marking = new Marking(markingId, markingColors);
 
-            _humanoid.SetLayerVisibility((uid, bodyAppearance), targetLayer, true, null, ref dirty);
-            _humanoid.AddMarking(uid, markingId, markingColors, true, true, true, bodyAppearance);
+            _humanoid.SetLayerVisibility((uid, bodyAppearance), targetLayer, true, null);
+            _humanoid.AddMarking(uid, markingId, markingColors, true, true, bodyAppearance);
             if (!partAppearance.Comp.Markings.ContainsKey(targetLayer))
                 partAppearance.Comp.Markings[targetLayer] = new List<Marking>();
 
             partAppearance.Comp.Markings[targetLayer].Add(marking);
-
-            if (dirty)
-                Dirty(uid, bodyAppearance);
         }
         //else
             //RemovePartMarkings(uid, component, bodyAppearance);
@@ -170,37 +163,30 @@ public partial class SharedBodySystem
     protected void UpdateAppearance(EntityUid target,
         BodyPartAppearanceComponent component)
     {
-        // Floofstation - DO NOT TOUCH MARKINGS CLIENT-SIDE, YOU ARE DUPLICATING THEM!!!
-        if (_net.IsClient && !IsClientSide(target))
-            return;
-
         if (!TryComp(target, out HumanoidAppearanceComponent? bodyAppearance))
             return;
-
-        var dirty = false;
 
         if (component.EyeColor != null)
         {
             bodyAppearance.EyeColor = component.EyeColor.Value;
-            _humanoid.SetLayerVisibility((target, bodyAppearance), HumanoidVisualLayers.Eyes, true, null, ref dirty);
+            _humanoid.SetLayerVisibility((target, bodyAppearance), HumanoidVisualLayers.Eyes, true, null);
         }
 
         if (component.Color != null)
             _humanoid.SetBaseLayerColor(target, component.Type, component.Color, true, bodyAppearance);
 
-        _humanoid.SetLayerVisibility((target, bodyAppearance), component.Type, true, null, ref dirty);
+        _humanoid.SetLayerVisibility((target, bodyAppearance), component.Type, true, null);
 
         foreach (var (visualLayer, markingList) in component.Markings)
         {
-            _humanoid.SetLayerVisibility((target, bodyAppearance), visualLayer, true, null, ref dirty);
+            _humanoid.SetLayerVisibility((target, bodyAppearance), visualLayer, true, null);
             foreach (var marking in markingList)
             {
-                _humanoid.AddMarking(target, marking.MarkingId, marking.MarkingColors, marking.IsGlowing, true, true, bodyAppearance);
+                _humanoid.AddMarking(target, marking.MarkingId, marking.MarkingColors, true, true, bodyAppearance);
             }
         }
 
-        if (dirty)
-            Dirty(target, bodyAppearance);
+        Dirty(target, bodyAppearance);
     }
 
     protected void RemoveAppearance(EntityUid entity, BodyPartAppearanceComponent component, EntityUid partEntity)
@@ -208,13 +194,9 @@ public partial class SharedBodySystem
         if (!TryComp(entity, out HumanoidAppearanceComponent? bodyAppearance))
             return;
 
-        var dirty = false;
-
         foreach (var (visualLayer, markingList) in component.Markings)
         {
-            _humanoid.SetLayerVisibility((entity, bodyAppearance), visualLayer, false, null, ref dirty);
-            if (dirty)
-                Dirty(entity, bodyAppearance);
+            _humanoid.SetLayerVisibility((entity, bodyAppearance), visualLayer, false, null);
         }
         RemoveBodyMarkings(entity, component, bodyAppearance);
     }

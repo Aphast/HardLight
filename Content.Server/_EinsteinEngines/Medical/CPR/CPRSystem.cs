@@ -1,0 +1,154 @@
+using Content.Server.Atmos.Rotting;
+using Content.Server.Body.Components;
+using Content.Server.DoAfter;
+using Content.Server.EUI;
+using Content.Server.Ghost;
+using Content.Server.Nutrition.EntitySystems;
+using Content.Server.Popups;
+using Content.Shared.Atmos.Rotting;
+using Content.Shared.Damage;
+using Content.Shared.DoAfter;
+using Content.Shared.Inventory;
+
+using Content.Shared.Medical.CPR;
+using Content.Shared.Mind;
+using Content.Shared.Mobs;
+using Content.Shared.Mobs.Components;
+using Content.Shared.Mobs.Systems;
+using Content.Shared.Traits.Assorted;
+using Content.Shared.Verbs;
+using Robust.Server.Audio;
+using Robust.Shared.Audio;
+using Robust.Shared.Player; // Mono
+using Robust.Shared.Random;
+using Robust.Shared.Utility;
+
+namespace Content.Server.Medical.CPR;
+
+public sealed partial class CPRSystem : EntitySystem
+{
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private DoAfterSystem _doAfterSystem = default!;
+    [Dependency] private MobStateSystem _mobStateSystem = default!;
+    [Dependency] private FoodSystem _foodSystem = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private MobThresholdSystem _mobThreshold = default!;
+    [Dependency] private IRobustRandom _robustRandom = default!;
+    [Dependency] private RottingSystem _rottingSystem = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private SharedMindSystem _mind = default!; // Mono
+    [Dependency] private EuiManager _euiManager = default!; // Mono
+    [Dependency] private ISharedPlayerManager _player = default!; // Mono
+
+    public override void Initialize()
+    {
+        base.Initialize(); SubscribeLocalEvent<CPRTrainingComponent, GetVerbsEvent<InnateVerb>>(AddCPRVerb);
+        SubscribeLocalEvent<CPRTrainingComponent, CPRDoAfterEvent>(OnCPRDoAfter);
+    }
+
+    private void AddCPRVerb(Entity<CPRTrainingComponent> performer, ref GetVerbsEvent<InnateVerb> args)
+    {
+        if (!args.CanInteract || !args.CanAccess || !TryComp<MobStateComponent>(args.Target, out var targetState)
+            || targetState.CurrentState == MobState.Alive)
+            return;
+
+        var target = args.Target;
+        InnateVerb verb = new()
+        {
+            Act = () => { StartCPR(performer, target); },
+            Text = Loc.GetString("cpr-verb"),
+            Icon = new SpriteSpecifier.Rsi(new("Interface/Alerts/human_alive.rsi"), "health4"),
+            Priority = 2
+        };
+
+        args.Verbs.Add(verb);
+    }
+
+    private void StartCPR(Entity<CPRTrainingComponent> performer, EntityUid target)
+    {
+        if (HasComp<RottingComponent>(target))
+        {
+            _popupSystem.PopupEntity(Loc.GetString("cpr-target-rotting", ("entity", target)), performer, performer);
+            return;
+        }
+
+        if (!HasComp<RespiratorComponent>(target) || !HasComp<RespiratorComponent>(performer))
+        {
+            _popupSystem.PopupEntity(Loc.GetString("cpr-target-cantbreathe", ("entity", target)), performer, performer);
+            return;
+        }
+
+        if (_inventory.TryGetSlotEntity(target, "outerClothing", out var outer))
+        {
+            _popupSystem.PopupEntity(Loc.GetString("cpr-must-remove", ("clothing", outer)), performer, performer);
+            return;
+        }
+
+        if (_foodSystem.IsMouthBlocked(performer, performer) || _foodSystem.IsMouthBlocked(target, performer))
+            return;
+
+        _popupSystem.PopupEntity(Loc.GetString("cpr-start-second-person", ("target", target)), target, performer);
+        _popupSystem.PopupEntity(Loc.GetString("cpr-start-second-person-patient", ("user", performer)), target, target);
+
+        var doAfterArgs = new DoAfterArgs(
+            EntityManager, performer, performer.Comp.DoAfterDuration, new CPRDoAfterEvent(), performer, target,
+            performer)
+        {
+            BreakOnMove = true,
+            NeedHand = true,
+            BlockDuplicate = true
+        };
+
+        _doAfterSystem.TryStartDoAfter(doAfterArgs);
+
+        var playingStream = _audio.PlayPvs(performer.Comp.CPRSound, performer, AudioParams.Default.WithLoop(true));
+        if (!playingStream.HasValue)
+            return;
+
+        performer.Comp.CPRPlayingStream = playingStream.Value.Entity;
+    }
+
+    private void OnCPRDoAfter(Entity<CPRTrainingComponent> performer, ref CPRDoAfterEvent args)
+    {
+        if (args.Cancelled || args.Handled || args.Target is not { } target) // Mono: replaces args.Target with target, makes target not nullable
+        {
+            performer.Comp.CPRPlayingStream = _audio.Stop(performer.Comp.CPRPlayingStream);
+            return;
+        }
+
+        if (!performer.Comp.CPRHealing.Empty)
+            _damageable.TryChangeDamage(target, performer.Comp.CPRHealing, true, origin: performer);
+
+        if (performer.Comp.RotReductionMultiplier > 0)
+            _rottingSystem.ReduceAccumulator(
+                (EntityUid)args.Target, performer.Comp.DoAfterDuration * performer.Comp.RotReductionMultiplier);
+
+        if (_robustRandom.Prob(performer.Comp.ResuscitationChance)
+            && _mobThreshold.TryGetThresholdForState(target, MobState.Dead, out var threshold)
+            && TryComp<DamageableComponent>(target, out var damageableComponent)
+            && !HasComp<UnrevivableComponent>(target) // Mono: Checks unreviveability
+            && TryComp<MobStateComponent>(target, out var state)
+            && damageableComponent.TotalDamage < threshold)
+        {
+            _mobStateSystem.ChangeMobState(args.Target.Value, MobState.Critical, state, performer);
+
+            // Mono Edit: Informs the ghost they've been revived.
+            if (_mind.TryGetMind(target, out _, out var mind) &&
+                _player.TryGetSessionById(mind.UserId, out var playerSession))
+            {
+                // notify them they're being revived.
+                if (mind.CurrentEntity != target)
+                {
+                    _euiManager.OpenEui(new ReturnToBodyEui(mind, _mind, _player), playerSession);
+                }
+            }
+        }
+
+
+        var isAlive = _mobStateSystem.IsAlive(args.Target.Value);
+        args.Repeat = !isAlive;
+        if (isAlive)
+            performer.Comp.CPRPlayingStream = _audio.Stop(performer.Comp.CPRPlayingStream);
+    }
+}

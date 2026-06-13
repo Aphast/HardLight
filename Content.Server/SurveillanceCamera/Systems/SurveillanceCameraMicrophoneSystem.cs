@@ -1,17 +1,19 @@
 using Content.Server.Chat.Systems;
-using Content.Shared._Starlight.Language; // Starlight
 using Content.Server.Speech;
 using Content.Server.Speech.Components;
+using Content.Shared.Speech;
+using Content.Shared.Speech.Components;
+using Content.Shared.SurveillanceCamera.Components;
 using Content.Shared.Whitelist;
 using Robust.Shared.Player;
 using static Content.Server.Chat.Systems.ChatSystem;
 
 namespace Content.Server.SurveillanceCamera;
 
-public sealed class SurveillanceCameraMicrophoneSystem : EntitySystem
+public sealed partial class SurveillanceCameraMicrophoneSystem : EntitySystem
 {
-    [Dependency] private readonly SharedTransformSystem _xforms = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+    [Dependency] private SharedTransformSystem _xforms = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
     public override void Initialize()
     {
         base.Initialize();
@@ -46,7 +48,7 @@ public sealed class SurveillanceCameraMicrophoneSystem : EntitySystem
                 // if the player has not already received the chat message, send it to them but don't log it to the chat
                 // window. This is simply so that it appears in camera.
                 if (TryComp(viewer, out ActorComponent? actor))
-                    ev.Recipients.TryAdd(actor.PlayerSession, new ICChatRecipientData(range, ObserverType.NoObserver, true));
+                    ev.Recipients.TryAdd(actor.PlayerSession, new ICChatRecipientData(range, false, true));
             }
         }
     }
@@ -71,7 +73,7 @@ public sealed class SurveillanceCameraMicrophoneSystem : EntitySystem
         if (!TryComp(uid, out SurveillanceCameraComponent? camera))
             return;
 
-        var ev = new SurveillanceCameraSpeechSendEvent(args.Source, args.Message, args.Language); // Starlight
+        var ev = new SurveillanceCameraSpeechSendEvent(args.Source, args.Message);
 
         foreach (var monitor in camera.ActiveMonitors)
         {
@@ -100,13 +102,11 @@ public sealed class SurveillanceCameraSpeechSendEvent : EntityEventArgs
 {
     public EntityUid Speaker { get; }
     public string Message { get; }
-    public LanguagePrototype? Language { get; } //Starlight
 
-    public SurveillanceCameraSpeechSendEvent(EntityUid speaker, string message, LanguagePrototype? language) // Starlight
+    public SurveillanceCameraSpeechSendEvent(EntityUid speaker, string message)
     {
         Speaker = speaker;
         Message = message;
-        Language = language; // Starlight
     }
 }
 

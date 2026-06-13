@@ -67,7 +67,12 @@
   - print_pvs_ack
   - pvs_override_info
   - merge_grids
-
+  # Mono
+  - tp
+  - tpto
+  - tpgrid
+  - aghost
+  - customvote
 
 - Flags: MAPPING
   Commands:
@@ -132,7 +137,6 @@
   - fuck
   - replay_recording_start
   - replay_recording_stop
-  - transfer_test
 
 - Flags: QUERY
   Commands:

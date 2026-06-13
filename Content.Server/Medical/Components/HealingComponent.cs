@@ -62,10 +62,5 @@ namespace Content.Server.Medical.Components
         /// </summary>
         [DataField("healingEndSound")]
         public SoundSpecifier? HealingEndSound = null;
-
-        #region FarHorizons
-        [DataField]
-        public int AdjustEyeDamage = 0;
-        #endregion
     }
 }

@@ -10,9 +10,9 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Server.Damage.Systems;
 
-public sealed class ExaminableDamageSystem : EntitySystem
+public sealed partial class ExaminableDamageSystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
 
     public override void Initialize()
     {
@@ -45,7 +45,7 @@ public sealed class ExaminableDamageSystem : EntitySystem
     private int GetDamageLevel(EntityUid uid, ExaminableDamageComponent? component = null,
         DamageableComponent? damageable = null, DestructibleComponent? destructible = null)
     {
-        if (!Resolve(uid, ref component, ref damageable, ref destructible, logMissing: false))
+        if (!Resolve(uid, ref component, ref damageable, ref destructible))
             return 0;
 
         if (component.MessagesProto == null)

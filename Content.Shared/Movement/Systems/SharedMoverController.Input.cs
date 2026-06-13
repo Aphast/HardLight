@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Content.Shared.Alert;
 using Content.Shared.CCVar;
 using Content.Shared.Follower.Components;
@@ -9,7 +9,6 @@ using Robust.Shared.GameStates;
 using Robust.Shared.Input;
 using Robust.Shared.Input.Binding;
 using Robust.Shared.Map.Components;
-using Robust.Shared.Physics;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
@@ -52,14 +51,12 @@ namespace Content.Shared.Movement.Systems
                 .Bind(ContentKeyFunctions.ShuttleRotateLeft, new ShuttleInputCmdHandler(this, ShuttleButtons.RotateLeft))
                 .Bind(ContentKeyFunctions.ShuttleRotateRight, new ShuttleInputCmdHandler(this, ShuttleButtons.RotateRight))
                 .Bind(ContentKeyFunctions.ShuttleBrake, new ShuttleInputCmdHandler(this, ShuttleButtons.Brake))
-                .Bind(ContentKeyFunctions.ShuttleWEP, new ShuttleInputCmdHandler(this, ShuttleButtons.Wep))
                 .Register<SharedMoverController>();
 
             SubscribeLocalEvent<InputMoverComponent, ComponentInit>(OnInputInit);
             SubscribeLocalEvent<InputMoverComponent, ComponentGetState>(OnMoverGetState);
             SubscribeLocalEvent<InputMoverComponent, ComponentHandleState>(OnMoverHandleState);
             SubscribeLocalEvent<InputMoverComponent, EntParentChangedMessage>(OnInputParentChange);
-            SubscribeLocalEvent<InputMoverComponent, AnchorStateChangedEvent>(OnAnchorState);
 
             SubscribeLocalEvent<FollowedComponent, EntParentChangedMessage>(OnFollowedParentChange);
 
@@ -134,11 +131,14 @@ namespace Content.Shared.Movement.Systems
 
         private void OnMoverGetState(Entity<InputMoverComponent> entity, ref ComponentGetState args)
         {
-            TryGetNetEntity(entity.Comp.RelativeEntity, out var relativeEntity);
+            // Mono
+            if (TerminatingOrDeleted(entity.Comp.RelativeEntity))
+                entity.Comp.RelativeEntity = null;
+
             args.State = new InputMoverComponentState()
             {
                 CanMove = entity.Comp.CanMove,
-                RelativeEntity = relativeEntity,
+                RelativeEntity = GetNetEntity(entity.Comp.RelativeEntity),
                 LerpTarget = entity.Comp.LerpTarget,
                 HeldMoveButtons = entity.Comp.HeldMoveButtons,
                 RelativeRotation = entity.Comp.RelativeRotation,
@@ -157,17 +157,7 @@ namespace Content.Shared.Movement.Systems
 
         public void RotateCamera(EntityUid uid, Angle angle)
         {
-            if (CameraRotationLocked)
-                return;
-
-            // When piloting a relayed entity (e.g. a mech) the movement direction
-            // is computed from the relay target's RelativeRotation, not the
-            // pilot's. Forward the rotation so the camera and movement stay in
-            // sync. (Fixes mechs flailing when reorienting the camera.)
-            if (RelayQuery.TryGetComponent(uid, out var relay))
-                RotateCamera(relay.RelayEntity, angle);
-
-            if (!MoverQuery.TryGetComponent(uid, out var mover))
+            if (CameraRotationLocked || !MoverQuery.TryGetComponent(uid, out var mover))
                 return;
 
             mover.TargetRelativeRotation += angle;
@@ -176,15 +166,8 @@ namespace Content.Shared.Movement.Systems
 
         public void ResetCamera(EntityUid uid)
         {
-            if (CameraRotationLocked)
-                return;
-
-            // See RotateCamera: also reset the relay target so a piloted mech
-            // realigns with the pilot's view.
-            if (RelayQuery.TryGetComponent(uid, out var relay))
-                ResetCamera(relay.RelayEntity);
-
-            if (!MoverQuery.TryGetComponent(uid, out var mover))
+            if (CameraRotationLocked ||
+                !MoverQuery.TryGetComponent(uid, out var mover))
             {
                 return;
             }
@@ -231,12 +214,12 @@ namespace Content.Shared.Movement.Systems
             var diff = relativeRot - oldRelativeRot;
 
             // If we're going from a grid -> map then preserve the relative rotation so it's seamless if they go into space and back.
-            if (HasComp<MapComponent>(relative) && HasComp<MapGridComponent>(mover.RelativeEntity))
+            if (MapQuery.HasComp(relative) && MapGridQuery.HasComp(mover.RelativeEntity))
             {
                 mover.TargetRelativeRotation -= diff;
             }
-            // Snap to nearest cardinal if map -> grid
-            else if (HasComp<MapGridComponent>(relative) && HasComp<MapComponent>(mover.RelativeEntity))
+            // Snap to nearest cardinal if map -> grid or grid -> grid
+            else if (MapGridQuery.HasComp(relative) && (MapQuery.HasComp(mover.RelativeEntity) || MapGridQuery.HasComp(mover.RelativeEntity)))
             {
                 var targetDir = mover.TargetRelativeRotation - diff;
                 targetDir = targetDir.GetCardinalDir().ToAngle().Reduced();
@@ -315,12 +298,6 @@ namespace Content.Shared.Movement.Systems
 
             entity.Comp.LerpTarget = TimeSpan.FromSeconds(InputMoverComponent.LerpTime) + Timing.CurTime;
             Dirty(entity.Owner, entity.Comp);
-        }
-
-        private void OnAnchorState(Entity<InputMoverComponent> entity, ref AnchorStateChangedEvent args)
-        {
-            if (!args.Anchored)
-                PhysicsSystem.SetBodyType(entity, BodyType.KinematicController);
         }
 
         private void HandleDirChange(EntityUid entity, Direction dir, ushort subTick, bool state)
@@ -431,7 +408,7 @@ namespace Content.Shared.Movement.Systems
                 walk += curDir;
             }
 
-            // Logger.GetSawmill(nameof(SharedMoverController)).($"{curDir}{walk}{sprint}");
+            // Logger.Info($"{curDir}{walk}{sprint}");
             return (walk, sprint);
         }
 
@@ -442,7 +419,7 @@ namespace Content.Shared.Movement.Systems
         /// </summary>
         public void SetVelocityDirection(Entity<InputMoverComponent> entity, Direction direction, ushort subTick, bool enabled)
         {
-            // Logger.GetSawmill(nameof(SharedMoverController)).($"[{_gameTiming.CurTick}/{subTick}] {direction}: {enabled}");
+            // Logger.Info($"[{_gameTiming.CurTick}/{subTick}] {direction}: {enabled}");
 
             var bit = direction switch
             {
@@ -498,7 +475,7 @@ namespace Content.Shared.Movement.Systems
 
         public virtual void SetSprinting(Entity<InputMoverComponent> entity, ushort subTick, bool walking)
         {
-            // Logger.GetSawmill(nameof(SharedMoverController)).($"[{_gameTiming.CurTick}/{subTick}] Sprint: {enabled}");
+            // Logger.Info($"[{_gameTiming.CurTick}/{subTick}] Sprint: {enabled}");
 
             SetMoveInput(entity, subTick, walking, MoveButtons.Walk);
         }
@@ -667,8 +644,6 @@ namespace Content.Shared.Movement.Systems
         RotateLeft = 1 << 4,
         RotateRight = 1 << 5,
         Brake = 1 << 6,
-        Wep = 1 << 7,
     }
 
 }
-

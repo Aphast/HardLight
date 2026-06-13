@@ -5,6 +5,7 @@ using Content.Server.Ghost.Roles.Components;
 using Content.Server.Ghost.Roles.Events;
 using Content.Shared.Ghost.Roles.Raffles;
 using Content.Server.Ghost.Roles.UI;
+using Content.Server.Mind.Commands;
 using Content.Shared.Administration;
 using Content.Shared.CCVar;
 using Content.Shared.Database;
@@ -38,20 +39,20 @@ using Content.Server._NF.Players.GhostRole.Events; // Frontier
 namespace Content.Server.Ghost.Roles;
 
 [UsedImplicitly]
-public sealed class GhostRoleSystem : EntitySystem
+public sealed partial class GhostRoleSystem : EntitySystem
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly EuiManager _euiManager = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly FollowerSystem _followerSystem = default!;
-    [Dependency] private readonly TransformSystem _transform = default!;
-    [Dependency] private readonly SharedMindSystem _mindSystem = default!;
-    [Dependency] private readonly SharedRoleSystem _roleSystem = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
+    [Dependency] private IConfigurationManager _cfg = default!;
+    [Dependency] private EuiManager _euiManager = default!;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private FollowerSystem _followerSystem = default!;
+    [Dependency] private TransformSystem _transform = default!;
+    [Dependency] private SharedMindSystem _mindSystem = default!;
+    [Dependency] private SharedRoleSystem _roleSystem = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private IPrototypeManager _prototype = default!;
 
     private uint _nextRoleIdentifier;
     private bool _needsUpdateGhostRoleCount = true;
@@ -69,7 +70,7 @@ public sealed class GhostRoleSystem : EntitySystem
     {
         base.Initialize();
 
-    //    SubscribeLocalEvent<RoundRestartCleanupEvent>(Reset);
+        SubscribeLocalEvent<RoundRestartCleanupEvent>(Reset);
         SubscribeLocalEvent<PlayerAttachedEvent>(OnPlayerAttached);
 
         SubscribeLocalEvent<GhostTakeoverAvailableComponent, MindAddedMessage>(OnMindAdded);
@@ -479,7 +480,7 @@ public sealed class GhostRoleSystem : EntitySystem
         }
         else
         {
-            TryTakeover(player, identifier); // DeltaV - prevent taking ghost roles in the lobby
+            Takeover(player, identifier);
         }
     }
 
@@ -535,11 +536,6 @@ public sealed class GhostRoleSystem : EntitySystem
 
         DebugTools.AssertNotNull(player.ContentData());
 
-        // After taking a ghost role, the player cannot return to the original body, so wipe the player's current mind
-        // unless it is a visiting mind
-        if(_mindSystem.TryGetMind(player.UserId, out _, out var mind) && !mind.IsVisitingEntity)
-            _mindSystem.WipeMind(player);
-
         var newMind = _mindSystem.CreateMind(player.UserId,
             EntityManager.GetComponent<MetaDataComponent>(mob).EntityName);
 
@@ -557,23 +553,8 @@ public sealed class GhostRoleSystem : EntitySystem
     /// </summary>
     public int GetGhostRoleCount()
     {
-        var staleRoles = new ValueList<uint>();
-        var count = 0;
-
-        foreach (var (id, (uid, _)) in _ghostRoles)
-        {
-            if (!TryComp<MetaDataComponent>(uid, out var meta) || meta.EntityLifeStage >= EntityLifeStage.Terminating)
-            {
-                staleRoles.Add(id);
-                continue;
-            }
-
-            if (!meta.EntityPaused)
-                count++;
-        }
-
-        PruneStaleGhostRoles(staleRoles);
-        return count;
+        var metaQuery = GetEntityQuery<MetaDataComponent>();
+        return _ghostRoles.Count(pair => metaQuery.GetComponent(pair.Value.Owner).EntityPaused == false);
     }
 
     /// <summary>
@@ -585,17 +566,11 @@ public sealed class GhostRoleSystem : EntitySystem
     public GhostRoleInfo[] GetGhostRolesInfo(ICommonSession? player)
     {
         var roles = new List<GhostRoleInfo>();
-        var staleRoles = new ValueList<uint>();
+        var metaQuery = GetEntityQuery<MetaDataComponent>();
 
         foreach (var (id, (uid, role)) in _ghostRoles)
         {
-            if (!TryComp<MetaDataComponent>(uid, out var meta) || meta.EntityLifeStage >= EntityLifeStage.Terminating)
-            {
-                staleRoles.Add(id);
-                continue;
-            }
-
-            if (meta.EntityPaused)
+            if (metaQuery.GetComponent(uid).EntityPaused)
                 continue;
 
 
@@ -635,22 +610,7 @@ public sealed class GhostRoleSystem : EntitySystem
             });
         }
 
-        PruneStaleGhostRoles(staleRoles);
         return roles.ToArray();
-    }
-
-    private void PruneStaleGhostRoles(ValueList<uint> staleRoles)
-    {
-        if (staleRoles.Count == 0)
-            return;
-
-        foreach (var id in staleRoles.Span)
-        {
-            if (_ghostRoles.Remove(id))
-                _ghostRoleRaffles.Remove(id);
-        }
-
-        UpdateAllEui();
     }
 
     private void OnPlayerAttached(PlayerAttachedEvent message)
@@ -696,7 +656,7 @@ public sealed class GhostRoleSystem : EntitySystem
         RegisterGhostRole((uid, ghostRole));
     }
 
-/*     public void Reset(RoundRestartCleanupEvent ev)
+    public void Reset(RoundRestartCleanupEvent ev)
     {
         foreach (var session in _openUis.Keys)
         {
@@ -704,9 +664,10 @@ public sealed class GhostRoleSystem : EntitySystem
         }
 
         _openUis.Clear();
+        _ghostRoles.Clear();
         _ghostRoleRaffles.Clear();
         _nextRoleIdentifier = 0;
-    } */
+    }
 
     private void OnPaused(EntityUid uid, GhostRoleComponent component, ref EntityPausedEvent args)
     {
@@ -759,7 +720,7 @@ public sealed class GhostRoleSystem : EntitySystem
         RaiseLocalEvent(mob, spawnedEvent);
 
         if (ghostRole.MakeSentient)
-            _mindSystem.MakeSentient(mob, ghostRole.AllowMovement, ghostRole.AllowSpeech);
+            MakeSentientCommand.MakeSentient(mob, EntityManager, ghostRole.AllowMovement, ghostRole.AllowSpeech);
 
         EnsureComp<MindContainerComponent>(mob);
 
@@ -806,7 +767,7 @@ public sealed class GhostRoleSystem : EntitySystem
         }
 
         if (ghostRole.MakeSentient)
-            _mindSystem.MakeSentient(uid, ghostRole.AllowMovement, ghostRole.AllowSpeech);
+            MakeSentientCommand.MakeSentient(uid, EntityManager, ghostRole.AllowMovement, ghostRole.AllowSpeech);
 
         GhostRoleInternalCreateMindAndTransfer(args.Player, uid, uid, ghostRole);
         UnregisterGhostRole((uid, ghostRole));
@@ -888,9 +849,9 @@ public sealed class GhostRoleSystem : EntitySystem
 }
 
 [AnyCommand]
-public sealed class GhostRoles : IConsoleCommand
+public sealed partial class GhostRoles : IConsoleCommand
 {
-    [Dependency] private readonly IEntityManager _e = default!;
+    [Dependency] private IEntityManager _e = default!;
 
     public string Command => "ghostroles";
     public string Description => "Opens the ghost role request window.";

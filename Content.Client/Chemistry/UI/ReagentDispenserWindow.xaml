@@ -15,7 +15,7 @@
                 Columns="3"
                 HorizontalAlignment="Center"
                 Margin="5"
-                ButtonList="1,5,10,15,20,30,40,60,120"
+                ButtonList="1,5,10,15,20,25,30,50,100"
                 RadioGroup="True">
             </ui:ButtonGrid>
             <Control VerticalExpand="True" />
@@ -39,13 +39,7 @@
                 <Button Name="EjectButton"
                         Access="Public"
                         Text="{Loc 'reagent-dispenser-window-eject-button'}"
-                        StyleClasses="OpenBoth" />
-                <!-- Starlight-start: Plumbing valve -->
-                <Button Name="ValveButton"
-                        Access="Public"
-                        Text="{Loc 'reagent-dispenser-window-valve-closed'}"
                         StyleClasses="OpenLeft" />
-                <!-- Starlight-end -->
             </BoxContainer>
         </BoxContainer>
         <SplitContainer Orientation="Vertical"

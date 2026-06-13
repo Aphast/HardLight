@@ -1,7 +1,7 @@
+using Content.Shared.Antag;
 using Content.Shared.Chat.Prototypes;
 using Content.Shared.Chemistry.Reagent;
 using Content.Shared.Damage;
-using Content.Shared.FixedPoint;
 using Content.Shared.Humanoid;
 using Content.Shared.Roles;
 using Content.Shared.StatusIcon;
@@ -17,33 +17,20 @@ namespace Content.Shared.Zombies;
 public sealed partial class ZombieComponent : Component
 {
     /// <summary>
-    /// The baseline infection chance you have if you have no protective gear
+    /// The baseline infection chance you have if you are completely nude
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
-    public float BaseZombieInfectionChance = 0.75f;
+    public float MaxZombieInfectionChance = 0.80f;
 
     /// <summary>
     /// The minimum infection chance possible. This is simply to prevent
-    /// being overly protected by bundling up.
+    /// being invincible by bundling up.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite)]
-    public float MinZombieInfectionChance = 0.05f;
-
-    /// <summary>
-    /// How effective each resistance type on a piece of armor is. Using a damage specifier for this seems illegal.
-    /// </summary>
-    public DamageSpecifier ResistanceEffectiveness = new()
-    {
-        DamageDict = new ()
-        {
-            {"Slash", 0.5},
-            {"Piercing", 0.3},
-            {"Blunt", 0.1},
-        }
-    };
+    public float MinZombieInfectionChance = 0.25f;
 
     [ViewVariables(VVAccess.ReadWrite)]
-    public float ZombieMovementSpeedDebuff = 0.90f;
+    public float ZombieMovementSpeedDebuff = 0.70f;
 
     /// <summary>
     /// The skin color of the zombie
@@ -93,8 +80,10 @@ public sealed partial class ZombieComponent : Component
     [DataField("beforeZombifiedEyeColor")]
     public Color BeforeZombifiedEyeColor;
 
-    [DataField("emoteId")]
-    public ProtoId<EmoteSoundsPrototype>? EmoteSoundsId = "Zombie";
+    [DataField("emoteId", customTypeSerializer: typeof(PrototypeIdSerializer<EmoteSoundsPrototype>))]
+    public string? EmoteSoundsId = "Zombie";
+
+    public EmoteSoundsPrototype? EmoteSounds;
 
     [DataField("nextTick", customTypeSerializer:typeof(TimeOffsetSerializer))]
     public TimeSpan NextTick;
@@ -110,11 +99,11 @@ public sealed partial class ZombieComponent : Component
     {
         DamageDict = new ()
         {
-            { "Blunt", -1.2 },
-            { "Slash", -0.6 },
-            { "Piercing", -0.6 },
-            { "Heat", -0.06 },
-            { "Shock", -0.06 }
+            { "Blunt", -0.4 },
+            { "Slash", -0.2 },
+            { "Piercing", -0.2 },
+            { "Heat", -0.02 },
+            { "Shock", -0.02 }
         }
     };
 
@@ -122,7 +111,7 @@ public sealed partial class ZombieComponent : Component
     /// A multiplier applied to <see cref="PassiveHealing"/> when the entity is in critical condition.
     /// </summary>
     [DataField("passiveHealingCritMultiplier")]
-    public float PassiveHealingCritMultiplier = 3f;
+    public float PassiveHealingCritMultiplier = 2f;
 
     /// <summary>
     /// Healing given when a zombie bites a living being.
@@ -132,23 +121,9 @@ public sealed partial class ZombieComponent : Component
     {
         DamageDict = new()
         {
-            { "Blunt", -6 },
-            { "Slash", -6 },
-            { "Piercing", -6 }
-        }
-    };
-
-    /// <summary>
-    /// The damage dealt on bite, dehardcoded for your enjoyment
-    /// </summary>
-    [DataField]
-    public DamageSpecifier DamageOnBite = new()
-    {
-        DamageDict = new()
-        {
-            { "Slash", 13 },
-            { "Piercing", 7 },
-            { "Structural", 10 }
+            { "Blunt", -2 },
+            { "Slash", -2 },
+            { "Piercing", -2 }
         }
     };
 

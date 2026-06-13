@@ -1,4 +1,5 @@
 using System.Globalization;
+using Content.Shared._Mono.Company;
 using Content.Shared.Access.Components;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Database;
@@ -6,22 +7,19 @@ using Content.Shared.Hands.Components;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Inventory;
 using Content.Shared.PDA;
+using Robust.Shared.Prototypes;
+using Robust.Shared.Serialization;
 using Content.Shared.Roles;
 using Content.Shared.StatusIcon;
-using Robust.Shared.Prototypes;
-using Robust.Shared.Timing;
-using Robust.Shared.Serialization; // Frontier
 
 namespace Content.Shared.Access.Systems;
 
-public abstract class SharedIdCardSystem : EntitySystem
+public abstract partial class SharedIdCardSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedAccessSystem _access = default!;
-    [Dependency] private readonly InventorySystem _inventorySystem = default!;
-    [Dependency] private readonly MetaDataSystem _metaSystem = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
+    [Dependency] private MetaDataSystem _metaSystem = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
 
     public override void Initialize()
     {
@@ -47,7 +45,6 @@ public abstract class SharedIdCardSystem : EntitySystem
 
     private void OnMapInit(EntityUid uid, IdCardComponent id, MapInitEvent args)
     {
-        id.LocalizedJobTitle ??= id.JobTitleText;
         UpdateEntityName(uid, id);
     }
 
@@ -126,7 +123,7 @@ public abstract class SharedIdCardSystem : EntitySystem
     /// </remarks>
     public bool TryChangeJobTitle(EntityUid uid, string? jobTitle, IdCardComponent? id = null, EntityUid? player = null)
     {
-        if (!Resolve(uid, ref id, logMissing: false))
+        if (!Resolve(uid, ref id))
             return false;
 
         if (!string.IsNullOrWhiteSpace(jobTitle))
@@ -157,7 +154,7 @@ public abstract class SharedIdCardSystem : EntitySystem
 
     public bool TryChangeJobIcon(EntityUid uid, JobIconPrototype jobIcon, IdCardComponent? id = null, EntityUid? player = null)
     {
-        if (!Resolve(uid, ref id, logMissing: false))
+        if (!Resolve(uid, ref id))
         {
             return false;
         }
@@ -181,7 +178,7 @@ public abstract class SharedIdCardSystem : EntitySystem
 
     public bool TryChangeJobDepartment(EntityUid uid, JobPrototype job, IdCardComponent? id = null)
     {
-        if (!Resolve(uid, ref id, logMissing: false))
+        if (!Resolve(uid, ref id))
             return false;
 
         id.JobDepartments.Clear();
@@ -197,6 +194,7 @@ public abstract class SharedIdCardSystem : EntitySystem
     }
 
     /// <summary>
+    /// Mono
     /// Attempts to change the full name of a card.
     /// Returns true/false.
     /// </summary>
@@ -205,7 +203,7 @@ public abstract class SharedIdCardSystem : EntitySystem
     /// </remarks>
     public bool TryChangeFullName(EntityUid uid, string? fullName, IdCardComponent? id = null, EntityUid? player = null)
     {
-        if (!Resolve(uid, ref id, logMissing: false))
+        if (!Resolve(uid, ref id))
             return false;
 
         if (!string.IsNullOrWhiteSpace(fullName))
@@ -234,6 +232,42 @@ public abstract class SharedIdCardSystem : EntitySystem
     }
 
     /// <summary>
+    /// Mono
+    /// Attempts to change the company name of a card.
+    /// Returns true/false.
+    /// </summary>
+    /// <remarks>
+    /// If provided with a player's EntityUid to the player parameter, adds the change to the admin logs.
+    /// </remarks>
+    public bool TryChangeCompanyName(EntityUid uid, string? companyName, IdCardComponent? id = null, EntityUid? player = null)
+    {
+        if (!Resolve(uid, ref id))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            companyName = companyName.Trim();
+        }
+        else
+        {
+            companyName = null;
+        }
+
+        if (id.CompanyName.Id == companyName)
+            return true;
+
+        id.CompanyName = _prototypeManager.Index<CompanyPrototype>(companyName ?? "None");
+        Dirty(uid, id);
+
+        if (player != null)
+        {
+            _adminLogger.Add(LogType.Identity, LogImpact.Low,
+                $"{ToPrettyString(player.Value):player} has changed the company name of {ToPrettyString(uid):entity} to {companyName} ");
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Changes the name of the id's owner.
     /// </summary>
     /// <remarks>
@@ -242,11 +276,10 @@ public abstract class SharedIdCardSystem : EntitySystem
     /// </remarks>
     private void UpdateEntityName(EntityUid uid, IdCardComponent? id = null)
     {
-        if (!Resolve(uid, ref id, logMissing: false))
+        if (!Resolve(uid, ref id))
             return;
 
-        var jobTitle = id.JobTitleText;
-        var jobSuffix = string.IsNullOrWhiteSpace(jobTitle) ? string.Empty : $" ({jobTitle})";
+        var jobSuffix = string.IsNullOrWhiteSpace(id.LocalizedJobTitle) ? string.Empty : $" ({id.LocalizedJobTitle})";
 
         var val = string.IsNullOrWhiteSpace(id.FullName)
             ? Loc.GetString(id.NameLocId,
@@ -259,53 +292,8 @@ public abstract class SharedIdCardSystem : EntitySystem
 
     private static string ExtractFullTitle(IdCardComponent idCardComponent)
     {
-        return $"{idCardComponent.FullName} ({CultureInfo.CurrentCulture.TextInfo.ToTitleCase(idCardComponent.JobTitleText ?? string.Empty)})"
+        return $"{idCardComponent.FullName} ({CultureInfo.CurrentCulture.TextInfo.ToTitleCase(idCardComponent.LocalizedJobTitle ?? string.Empty)})"
             .Trim();
-    }
-
-    public void SetExpireTime(Entity<ExpireIdCardComponent?> ent, TimeSpan time)
-    {
-        if (!Resolve(ent, ref ent.Comp))
-            return;
-        ent.Comp.ExpireTime = time;
-        Dirty(ent);
-    }
-
-    public void SetPermanent(Entity<ExpireIdCardComponent?> ent, bool val)
-    {
-        if (!Resolve(ent, ref ent.Comp))
-            return;
-        ent.Comp.Permanent = val;
-        Dirty(ent);
-    }
-
-    /// <summary>
-    /// Marks an <see cref="ExpireIdCardComponent"/> as expired, setting the accesses.
-    /// </summary>
-    public virtual void ExpireId(Entity<ExpireIdCardComponent> ent)
-    {
-        if (ent.Comp.Expired)
-            return;
-
-        _access.TrySetTags(ent, ent.Comp.ExpiredAccess);
-        ent.Comp.Expired = true;
-        Dirty(ent);
-    }
-
-    public override void Update(float frameTime)
-    {
-        base.Update(frameTime);
-        var query = EntityQueryEnumerator<ExpireIdCardComponent>();
-        while (query.MoveNext(out var uid, out var comp))
-        {
-            if (comp.Expired || comp.Permanent)
-                continue;
-
-            if (_timing.CurTime < comp.ExpireTime)
-                continue;
-
-            ExpireId((uid, comp));
-        }
     }
 
     // Frontier: rename IDs & shuttles

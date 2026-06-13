@@ -1,14 +1,35 @@
 {
-    "version": 1,
-    "license": "CC-BY-SA-3.0",
-    "copyright": "Taken from tgstation and modified by Swept, potato1234x and deltanedas at https://github.com/tgstation/tgstation/commit/40d75cc340c63582fb66ce15bf75a36115f6bdaa, modified by dvir001 (github)",
-    "size": {
-        "x": 32,
-        "y": 32
+  "version": 1,
+  "license": "CC-BY-SA-3.0",
+  "copyright": "mochi, cherrymochi, bungomochi, chocomocho, fibermochi, mothmochi, ubemochi, teamochi Taken from frontier at commit https://github.com/new-frontiers-14/frontier-station-14/commit/73866b2b62832fbc14549673571feaca21fcf774" ,
+  "size": {
+    "x": 32,
+    "y": 32
+  },
+  "states": [
+    {
+      "name": "mochi"
     },
-    "states": [
-        {
-            "name": "sheleg"
-		}
-    ]
+    {
+      "name": "cherrymochi"
+    },
+    {
+      "name": "bungomochi"
+    },
+    {
+      "name": "chocomochi"
+    },
+    {
+      "name": "fibermochi"
+    },
+    {
+      "name": "mothmochi"
+    },
+    {
+      "name": "ubemochi"
+    },
+    {
+      "name": "teamochi"
+    }
+  ]
 }

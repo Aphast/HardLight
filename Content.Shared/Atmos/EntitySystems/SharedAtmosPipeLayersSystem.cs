@@ -20,11 +20,11 @@ namespace Content.Shared.Atmos.EntitySystems;
 /// </summary>
 public abstract partial class SharedAtmosPipeLayersSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
-    [Dependency] private readonly SharedToolSystem _tool = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
+    [Dependency] private SharedToolSystem _tool = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     public override void Initialize()
     {
@@ -200,15 +200,15 @@ public abstract partial class SharedAtmosPipeLayersSystem : EntitySystem
 
             if (ent.Comp.SpriteLayersRsiPaths.Count > 0)
             {
-                var data = new List<AtmosPipeLayerSpriteLayerEntry>();
+                var data = new Dictionary<string, string>();
 
                 foreach (var (layerKey, rsiPaths) in ent.Comp.SpriteLayersRsiPaths)
                 {
                     if (rsiPaths.TryGetValue(ent.Comp.CurrentPipeLayer, out path))
-                        data.Add(new AtmosPipeLayerSpriteLayerEntry(layerKey, path));
+                        data.TryAdd(layerKey, path);
                 }
 
-                _appearance.SetData(ent, AtmosPipeLayerVisuals.SpriteLayers, new AtmosPipeLayerSpriteLayerData(data.ToArray()), appearance);
+                _appearance.SetData(ent, AtmosPipeLayerVisuals.SpriteLayers, data, appearance);
             }
         }
 

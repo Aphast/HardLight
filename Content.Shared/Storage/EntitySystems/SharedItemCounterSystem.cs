@@ -6,33 +6,16 @@ using Robust.Shared.Containers;
 namespace Content.Shared.Storage.EntitySystems
 {
     [UsedImplicitly]
-    public abstract class SharedItemCounterSystem : EntitySystem
+    public abstract partial class SharedItemCounterSystem : EntitySystem
     {
-        [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+        [Dependency] private SharedAppearanceSystem _appearance = default!;
 
         /// <inheritdoc />
         public override void Initialize()
         {
             base.Initialize();
-            SubscribeLocalEvent<ItemCounterComponent, ComponentStartup>(OnStartup); // HardLight
             SubscribeLocalEvent<ItemCounterComponent, EntInsertedIntoContainerMessage>(CounterEntityInserted);
             SubscribeLocalEvent<ItemCounterComponent, EntRemovedFromContainerMessage>(CounterEntityRemoved);
-        }
-
-        // HardLight: Initialize item counter appearance on startup.
-        private void OnStartup(EntityUid uid, ItemCounterComponent itemCounter, ComponentStartup args)
-        {
-            if (!EntityManager.TryGetComponent(uid, out AppearanceComponent? appearanceComponent))
-                return;
-
-            var count = GetCurrentCount(uid, itemCounter);
-            if (count == null)
-                return;
-
-            _appearance.SetData(uid, StackVisuals.Actual, count, appearanceComponent);
-
-            if (itemCounter.MaxAmount != null)
-                _appearance.SetData(uid, StackVisuals.MaxCount, itemCounter.MaxAmount, appearanceComponent);
         }
 
         private void CounterEntityInserted(EntityUid uid, ItemCounterComponent itemCounter,
@@ -67,6 +50,5 @@ namespace Content.Shared.Storage.EntitySystems
         }
 
         protected abstract int? GetCount(ContainerModifiedMessage msg, ItemCounterComponent itemCounter);
-        protected abstract int? GetCurrentCount(EntityUid uid, ItemCounterComponent itemCounter); // HardLight
     }
 }

@@ -27,16 +27,18 @@ namespace Content.Shared.Preferences
     [Serializable, NetSerializable]
     public sealed partial class HumanoidCharacterProfile : ICharacterProfile
     {
-        private static readonly Regex RestrictedNameRegex = new(@"[^A-Za-z0-9 '\-,]"); // Hardlight,
+        private static readonly Regex RestrictedNameRegex = new(@"[^A-Za-z0-9 '\-]");
         private static readonly Regex ICNameCaseRegex = new(@"^(?<word>\w)|\b(?<word>\w)(?=\w*$)");
 
         public const int MaxNameLength = 32;
         public const int MaxLoadoutNameLength = 32;
-        public const int MaxDescLength = 2000;
+        public const int MaxDescLength = 512;
 
-        public const int DefaultBalance = 30000;
+        public const int DefaultBalance = 75000;
 
-    // Note: Legacy fields removed during merge; current fields are defined below with [DataField].
+        //private readonly Dictionary<string, JobPriority> _jobPriorities; // Frontier: commented out during merge.
+        //private readonly List<string> _antagPreferences; // Frontier: commented out during merge.
+        //private readonly List<string> _traitPreferences; // Frontier: commented out during merge.
 
         /// <summary>
         /// Job preferences for initial spawn.
@@ -83,13 +85,6 @@ namespace Content.Shared.Preferences
         /// </summary>
         [DataField]
         public ProtoId<SpeciesPrototype> Species { get; set; } = SharedHumanoidAppearanceSystem.DefaultSpecies;
-
-        /// <summary>
-        /// Optional custom species string that will be shown when examined.
-        /// This does not change the actual species/prototype used for appearance or mechanics.
-        /// </summary>
-        [DataField]
-        public string CustomSpecies { get; set; } = string.Empty;
 
         [DataField]
         public int Age { get; set; } = 18;
@@ -148,18 +143,10 @@ namespace Content.Shared.Preferences
         [DataField]
         public string Company { get; private set; } = "None";
 
-        /// <summary>
-        /// Compatibility-only field for loading legacy profile blobs.
-        /// This value is accepted during deserialization but not used by gameplay.
-        /// </summary>
-        [DataField]
-        public string? CriminalRecordEntry { get; private set; }
-
         public HumanoidCharacterProfile(
             string name,
             string flavortext,
             string species,
-            string customSpecies,
             int age,
             Sex sex,
             Gender gender,
@@ -171,13 +158,11 @@ namespace Content.Shared.Preferences
             HashSet<ProtoId<AntagPrototype>> antagPreferences,
             HashSet<ProtoId<TraitPrototype>> traitPreferences,
             Dictionary<string, RoleLoadout> loadouts,
-            string company = "None",
-            RoleLoadout? speciesLoadout = null) // Far Horizons
+            string company = "None")
         {
             Name = name;
             FlavorText = flavortext;
             Species = species;
-            CustomSpecies = customSpecies;
             Age = age;
             Sex = sex;
             Gender = gender;
@@ -190,7 +175,6 @@ namespace Content.Shared.Preferences
             _traitPreferences = traitPreferences;
             _loadouts = loadouts;
             Company = company;
-            SpeciesLoadout = speciesLoadout; // Far Horizons
         }
 
         /// <summary>Copy constructor but with overridable references (to prevent useless copies)</summary>
@@ -200,7 +184,7 @@ namespace Content.Shared.Preferences
             HashSet<ProtoId<AntagPrototype>> antagPreferences,
             HashSet<ProtoId<TraitPrototype>> traitPreferences,
             Dictionary<string, RoleLoadout> loadouts)
-            : this(other.Name, other.FlavorText, other.Species, other.CustomSpecies, other.Age, other.Sex, other.Gender, other.BankBalance, other.Appearance, other.SpawnPriority,
+            : this(other.Name, other.FlavorText, other.Species, other.Age, other.Sex, other.Gender, other.BankBalance, other.Appearance, other.SpawnPriority,
                 jobPriorities, other.PreferenceUnavailable, antagPreferences, traitPreferences, loadouts, other.Company)
         {
         }
@@ -210,7 +194,6 @@ namespace Content.Shared.Preferences
             : this(other.Name,
                 other.FlavorText,
                 other.Species,
-                other.CustomSpecies,
                 other.Age,
                 other.Sex,
                 other.Gender,
@@ -222,8 +205,7 @@ namespace Content.Shared.Preferences
                 new HashSet<ProtoId<AntagPrototype>>(other.AntagPreferences),
                 new HashSet<ProtoId<TraitPrototype>>(other.TraitPreferences),
                 new Dictionary<string, RoleLoadout>(other.Loadouts),
-                other.Company,
-                other.SpeciesLoadout) // Far Horizons
+                other.Company)
         {
         }
 
@@ -241,29 +223,12 @@ namespace Content.Shared.Preferences
         /// </summary>
         /// <param name="species">The species to use in this default profile. The default species is <see cref="SharedHumanoidAppearanceSystem.DefaultSpecies"/>.</param>
         /// <returns>Humanoid character profile with default settings.</returns>
-        public static HumanoidCharacterProfile DefaultWithSpecies(string? species = null)
+        public static HumanoidCharacterProfile DefaultWithSpecies(string species = SharedHumanoidAppearanceSystem.DefaultSpecies)
         {
-            species ??= SharedHumanoidAppearanceSystem.DefaultSpecies;
-
-            // Far Horizons Start - Subspecies
-            var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
-            var speciesProto = prototypeManager.Index<SpeciesPrototype>(species);
-
-            var profile = new HumanoidCharacterProfile()
+            return new()
             {
                 Species = species,
-                Appearance = HumanoidCharacterAppearance.DefaultWithSpecies(species),
             };
-
-            RoleLoadout? loadout = null;
-            if (speciesProto.Loadout != null)
-            {
-                loadout = new(speciesProto.Loadout.Value);
-                loadout.SetDefault(profile, null, prototypeManager);
-            }
-
-            return profile.WithSpeciesLoadout(loadout);
-            // Far Horizons End
         }
 
         // TODO: This should eventually not be a visual change only.
@@ -281,10 +246,8 @@ namespace Content.Shared.Preferences
             return RandomWithSpecies(species: species, balance: balance);
         }
 
-        public static HumanoidCharacterProfile RandomWithSpecies(string? species = null, int balance = DefaultBalance)
+        public static HumanoidCharacterProfile RandomWithSpecies(string species = SharedHumanoidAppearanceSystem.DefaultSpecies, int balance = DefaultBalance)
         {
-            species ??= SharedHumanoidAppearanceSystem.DefaultSpecies;
-
             var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
             var random = IoCManager.Resolve<IRobustRandom>();
 
@@ -309,7 +272,7 @@ namespace Content.Shared.Preferences
             }
 
             var name = GetName(species, gender);
-            var profile = new HumanoidCharacterProfile() // Far Horizons
+            return new HumanoidCharacterProfile()
             {
                 Name = name,
                 Sex = sex,
@@ -318,17 +281,6 @@ namespace Content.Shared.Preferences
                 Species = species,
                 Appearance = HumanoidCharacterAppearance.Random(species, sex),
             };
-
-            // Far Horizons Start - Subspecies
-            RoleLoadout? speciesLoadout = null;
-            if (speciesPrototype != null && speciesPrototype.Loadout != null)
-            {
-                speciesLoadout = new(speciesPrototype.Loadout.Value);
-                speciesLoadout.SetDefault(profile, null, prototypeManager);
-            }
-
-            return profile.WithSpeciesLoadout(speciesLoadout);
-            // Far Horizons End
         }
 
         public HumanoidCharacterProfile WithName(string name)
@@ -372,11 +324,6 @@ namespace Content.Shared.Preferences
         public HumanoidCharacterProfile WithCharacterAppearance(HumanoidCharacterAppearance appearance)
         {
             return new(this) { Appearance = appearance };
-        }
-
-        public HumanoidCharacterProfile WithCustomSpecies(string customSpecies)
-        {
-            return new(this) { CustomSpecies = customSpecies };
         }
 
         public HumanoidCharacterProfile WithSpawnPriorityPreference(SpawnPriorityPreference spawnPriority)
@@ -451,7 +398,7 @@ namespace Content.Shared.Preferences
         {
             return new(this)
             {
-                _antagPreferences = new(antagPreferences),
+                _antagPreferences = new (antagPreferences),
             };
         }
 
@@ -475,10 +422,45 @@ namespace Content.Shared.Preferences
 
         public HumanoidCharacterProfile WithTraitPreference(ProtoId<TraitPrototype> traitId, IPrototypeManager protoManager)
         {
+            // null category is assumed to be default.
             if (!protoManager.TryIndex(traitId, out var traitProto))
                 return new(this);
 
+            var category = traitProto.Category;
+
+            // Category not found so dump it.
+            TraitCategoryPrototype? traitCategory = null;
+
+            if (category != null && !protoManager.TryIndex(category, out traitCategory))
+                return new(this);
+
             var list = new HashSet<ProtoId<TraitPrototype>>(_traitPreferences) { traitId };
+
+            if (traitCategory == null || traitCategory.MaxTraitPoints < 0)
+            {
+                return new(this)
+                {
+                    _traitPreferences = list,
+                };
+            }
+
+            var count = 0;
+            foreach (var trait in list)
+            {
+                // If trait not found or another category don't count its points.
+                if (!protoManager.TryIndex<TraitPrototype>(trait, out var otherProto) ||
+                    otherProto.Category != traitCategory)
+                {
+                    continue;
+                }
+
+                count += otherProto.Cost;
+            }
+
+            if (count > traitCategory.MaxTraitPoints && traitProto.Cost != 0)
+            {
+                return new(this);
+            }
 
             return new(this)
             {
@@ -527,14 +509,12 @@ namespace Content.Shared.Preferences
             if (PreferenceUnavailable != other.PreferenceUnavailable) return false;
             if (SpawnPriority != other.SpawnPriority) return false;
             if (Species != other.Species) return false;
-            if (CustomSpecies != other.CustomSpecies) return false;
             if (Company != other.Company) return false;
             if (!_jobPriorities.SequenceEqual(other._jobPriorities)) return false;
             if (!_antagPreferences.SequenceEqual(other._antagPreferences)) return false;
             if (!_traitPreferences.SequenceEqual(other._traitPreferences)) return false;
             if (FlavorText != other.FlavorText) return false;
             if (!Appearance.MemberwiseEquals(other.Appearance)) return false;
-            if (!SpeciesLoadoutEquals(SpeciesLoadout, other.SpeciesLoadout)) return false; // Far Horizons
 
             // Compare loadouts
             if (Loadouts.Count != other.Loadouts.Count)
@@ -552,7 +532,7 @@ namespace Content.Shared.Preferences
             return true;
         }
 
-        public void EnsureValid(ICommonSession? session, IDependencyCollection collection)
+        public void EnsureValid(ICommonSession session, IDependencyCollection collection)
         {
             var configManager = collection.Resolve<IConfigurationManager>();
             var prototypeManager = collection.Resolve<IPrototypeManager>();
@@ -602,9 +582,17 @@ namespace Content.Shared.Preferences
 
             name = name.Trim();
 
-            if (configManager.GetCVar(CCVars.RestrictedNames))
+            if (configManager.GetCVar(CCVars.RestrictedNames) && Species != "IPC")
             {
-                name = RestrictedNameRegex.Replace(name, string.Empty);
+                name = Regex.Replace(name, @"[^\u0041-\u005A,\u0061-\u007A,\u00C0-\u00D6,\u00D8-\u00F6,\u00F8-\u00FF,\u0100-\u017F, -]", string.Empty);
+                /*
+                 * 0041-005A  Basic Latin: Uppercase Latin Alphabet
+                 * 0061-007A  Basic Latin: Lowercase Latin Alphabet
+                 * 00C0-00D6  Latin-1 Supplement: Letters I
+                 * 00D8-00F6  Latin-1 Supplement: Letters II
+                 * 00F8-00FF  Latin-1 Supplement: Letters III
+                 * 0100-017F  Latin Extended A: European Latin
+                 */
             }
 
             if (configManager.GetCVar(CCVars.ICNameCase))
@@ -733,17 +721,6 @@ namespace Content.Shared.Preferences
             {
                 _loadouts.Remove(value);
             }
-
-            // Far Horizons-Start - Species loadout validation
-            if (speciesPrototype.Loadout == null)
-                SpeciesLoadout = null;
-            else
-            {
-                SpeciesLoadout ??= new RoleLoadout(speciesPrototype.Loadout.Value);
-                SpeciesLoadout.Role = speciesPrototype.Loadout.Value;
-                SpeciesLoadout.SetDefault(this, session, prototypeManager);
-            }
-            // Far Horizons-End
         }
 
         /// <summary>
@@ -751,22 +728,41 @@ namespace Content.Shared.Preferences
         /// </summary>
         public List<ProtoId<TraitPrototype>> GetValidTraits(IEnumerable<ProtoId<TraitPrototype>> traits, IPrototypeManager protoManager)
         {
+            // Track points count for each group.
+            var groups = new Dictionary<string, int>();
             var result = new List<ProtoId<TraitPrototype>>();
-            var totalPoints = 0;
 
             foreach (var trait in traits)
             {
                 if (!protoManager.TryIndex(trait, out var traitProto))
                     continue;
 
-                totalPoints += traitProto.Cost;
+                // Always valid.
+                if (traitProto.Category == null)
+                {
+                    result.Add(trait);
+                    continue;
+                }
+
+                // No category so dump it.
+                if (!protoManager.TryIndex(traitProto.Category, out var category))
+                    continue;
+
+                var existing = groups.GetOrNew(category.ID);
+                existing += traitProto.Cost;
+
+                // Too expensive.
+                if (existing > category.MaxTraitPoints)
+                    continue;
+
+                groups[category.ID] = existing;
                 result.Add(trait);
             }
 
             return result;
         }
 
-        public ICharacterProfile Validated(ICommonSession? session, IDependencyCollection collection)
+        public ICharacterProfile Validated(ICommonSession session, IDependencyCollection collection)
         {
             var profile = new HumanoidCharacterProfile(this);
             profile.EnsureValid(session, collection);
@@ -783,7 +779,7 @@ namespace Content.Shared.Preferences
 
         public override bool Equals(object? obj)
         {
-            return ReferenceEquals(this, obj) || obj is HumanoidCharacterProfile other && MemberwiseEquals(other);
+            return ReferenceEquals(this, obj) || obj is HumanoidCharacterProfile other && Equals(other);
         }
 
         public override int GetHashCode()
@@ -795,7 +791,6 @@ namespace Content.Shared.Preferences
             hashCode.Add(_loadouts);
             hashCode.Add(Name);
             hashCode.Add(FlavorText);
-            hashCode.Add(CustomSpecies);
             hashCode.Add(Species);
             hashCode.Add(Age);
             hashCode.Add((int)Sex);
@@ -804,7 +799,6 @@ namespace Content.Shared.Preferences
             hashCode.Add(BankBalance); // Frontier
             hashCode.Add((int)SpawnPriority);
             hashCode.Add((int)PreferenceUnavailable);
-            hashCode.Add(SpeciesLoadout); // Far Horizons
             return hashCode.ToHashCode();
         }
 

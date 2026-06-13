@@ -1,46 +1,62 @@
 using Content.Server.Chat.Systems;
 using Content.Server.Emp;
 using Content.Server.Radio.Components;
+using Content.Shared._Mono.Radio;
 using Content.Shared.Inventory.Events;
-using Content.Shared.Abilities.Psionics;
 using Content.Shared.Radio;
 using Content.Shared.Radio.Components;
+using Content.Server.Speech;
+using Content.Server._EinsteinEngines.Language;
+using Content.Shared.Chat;
 using Content.Shared.Radio.EntitySystems;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
-using Content.Server.Speech; // Starlight
-using Content.Server._Starlight.Language; // Starlight
-using Content.Shared.Chat; // Starlight
 
 namespace Content.Server.Radio.EntitySystems;
 
-public sealed class HeadsetSystem : SharedHeadsetSystem
+public sealed partial class HeadsetSystem : SharedHeadsetSystem
 {
-    [Dependency] private readonly INetManager _netMan = default!;
-    [Dependency] private readonly RadioSystem _radio = default!;
-    [Dependency] private readonly LanguageSystem _language = default!; // Starlight
+    [Dependency] private INetManager _netMan = default!;
+    [Dependency] private RadioSystem _radio = default!;
+    [Dependency] private LanguageSystem _language = default!;
+
 
     public override void Initialize()
     {
         base.Initialize();
         SubscribeLocalEvent<HeadsetComponent, RadioReceiveEvent>(OnHeadsetReceive);
+        SubscribeLocalEvent<HeadsetComponent, EncryptionChannelsChangedEvent>(OnKeysChanged);
 
         SubscribeLocalEvent<WearingHeadsetComponent, EntitySpokeEvent>(OnSpeak);
+    }
 
-        SubscribeLocalEvent<HeadsetComponent, EmpPulseEvent>(OnEmpPulse);
+    private void OnKeysChanged(EntityUid uid, HeadsetComponent component, EncryptionChannelsChangedEvent args)
+    {
+        UpdateRadioChannels(uid, component, args.Component);
+    }
+
+    private void UpdateRadioChannels(EntityUid uid, HeadsetComponent headset, EncryptionKeyHolderComponent? keyHolder = null)
+    {
+        // make sure to not add ActiveRadioComponent when headset is being deleted
+        if (!headset.Enabled || MetaData(uid).EntityLifeStage >= EntityLifeStage.Terminating)
+            return;
+
+        if (!Resolve(uid, ref keyHolder))
+            return;
+
+        if (keyHolder.Channels.Count == 0)
+            RemComp<ActiveRadioComponent>(uid);
+        else
+            EnsureComp<ActiveRadioComponent>(uid).Channels = new(keyHolder.Channels);
     }
 
     private void OnSpeak(EntityUid uid, WearingHeadsetComponent component, EntitySpokeEvent args)
     {
-        // HardLight start: Use the headset's active radio channels (includes intrinsic + keys).
-        if (args.Channel == null)
-            return;
-
-        if (TryComp(component.Headset, out ActiveRadioComponent? activeRadio)
-            && activeRadio.Channels.Contains(args.Channel.ID))
-        // HardLight end
+        if (args.Channel != null
+            && TryComp(component.Headset, out EncryptionKeyHolderComponent? keys)
+            && keys.Channels.Contains(args.Channel.ID))
         {
-            _radio.SendRadioMessage(uid, args.Message, args.Channel, component.Headset, language: args.Language, originalMessage: args.OriginalMessage);
+            _radio.SendRadioMessage(uid, args.Message, args.Channel, component.Headset);
             args.Channel = null; // prevent duplicate messages from other listeners.
         }
     }
@@ -48,31 +64,17 @@ public sealed class HeadsetSystem : SharedHeadsetSystem
     protected override void OnGotEquipped(EntityUid uid, HeadsetComponent component, GotEquippedEvent args)
     {
         base.OnGotEquipped(uid, component, args);
-        component.IsEquipped = true; // HardLight
-        if (component.Enabled) // HardLight
+        if (component.IsEquipped && component.Enabled)
         {
             EnsureComp<WearingHeadsetComponent>(args.Equipee).Headset = uid;
-            // HardLight start: Trigger channel update via EncryptionChannelsChangedEvent (handled by IntrinsicRadioKeySystem)
-            if (TryComp<EncryptionKeyHolderComponent>(uid, out var keyHolder))
-            {
-                RaiseLocalEvent(uid, new EncryptionChannelsChangedEvent(keyHolder));
-            }
-            // HardLight end
+            UpdateRadioChannels(uid, component);
         }
     }
 
     protected override void OnGotUnequipped(EntityUid uid, HeadsetComponent component, GotUnequippedEvent args)
     {
         base.OnGotUnequipped(uid, component, args);
-        component.IsEquipped = false;
-        // HardLight start: Clear working channels but preserve intrinsic channels for when it's re-equipped
-        if (TryComp<ActiveRadioComponent>(uid, out var activeRadio))
-        {
-            activeRadio.Channels.Clear();
-            activeRadio.Channels.UnionWith(activeRadio.IntrinsicChannels);
-        }
-        // HardLight end
-
+        RemComp<ActiveRadioComponent>(uid);
         RemComp<WearingHeadsetComponent>(args.Equipee);
     }
 
@@ -84,6 +86,9 @@ public sealed class HeadsetSystem : SharedHeadsetSystem
         if (component.Enabled == value)
             return;
 
+        component.Enabled = value;
+        Dirty(uid, component);
+
         if (!value)
         {
             RemCompDeferred<ActiveRadioComponent>(uid);
@@ -94,49 +99,32 @@ public sealed class HeadsetSystem : SharedHeadsetSystem
         else if (component.IsEquipped)
         {
             EnsureComp<WearingHeadsetComponent>(Transform(uid).ParentUid).Headset = uid;
-            // HardLight start: Trigger channel update via EncryptionChannelsChangedEvent (handled by IntrinsicRadioKeySystem)
-            if (TryComp<EncryptionKeyHolderComponent>(uid, out var keyHolder))
-            {
-                RaiseLocalEvent(uid, new EncryptionChannelsChangedEvent(keyHolder));
-            }
-            // HardLight end
+            UpdateRadioChannels(uid, component);
         }
     }
 
     private void OnHeadsetReceive(EntityUid uid, HeadsetComponent component, ref RadioReceiveEvent args)
     {
-        var parent = Transform(uid).ParentUid; // HardLight
-
-        if (parent.IsValid()) // HardLight
+        if (TryComp(Transform(uid).ParentUid, out ActorComponent? actor))
         {
-            var relayEvent = new HeadsetRadioReceiveRelayEvent(args);
-            RaiseLocalEvent(parent, ref relayEvent);
-        }
-
-        // Starlight start
-        if (TryComp(parent, out ActorComponent? actor))
-        {
-            var canUnderstand = RadioSystem.HasXenoglossy(parent, EntityManager) || _language.CanUnderstand(parent, args.Language.ID);
+            // Einstein Engines - Language begin
+            var canUnderstand = _language.CanUnderstand(Transform(uid).ParentUid, args.Language.ID);
             var msg = new MsgChatMessage
             {
                 Message = canUnderstand ? args.OriginalChatMsg : args.LanguageObfuscatedChatMsg
             };
             _netMan.ServerSendMessage(msg, actor.PlayerSession.Channel);
-        }
-        // Starlight end
 
-        if (parent != args.MessageSource) // HardLight
-        {
-            args.Receivers.Add(parent);
-        }
-    }
+            // Einstein Engines - Language end
 
-    private void OnEmpPulse(EntityUid uid, HeadsetComponent component, ref EmpPulseEvent args)
-    {
-        if (component.Enabled)
-        {
-            args.Affected = true;
-            args.Disabled = true;
+            // Mono - Borers begin
+            var ev = new RadioMessageHeardEvent(uid, msg, args.Channel);
+            RaiseLocalEvent(Transform(uid).ParentUid, ref ev);
+            // Mono - Borers end
+
+            // Send radio noise event to client
+            var radioNoiseEvent = new RadioNoiseEvent(GetNetEntity(uid), args.Channel.ID);
+            RaiseNetworkEvent(radioNoiseEvent, actor.PlayerSession);
         }
     }
 }

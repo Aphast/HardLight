@@ -15,12 +15,13 @@ namespace Content.Client._NF.Shipyard.UI;
 [GenerateTypedNameReferences]
 public sealed partial class ShipyardConsoleMenu : FancyWindow
 {
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
 
     public event Action<ButtonEventArgs>? OnSellShip;
-    public event Action<ButtonEventArgs>? OnSaveShip;
     public event Action<ButtonEventArgs>? OnOrderApproved;
-    public event Action<ButtonEventArgs>? OnReloadShips;
+    public event Action<ButtonEventArgs>? OnUnassignDeed;
+    public event Action<string>? OnRenameShip;
+    private readonly ShipyardConsoleBoundUserInterface _menu;
     private readonly List<VesselSize> _categoryStrings = new();
     private readonly List<VesselClass> _classStrings = new();
     private readonly List<VesselEngine> _engineStrings = new();
@@ -33,18 +34,19 @@ public sealed partial class ShipyardConsoleMenu : FancyWindow
     private bool _freeListings = false;
     private bool _validId = false;
 
-    public ShipyardConsoleMenu()
+    public ShipyardConsoleMenu(ShipyardConsoleBoundUserInterface owner)
     {
         RobustXamlLoader.Load(this);
         IoCManager.InjectDependencies(this);
+        _menu = owner;
         Title = Loc.GetString("shipyard-console-menu-title");
         SearchBar.OnTextChanged += OnSearchBarTextChanged;
         Categories.OnItemSelected += OnCategoryItemSelected;
         Classes.OnItemSelected += OnClassItemSelected;
         Engines.OnItemSelected += OnEngineItemSelected;
         SellShipButton.OnPressed += (args) => { OnSellShip?.Invoke(args); };
-    SaveShipButton.OnPressed += (args) => { OnSaveShip?.Invoke(args); };
-    ReloadShipsButton.OnPressed += (args) => { OnReloadShips?.Invoke(args); };
+        UnassignDeedButton.OnPressed += (args) => { OnUnassignDeed?.Invoke(args); };
+        RenameButton.OnPressed += OnRenameButtonPressed;
     }
 
 
@@ -64,6 +66,22 @@ public sealed partial class ShipyardConsoleMenu : FancyWindow
     {
         SetEngineText(args.Id);
         PopulateProducts(_lastAvailableProtos, _lastUnavailableProtos, _freeListings, _validId);
+    }
+
+    private void OnRenameButtonPressed(ButtonEventArgs args)
+    {
+        var newName = RenameLineEdit.Text.Trim();
+        if (string.IsNullOrEmpty(newName))
+            return;
+
+        // Validate length (30 characters max, matching ShuttleDeedComponent.MaxNameLength)
+        if (newName.Length > 30)
+        {
+            newName = newName[..30];
+        }
+
+        OnRenameShip?.Invoke(newName);
+        RenameLineEdit.Text = "";
     }
 
     private void OnSearchBarTextChanged(LineEdit.LineEditEventArgs args)
@@ -139,6 +157,8 @@ public sealed partial class ShipyardConsoleMenu : FancyWindow
             string priceText;
             if (free)
                 priceText = Loc.GetString("shipyard-console-menu-listing-free");
+            else if (prototype != null && !prototype.Purchasable) // Mono
+                priceText = Loc.GetString("shipyard-console-menu-listing-voucher");
             else
                 priceText = BankSystemExtensions.ToSpesoString(prototype!.Price);
 
@@ -146,6 +166,7 @@ public sealed partial class ShipyardConsoleMenu : FancyWindow
             {
                 Vessel = prototype,
                 VesselName = { Text = prototype!.Name },
+                VesselDescription = { Text = prototype!.Description }, // Mono
                 Purchase = { Text = Loc.GetString("shipyard-console-purchase-available"), Disabled = !canPurchase },
                 Guidebook = { Disabled = prototype.GuidebookPage is null, TooltipDelay = 0.2f, ToolTip = prototype.Description },
                 Price = { Text = priceText },
@@ -287,11 +308,14 @@ public sealed partial class ShipyardConsoleMenu : FancyWindow
 
         ShipAppraisalLabel.Text = $"{BankSystemExtensions.ToSpesoString(shipPrice)} ({state.SellRate * 100.0f:F1}%)";
         SellShipButton.Disabled = state.ShipDeedTitle == null;
-        SaveShipButton.Disabled = !state.IsTargetIdPresent;  // Enable save button when ID card is present
-        LoadShipButton.Disabled = !state.IsTargetIdPresent;
-        LoadShipButton.ToolTip = state.IsTargetIdPresent
-            ? null
-            : Loc.GetString("shipyard-console-load-ship-no-id");
+        UnassignDeedButton.Disabled = state.ShipDeedTitle == null;
+
+        // Show/hide and enable/disable rename controls based on whether there's a ship deed
+        var hasShipDeed = state.ShipDeedTitle != null;
+        RenameContainer.Visible = hasShipDeed;
+        RenameLineEdit.Editable = hasShipDeed;
+        RenameButton.Disabled = !hasShipDeed;
+
         TargetIdButton.Text = state.IsTargetIdPresent
             ? Loc.GetString("id-card-console-window-eject-button")
             : Loc.GetString("id-card-console-window-insert-button");

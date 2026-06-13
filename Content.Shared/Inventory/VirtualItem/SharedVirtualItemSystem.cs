@@ -24,15 +24,18 @@ namespace Content.Shared.Inventory.VirtualItem;
 /// and <see cref="InventoryUiController"/>, see the <see cref="VirtualItemComponent"/>
 /// references there for more information
 /// </remarks>
-public abstract class SharedVirtualItemSystem : EntitySystem
+public abstract partial class SharedVirtualItemSystem : EntitySystem
 {
-    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-    [Dependency] private readonly SharedItemSystem _itemSystem = default!;
-    [Dependency] private readonly InventorySystem _inventorySystem = default!;
-    [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private INetManager _netManager = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private SharedContainerSystem _containerSystem = default!;
+    [Dependency] private SharedItemSystem _itemSystem = default!;
+    [Dependency] private InventorySystem _inventorySystem = default!;
+    [Dependency] private SharedHandsSystem _handsSystem = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
-    private static readonly EntProtoId VirtualItem = "VirtualItem";
+    [ValidatePrototypeId<EntityPrototype>]
+    private const string VirtualItem = "VirtualItem";
 
     public override void Initialize()
     {
@@ -233,7 +236,7 @@ public abstract class SharedVirtualItemSystem : EntitySystem
     {
         var pos = Transform(user).Coordinates;
         virtualItem = PredictedSpawnAttachedTo(VirtualItem, pos);
-        var virtualItemComp = EnsureComp<VirtualItemComponent>(virtualItem.Value); // Goobstation
+        var virtualItemComp = Comp<VirtualItemComponent>(virtualItem.Value);
         virtualItemComp.BlockingEntity = blockingEnt;
         Dirty(virtualItem.Value, virtualItemComp);
         return true;
@@ -244,10 +247,10 @@ public abstract class SharedVirtualItemSystem : EntitySystem
     /// </summary>
     public void DeleteVirtualItem(Entity<VirtualItemComponent> item, EntityUid user)
     {
-        var userEv = new VirtualItemDeletedEvent(item.Comp.BlockingEntity, user, item.Owner); // Goobstation
+        var userEv = new VirtualItemDeletedEvent(item.Comp.BlockingEntity, user);
         RaiseLocalEvent(user, userEv);
 
-        var targEv = new VirtualItemDeletedEvent(item.Comp.BlockingEntity, user, item.Owner); // Goobstation
+        var targEv = new VirtualItemDeletedEvent(item.Comp.BlockingEntity, user);
         RaiseLocalEvent(item.Comp.BlockingEntity, targEv);
 
         if (TerminatingOrDeleted(item))

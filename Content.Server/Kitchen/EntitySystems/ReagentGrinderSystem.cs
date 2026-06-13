@@ -1,4 +1,3 @@
-using Content.Server.Botany.Components;
 using Content.Server.Chemistry.Containers.EntitySystems; // Frontier
 using Content.Server.Construction; // Frontier
 using Content.Server.Kitchen.Components;
@@ -9,12 +8,11 @@ using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Destructible;
+using Content.Shared.DoAfter; // Mono
 using Content.Shared.FixedPoint;
 using Content.Shared.Interaction;
 using Content.Shared.Kitchen;
 using Content.Shared.Kitchen.Components;
-using Content.Shared.Nutrition.Components;
-using Content.Server.Nutrition.Components;
 using Content.Shared.Popups;
 using Content.Shared.Random;
 using Content.Shared.Stacks;
@@ -28,23 +26,25 @@ using System.Linq;
 using Content.Server.Jittering;
 using Content.Shared.Jittering;
 using Content.Shared.Power;
+using Content.Shared.Storage; // Mono
 
 namespace Content.Server.Kitchen.EntitySystems
 {
     [UsedImplicitly]
-    internal sealed class ReagentGrinderSystem : EntitySystem
+    internal sealed partial class ReagentGrinderSystem : EntitySystem
     {
-        [Dependency] private readonly IGameTiming _timing = default!;
-        [Dependency] private readonly SharedSolutionContainerSystem _solutionContainersSystem = default!;
-        [Dependency] private readonly ItemSlotsSystem _itemSlotsSystem = default!;
-        [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-        [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-        [Dependency] private readonly StackSystem _stackSystem = default!;
-        [Dependency] private readonly SharedAudioSystem _audioSystem = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearanceSystem = default!;
-        [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
-        [Dependency] private readonly RandomHelperSystem _randomHelper = default!;
-        [Dependency] private readonly JitteringSystem _jitter = default!;
+        [Dependency] private IGameTiming _timing = default!;
+        [Dependency] private SharedSolutionContainerSystem _solutionContainersSystem = default!;
+        [Dependency] private ItemSlotsSystem _itemSlotsSystem = default!;
+        [Dependency] private SharedPopupSystem _popupSystem = default!;
+        [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+        [Dependency] private StackSystem _stackSystem = default!;
+        [Dependency] private SharedAudioSystem _audioSystem = default!;
+        [Dependency] private SharedAppearanceSystem _appearanceSystem = default!;
+        [Dependency] private SharedContainerSystem _containerSystem = default!;
+        [Dependency] private SharedDoAfterSystem _doAfterSystem = default!; // Mono
+        [Dependency] private RandomHelperSystem _randomHelper = default!;
+        [Dependency] private JitteringSystem _jitter = default!;
 
         public override void Initialize()
         {
@@ -66,6 +66,7 @@ namespace Content.Server.Kitchen.EntitySystems
             SubscribeLocalEvent<ReagentGrinderComponent, ReagentGrinderStartMessage>(OnStartMessage);
             SubscribeLocalEvent<ReagentGrinderComponent, ReagentGrinderEjectChamberAllMessage>(OnEjectChamberAllMessage);
             SubscribeLocalEvent<ReagentGrinderComponent, ReagentGrinderEjectChamberContentMessage>(OnEjectChamberContentMessage);
+			SubscribeLocalEvent<ReagentGrinderComponent, ContainerDoAfterEvent>(OnContainerDoAfter); // Mono
         }
 
         private void OnToggleAutoModeMessage(Entity<ReagentGrinderComponent> entity, ref ReagentGrinderToggleAutoModeMessage message)
@@ -181,9 +182,21 @@ namespace Content.Server.Kitchen.EntitySystems
             var heldEnt = args.Used;
             var inputContainer = _containerSystem.EnsureContainer<Container>(entity.Owner, SharedReagentGrinder.InputContainerId);
 
-            if (!HasComp<ExtractableComponent>(heldEnt) && !HasComp<ProduceComponent>(heldEnt))
+            if (!HasComp<ExtractableComponent>(heldEnt))
             {
-                if (!HasComp<FitsInDispenserComponent>(heldEnt))
+                if (HasComp<StorageComponent>(heldEnt)) // Mono start: Plant bag dump, credit to imatsoup
+                {
+                    var doAfter = new DoAfterArgs(EntityManager, args.User, 0.5f, new ContainerDoAfterEvent(), entity, entity, used: heldEnt)
+                    {
+                        BreakOnDamage = true,
+                        NeedHand = true,
+                        BreakOnMove = true,
+                        BreakOnWeightlessMove = true,
+                    };
+                    _doAfterSystem.TryStartDoAfter(doAfter);
+                }
+
+                else if (!HasComp<FitsInDispenserComponent>(heldEnt)) // Mono end
                 {
                     // This is ugly but we can't use whitelistFailPopup because there are 2 containers with different whitelists.
                     _popupSystem.PopupEntity(Loc.GetString("reagent-grinder-component-cannot-put-entity-message"), entity.Owner, args.User);
@@ -301,6 +314,52 @@ namespace Content.Server.Kitchen.EntitySystems
             }
         }
 
+		// Mono start: Plant bag dump, credit to imatsoup
+        /// <summary>
+        /// DoAfter function for interacting with the grinder with an item with a storage component.
+        /// Moves any Extractable items from the storage of the held item to the grinder's container.
+        /// </summary>
+        /// <param name="uid">The grinder uid</param>
+        /// <param name="comp">The grinder component</param>
+        /// <param name="args">DoAfter args</param>
+        private void OnContainerDoAfter(EntityUid uid, ReagentGrinderComponent comp, ContainerDoAfterEvent args)
+        {
+            // If there's no storage component, we leave
+            if (!TryComp<StorageComponent>(args.Used, out var storage))
+                return;
+
+            // If the storage is empty, we leave
+            if (storage.StoredItems.Count == 0)
+                return;
+
+			_audioSystem.PlayPvs(new SoundPathSpecifier("/Audio/_Goobstation/Items/handling/backpack_equip.ogg"), comp.Owner, AudioParams.Default.WithVolume(-6f)); //Mono: Edited, not from port
+
+            var inputContainer = _containerSystem.EnsureContainer<Container>(comp.Owner, SharedReagentGrinder.InputContainerId);
+
+            // Find every Extractable item and put it into the grinder
+            foreach (var (item, _location) in storage.StoredItems)
+            {
+                // If the grinder is full, leave
+                if (inputContainer.ContainedEntities.Count >= comp.StorageMaxEntities)
+                {
+                    _popupSystem.PopupEntity(Loc.GetString("reagent-grinder-component-storage-full-message"), comp.Owner, args.User);
+                    return;
+                }
+
+                // If it isn't extractable, skip it
+                if (!HasComp<ExtractableComponent>(item))
+                    continue;
+
+                // Try to insert the item. If we can't, escape out of this function
+                if (!_containerSystem.Insert(item, inputContainer))
+                    return;
+            }
+
+            args.Handled = true;
+
+        }
+		// Mono end
+
         /// <summary>
         /// The wzhzhzh of the grinder. Processes the contents of the grinder and puts the output in the beaker.
         /// </summary>
@@ -346,43 +405,21 @@ namespace Content.Server.Kitchen.EntitySystems
 
         private Solution? GetGrindSolution(EntityUid uid)
         {
-            if (TryGetGrindSolution(uid, out var solution))
+            if (TryComp<ExtractableComponent>(uid, out var extractable)
+                && extractable.GrindableSolution is not null
+                && _solutionContainersSystem.TryGetSolution(uid, extractable.GrindableSolution, out _, out var solution))
+            {
                 return solution;
-
-            return null;
+            }
+            else
+                return null;
         }
 
         private bool CanGrind(EntityUid uid)
         {
-            return TryGetGrindSolution(uid, out _);
-        }
+            var solutionName = CompOrNull<ExtractableComponent>(uid)?.GrindableSolution;
 
-        private bool TryGetGrindSolution(EntityUid uid, out Solution solution)
-        {
-            if (TryComp<ExtractableComponent>(uid, out var extractable)
-                && extractable.GrindableSolution is not null
-                && _solutionContainersSystem.TryGetSolution(uid, extractable.GrindableSolution, out _, out var found))
-            {
-                solution = found;
-                return true;
-            }
-
-            if (TryComp<FoodComponent>(uid, out var food)
-                && _solutionContainersSystem.TryGetSolution(uid, food.Solution, out _, out var foodSolution))
-            {
-                solution = foodSolution;
-                return true;
-            }
-
-            if (TryComp<ProduceComponent>(uid, out var produce)
-                && _solutionContainersSystem.TryGetSolution(uid, produce.SolutionName, out _, out var produceSolution))
-            {
-                solution = produceSolution;
-                return true;
-            }
-
-            solution = default!;
-            return false;
+            return solutionName is not null && _solutionContainersSystem.TryGetSolution(uid, solutionName, out _, out _);
         }
 
         private bool CanJuice(EntityUid uid)

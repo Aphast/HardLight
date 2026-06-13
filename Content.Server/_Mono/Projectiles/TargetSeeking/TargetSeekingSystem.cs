@@ -12,12 +12,12 @@ namespace Content.Server._Mono.Projectiles.TargetSeeking;
 /// <summary>
 ///     Handles the logic for target-seeking projectiles.
 /// </summary>
-public sealed class TargetSeekingSystem : EntitySystem
+public sealed partial class TargetSeekingSystem : EntitySystem
 {
-    [Dependency] private readonly SharedTransformSystem _transform = null!;
-    [Dependency] private readonly RotateToFaceSystem _rotateToFace = null!;
-    [Dependency] private readonly PhysicsSystem _physics = null!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!; // Mono
+    [Dependency] private SharedTransformSystem _transform = null!;
+    [Dependency] private RotateToFaceSystem _rotateToFace = null!;
+    [Dependency] private PhysicsSystem _physics = null!;
+    [Dependency] private IGameTiming _gameTiming = default!; // Mono
 
     private EntityQuery<ProjectileComponent> _projectileQuery;
     private EntityQuery<PhysicsComponent> _physicsQuery;
@@ -140,32 +140,21 @@ public sealed class TargetSeekingSystem : EntitySystem
         var query = EntityQueryEnumerator<TargetSeekingComponent, PhysicsComponent, TransformComponent>();
         while (query.MoveNext(out var uid, out var seekingComp, out var body, out var xform))
         {
-            var heading = _transform.GetWorldRotation(xform).ToWorldVec();
-
-            if (!seekingComp.InheritedVelocityInitialized)
-            {
-                seekingComp.InheritedVelocity = body.LinearVelocity - heading * seekingComp.LaunchSpeed;
-                seekingComp.InheritedVelocityInitialized = true;
-            }
-
-            var relativeVelocity = body.LinearVelocity - seekingComp.InheritedVelocity;
             var acceleration = seekingComp.Acceleration * frameTime;
-
             // Initialize launch speed.
             if (seekingComp.Launched == false)
             {
-                relativeVelocity += heading * seekingComp.LaunchSpeed;
+                acceleration += seekingComp.LaunchSpeed;
                 seekingComp.Launched = true;
             }
 
             // Apply acceleration in the direction the projectile is facing
-            relativeVelocity += heading * acceleration;
+            _physics.SetLinearVelocity(uid, body.LinearVelocity + _transform.GetWorldRotation(xform).ToWorldVec() * acceleration, body: body);
 
-            var relativeSpeed = relativeVelocity.Length();
-            if (relativeSpeed > seekingComp.MaxSpeed)
-                relativeVelocity *= seekingComp.MaxSpeed / relativeSpeed;
-
-            _physics.SetLinearVelocity(uid, seekingComp.InheritedVelocity + relativeVelocity, body: body);
+            var velLen = body.LinearVelocity.Length();
+            // cut off velocity above max
+            if (velLen > seekingComp.MaxSpeed)
+                _physics.SetLinearVelocity(uid, body.LinearVelocity * (seekingComp.MaxSpeed / velLen), body: body);
 
             // Skip seeking behavior if disabled (e.g., after entering an enemy grid)
             if (seekingComp.SeekingDisabled)
@@ -208,14 +197,8 @@ public sealed class TargetSeekingSystem : EntitySystem
             }
             else
             {
-                // Throttle to at most once every 0.25 s: AcquireTarget walks every
-                // ShuttleConsoleComponent in the world, which is O(missiles × consoles)
-                // when run every tick.
-                if (_gameTiming.CurTime >= seekingComp.NextAcquireAttempt)
-                {
-                    AcquireTarget(uid, seekingComp, xform);
-                    seekingComp.NextAcquireAttempt = _gameTiming.CurTime + TimeSpan.FromSeconds(0.25);
-                }
+                // Try to acquire a new target
+                AcquireTarget(uid, seekingComp, xform);
             }
         }
     }
@@ -227,10 +210,9 @@ public sealed class TargetSeekingSystem : EntitySystem
     {
         var closestDistance = float.MaxValue;
         EntityUid? bestTarget = null;
-        TransformComponent? bestTargetXform = null;
 
         // Look for shuttles to target
-        var shuttleQuery = EntityQueryEnumerator<ShuttleConsoleComponent>();
+        var shuttleQuery = EntityQueryEnumerator<TargetSeekingTargetComponent>();
 
         while (shuttleQuery.MoveNext(out var targetUid, out _))
         {
@@ -238,34 +220,27 @@ public sealed class TargetSeekingSystem : EntitySystem
 
             // If this entity has a grid UID, use that as our actual target
             // This targets the ship grid rather than just the console
-            EntityUid effectiveTargetToConsider;
-            TransformComponent currentCandidateXform;
+            var actualTarget = targetXform.GridUid ?? targetUid;
 
-            if (targetXform.GridUid.HasValue)
-            {
-                effectiveTargetToConsider = targetXform.GridUid.Value;
-                currentCandidateXform = Transform(targetXform.GridUid.Value);
-            }
-            else
-            {
-                effectiveTargetToConsider = targetUid;
-                currentCandidateXform = targetXform;
-            }
-
-            var targetPos = _transform.ToMapCoordinates(currentCandidateXform.Coordinates).Position;
+            // Get angle to the target
+            var targetPos = _transform.ToMapCoordinates(targetXform.Coordinates).Position;
             var sourcePos = _transform.ToMapCoordinates(transform.Coordinates).Position;
             var angleToTarget = (targetPos - sourcePos).ToWorldAngle();
 
+            // Get current direction of the projectile
             var currentRotation = _transform.GetWorldRotation(transform);
 
+            // Check if target is within field of view
             var angleDifference = Angle.ShortestDistance(currentRotation, angleToTarget).Degrees;
             if (MathF.Abs((float)angleDifference) > component.ScanArc / 2)
             {
-                continue;
+                continue; // Target is outside our field of view
             }
 
+            // Calculate distance to target
             var distance = Vector2.Distance(sourcePos, targetPos);
 
+            // Skip if target is out of range
             if (distance > component.DetectionRange)
                 continue;
 
@@ -286,17 +261,13 @@ public sealed class TargetSeekingSystem : EntitySystem
             if (closestDistance > distance)
             {
                 closestDistance = distance;
-                bestTarget = effectiveTargetToConsider;
-                bestTargetXform = currentCandidateXform;
+                bestTarget = actualTarget;
             }
         }
 
-        if (bestTarget.HasValue && bestTargetXform != null)
+        // Set our new target
+        if (bestTarget.HasValue)
             SetSeekerTarget((uid, component), bestTarget, transform);
-        else
-        {
-            component.CurrentTarget = null;
-        }
     }
 
     /// <summary>
@@ -351,7 +322,7 @@ public sealed class TargetSeekingSystem : EntitySystem
         return CalculateAdvancedTracking(relPos, relVel, accel);
     }
 
-    public Angle CalculateAdvancedTracking(Vector2 relPos, Vector2 relVel, float accel)
+    public float CalculateAdvancedTrackingTime(Vector2 relPos, Vector2 relVel, float accel)
     {
         const int guidanceIterations = 3;
 
@@ -363,9 +334,7 @@ public sealed class TargetSeekingSystem : EntitySystem
         for (var i = 0; i < guidanceIterations; i++)
             itime = GuessInterceptTime(itime, -projX, -vel, projY, accel);
 
-        var targetRot = (relPos + relVel * itime).ToWorldAngle();
-
-        return targetRot;
+        return itime;
 
         // the explanation for how this works would take more space than the enclosing method so it's not included here
         float GuessInterceptTime(float prev, float x0, float vel, float y0, float accel)
@@ -375,6 +344,14 @@ public sealed class TargetSeekingSystem : EntitySystem
             var dd = vel * x / d;
             return (dd + MathF.Sqrt(dd * dd + 2f * accel * (d - dd * prev))) / (accel);
         }
+    }
+
+    public Angle CalculateAdvancedTracking(Vector2 relPos, Vector2 relVel, float accel)
+    {
+        var itime = CalculateAdvancedTrackingTime(relPos, relVel, accel);
+        var targetRot = (relPos + relVel * itime).ToWorldAngle();
+
+        return targetRot;
     }
 
     /// <summary>

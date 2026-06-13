@@ -5,19 +5,17 @@ using Content.Shared.Players.PlayTimeTracking;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
-using Content.Shared._NF.Roles.Components; // HardLight
-using Content.Shared.Mind; // HardLight
 
 namespace Content.Shared.Roles.Jobs;
 
 /// <summary>
 ///     Handles the job data on mind entities.
 /// </summary>
-public abstract class SharedJobSystem : EntitySystem
+public abstract partial class SharedJobSystem : EntitySystem
 {
-    [Dependency] private readonly SharedPlayerSystem _playerSystem = default!;
-    [Dependency] private readonly IPrototypeManager _prototypes = default!;
-    [Dependency] private readonly SharedRoleSystem _roles = default!;
+    [Dependency] private SharedPlayerSystem _playerSystem = default!;
+    [Dependency] private IPrototypeManager _prototypes = default!;
+    [Dependency] private SharedRoleSystem _roles = default!;
 
     private readonly Dictionary<string, string> _inverseTrackerLookup = new();
 
@@ -104,6 +102,7 @@ public abstract class SharedJobSystem : EntitySystem
 
     public bool MindHasJobWithId(EntityUid? mindId, string prototypeId)
     {
+
         if (mindId is null)
             return false;
 
@@ -137,19 +136,7 @@ public abstract class SharedJobSystem : EntitySystem
         if (_roles.MindHasRole<JobRoleComponent>(mindId.Value, out var role))
             job = role.Value.Comp1.JobPrototype;
 
-        // HardLight start: If the mind doesn't have a JobRoleComponent,
-        // attempt to get the job from the JobTrackingComponent on the mind's current entity.
-        if (job == null
-            && TryComp<MindComponent>(mindId.Value, out var mind)
-            && mind.CurrentEntity is { } currentEntity
-            && TryComp<JobTrackingComponent>(currentEntity, out var tracking)
-            && tracking.Job is { } trackedJob)
-        {
-            job = trackedJob;
-        }
-
-        return job != null;
-        // HardLight end
+        return job is not null;
     }
 
     /// <summary>

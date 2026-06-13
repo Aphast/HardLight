@@ -1,4 +1,5 @@
 using Content.Shared.Guidebook;
+using Content.Shared.Tag;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype.Array;
 using Robust.Shared.Utility;
@@ -24,6 +25,12 @@ public sealed partial class VesselPrototype : IPrototype, IInheritingPrototype
     [DataField] public string Name = string.Empty;
 
     /// <summary>
+    ///     The amount of this ship that can active at any given time.
+    ///     0 for unlimited.
+    /// </summary>
+    [DataField("limit")] public int LimitActive;
+
+    /// <summary>
     ///     Short description of the vessel.
     /// </summary>
     [DataField] public string Description = string.Empty;
@@ -33,6 +40,13 @@ public sealed partial class VesselPrototype : IPrototype, IInheritingPrototype
     /// </summary>
     [DataField(required: true)]
     public int Price;
+
+    /// <summary>
+    ///     Whether the ship should be crewed or not
+    ///     This is automatically set to true when the ship is a Capital-class ship.
+    /// </summary>
+    [DataField]
+    public bool RequireCrew;
 
     /// <summary>
     ///     The size of the vessel. (e.g. Small, Medium, Large etc.)
@@ -86,8 +100,21 @@ public sealed partial class VesselPrototype : IPrototype, IInheritingPrototype
     /// <summary>
     ///     The price markup of the vessel testing
     /// </summary>
+    [DataField("minPriceMarkup")]
+    public float MinPriceMarkup = 1f; // Mono change: 1.05 > 1
+
+    /// <summary>
+    ///     The price markup of the vessel testing for non capitals- Mono
+    /// </summary>
+    [DataField("maxPriceMarkup")]
+    public float MaxPriceMarkup = 2.5f; // Mono
+
+    // Mono
     [DataField]
-    public float MinPriceMarkup = 1.05f;
+    public bool Purchasable = true;
+
+    [DataField]
+    public HashSet<ProtoId<TagPrototype>> Tags = new();
 
     /// <summary>
     /// Components to be added to any spawned grids.
@@ -95,6 +122,18 @@ public sealed partial class VesselPrototype : IPrototype, IInheritingPrototype
     [DataField]
     [AlwaysPushInheritance]
     public ComponentRegistry AddComponents { get; set; } = new();
+
+    /// <summary>
+    /// Whether this ship can suppress IFF flags of other ships.
+    /// </summary>
+    [DataField]
+    public bool CloakHunter;
+
+    /// <summary>
+    /// List of company names whose ships this vessel will not suppress IFF flags for.
+    /// </summary>
+    [DataField]
+    public List<string> Company = new();
 }
 
 public enum VesselSize : byte
@@ -134,6 +173,12 @@ public enum VesselClass : byte
     // Antag ships
     Syndicate,
     Pirate,
+    // Mono - combat factions
+    Corvette,
+    Frigate,
+    Destroyer,
+    Cruiser,
+    // i doubt we'll ever get to cruisers
 }
 
 public enum VesselEngine : byte
@@ -151,5 +196,5 @@ public enum VesselEngine : byte
     Plasma,
     Uranium,
     Bananium,
-    Nuclear, // Hardlight: Turbine go spin :3
+    NFR, // Mono
 }

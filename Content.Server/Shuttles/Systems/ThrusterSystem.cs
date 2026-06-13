@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Content.Server.Audio;
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
@@ -21,22 +21,20 @@ using Robust.Shared.Utility;
 using Content.Shared.Localizations;
 using Content.Shared.Power;
 using Content.Server.Construction; // Frontier
-using Content.Server.Construction.Components; // Frontier
 using Content.Shared.DeviceLinking.Events; // Frontier
 
 namespace Content.Server.Shuttles.Systems;
 
-public sealed class ThrusterSystem : EntitySystem
+public sealed partial class ThrusterSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly ITileDefinitionManager _tileDefManager = default!;
-    [Dependency] private readonly SharedMapSystem _mapSystem = default!;
-    [Dependency] private readonly AmbientSoundSystem _ambient = default!;
-    [Dependency] private readonly FixtureSystem _fixtureSystem = default!;
-    [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly SharedPointLightSystem _light = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly ConstructionSystem _construction = default!; // Frontier
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedMapSystem _mapSystem = default!;
+    [Dependency] private AmbientSoundSystem _ambient = default!;
+    [Dependency] private FixtureSystem _fixtureSystem = default!;
+    [Dependency] private DamageableSystem _damageable = default!;
+    [Dependency] private SharedPointLightSystem _light = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private TurfSystem _turf = default!;
 
     // Essentially whenever thruster enables we update the shuttle's available impulses which are used for movement.
     // This is done for each direction available.
@@ -129,17 +127,16 @@ public sealed class ThrusterSystem : EntitySystem
 
     private void OnShuttleTileChange(EntityUid uid, ShuttleComponent component, ref TileChangedEvent args)
     {
-        var grid = Comp<MapGridComponent>(uid);
-        var xformQuery = GetEntityQuery<TransformComponent>();
-        var thrusterQuery = GetEntityQuery<ThrusterComponent>();
-
         foreach (var change in args.Changes)
         {
             // If the old tile was space but the new one isn't then disable all adjacent thrusters
-            if (change.NewTile.IsSpace(_tileDefManager) || !change.OldTile.IsSpace(_tileDefManager))
+            if (_turf.IsSpace(change.NewTile) || !_turf.IsSpace(change.OldTile))
                 continue;
 
             var tilePos = change.GridIndices;
+            var grid = Comp<MapGridComponent>(uid);
+            var xformQuery = GetEntityQuery<TransformComponent>();
+            var thrusterQuery = GetEntityQuery<ThrusterComponent>();
 
             for (var x = -1; x <= 1; x++)
             {
@@ -168,6 +165,7 @@ public sealed class ThrusterSystem : EntitySystem
                 }
             }
         }
+
     }
 
     private void OnActivateThruster(EntityUid uid, ThrusterComponent component, ActivateInWorldEvent args)
@@ -301,10 +299,6 @@ public sealed class ThrusterSystem : EntitySystem
     private void OnMapInit(Entity<ThrusterComponent> ent, ref MapInitEvent args)
     {
         ent.Comp.NextFire = _timing.CurTime + ent.Comp.FireCooldown;
-        // Frontier: upgradeable parts
-        if (TryComp<MachineComponent>(ent, out var machineComp))
-            _construction.RefreshParts(ent, machineComp);
-        // End Frontier: upgradeable parts
     }
 
     private void OnThrusterShutdown(EntityUid uid, ThrusterComponent component, ComponentShutdown args)
@@ -340,7 +334,7 @@ public sealed class ThrusterSystem : EntitySystem
         if (!EntityManager.TryGetComponent(xform.GridUid, out ShuttleComponent? shuttleComponent))
             return;
 
-        // Logger.GetSawmill(nameof(ThrusterSystem)).("thruster", $"Enabled thruster {uid}");
+        // Logger.DebugS("thruster", $"Enabled thruster {uid}");
 
         switch (component.Type)
         {
@@ -438,7 +432,7 @@ public sealed class ThrusterSystem : EntitySystem
         if (!EntityManager.TryGetComponent(gridId, out ShuttleComponent? shuttleComponent))
             return;
 
-        // Logger.GetSawmill(nameof(ThrusterSystem)).("thruster", $"Disabled thruster {uid}");
+        // Logger.DebugS("thruster", $"Disabled thruster {uid}");
 
         switch (component.Type)
         {
@@ -511,16 +505,10 @@ public sealed class ThrusterSystem : EntitySystem
         var mapGrid = Comp<MapGridComponent>(xform.GridUid.Value);
         var tile = _mapSystem.GetTileRef(xform.GridUid.Value, mapGrid, new Vector2i((int)Math.Floor(x), (int)Math.Floor(y)));
 
-        return tile.Tile.IsSpace();
+        return _turf.IsSpace(tile);
     }
 
     #region Burning
-
-    // Reusable scratch buffer for the per-tick burn loop. Iterating Colliding directly is unsafe
-    // because TryChangeDamage may kill the colliding entity, which raises EndCollideEvent and
-    // mutates Colliding. Snapshotting into a single reused list avoids the per-firing-thruster
-    // allocation that ToArray() caused at high CCU / capital-ship combat.
-    private readonly List<EntityUid> _burnScratch = new();
 
     public override void Update(float frameTime)
     {
@@ -539,13 +527,10 @@ public sealed class ThrusterSystem : EntitySystem
             if (!comp.Firing || comp.Colliding.Count == 0 || comp.Damage == null)
                 continue;
 
-            _burnScratch.Clear();
-            _burnScratch.AddRange(comp.Colliding);
-            for (var i = 0; i < _burnScratch.Count; i++)
+            foreach (var uid in comp.Colliding.ToArray())
             {
-                _damageable.TryChangeDamage(_burnScratch[i], comp.Damage);
+                _damageable.TryChangeDamage(uid, comp.Damage);
             }
-            _burnScratch.Clear();
         }
     }
 
@@ -656,7 +641,6 @@ public sealed class ThrusterSystem : EntitySystem
         }
     }
 
-    // Frontier: upgradeable machine parts, separate EMP handler
     private void OnRefreshParts(EntityUid uid, ThrusterComponent component, RefreshPartsEvent args)
     {
         if (component.IsOn) // safely disable thruster to prevent negative thrust
@@ -664,20 +648,7 @@ public sealed class ThrusterSystem : EntitySystem
 
         var thrustRating = args.PartRatings[component.MachinePartThrust];
 
-        if (component.ThrustPerPartLevel.Length <= 0)
-            component.Thrust = component.BaseThrust;
-        else if (thrustRating <= 1)
-            component.Thrust = component.ThrustPerPartLevel[0];
-        else if (thrustRating > component.ThrustPerPartLevel.Length)
-            component.Thrust = component.ThrustPerPartLevel[^1];
-        else
-        {
-            var idx = (int)thrustRating - 1;
-            component.Thrust = component.ThrustPerPartLevel[idx];
-            // Linearly interpolate if fractional
-            if (idx < component.ThrustPerPartLevel.Length - 1)
-                component.Thrust += (thrustRating - 1 - idx) * (component.ThrustPerPartLevel[idx + 1] - component.ThrustPerPartLevel[idx]);
-        }
+        component.Thrust = component.BaseThrust * MathF.Pow(component.PartRatingThrustMultiplier, thrustRating - 1);
 
         if (component.Enabled && CanEnable(uid, component))
             EnableThruster(uid, component);
@@ -699,7 +670,6 @@ public sealed class ThrusterSystem : EntitySystem
 
     //[ByRefEvent]
     //public record struct ThrusterToggleAttemptEvent(bool Cancelled);
-    // End Frontier: upgradeable machine parts, separate EMP handler
 
     #endregion
 
@@ -708,4 +678,3 @@ public sealed class ThrusterSystem : EntitySystem
         return (int)Math.Log2((int)flag);
     }
 }
-

@@ -1,46 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.IO;
 using Content.IntegrationTests;
+using Content.IntegrationTests.Utility;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Reflection;
 using Robust.Shared.Serialization.Markdown.Validation;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Robust.UnitTesting;
+using Robust.UnitTesting.Pool;
 
 namespace Content.YAMLLinter
 {
     internal static class Program
     {
-        private static readonly List<string> LogBuffer = new();
-        private static string ResultsPath => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "yaml_lint_results.txt");
-
-        private static void Out(string message)
-        {
-            Console.WriteLine(message);
-            LogBuffer.Add(message);
-        }
-
-        private static void FlushLog()
-        {
-            try
-            {
-                var path = ResultsPath;
-                var full = Path.GetFullPath(path);
-                File.WriteAllLines(full, LogBuffer);
-            }
-            catch
-            {
-                // best-effort; ignore IO errors
-            }
-        }
+        private static readonly ExternalTestContext TestContext = new("YAML Linter", StreamWriter.Null);
 
         private static async Task<int> Main(string[] _)
         {
+            GameDataScrounger.NoScrounging = true; // Ugly hack for YAML Linter.
             PoolManager.Startup();
             var stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -51,9 +33,8 @@ namespace Content.YAMLLinter
 
             if (count == 0)
             {
-                Out($"No errors found in {(int)stopwatch.Elapsed.TotalMilliseconds} ms.");
+                Console.WriteLine($"No errors found in {(int) stopwatch.Elapsed.TotalMilliseconds} ms.");
                 PoolManager.Shutdown();
-                FlushLog();
                 return 0;
             }
 
@@ -61,47 +42,46 @@ namespace Content.YAMLLinter
             {
                 foreach (var errorNode in errorHashset)
                 {
-                    Out($"::error file={file},line={errorNode.Node.Start.Line},col={errorNode.Node.Start.Column}::{file}({errorNode.Node.Start.Line},{errorNode.Node.Start.Column})  {errorNode.ErrorReason}");
+                    Console.WriteLine($"::error file={file},line={errorNode.Node.Start.Line},col={errorNode.Node.Start.Column}::{file}({errorNode.Node.Start.Line},{errorNode.Node.Start.Column})  {errorNode.ErrorReason}");
                 }
             }
 
             foreach (var error in fieldErrors)
             {
-                Out(error);
+                Console.WriteLine(error);
             }
 
-            Out($"{count} errors found in {(int)stopwatch.Elapsed.TotalMilliseconds} ms.");
+            Console.WriteLine($"{count} errors found in {(int) stopwatch.Elapsed.TotalMilliseconds} ms.");
             PoolManager.Shutdown();
-            FlushLog();
             return -1;
         }
 
-        private static async Task<(Dictionary<string, HashSet<ErrorNode>> YamlErrors, List<string> FieldErrors, Assembly[] Assemblies)>
+        private static async Task<(Dictionary<string, HashSet<ErrorNode>> YamlErrors, List<string> FieldErrors)>
             ValidateClient()
         {
-            await using var pair = await PoolManager.GetServerClient();
-            var result = await ValidateInstance(pair.Client);
+            await using var pair = await PoolManager.GetServerClient(testContext: TestContext);
+            var client = pair.Client;
+            var result = await ValidateInstance(client);
             await pair.CleanReturnAsync();
             return result;
         }
 
-        private static async Task<(Dictionary<string, HashSet<ErrorNode>> YamlErrors, List<string> FieldErrors, Assembly[] Assemblies)>
+        private static async Task<(Dictionary<string, HashSet<ErrorNode>> YamlErrors, List<string> FieldErrors)>
             ValidateServer()
         {
-            await using var pair = await PoolManager.GetServerClient();
-            var result = await ValidateInstance(pair.Server);
+            await using var pair = await PoolManager.GetServerClient(testContext: TestContext);
+            var server = pair.Server;
+            var result = await ValidateInstance(server);
             await pair.CleanReturnAsync();
             return result;
         }
 
-        private static async Task<(Dictionary<string, HashSet<ErrorNode>>, List<string>, Assembly[])> ValidateInstance(
+        private static async Task<(Dictionary<string, HashSet<ErrorNode>>, List<string>)> ValidateInstance(
             RobustIntegrationTest.IntegrationInstance instance)
         {
             var protoMan = instance.ResolveDependency<IPrototypeManager>();
-            var refl = instance.ResolveDependency<IReflectionManager>();
             Dictionary<string, HashSet<ErrorNode>> yamlErrors = default!;
             List<string> fieldErrors = default!;
-            Assembly[] assemblies = default!;
 
             await instance.WaitPost(() =>
             {
@@ -126,35 +106,30 @@ namespace Content.YAMLLinter
                 }
 
                 fieldErrors = protoMan.ValidateStaticFields(prototypes);
-                assemblies = refl.Assemblies.ToArray();
             });
 
-            return (yamlErrors, fieldErrors, assemblies);
+            return (yamlErrors, fieldErrors);
         }
 
         public static async Task<(Dictionary<string, HashSet<ErrorNode>> YamlErrors, List<string> FieldErrors)>
             RunValidation()
         {
-            var serverTask = ValidateServer();
-            var clientTask = ValidateClient();
-
-            await Task.WhenAll(serverTask, clientTask);
-
-            var (serverYamlErrors, serverFieldErrors, serverAssemblies) = await serverTask;
-            var (clientYamlErrors, clientFieldErrors, clientAssemblies) = await clientTask;
-
+            var (clientAssemblies, serverAssemblies) = await GetClientServerAssemblies();
             var serverTypes = serverAssemblies.SelectMany(n => n.GetTypes()).Select(t => t.Name).ToHashSet();
             var clientTypes = clientAssemblies.SelectMany(n => n.GetTypes()).Select(t => t.Name).ToHashSet();
 
             var yamlErrors = new Dictionary<string, HashSet<ErrorNode>>();
 
-            foreach (var (key, val) in serverYamlErrors)
+            var serverErrors = await ValidateServer();
+            var clientErrors = await ValidateClient();
+
+            foreach (var (key, val) in serverErrors.YamlErrors)
             {
                 // Include all server errors marked as always relevant
                 var newErrors = val.Where(n => n.AlwaysRelevant).ToHashSet();
 
                 // We include sometimes-relevant errors if they exist both for the client & server
-                if (clientYamlErrors.TryGetValue(key, out var clientVal))
+                if (clientErrors.YamlErrors.TryGetValue(key, out var clientVal))
                     newErrors.UnionWith(val.Intersect(clientVal));
 
                 // Include any errors that relate to server-only types
@@ -171,7 +146,7 @@ namespace Content.YAMLLinter
             }
 
             // Next add any always-relevant client errors.
-            foreach (var (key, val) in clientYamlErrors)
+            foreach (var (key, val) in clientErrors.YamlErrors)
             {
                 var newErrors = val.Where(n => n.AlwaysRelevant).ToHashSet();
                 if (newErrors.Count == 0)
@@ -193,12 +168,30 @@ namespace Content.YAMLLinter
             }
 
             // Finally, combine the prototype ID field errors.
-            var fieldErrors = serverFieldErrors
-                .Concat(clientFieldErrors)
+            var fieldErrors = serverErrors.FieldErrors
+                .Concat(clientErrors.FieldErrors)
                 .Distinct()
                 .ToList();
 
             return (yamlErrors, fieldErrors);
+        }
+
+        private static async Task<(Assembly[] clientAssemblies, Assembly[] serverAssemblies)>
+            GetClientServerAssemblies()
+        {
+            await using var pair = await PoolManager.GetServerClient(testContext: TestContext);
+
+            var result = (GetAssemblies(pair.Client), GetAssemblies(pair.Server));
+
+            await pair.CleanReturnAsync();
+
+            return result;
+
+            Assembly[] GetAssemblies(RobustIntegrationTest.IntegrationInstance instance)
+            {
+                var refl = instance.ResolveDependency<IReflectionManager>();
+                return refl.Assemblies.ToArray();
+            }
         }
     }
 }

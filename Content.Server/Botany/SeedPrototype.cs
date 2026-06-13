@@ -1,7 +1,6 @@
 using Content.Server.Botany.Components;
 using Content.Server.Botany.Systems;
 using Content.Shared.Atmos;
-using Content.Shared.Database;
 using Content.Shared.EntityEffects;
 using Content.Shared.Random;
 using Robust.Shared.Audio;
@@ -267,18 +266,6 @@ public partial class SeedData
     [DataField(customTypeSerializer: typeof(PrototypeIdListSerializer<SeedPrototype>))]
     public List<string> MutationPrototypes = new();
 
-    /// <summary>
-    ///  Log impact for when the seed is planted.
-    /// </summary>
-    [DataField]
-    public LogImpact? PlantLogImpact = null;
-
-    /// <summary>
-    ///  Log impact for when the seed is harvested.
-    /// </summary>
-    [DataField]
-    public LogImpact? HarvestLogImpact = null;
-
     public SeedData Clone()
     {
         DebugTools.Assert(!Immutable, "There should be no need to clone an immutable seed.");
@@ -332,17 +319,12 @@ public partial class SeedData
             TurnIntoKudzu = TurnIntoKudzu,
             SplatPrototype = SplatPrototype,
             Mutations = new List<RandomPlantMutation>(),
-            MutationCategoryStates = new List<PlantMutationCategoryState>(),
 
             // Newly cloned seed is unique. No need to unnecessarily clone if repeatedly modified.
             Unique = true,
         };
 
         newSeed.Mutations.AddRange(Mutations);
-        foreach (var state in MutationCategoryStates)
-        {
-            newSeed.MutationCategoryStates.Add(state.Clone());
-        }
         return newSeed;
     }
 
@@ -403,16 +385,10 @@ public partial class SeedData
             CanScream = CanScream,
             TurnIntoKudzu = TurnIntoKudzu,
             SplatPrototype = other.SplatPrototype,
-            MutationCategoryStates = new List<PlantMutationCategoryState>(),
 
             // Newly cloned seed is unique. No need to unnecessarily clone if repeatedly modified.
             Unique = true,
         };
-
-        foreach (var state in MutationCategoryStates)
-        {
-            newSeed.MutationCategoryStates.Add(state.Clone());
-        }
 
         // Adding the new chemicals from the new species.
         foreach (var otherChem in other.Chemicals)

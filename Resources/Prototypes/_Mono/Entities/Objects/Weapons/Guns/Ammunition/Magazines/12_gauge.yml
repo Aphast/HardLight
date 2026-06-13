@@ -1,7 +1,7 @@
 - type: entity
   id: BaseMagazine12_gauge
   name: ammo drum (12 gauge shells)
-  parent: [ BaseItem, BaseC1Contraband, RecyclableItemSteelTiny ] # Frontier: BaseSecurityContraband<BaseC1Contraband, added RecyclableItemSteelTiny
+  parent: [ BaseItem, RecyclableItemSteelTiny ]
   abstract: true
   components:
   - type: Tag
@@ -11,7 +11,7 @@
     mayTransfer: true
     whitelist:
       tags:
-        - ShellShotgun12_gauge
+        - ShellShotgun12_gaugeBuckshot
     capacity: 8
     soundRack:
       path: /Audio/Weapons/Guns/Cock/smg_cock.ogg
@@ -48,7 +48,7 @@
   parent: BaseMagazine12_gauge
   components:
   - type: BallisticAmmoProvider
-    proto: ShellShotgun12_gauge
+    proto: ShellShotgun12_gaugeBuckshot
   - type: Sprite
     layers:
     - state: pellets
@@ -122,6 +122,65 @@
   - type: Sprite
     layers:
     - state: practice
+      map: ["enum.GunVisualLayers.Base"]
+    - state: mag-1
+      map: ["enum.GunVisualLayers.Mag"]
+
+#Mono AP system
+#anti-flesh ammo
+- type: entity
+  id: Magazine12_gaugeOOBuckshot
+  name: ammo drum (12 gauge OO magnum buckshot)
+  parent: BaseMagazine12_gauge
+  components:
+  - type: BallisticAmmoProvider
+    proto: ShellShotgun12_gaugeOOBuckshot
+  - type: Sprite
+    layers:
+    - state: pellets
+      map: ["enum.GunVisualLayers.Base"]
+    - state: mag-1
+      map: ["enum.GunVisualLayers.Mag"]
+
+- type: entity
+  id: Magazine12_gaugeSlugRIP
+  name: ammo drum (12 gauge RIP)
+  parent: BaseMagazine12_gauge
+  components:
+  - type: BallisticAmmoProvider
+    proto: ShellShotgun12_gaugeSlugRIP
+  - type: Sprite
+    layers:
+    - state: RIP
+      map: ["enum.GunVisualLayers.Base"]
+    - state: mag-1
+      map: ["enum.GunVisualLayers.Mag"]
+
+#armor-piercing ammo
+- type: entity
+  id: Magazine12_gaugeSlugAP
+  name: ammo drum (12 gauge armor-piercing slug)
+  parent: BaseMagazine12_gauge
+  components:
+  - type: BallisticAmmoProvider
+    proto: ShellShotgun12_gaugeSlugAP
+  - type: Sprite
+    layers:
+    - state: slug-AP
+      map: ["enum.GunVisualLayers.Base"]
+    - state: mag-1
+      map: ["enum.GunVisualLayers.Mag"]
+
+- type: entity
+  id: Magazine12_gaugeFlechette
+  name: ammo drum (12 gauge flechette)
+  parent: BaseMagazine12_gauge
+  components:
+  - type: BallisticAmmoProvider
+    proto: ShellShotgun12_gaugeFlechette
+  - type: Sprite
+    layers:
+    - state: flechette
       map: ["enum.GunVisualLayers.Base"]
     - state: mag-1
       map: ["enum.GunVisualLayers.Mag"]

@@ -16,12 +16,13 @@ public sealed partial class GunSystem
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, AmmoCounterControlEvent>(OnChamberMagazineCounter);
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, UpdateAmmoCounterEvent>(OnChamberMagazineAmmoUpdate);
         SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, AppearanceChangeEvent>(OnChamberMagazineAppearance);
+        SubscribeLocalEvent<ChamberMagazineAmmoProviderComponent, BoltStateChangedEvent>(OnBoltStateChanged);
     }
 
     private void OnChamberMagazineAppearance(EntityUid uid, ChamberMagazineAmmoProviderComponent component, ref AppearanceChangeEvent args)
     {
         if (args.Sprite == null ||
-            !_sprite.LayerMapTryGet((uid, args.Sprite), GunVisualLayers.Base, out var boltLayer, false) ||
+            !args.Sprite.LayerMapTryGet(GunVisualLayers.Base, out var boltLayer) ||
             !Appearance.TryGetData(uid, AmmoVisuals.BoltClosed, out bool boltClosed))
         {
             return;
@@ -30,11 +31,11 @@ public sealed partial class GunSystem
         // Maybe re-using base layer for this will bite me someday but screw you future sloth.
         if (boltClosed)
         {
-            _sprite.LayerSetRsiState((uid, args.Sprite), boltLayer, "base");
+            args.Sprite.LayerSetState(boltLayer, "base");
         }
         else
         {
-            _sprite.LayerSetRsiState((uid, args.Sprite), boltLayer, "bolt-open");
+            args.Sprite.LayerSetState(boltLayer, "bolt-open");
         }
     }
 
@@ -71,6 +72,12 @@ public sealed partial class GunSystem
         if (magEntity != null)
             RaiseLocalEvent(magEntity.Value, ref ammoCountEv, false);
 
-        control.Update(chambered != null, magEntity != null, ammoCountEv.Count, ammoCountEv.Capacity);
+        var hasRoundChambered = chambered != null && component.BoltClosed == true; // Mono: don't show chambered round if bolt is open
+        control.Update(hasRoundChambered, magEntity != null, ammoCountEv.Count, ammoCountEv.Capacity);
+    }
+    //Mono
+    private void OnBoltStateChanged(EntityUid uid, ChamberMagazineAmmoProviderComponent comp, BoltStateChangedEvent args)
+    {
+        UpdateAmmoCount(uid); // Update the ammo counter when the bolt state changes
     }
 }

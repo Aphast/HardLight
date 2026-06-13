@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Numerics;
+using Content.Server.Explosion.Components;
 using Content.Shared.Administration;
 using Content.Shared.Explosion.Components;
 using Robust.Shared.Map;
@@ -40,11 +41,7 @@ public sealed partial class ExplosionSystem
         if (totalIntensity <= 0 || slope <= 0)
             return null;
 
-        if (!_explosionTypes.TryGetValue(typeID, out var typeIndex))
-        {
-            Log.Error("Attempted to spawn explosion using a prototype that was not defined during initialization. Explosion prototype hot-reload is not currently supported.");
-            return null;
-        }
+        var typeIndex = _explosionTypes[typeID];
 
         Vector2i initialTile;
         EntityUid? epicentreGrid = null;
@@ -52,7 +49,7 @@ public sealed partial class ExplosionSystem
 
         // get the epicenter tile indices
         if (_mapManager.TryFindGridAt(epicenter, out var gridUid, out var candidateGrid) &&
-            _mapSystem.TryGetTileRef(gridUid, candidateGrid, _mapSystem.WorldToTile(gridUid, candidateGrid, epicenter.Position), out var tileRef) &&
+            _map.TryGetTileRef(gridUid, candidateGrid, _map.WorldToTile(gridUid, candidateGrid, epicenter.Position), out var tileRef) &&
             !tileRef.Tile.IsEmpty)
         {
             epicentreGrid = gridUid;
@@ -62,7 +59,7 @@ public sealed partial class ExplosionSystem
         {
             // reference grid defines coordinate system that the explosion in space will use
             var gridComp = Comp<MapGridComponent>(referenceGrid.Value);
-            initialTile = _mapSystem.WorldToTile(referenceGrid.Value, gridComp, epicenter.Position);
+            initialTile = _map.WorldToTile(referenceGrid.Value, gridComp, epicenter.Position);
         }
         else
         {
@@ -86,7 +83,7 @@ public sealed partial class ExplosionSystem
 
         // As above, but for space-based explosion propagating from space onto grids.
         HashSet<EntityUid> encounteredGrids = new();
-        Dictionary<EntityUid, HashSet<Vector2i>>? previousGridJump;
+        // Dictionary<EntityUid, HashSet<Vector2i>>? previousGridJump; // Mono
 
         // variables for transforming between grid and space-coordinates
         var spaceMatrix = Matrix3x2.Identity;
@@ -103,11 +100,10 @@ public sealed partial class ExplosionSystem
             // set up the initial `gridData` instance
             encounteredGrids.Add(epicentreGrid.Value);
 
-            if (!_airtightMap.TryGetValue(epicentreGrid.Value, out var airtightMap))
-                airtightMap = new();
+            var airtightMap = CompOrNull<ExplosionAirtightGridComponent>(epicentreGrid)?.Tiles ?? new();
 
             var initialGridData = new ExplosionGridTileFlood(
-                Comp<MapGridComponent>(epicentreGrid.Value),
+                (epicentreGrid.Value, Comp<MapGridComponent>(epicentreGrid.Value)),
                 airtightMap,
                 maxIntensity,
                 stepSize,
@@ -115,7 +111,8 @@ public sealed partial class ExplosionSystem
                 _gridEdges[epicentreGrid.Value],
                 referenceGrid,
                 spaceMatrix,
-                spaceAngle);
+                spaceAngle,
+                this);
 
             gridData[epicentreGrid.Value] = initialGridData;
 
@@ -179,24 +176,36 @@ public sealed partial class ExplosionSystem
 
             // In order to treat "cost" of moving off a grid on the same level as moving onto a grid, both space -> grid and grid -> space have to be delayed by one iteration.
             previousSpaceJump = spaceJump;
-            previousGridJump = spaceData?.GridJump;
             spaceJump = new();
 
             var newTileCount = 0;
 
-            if (previousGridJump != null)
-                encounteredGrids.UnionWith(previousGridJump.Keys);
+            // Mono - explosion fix, feat. gemini from googer
+            // 1. Process space expansion FIRST.
+            // If space-data is null, but some grid-based explosion reached space, we need to initialize it.
+            if (spaceData == null && previousSpaceJump.Count != 0)
+                spaceData = new ExplosionSpaceTileFlood(this, epicenter, referenceGrid, localGrids, maxDistance);
 
+            // If the explosion has reached space, do that neighbors finding step as well.
+            if (spaceData != null)
+                newTileCount += spaceData.AddNewTiles(iteration, previousSpaceJump);
+
+            // 2. Feed the new grid jumps immediately into THIS iteration (0 delay for Space -> Grid transitions)
+            var currentGridJump = spaceData?.GridJump;
+
+            if (currentGridJump != null)
+                encounteredGrids.UnionWith(currentGridJump.Keys);
+
+            // 3. Process grids and immediate space->grid jumps
             foreach (var grid in encounteredGrids)
             {
                 // is this a new grid, for which we must create a new explosion data set
                 if (!gridData.TryGetValue(grid, out var data))
                 {
-                    if (!_airtightMap.TryGetValue(grid, out var airtightMap))
-                        airtightMap = new();
+                    var airtightMap = CompOrNull<ExplosionAirtightGridComponent>(grid)?.Tiles ?? new();
 
                     data = new ExplosionGridTileFlood(
-                        Comp<MapGridComponent>(grid),
+                        (grid, Comp<MapGridComponent>(grid)),
                         airtightMap,
                         maxIntensity,
                         stepSize,
@@ -204,23 +213,16 @@ public sealed partial class ExplosionSystem
                         _gridEdges[grid],
                         referenceGrid,
                         spaceMatrix,
-                        spaceAngle);
+                        spaceAngle,
+                        this);
 
                     gridData[grid] = data;
                 }
 
                 // get the new neighbours, and populate gridToSpaceTiles in the process.
-                newTileCount += data.AddNewTiles(iteration, previousGridJump?.GetValueOrDefault(grid));
+                newTileCount += data.AddNewTiles(iteration, currentGridJump?.GetValueOrDefault(grid));
                 spaceJump.UnionWith(data.SpaceJump);
             }
-
-            // if space-data is null, but some grid-based explosion reached space, we need to initialize it.
-            if (spaceData == null && previousSpaceJump.Count != 0)
-                spaceData = new ExplosionSpaceTileFlood(this, epicenter, referenceGrid, localGrids, maxDistance);
-
-            // If the explosion has reached space, do that neighbors finding step as well.
-            if (spaceData != null)
-                newTileCount += spaceData.AddNewTiles(iteration, previousSpaceJump);
 
             // Does adding these tiles bring us above the total target intensity?
             tilesInIteration.Add(newTileCount);
@@ -275,7 +277,7 @@ public sealed partial class ExplosionSystem
         radius = Math.Min(radius, MaxIterations / 4);
 
         EntityUid? referenceGrid = null;
-        float mass = 0;
+        var mass = float.MinValue;
 
         // First attempt to find a grid that is relatively close to the explosion's center. Instead of looking in a
         // diameter x diameter sized box, use a smaller box with radius sized sides:
@@ -285,7 +287,7 @@ public sealed partial class ExplosionSystem
         _mapManager.FindGridsIntersecting(epicenter.MapId, box, ref _grids);
         foreach (var grid in _grids)
         {
-            if (TryComp(grid.Owner, out PhysicsComponent? physics) && physics.Mass > mass)
+            if (TryComp(grid.Owner, out PhysicsComponent? physics) && physics.FixturesMass > mass)
             {
                 mass = physics.Mass;
                 referenceGrid = grid.Owner;
@@ -315,7 +317,7 @@ public sealed partial class ExplosionSystem
         {
             if (TryComp(grid.Owner, out PhysicsComponent? physics) && physics.Mass > mass)
             {
-                mass = physics.Mass;
+                mass = physics.FixturesMass;
                 referenceGrid = grid.Owner;
             }
         }
@@ -340,7 +342,7 @@ public sealed partial class ExplosionSystem
 
         var (area, iterationIntensity, spaceData, gridData, spaceMatrix) = results.Value;
 
-        Log.Debug($"Generated explosion preview with {area} tiles in {stopwatch.Elapsed.TotalMilliseconds}ms");
+        Log.Info($"Generated explosion preview with {area} tiles in {stopwatch.Elapsed.TotalMilliseconds}ms");
 
         Dictionary<NetEntity, Dictionary<int, List<Vector2i>>> tileLists = new();
         foreach (var (grid, data) in gridData)

@@ -9,25 +9,24 @@ using Content.Shared.Clothing;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Database;
 using Content.Shared.NPC.Components;
-//using Content.Shared.NPC.Systems;
+using Content.Shared.NPC.Systems;
 using Content.Shared.Players;
 using Content.Shared.Popups;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
-using Content.Shared.GameTicking.Components;
 
 namespace Content.Server.Clothing.Systems;
 
 /// <inheritdoc/>
-public sealed class CursedMaskSystem : SharedCursedMaskSystem
+public sealed partial class CursedMaskSystem : SharedCursedMaskSystem
 {
-    [Dependency] private readonly IAdminLogManager _adminLog = default!;
-    [Dependency] private readonly GhostSystem _ghostSystem = default!;
-    [Dependency] private readonly HTNSystem _htn = default!;
-    [Dependency] private readonly MindSystem _mind = default!;
-    [Dependency] private readonly NPCSystem _npc = default!;
-    //[Dependency] private readonly NpcFactionSystem _npcFaction = default!;
-    [Dependency] private readonly PopupSystem _popup = default!;
+    [Dependency] private IAdminLogManager _adminLog = default!;
+    [Dependency] private GhostSystem _ghostSystem = default!;
+    [Dependency] private HTNSystem _htn = default!;
+    [Dependency] private MindSystem _mind = default!;
+    [Dependency] private NPCSystem _npc = default!;
+    [Dependency] private NpcFactionSystem _npcFaction = default!;
+    [Dependency] private PopupSystem _popup = default!;
 
     // We can't store this info on the component easily
     private static readonly ProtoId<HTNCompoundPrototype> TakeoverRootTask = "SimpleHostileCompound";
@@ -51,11 +50,11 @@ public sealed class CursedMaskSystem : SharedCursedMaskSystem
                 $"{ToPrettyString(wearer):player} had their body taken over and turned into an enemy through the cursed mask {ToPrettyString(ent):entity}");
         }
 
-        /* var npcFaction = EnsureComp<NpcFactionMemberComponent>(wearer);
+        var npcFaction = EnsureComp<NpcFactionMemberComponent>(wearer);
         ent.Comp.OldFactions.Clear();
         ent.Comp.OldFactions.UnionWith(npcFaction.Factions);
-        _npcFaction.ClearFactions(wearer, false);
-        _npcFaction.AddFaction(wearer, ent.Comp.CursedMaskFaction); */
+        _npcFaction.ClearFactions((wearer, npcFaction), false);
+        _npcFaction.AddFaction((wearer, npcFaction), ent.Comp.CursedMaskFaction);
 
         ent.Comp.HasNpc = !EnsureComp<HTNComponent>(wearer, out var htn);
         htn.RootTask = new HTNCompoundTask { Task = TakeoverRootTask };
@@ -69,22 +68,21 @@ public sealed class CursedMaskSystem : SharedCursedMaskSystem
         // If we are taking off the cursed mask
         if (ent.Comp.CurrentState == CursedMaskExpression.Anger)
         {
-            /* if (ent.Comp.HasNpc)
+            if (ent.Comp.HasNpc)
                 RemComp<HTNComponent>(args.Wearer);
 
             var npcFaction = EnsureComp<NpcFactionMemberComponent>(args.Wearer);
-            _npcFaction.RemoveFaction(args.Wearer, ent.Comp.CursedMaskFaction, false);
-            foreach (var faction in ent.Comp.OldFactions)
-                _npcFaction.AddFaction(args.Wearer, faction);
+            _npcFaction.RemoveFaction((args.Wearer, npcFaction), ent.Comp.CursedMaskFaction, false);
+            _npcFaction.AddFactions((args.Wearer, npcFaction), ent.Comp.OldFactions);
 
             ent.Comp.HasNpc = false;
-            ent.Comp.OldFactions.Clear(); */
+            ent.Comp.OldFactions.Clear();
 
             if (Exists(ent.Comp.StolenMind))
             {
                 _mind.TransferTo(ent.Comp.StolenMind.Value, args.Wearer);
                 _adminLog.Add(LogType.Action,
-                    LogImpact.Medium,
+                    LogImpact.Extreme,
                     $"{ToPrettyString(args.Wearer):player} was restored to their body after the removal of {ToPrettyString(ent):entity}.");
                 ent.Comp.StolenMind = null;
             }

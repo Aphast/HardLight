@@ -2,11 +2,15 @@ name: RSI Validator
 
 on:
   push:
-    branches: [ master, staging, stable ]
+    branches: [ main, staging, stable ]
   merge_group:
   pull_request:
     paths:
       - '**.rsi/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate_rsis:

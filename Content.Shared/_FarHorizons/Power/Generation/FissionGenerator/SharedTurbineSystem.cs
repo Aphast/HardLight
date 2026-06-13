@@ -1,13 +1,5 @@
-// SPDX-FileCopyrightText: 2025 jhrushbe <capnmerry@gmail.com>
-// SPDX-FileCopyrightText: 2025 rottenheadphones <juaelwe@outlook.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
-//
-// SPDX-License-Identifier: CC-BY-NC-SA-3.0
-
-
 using Content.Shared.Administration.Logs;
-using Content.Shared.Damage;
-using Content.Shared.DoAfter;
+using Content.Shared.Database;
 using Content.Shared.Electrocution;
 using Content.Shared.Examine;
 using Content.Shared.Interaction;
@@ -16,25 +8,20 @@ using Content.Shared.Repairable;
 using Content.Shared.Tools.Systems;
 using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
-using Robust.Shared.Prototypes;
-using Robust.Shared.Serialization;
 
 namespace Content.Shared._FarHorizons.Power.Generation.FissionGenerator;
 
-// Ported and modified from goonstation by Jhrushbe.
-// CC-BY-NC-SA-3.0
-// https://github.com/goonstation/goonstation/blob/ff86b044/code/obj/nuclearreactor/turbine.dm
-
-public abstract class SharedTurbineSystem : EntitySystem
+public abstract partial class SharedTurbineSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] protected readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedToolSystem _toolSystem = default!;
-    [Dependency] private readonly EntityManager _entityManager = default!;
-    [Dependency] private readonly DamageableSystem _damageableSystem = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] protected SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
+    [Dependency] private SharedToolSystem _toolSystem = default!;
+    [Dependency] private EntityManager _entityManager = default!;
+
+    private readonly float _threshold = 0.5f;
+    private float _accumulator = 0f;
 
     public override void Initialize()
     {
@@ -43,7 +30,7 @@ public abstract class SharedTurbineSystem : EntitySystem
         SubscribeLocalEvent<TurbineComponent, ExaminedEvent>(OnExamined);
 
         SubscribeLocalEvent<TurbineComponent, InteractUsingEvent>(RepairTurbine);
-        SubscribeLocalEvent<TurbineComponent, RepairDoAfterEvent>(OnRepairTurbineFinished);
+        SubscribeLocalEvent<TurbineComponent, RepairFinishedEvent>(OnRepairTurbineFinished);
     }
 
     private void OnExamined(Entity<TurbineComponent> ent, ref ExaminedEvent args)
@@ -54,12 +41,7 @@ public abstract class SharedTurbineSystem : EntitySystem
 
         using (args.PushGroup(nameof(TurbineComponent)))
         {
-            if(comp.CurrentStator == null)
-                args.PushMarkup(Loc.GetString("gas-turbine-examine-stator-null"));
-
-            if (comp.CurrentBlade == null)
-                args.PushMarkup(Loc.GetString("gas-turbine-examine-blade-null"));
-            else
+            if (!comp.Ruined)
             {
                 switch (comp.RPM)
                 {
@@ -106,12 +88,39 @@ public abstract class SharedTurbineSystem : EntitySystem
         }
     }
 
+    public override void Update(float frameTime)
+    {
+        _accumulator += frameTime;
+        if (_accumulator > _threshold)
+        {
+            AccUpdate();
+            _accumulator = 0;
+        }
+    }
+
+    protected virtual void AccUpdate() { }
+
     protected void UpdateAppearance(EntityUid uid, TurbineComponent? comp = null, AppearanceComponent? appearance = null)
     {
         if (!Resolve(uid, ref comp, ref appearance, false))
             return;
 
-        _appearance.SetData(uid, TurbineVisuals.TurbineRuined, comp.Ruined);
+        _appearance.TryGetData<bool>(uid, TurbineVisuals.TurbineRuined, out var IsSpriteRuined);
+        if (comp.Ruined)
+        {
+            if (!IsSpriteRuined)
+            {
+                _appearance.SetData(uid, TurbineVisuals.TurbineRuined, true);
+            }
+        }
+        else
+        {
+            if (IsSpriteRuined)
+            {
+                _appearance.SetData(uid, TurbineVisuals.TurbineRuined, false);
+            }
+            _appearance.SetData(uid, TurbineVisuals.TurbineSpeed, comp.RPM > 1);
+        }
 
         _appearance.SetData(uid, TurbineVisuals.DamageSpark, comp.IsSparking);
         _appearance.SetData(uid, TurbineVisuals.DamageSmoke, comp.IsSmoking);
@@ -133,14 +142,14 @@ public abstract class SharedTurbineSystem : EntitySystem
     }
 
     protected static bool AdjustStatorLoad(TurbineComponent turbine, float change)
-    {
-        var newSet = Math.Max(turbine.StatorLoad + change, 1000f);
+    { 
+        var newSet = Math.Clamp(turbine.StatorLoad + change, 1000f, turbine.StatorLoadMax);
         if (turbine.StatorLoad != newSet)
         {
             turbine.StatorLoad = newSet;
             return true;
         }
-        return false;
+        return false; 
     }
 
     #region Repairs
@@ -149,55 +158,39 @@ public abstract class SharedTurbineSystem : EntitySystem
         if (args.Handled)
             return;
 
-        if(_toolSystem.HasQuality(args.Used, comp.RepairTool))
-        {
-            if (comp.CurrentBlade == null)
-            {
-                _popupSystem.PopupEntity(Loc.GetString("gas-turbine-repair-fail-blade"), args.User, args.User, PopupType.Medium);
-                args.Handled = true;
-                return;
-            }
+        if (comp.BladeHealth >= comp.BladeHealthMax && !comp.Ruined)
+            return;
 
-            if (comp.CurrentStator == null)
-            {
-                _popupSystem.PopupEntity(Loc.GetString("gas-turbine-repair-fail-stator"), args.User, args.User, PopupType.Medium);
-                args.Handled = true;
-                return;
-            }
-
-            if (comp.BladeHealth >= comp.BladeHealthMax && !comp.Ruined)
-                return;
-
-            args.Handled = _toolSystem.UseTool(args.Used, args.User, uid, comp.RepairDelay, comp.RepairTool, new RepairDoAfterEvent(), comp.RepairFuelCost);
-        }
+        args.Handled = _toolSystem.UseTool(args.Used, args.User, uid, comp.RepairDelay, comp.RepairTool, new RepairFinishedEvent(), comp.RepairFuelCost);
     }
 
     //Gotta love server/client desync
-    protected virtual void OnRepairTurbineFinished(EntityUid uid, TurbineComponent comp, ref RepairDoAfterEvent args)
+    protected virtual void OnRepairTurbineFinished(Entity<TurbineComponent> ent, ref RepairFinishedEvent args)
     {
         if (args.Cancelled)
+            return;
+
+        if (!TryComp(ent.Owner, out TurbineComponent? comp))
             return;
 
         if (comp.Ruined)
         {
             comp.Ruined = false;
             if (comp.BladeHealth <= 0) { comp.BladeHealth = 1; }
-            UpdateHealthIndicators(uid, comp);
+            UpdateHealthIndicators(ent.Owner, comp);
+            return;
         }
         else if (comp.BladeHealth < comp.BladeHealthMax)
         {
             comp.BladeHealth++;
-            UpdateHealthIndicators(uid, comp);
+            UpdateHealthIndicators(ent.Owner, comp);
+            return;
         }
         else if (comp.BladeHealth >= comp.BladeHealthMax)
         {
             // This should technically never occur, but just in case...
-        }
-
-        if (!_entityManager.TryGetComponent<DamageableComponent>(uid, out var damageableComponent))
             return;
-
-        _damageableSystem.SetAllDamage(uid, damageableComponent, 0);
+        }
     }
 
     protected void UpdateHealthIndicators(EntityUid uid, TurbineComponent comp)
@@ -231,9 +224,4 @@ public abstract class SharedTurbineSystem : EntitySystem
     }
 
     #endregion
-}
-
-[Serializable, NetSerializable]
-public sealed partial class RepairDoAfterEvent : SimpleDoAfterEvent
-{
 }

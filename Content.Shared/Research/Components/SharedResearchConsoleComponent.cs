@@ -32,14 +32,13 @@ namespace Content.Shared.Research.Components
         public int Points;
 
         /// <summary>
-        /// Goobstation R&amp;D console rework: all researches and their availabilities, used by the Fancy console UI.
+        /// Goobstation field - all researches and their availablities
         /// </summary>
         public Dictionary<string, ResearchAvailability> Researches;
-
-        public ResearchConsoleBoundInterfaceState(int points, Dictionary<string, ResearchAvailability> researches)
+        public ResearchConsoleBoundInterfaceState(int points, Dictionary<string, ResearchAvailability> researches)   // Goobstation R&D console rework = researches field
         {
             Points = points;
-            Researches = researches;
+            Researches = researches;    // Goobstation R&D console rework
         }
     }
 }

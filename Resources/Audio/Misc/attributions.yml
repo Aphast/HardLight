@@ -8,11 +8,6 @@
   copyright: "Created by Chillyconmor"
   source: "https://github.com/space-wizards/space-station-14/blob/master/Resources/Audio/Misc/ninja_greeting.ogg"
 
-- files: ["nparadox_clone_greeting.ogg"]
-  license: "CC-BY-SA-3.0"
-  copyright: "Created by ps3moira"
-  source: "https://github.com/space-wizards/space-station-14/blob/master/Resources/Audio/Misc/ninja_greeting.ogg"
-
 - files: ["thief_greeting.ogg"]
   license: "CC-BY-NC-4.0"
   copyright: "Taken from SergeQuadrado via freesound.org, edit and mono by TheShuEd"
@@ -40,7 +35,7 @@
 
 - files: ["epsilon.ogg"]
   license: "CC-BY-SA-3.0"
-  copyright: "Made by dj-34 (https://github.com/dj-34), modified by rtasva"
+  copyright: "Made by dj-34 (https://github.com/dj-34)"
   source: "https://github.com/ss220-space/Paradise/blob/05043bcfb35c2e7bcf1efbdbfbf976e1a2504bc2/sound/effects/epsilon.ogg"
 
 - files: ["gamma.ogg"]

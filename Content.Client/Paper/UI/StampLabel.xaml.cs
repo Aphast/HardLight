@@ -15,7 +15,6 @@ public sealed partial class StampLabel : Label
     private Vector2 _textScaling = Vector2.One;
 
     /// Shader used to draw the stamps
-    private static readonly ProtoId<ShaderPrototype> PaperStampShaderId = "PaperStamp";
     private ShaderInstance? _stampShader;
 
     /// Allows an additional orientation to be applied to
@@ -27,7 +26,7 @@ public sealed partial class StampLabel : Label
         RobustXamlLoader.Load(this);
 
         var prototypes = IoCManager.Resolve<IPrototypeManager>();
-        _stampShader = prototypes.Index(PaperStampShaderId).InstanceUnique();
+        _stampShader = prototypes.Index<ShaderPrototype>("PaperStamp").InstanceUnique();
     }
 
     protected override Vector2 MeasureOverride(Vector2 availableSize)

@@ -1,32 +1,82 @@
-# Mono port: trimmed for VRS — only PlayerStationAiRedacted (used by 6 event
-# maps: nebula, razorn, wyrm, wyvern, zenith, zenith_e) and its dependency
-# chain. All other Mono borg/AI prototypes have been removed because the maps
-# don't reference them and their dependencies (LanguageKnowledge, CollectiveMind,
-# Scrammer, AdvancedPilot, ShuttleBoostingPilot systems and corresponding
-# lawsets/borg-types/datasets) are not yet ported in VRS.
-
-# Datasets (LocalizedDataset to satisfy VRS RandomMetadata.NameSegments which
-# requires LocalizedDatasetPrototype, not plain DatasetPrototype).
-
-- type: localizedDataset
-  id: MonoRemnantCoreTitle
+- type: dataset
+  id: MonoPDVBorgNameset
   values:
-    prefix: dataset-mono-remnant-core-title-
-    count: 1
+  - Vanguard Unit
+  - PDV Enforcer Module
+  - PDV Sentinel
+  - Dynast Defense Unit
 
-- type: localizedDataset
-  id: MonoRemnantAdjective
+- type: dataset
+  id: MonoTSFBorgNameset
   values:
-    prefix: dataset-mono-remnant-adjective-
-    count: 24
+  - Federation Silicon
+  - TSFMC Compliance Unit
+  - TSFMC Sgt. Reckless
+  - TSFMC Judge & Jury
 
-- type: localizedDataset
-  id: MonoRemnantNoun
+- type: dataset
+  id: VesselCoreNameset
   values:
-    prefix: dataset-mono-remnant-noun-
-    count: 26
+  - Steven
+  - Robyn
+  - Alex
+  - Bob
+  - Alexander
+  - Steve
+  - Kira
+  - Var:Tim
 
-# AI core (held entity skeleton)
+- type: dataset
+  id: TSFMCCoreNameset
+  values:
+  - TSFMC Watcher
+  - TSFMC Upholder
+  - TSFMC Robocop
+  - TSFMC Silicon
+  - TSFMCAI.exe
+  - TSFMC Dog
+  - TSFMC Unit
+
+- type: dataset
+  id: PDVCoreNameset
+  values:
+  - Imperial Overseer
+  - Imperial Positronic
+  - Imperial Grid
+  - Imperial Hivemind
+  - PDVAI.sh
+  - Imperial Cat
+  - Imperial Instance
+
+- type: dataset
+  id: MonoRemnantShipNameset # eventually this will have a use... randommetadata component dont work with grids though...
+  values:
+  - ADS-Glimmer
+  - ADS-Orion
+  - ADS-Expanse
+  - ADS-Symphony
+  - ADS-Chorus
+  - ADS-Flashpoint
+  - ADS-Phoron
+  - ADS-Conquest
+  - ADS-Prime
+  - ADS-Firestorm
+  - ADS-Retaliation
+  - ADS-Horizon
+  - ADS-Marksman
+  - ADS-Barricade
+  - ADS-Vein
+  - ADS-Zero
+  - ADS-Midnight
+  - ADS-Interdiction
+  - ADS-Mist
+  - ADS-Granite
+  - ADS-Typhoon
+  - ADS-Storm
+  - ADS-Rubicon
+  - ADS-Cauterizer
+  - ADS-Evasion
+  - ADS-Apprehension
 
 - type: entity
   id: AiHeldMono
@@ -44,14 +94,14 @@
     - ActionJumpToCore
     - ActionSurvCameraLights
     - ActionAIViewLaws
-    - ActionOpenRemoteDevicesMenu
+    - ActionOpenRemoteDevicesMenu # Corvax-Next-AiRemoteControl
   - type: UserInterface
     interfaces:
       enum.RadarConsoleUiKey.Key:
         type: RadarConsoleBoundUserInterface
       enum.SiliconLawsUiKey.Key:
         type: SiliconLawBoundUserInterface
-      enum.RemoteDeviceUiKey.Key:
+      enum.RemoteDeviceUiKey.Key: # Corvax-Next-AiRemoteControl
         type: RemoteDevicesBoundUserInterface
   - type: IntrinsicUI
     uis:
@@ -68,7 +118,202 @@
     - sprite: Mobs/Silicon/station_ai.rsi
       state: default
   - type: ShowJobIcons
-  # VRS: AdvancedPilotComponent is not present in this codebase.
+  - type: AdvancedPilot # can use both gunnery and shuttle console even on capitals
+  - type: RetroMonitorView
+
+- type: entity
+  id: BaseBorgChassisRedacted
+  parent: BaseFactionBorgChassis
+  abstract: true
+  components:
+  - type: NpcFactionMember
+    factions:
+    - Syndicate
+    - SiliconsExpeditionNF
+  - type: Access
+    tags:
+    - NuclearOperative
+    - SyndicateAgent
+  - type: AccessReader
+    access: [["SyndicateAgent"], ["NuclearOperative"]]
+  - type: IntrinsicRadioTransmitter
+    channels:
+    - Common
+    - Remnants
+    - Traffic
+  - type: ActiveRadio
+    channels:
+    - Common
+    - Remnants
+    - Traffic
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
+  - type: ShowSyndicateIcons
+  - type: MovementAlwaysTouching
+  - type: Speech
+    speechSounds: SyndieBorg
+    allowedEmotes:
+    - Laugh
+  - type: Vocal
+    sounds:
+      Unsexed: UnisexSiliconSyndicate
+  - type: IonStormTarget
+    chance: 0.2
+  - type: ShowJobIcons
+  - type: SiliconLawProvider
+    laws: RedactedBorg
+
+
+- type: entity
+  id: BorgChassisRedacted
+  parent: BaseBorgChassisRedacted
+  name: remnant automated defense system tender
+  description: A tender to an automated drone ship, to keep its internal mechanisms intact.
+  components:
+  - type: Sprite
+    layers:
+    - state: synd_engi
+    - state: synd_engi_e
+      map: ["enum.BorgVisualLayers.Light"]
+      shader: unshaded
+      visible: false
+    - state: synd_engi_l
+      shader: unshaded
+      map: ["light"]
+      visible: false
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - Azaziba
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - Azaziba
+  - type: BorgChassis
+    maxModules: 10
+    moduleWhitelist:
+      tags:
+      - BorgModuleGeneric
+      - BorgModuleEngineering
+      - BorgModuleSyndicate
+      - BorgModuleSyndicateAssault
+    hasMindState: derelict_e
+    noMindState: derelict_e_r
+  - type: Construction
+    node: derelictcyborg
+  - type: InteractionPopup
+    interactSuccessString: petting-success-derelict-cyborg
+    interactFailureString: petting-failure-derelict-cyborg
+    interactSuccessSound:
+      path: /Audio/Ambience/Objects/periodic_beep.ogg
+  - type: ExplosionResistance
+    damageCoefficient: 0.4
+  - type: Scrammer
+    actionProto: ActionScrammerScramADM
+    specifier:
+      teleportRadius: 40
+      teleportAttempts: 5 # will only slightly aim for grids
+      forceSafe: false
+      minRadiusFraction: 0.75 # force teleport 30-40 tiles
+  # lower HP to compensate for scram
+  - type: MobThresholds
+    thresholds:
+      0: Alive
+      180: Critical # has innate armor so this is actually more
+      250: Dead
+  - type: SlowOnDamage
+    speedModifierThresholds:
+      140: 0.7
+      160: 0.5
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 100
+      behaviors:
+      - !type:PlaySoundBehavior
+        sound:
+          path: /Audio/Machines/warning_buzzer.ogg
+          params:
+            volume: 5
+    - trigger:
+        !type:DamageTrigger
+         damage: 350
+      behaviors:
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+      - !type:EmptyContainersBehaviour
+        containers:
+        - borg_brain
+        - borg_module
+        - cell_slot
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+
+- type: entity
+  id: PlayerBorgRedacted
+  parent: BorgChassisRedacted
+  suffix: Battery, Module
+  components:
+  - type: ContainerFill
+    containers:
+      borg_brain:
+      - PositronicBrain
+      borg_module:
+      - BorgModuleOperative
+      - BorgModuleRedactedWeapon
+      - BorgModuleEsword
+      - BorgModuleJetpackADM
+      - BorgModuleAdvancedTool
+      - BorgModuleConstruction
+      - BorgModuleCable
+      - BorgModuleRedactedRCD
+      - BorgModuleGPS
+  - type: ItemSlots
+    slots:
+      cell_slot:
+        name: power-cell-slot-component-slot-name-default
+        startingItem: PowerCellAntiqueProto
+  - type: RandomMetadata
+    nameSegments:
+    - MonoRemnantBorgTitle
+    - MonoRemnantAdjective
+    - MonoRemnantNoun
+    - MonoRemnantModifier
+
+- type: entity
+  id: PlayerBorgRedactedGhostRole
+  parent: PlayerBorgRedacted
+  suffix: Ghost
+  components:
+  - type: GhostRole
+    name: ghost-role-information-redacted-borg
+    description: ghost-role-information-redacted-borg-description
+    rules: ghost-role-information-silicon-rules
+    raffle:
+      settings: default
+    prototype: RedactedBorg
+  - type: GhostTakeoverAvailable
+
+- type: entity
+  id: PlayerBorgRedactedGhostRolePlaytime
+  parent: PlayerBorgRedacted
+  suffix: Ghost, Playtime
+  components:
+  - type: GhostRole
+    name: ghost-role-information-redacted-borg
+    description: ghost-role-information-redacted-borg-description
+    rules: ghost-role-information-silicon-rules
+    raffle:
+      settings: default
+    requirements:
+    - !type:OverallPlaytimeRequirement
+      time: 180000 # 50 hrs
+  - type: GhostTakeoverAvailable
 
 # Remnant AI core
 
@@ -98,15 +343,26 @@
   categories: [ HideSpawnMenu, DoNotMap ]
   components:
   - type: Sprite
-  # VRS: SiliconLawProvider 'Redacted' lawset not yet ported; falls back to
-  # default upstream lawset until the Mono lawsets are imported.
+  - type: SiliconLawProvider
+    laws: Redacted
   - type: GhostRole
     name: ghost-role-information-redacted-core
     description: ghost-role-information-redacted-core-description
     rules: ghost-role-information-silicon-rules
     raffle:
       settings: default
-    # VRS: GhostRolePrototype 'RemnantAICore' not yet ported.
+    prototype: RemnantAICore
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - Draconic
+    - Azaziba
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - Draconic
+    - Azaziba
   - type: Access
     groups:
     - AllAccess
@@ -119,6 +375,9 @@
     - MonoRemnantCoreTitle
     - MonoRemnantAdjective
     - MonoRemnantNoun
+  - type: ShuttleBoostingPilot
+    angularMultiplier: 1.2
+    accelerationMultiplier: 1.2
 
 - type: entity
   id: AiHeldRedacted
@@ -128,12 +387,351 @@
   - type: IntrinsicRadioTransmitter
     channels:
     - Common
-    - Faction
+    - Remnants
     - Traffic
   - type: ActiveRadio
     channels:
     - Common
-    - Faction
+    - Remnants
     - Traffic
-  # VRS: 'Remnants' radio channel + CollectiveMind system not yet ported;
-  # falls back to common-channel only.
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - Draconic
+    - Azaziba
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - Draconic
+    - Azaziba
+
+# Vessel (Default) AI core
+
+- type: entity
+  id: PlayerStationAiVessel
+  parent: PlayerStationAiEmpty
+  suffix: Ghost Role, Vessel
+  components:
+  - type: ContainerComp
+    proto: AiHeldVessel
+    container: station_ai_mind_slot
+  - type: ContainerFill
+    containers:
+      station_ai_mind_slot:
+      - StationAiBrainVessel
+  - type: Sprite
+    sprite: Mobs/Silicon/station_ai.rsi
+    layers:
+    - state: base
+    - state: ai
+      shader: unshaded
+  - type: Anchorable
+  - type: Construction
+    graph: AiVessel
+    node: end
+
+- type: entity
+  id: StationAiBrainVessel
+  parent: StationAiBrain
+  categories: [ HideSpawnMenu, DoNotMap ]
+  components:
+  - type: Sprite
+  - type: SiliconLawProvider
+    laws: VesselLawset
+  - type: GhostRole
+    name: ghost-role-information-vessel-core
+    description: ghost-role-information-vessel-core-description
+    rules: ghost-role-information-silicon-rules
+    raffle:
+      settings: default
+    prototype: VesselAICore
+    requirements:
+    - !type:OverallPlaytimeRequirement
+      time: 180000 # 50 hrs
+  - type: GhostTakeoverAvailable
+  - type: RandomMetadata
+    nameSegments: [ VesselCoreNameset ]
+
+- type: entity
+  id: AiHeldVessel
+  parent: AiHeldMono
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: IntrinsicRadioTransmitter
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+  - type: ActiveRadio
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
+
+# TSFMC AI core
+
+- type: entity
+  id: PlayerStationAiTSFMC
+  parent: PlayerStationAiEmpty
+  suffix: Ghost Role, TSFMC
+  components:
+  - type: ContainerComp
+    proto: AiHeldTSFMC
+    container: station_ai_mind_slot
+  - type: ContainerFill
+    containers:
+      station_ai_mind_slot:
+      - StationAiBrainTSFMC
+  - type: Sprite
+    sprite: Mobs/Silicon/station_ai.rsi
+    layers:
+    - state: base
+    - state: ai
+      shader: unshaded
+  - type: Anchorable
+
+- type: entity
+  id: StationAiBrainTSFMC
+  parent: StationAiBrain
+  categories: [ HideSpawnMenu, DoNotMap ]
+  components:
+  - type: Sprite
+  - type: SiliconLawProvider
+    laws: TSFMCLawset
+  - type: GhostRole
+    name: ghost-role-information-tsfmc-core
+    description: ghost-role-information-tsfmc-core-description
+    rules: ghost-role-information-silicon-rules
+    raffle:
+      settings: default
+    prototype: TSFMCAICore
+    requirements:
+    - !type:OverallPlaytimeRequirement
+      time: 180000 # 50 hrs
+    - !type:RoleTimeRequirement
+      role: JobWarden
+      time: 54000 # 15 hours
+  - type: GhostTakeoverAvailable
+  - type: RandomMetadata
+    nameSegments: [ TSFMCCoreNameset ]
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - SolCommon
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - SolCommon
+
+- type: entity
+  id: AiHeldTSFMC
+  parent: AiHeldMono
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: IntrinsicRadioTransmitter
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+    - Nfsd
+    - Command
+  - type: ActiveRadio
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+    - Nfsd
+    - Command
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
+
+# PDV AI Core
+
+- type: entity
+  id: PlayerStationAiPDV
+  parent: PlayerStationAiEmpty
+  suffix: Ghost Role, PDV
+  components:
+  - type: ContainerComp
+    proto: AiHeldPDV
+    container: station_ai_mind_slot
+  - type: ContainerFill
+    containers:
+      station_ai_mind_slot:
+      - StationAiBrainPDV
+  - type: Sprite
+    sprite: Mobs/Silicon/station_ai.rsi
+    layers:
+    - state: base
+    - state: ai
+      shader: unshaded
+  - type: Anchorable
+
+- type: entity
+  id: StationAiBrainPDV
+  parent: StationAiBrain
+  categories: [ HideSpawnMenu, DoNotMap ]
+  components:
+  - type: Sprite
+  - type: SiliconLawProvider
+    laws: PDVLawset
+  - type: GhostRole
+    name: ghost-role-information-pdv-core
+    description: ghost-role-information-pdv-core-description
+    rules: ghost-role-information-silicon-rules
+    raffle:
+      settings: default
+    prototype: PDVAICore
+    requirements:
+    - !type:OverallPlaytimeRequirement
+      time: 180000 # 50 hrs
+    - !type:RoleTimeRequirement
+      role: JobPirateFirstMate
+      time: 54000 # 15 hours
+  - type: GhostTakeoverAvailable
+  - type: RandomMetadata
+    nameSegments: [ PDVCoreNameset ]
+  - type: LanguageKnowledge
+    speaks:
+    - TauCetiBasic
+    - RobotTalk
+    - Freespeak
+    understands:
+    - TauCetiBasic
+    - RobotTalk
+    - Freespeak
+  - type: Access
+    tags:
+    - Pirate
+    - GrandVizier
+    - PDVCommand
+
+- type: entity
+  id: AiHeldPDV
+  parent: AiHeldMono
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: IntrinsicRadioTransmitter
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+    - Freelance
+  - type: ActiveRadio
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+    - Freelance
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary
+
+# PDV Cyborgs
+
+- type: entity
+  id: PlayerBorgPDV
+  parent: BorgChassisSelectablePDV
+  suffix: Battery, Module
+  components:
+  - type: ContainerFill
+    containers:
+      borg_brain:
+      - PositronicBrain
+  - type: ItemSlots
+    slots:
+      cell_slot:
+        name: power-cell-slot-component-slot-name-default
+        startingItem: PowerCellCombat
+  - type: RandomMetadata
+    nameSegments: [MonoPDVBorgNameset]
+
+# TSF Cyborgs
+
+- type: entity
+  id: PlayerBorgTSF
+  parent: BorgChassisSelectableTSF
+  suffix: Battery, Module
+  components:
+  - type: ContainerFill
+    containers:
+      borg_brain:
+      - PositronicBrain
+  - type: ItemSlots
+    slots:
+      cell_slot:
+        name: power-cell-slot-component-slot-name-default
+        startingItem: PowerCellCombat
+  - type: RandomMetadata
+    nameSegments: [MonoTSFBorgNameset]
+
+# Cent-Sec AI Core
+
+- type: entity
+  id: PlayerStationAiSecurity
+  parent: PlayerStationAiVessel
+  suffix: Ghost Role, Security
+  components:
+  - type: ContainerComp
+    proto: AiHeldSec
+
+- type: entity
+  id: AiHeldSec
+  parent: AiHeldMono
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: IntrinsicRadioTransmitter
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+    - Security
+    - Service
+  - type: ActiveRadio
+    channels:
+    - Common
+    - Traffic
+    - Science
+    - Supply
+    - Engineering
+    - Medical
+    - Security
+    - Service
+  - type: CollectiveMind
+    channels:
+    - Binary
+    defaultChannel: Binary

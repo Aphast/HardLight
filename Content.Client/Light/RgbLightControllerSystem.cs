@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Numerics;
 using Content.Client.Items.Systems;
 using Content.Shared.Clothing;
 using Content.Shared.Hands;
@@ -10,16 +11,14 @@ using Robust.Shared.GameStates;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Timing;
 using static Robust.Client.GameObjects.SpriteComponent;
-using System.Numerics;
 
 namespace Content.Client.Light
 {
-    public sealed class RgbLightControllerSystem : SharedRgbLightControllerSystem
+    public sealed partial class RgbLightControllerSystem : SharedRgbLightControllerSystem
     {
-        [Dependency] private readonly IGameTiming _gameTiming = default!;
-        [Dependency] private readonly ItemSystem _itemSystem = default!;
-        [Dependency] private readonly SharedPointLightSystem _lights = default!;
-        [Dependency] private readonly SpriteSystem _sprite = default!;
+        [Dependency] private IGameTiming _gameTiming = default!;
+        [Dependency] private ItemSystem _itemSystem = default!;
+        [Dependency] private SharedPointLightSystem _lights = default!;
 
         public override void Initialize()
         {
@@ -77,7 +76,7 @@ namespace Content.Client.Light
 
             foreach (var key in args.RevealedLayers)
             {
-                if (!_sprite.LayerMapTryGet((args.User, sprite), key, out var index, false) || sprite[index] is not Layer layer)
+                if (!sprite.LayerMapTryGet(key, out var index) || sprite[index] is not Layer layer)
                     continue;
 
                 if (layer.ShaderPrototype == "unshaded")
@@ -95,7 +94,7 @@ namespace Content.Client.Light
 
             foreach (var key in args.RevealedLayers)
             {
-                if (!_sprite.LayerMapTryGet((args.Equipee, sprite), key, out var index, false) || sprite[index] is not Layer layer)
+                if (!sprite.LayerMapTryGet(key, out var index) || sprite[index] is not Layer layer)
                     continue;
 
                 if (layer.ShaderPrototype == "unshaded")
@@ -166,7 +165,7 @@ namespace Content.Client.Light
 
             foreach (var (layer, color) in rgb.OriginalLayerColors)
             {
-                _sprite.LayerSetColor((uid, sprite), layer, color);
+                sprite.LayerSetColor(layer, color);
             }
         }
 
@@ -183,7 +182,7 @@ namespace Content.Client.Light
                 {
                     foreach (var index in rgb.Layers)
                     {
-                        if (_sprite.TryGetLayer((uid, sprite), index, out var layer, false))
+                        if (sprite.TryGetLayer(index, out var layer))
                             layer.Color = color;
                     }
                 }
@@ -194,8 +193,8 @@ namespace Content.Client.Light
 
                 foreach (var layer in rgb.HolderLayers)
                 {
-                    if (_sprite.LayerMapTryGet((rgb.Holder.Value, holderSprite), layer, out var index, false))
-                        _sprite.LayerSetColor((rgb.Holder.Value, holderSprite), index, color);
+                    if (holderSprite.LayerMapTryGet(layer, out var index))
+                        holderSprite.LayerSetColor(index, color);
                 }
             }
 

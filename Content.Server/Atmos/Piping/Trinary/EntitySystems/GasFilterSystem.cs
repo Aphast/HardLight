@@ -1,33 +1,3 @@
-// SPDX-FileCopyrightText: 2021 20kdc
-// SPDX-FileCopyrightText: 2021 E F R
-// SPDX-FileCopyrightText: 2021 Pieter-Jan Briers
-// SPDX-FileCopyrightText: 2021 Vera Aguilera Puerto
-// SPDX-FileCopyrightText: 2021 ike709
-// SPDX-FileCopyrightText: 2022 Moony
-// SPDX-FileCopyrightText: 2022 Vordenburg
-// SPDX-FileCopyrightText: 2022 mirrorcult
-// SPDX-FileCopyrightText: 2022 theashtronaut
-// SPDX-FileCopyrightText: 2022 wrexbe
-// SPDX-FileCopyrightText: 2023 Checkraze
-// SPDX-FileCopyrightText: 2023 Chief-Engineer
-// SPDX-FileCopyrightText: 2023 DrSmugleaf
-// SPDX-FileCopyrightText: 2023 Kara
-// SPDX-FileCopyrightText: 2023 Kevin Zheng
-// SPDX-FileCopyrightText: 2023 faint
-// SPDX-FileCopyrightText: 2024 Dvir
-// SPDX-FileCopyrightText: 2024 Leon Friedrich
-// SPDX-FileCopyrightText: 2024 LordCarve
-// SPDX-FileCopyrightText: 2024 Nemanja
-// SPDX-FileCopyrightText: 2024 Plykiya
-// SPDX-FileCopyrightText: 2024 metalgearsloth
-// SPDX-FileCopyrightText: 2024 slarticodefast
-// SPDX-FileCopyrightText: 2024 themias
-// SPDX-FileCopyrightText: 2025 Ilya246
-// SPDX-FileCopyrightText: 2025 Steve
-// SPDX-FileCopyrightText: 2025 bitcrushing
-//
-// SPDX-License-Identifier: AGPL-3.0-or-later
-
 using Content.Server.Administration.Logs;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Atmos.Piping.Components;
@@ -50,15 +20,15 @@ using Robust.Shared.Player;
 namespace Content.Server.Atmos.Piping.Trinary.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class GasFilterSystem : EntitySystem
+    public sealed partial class GasFilterSystem : EntitySystem
     {
         [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
         [Dependency] private IAdminLogManager _adminLogger = default!;
-        [Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
-        [Dependency] private readonly SharedAmbientSoundSystem _ambientSoundSystem = default!;
-        [Dependency] private readonly SharedAppearanceSystem _appearanceSystem = default!;
-        [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-        [Dependency] private readonly NodeContainerSystem _nodeContainer = default!;
+        [Dependency] private AtmosphereSystem _atmosphereSystem = default!;
+        [Dependency] private SharedAmbientSoundSystem _ambientSoundSystem = default!;
+        [Dependency] private SharedAppearanceSystem _appearanceSystem = default!;
+        [Dependency] private SharedPopupSystem _popupSystem = default!;
+        [Dependency] private NodeContainerSystem _nodeContainer = default!;
 
         public override void Initialize()
         {
@@ -93,10 +63,6 @@ namespace Content.Server.Atmos.Piping.Trinary.EntitySystems
                 return;
             }
 
-            var inletAir = inletNode.Air;
-            var filterAir = filterNode.Air;
-            var outletAir = outletNode.Air;
-
             // We multiply the transfer rate in L/s by the seconds passed since the last process to get the liters.
             var transferVol = filter.TransferRate * _atmosphereSystem.PumpSpeedup() * args.dt;
 
@@ -106,7 +72,7 @@ namespace Content.Server.Atmos.Piping.Trinary.EntitySystems
                 return;
             }
 
-            var removed = inletAir.RemoveVolume(transferVol);
+            var removed = inletNode.Air.RemoveVolume(transferVol);
 
             // Funky Station Start - Multigas Filter
             if (filter.FilterGases != null && filter.FilterGases.Count > 0)
@@ -125,13 +91,13 @@ namespace Content.Server.Atmos.Piping.Trinary.EntitySystems
                     }
                 }
 
-                var targetAir = filterAir.Pressure < Atmospherics.MaxOutputPressure ? filterAir : inletAir;
-                _atmosphereSystem.Merge(targetAir, filteredOut);
+                var target = filterNode.Air.Pressure < Atmospherics.MaxOutputPressure ? filterNode : inletNode;
+                _atmosphereSystem.Merge(target.Air, filteredOut);
                 _ambientSoundSystem.SetAmbience(uid, hasFilteredMoles);
             }
             // Funky Station End - Multigas Filter
 
-            _atmosphereSystem.Merge(outletAir, removed);
+            _atmosphereSystem.Merge(outletNode.Air, removed);
         }
 
         private void OnFilterLeaveAtmosphere(EntityUid uid, GasFilterComponent filter, ref AtmosDeviceDisabledEvent args)
@@ -195,8 +161,7 @@ namespace Content.Server.Atmos.Piping.Trinary.EntitySystems
 
         private void OnTransferRateChangeMessage(EntityUid uid, GasFilterComponent filter, GasFilterChangeRateMessage args)
         {
-            var max = filter.HighFlow ? filter.MaxTransferRate * 5f : filter.MaxTransferRate;
-            filter.TransferRate = Math.Clamp(args.Rate, 0f, max);
+            filter.TransferRate = Math.Clamp(args.Rate, 0f, filter.MaxTransferRate);
             _adminLogger.Add(LogType.AtmosVolumeChanged, LogImpact.Medium,
                 $"{ToPrettyString(args.Actor):player} set the transfer rate on {ToPrettyString(uid):device} to {args.Rate}");
             DirtyUI(uid, filter);

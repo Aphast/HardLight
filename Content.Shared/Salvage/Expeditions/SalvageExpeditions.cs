@@ -1,8 +1,6 @@
-using Content.Shared.Procedural;
 using Content.Shared.Salvage.Expeditions.Modifiers;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
-using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
@@ -14,20 +12,18 @@ public sealed class SalvageExpeditionConsoleState : BoundUserInterfaceState
     public TimeSpan NextOffer;
     public bool Claimed;
     public bool Cooldown;
+    public bool CanFinish; // Frontier
     public ushort ActiveMission;
     public List<SalvageMissionParams> Missions;
-    public bool CanFinish; // Frontier
-    public TimeSpan CooldownTime; // Frontier: separate fail vs. success time
 
-    public SalvageExpeditionConsoleState(TimeSpan nextOffer, bool claimed, bool cooldown, ushort activeMission, List<SalvageMissionParams> missions, bool canFinish, TimeSpan cooldownTime) // Frontier: add canFinish, cooldownTime
+    public SalvageExpeditionConsoleState(TimeSpan nextOffer, bool claimed, bool cooldown, bool canFinish, ushort activeMission, List<SalvageMissionParams> missions)
     {
         NextOffer = nextOffer;
         Claimed = claimed;
         Cooldown = cooldown;
+        CanFinish = canFinish; // Frontier
         ActiveMission = activeMission;
         Missions = missions;
-        CanFinish = canFinish; // Frontier
-        CooldownTime = cooldownTime; // Frontier
     }
 }
 
@@ -43,27 +39,18 @@ public sealed partial class SalvageExpeditionConsoleComponent : Component
     [DataField]
     public SoundSpecifier PrintSound = new SoundPathSpecifier("/Audio/Machines/terminal_insert_disc.ogg");
 
-    // Frontier: add error to FTL warning
     /// <summary>
-    /// The sound made when an error happens.
+    /// Frontier: Adding error to the FTL warning - Hard to tell without it - PR 377
     /// </summary>
-    [DataField]
-    public SoundSpecifier ErrorSound = new SoundPathSpecifier("/Audio/Effects/Cargo/buzz_sigh.ogg");
+    [DataField("soundError")]
+    public SoundSpecifier ErrorSound =
+    new SoundPathSpecifier("/Audio/Effects/Cargo/buzz_sigh.ogg");
 
     /// <summary>
-    /// Debug mode: skips FTL proximity checks
+    /// Frontier: Debug mod
     /// </summary>
     [DataField]
     public bool Debug = false;
-    // End Frontier:
-
-
-
-    /// <summary>
-    /// HARDLIGHT: Reference to the console that initiated the current mission for FTL completion tracking
-    /// </summary>
-    [DataField]
-    public EntityUid? ActiveConsole;
 }
 
 [Serializable, NetSerializable]
@@ -72,20 +59,13 @@ public sealed class ClaimSalvageMessage : BoundUserInterfaceMessage
     public ushort Index;
 }
 
-// Frontier: early expedition finish
-[Serializable, NetSerializable]
+[Serializable, NetSerializable] // Frontier
 public sealed class FinishSalvageMessage : BoundUserInterfaceMessage;
-// End Frontier: early expedition finish
-
-// HARDLIGHT: manual console refresh to re-link station expedition data if logic ever desyncs
-[Serializable, NetSerializable]
-public sealed class RefreshSalvageConsoleMessage : BoundUserInterfaceMessage;
-// End HARDLIGHT
 
 /// <summary>
 /// Added per station to store data on their available salvage missions.
 /// </summary>
-[RegisterComponent, AutoGenerateComponentPause, NetworkedComponent]
+[RegisterComponent, AutoGenerateComponentPause]
 public sealed partial class SalvageExpeditionDataComponent : Component
 {
     /// <summary>
@@ -100,13 +80,16 @@ public sealed partial class SalvageExpeditionDataComponent : Component
     [ViewVariables(VVAccess.ReadWrite), DataField("cooldown")]
     public bool Cooldown = false;
 
-    // Frontier: early expedition finish
-    // End Frontier: early expedition finish
+    /// <summary>
+    /// Frontier - Allow early finish.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite), DataField]
+    public bool CanFinish = false;
 
     /// <summary>
     /// Nexy time salvage missions are offered.
     /// </summary>
-    [ViewVariables(VVAccess.ReadWrite), DataField("nextOffer", customTypeSerializer: typeof(TimeOffsetSerializer))]
+    [ViewVariables(VVAccess.ReadWrite), DataField("nextOffer", customTypeSerializer:typeof(TimeOffsetSerializer))]
     [AutoPausedField]
     public TimeSpan NextOffer;
 
@@ -116,40 +99,31 @@ public sealed partial class SalvageExpeditionDataComponent : Component
     [ViewVariables] public ushort ActiveMission;
 
     public ushort NextIndex = 1;
-
-    // Frontier: early finish, failure vs. success cooldowns
-    /// <summary>
-    /// Allow early finish.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite), DataField]
-    public bool CanFinish = false;
-
-    /// <summary>
-    /// The total cooldown time that we had to wait.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite), DataField]
-    public TimeSpan CooldownTime;
-
-    /// <summary>
-    /// HARDLIGHT: Tracks if missions are currently being generated to prevent duplicate generation
-    /// </summary>
-    [ViewVariables(VVAccess.ReadWrite)]
-    public bool GeneratingMissions = false;
-    // End Frontier: early finish, failure vs. success cooldowns
 }
 
 [Serializable, NetSerializable]
-public sealed record SalvageMissionParams
+public sealed record SalvageMissionParams : IComparable<SalvageMissionParams>
 {
     [ViewVariables]
     public ushort Index;
 
+    [ViewVariables(VVAccess.ReadWrite)]
+    public SalvageMissionType MissionType;
+
     [ViewVariables(VVAccess.ReadWrite)] public int Seed;
 
-    public string Difficulty = string.Empty;
+    /// <summary>
+    /// Base difficulty for this mission.
+    /// </summary>
+    [ViewVariables(VVAccess.ReadWrite)] public DifficultyRating Difficulty;
 
-    [ViewVariables(VVAccess.ReadWrite)] // Frontier
-    public SalvageMissionType MissionType; // Frontier
+    public int CompareTo(SalvageMissionParams? other)
+    {
+        if (other == null)
+            return -1;
+
+        return Difficulty.CompareTo(other.Difficulty);
+    }
 }
 
 /// <summary>
@@ -158,16 +132,18 @@ public sealed record SalvageMissionParams
 /// </summary>
 public sealed record SalvageMission(
     int Seed,
+    DifficultyRating Difficulty,
     string Dungeon,
     string Faction,
+    SalvageMissionType Mission,
     string Biome,
+    string Weather,
     string Air,
     float Temperature,
     Color? Color,
     TimeSpan Duration,
-    List<string> Modifiers,
-    ProtoId<SalvageDifficultyPrototype> Difficulty, // Frontier
-    SalvageMissionType MissionType) // Frontier
+    List<string> Rewards,
+    List<string> Modifiers)
 {
     /// <summary>
     /// Seed used for the mission.
@@ -175,7 +151,12 @@ public sealed record SalvageMission(
     public readonly int Seed = Seed;
 
     /// <summary>
-    /// <see cref="SalvageDungeonModPrototype"/> to be used.
+    /// Difficulty rating.
+    /// </summary>
+    public DifficultyRating Difficulty = Difficulty;
+
+    /// <summary>
+    /// <see cref="SalvageDungeonMod"/> to be used.
     /// </summary>
     public readonly string Dungeon = Dungeon;
 
@@ -185,9 +166,19 @@ public sealed record SalvageMission(
     public readonly string Faction = Faction;
 
     /// <summary>
+    /// Underlying mission params that generated this.
+    /// </summary>
+    public readonly SalvageMissionType Mission = Mission;
+
+    /// <summary>
     /// Biome to be used for the mission.
     /// </summary>
     public readonly string Biome = Biome;
+
+    /// <summary>
+    /// Weather to be used for the mission's planet.
+    /// </summary>
+    public readonly string Weather = Weather;
 
     /// <summary>
     /// Air mixture to be used for the mission's planet.
@@ -210,20 +201,14 @@ public sealed record SalvageMission(
     public TimeSpan Duration = Duration;
 
     /// <summary>
+    /// The list of items to order on mission completion.
+    /// </summary>
+    public List<string> Rewards = Rewards;
+
+    /// <summary>
     /// Modifiers (outside of the above) applied to the mission.
     /// </summary>
     public List<string> Modifiers = Modifiers;
-
-    // Frontier: additional parameters
-    /// <summary>
-    /// Difficulty rating.
-    /// </summary>
-    public readonly ProtoId<SalvageDifficultyPrototype> Difficulty = Difficulty;
-    /// <summary>
-    /// Difficulty rating.
-    /// </summary>
-    public readonly SalvageMissionType MissionType = MissionType;
-    // End Frontier: additional parameters
 }
 
 [Serializable, NetSerializable]

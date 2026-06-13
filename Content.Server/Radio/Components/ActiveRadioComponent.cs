@@ -16,12 +16,6 @@ public sealed partial class ActiveRadioComponent : Component
     public HashSet<string> Channels = new();
 
     /// <summary>
-    ///     The channels that this radio will always listen on.
-    /// </summay>
-    [DataField("intrinsicChannels", customTypeSerializer: typeof(PrototypeIdHashSetSerializer<RadioChannelPrototype>))]
-    public HashSet<string> IntrinsicChannels = new();
-
-    /// <summary>
     /// A toggle for globally receiving all radio channels.
     /// Overrides <see cref="Channels"/>
     /// </summary>

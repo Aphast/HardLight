@@ -7,21 +7,19 @@ using Content.Shared.Mind;
 using Content.Shared._NF.CCVar;
 using Content.Shared.GameTicking;
 using Content.Shared.Players;
-using Robust.Shared.Configuration;
 using Robust.Shared.Network;
-using Content.Shared._NF.CryoSleep.Events;
-using System.Diagnostics.CodeAnalysis;
-using Content.Server.Ghost;
 
 namespace Content.Server._NF.CryoSleep;
 
 public sealed partial class CryoSleepSystem
 {
-    [Dependency] private readonly IConfigurationManager _configurationManager = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
 
     private void InitReturning()
     {
         SubscribeNetworkEvent<WakeupRequestMessage>(OnWakeupMessage);
+        SubscribeNetworkEvent<GetStatusMessage>(OnGetStatusMessage);
+        SubscribeLocalEvent<PlayerJoinedLobbyEvent>(e => ResetCryosleepState(e.PlayerSession.UserId));
         SubscribeLocalEvent<PlayerBeforeSpawnEvent>(e => ResetCryosleepState(e.Player.UserId));
     }
 
@@ -35,6 +33,12 @@ public sealed partial class CryoSleepSystem
 
         var msg = new WakeupRequestMessage.Response(result);
         RaiseNetworkEvent(msg, session.SenderSession);
+    }
+
+    public void OnGetStatusMessage(GetStatusMessage message, EntitySessionEventArgs args)
+    {
+        var msg = new GetStatusMessage.Response(HasCryosleepingBody(args.SenderSession.UserId));
+        RaiseNetworkEvent(msg, args.SenderSession);
     }
 
     /// <summary>
@@ -54,12 +58,6 @@ public sealed partial class CryoSleepSystem
 
         var cryopod = storedBody!.Value.Cryopod;
         var body = storedBody.Value.Body;
-        if (!Exists(body) || Deleted(body)) // HardLight
-        {
-            ResetCryosleepState(id.Value);
-            return ReturnToBodyStatus.BodyMissing;
-        }
-
         if (!Exists(cryopod) || Deleted(cryopod) || !TryComp<CryoSleepComponent>(cryopod, out var cryoComp))
         {
             var fallbackQuery = EntityQueryEnumerator<CryoSleepFallbackComponent, CryoSleepComponent>();
@@ -84,7 +82,6 @@ public sealed partial class CryoSleepSystem
                 return ReturnToBodyStatus.Occupied;
         }
 
-        UnregisterCryostorageBody(body, cryopod); // HardLight
         _storedBodies.Remove(id.Value);
         _mind.ControlMob(id.Value, body);
         // Force the mob to sleep
@@ -95,7 +92,7 @@ public sealed partial class CryoSleepSystem
 
         RaiseLocalEvent(body, new CryosleepWakeUpEvent(cryopod, id), true);
 
-        //_adminLogger.Add(LogType.LateJoin, LogImpact.Medium, $"{id.Value} has returned from cryosleep!");
+        _adminLogger.Add(LogType.LateJoin, LogImpact.Medium, $"{id.Value} has returned from cryosleep!");
         return ReturnToBodyStatus.Success;
     }
 
@@ -107,20 +104,7 @@ public sealed partial class CryoSleepSystem
     {
         var body = _storedBodies.GetValueOrDefault(id, null);
 
-        _storedBodies.Remove(id);
-        var pausedMap = _cryostorage.GetPausedMap(); // HardLight
-
-        // If the user's a ghost, let them know their body's been removed.
-        if (_mind.TryGetMind(id, out _, out var mindComp)
-            && TryComp<GhostComponent>(mindComp.CurrentEntity, out var ghost))
-        {
-            _ghost.SetCanReturnFromCryo(ghost, false);
-        }
-
-        if (body != null
-            && pausedMap != null // HardLight
-            && TryComp<TransformComponent>(body.Value.Body, out var bodyXform)
-            && bodyXform.MapUid == pausedMap) // HardLight
+        if (body != null && _storedBodies.Remove(id) && Transform(body!.Value.Body).ParentUid == _storageMap)
         {
             QueueDel(body.Value.Body);
         }
@@ -129,21 +113,5 @@ public sealed partial class CryoSleepSystem
     public bool HasCryosleepingBody(NetUserId id)
     {
         return _storedBodies.ContainsKey(id);
-    }
-
-    public bool TryGetSleepingBody(NetUserId userId, [NotNullWhen(true)] out EntityUid? body, [NotNullWhen(true)] out EntityUid? pod)
-    {
-        if (_storedBodies.TryGetValue(userId, out var storedBody) && storedBody != null)
-        {
-            body = storedBody.Value.Body;
-            pod = storedBody.Value.Cryopod;
-            return true;
-        }
-        else
-        {
-            body = null;
-            pod = null;
-            return false;
-        }
     }
 }

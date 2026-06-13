@@ -1,49 +1,39 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Content.Shared._EinsteinEngines.Silicon.Components; // Goobstation
 using Content.Shared.Administration.Logs;
 using Content.Shared.Database;
-using Content.Shared.Emoting;
 using Content.Shared.Examine;
 using Content.Shared.GameTicking;
 using Content.Shared.Humanoid;
 using Content.Shared.Interaction.Events;
-using Content.Shared.Movement.Components;
 using Content.Shared.Mind.Components;
-using Content.Shared.Mind.Filters; // Starlight
 using Content.Shared.Mobs.Components;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Objectives.Systems;
 using Content.Shared.Players;
-using Content.Shared.Speech;
-using Content.Shared._Starlight.Language.Systems; // Starlight-edit
-using Content.Shared._Starlight.Language.Components; // Starlight-edit
-using Content.Shared.Whitelist;
 using Robust.Shared.Map;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
-using Robust.Shared.Random; // Starlight
+using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
-using Robust.Shared.Enums;
 
 namespace Content.Shared.Mind;
 
 public abstract partial class SharedMindSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly IRobustRandom _random = default!; // Starlight
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly SharedObjectivesSystem _objectives = default!;
-    [Dependency] private readonly SharedPlayerSystem _player = default!;
-    [Dependency] private readonly ISharedPlayerManager _playerManager = default!;
-    [Dependency] private readonly MetaDataSystem _metadata = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private readonly SharedLanguageSystem _language = default!; // Starlight-edit
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private SharedObjectivesSystem _objectives = default!;
+    [Dependency] private SharedPlayerSystem _player = default!;
+    [Dependency] private ISharedPlayerManager _playerManager = default!;
+    [Dependency] private MetaDataSystem _metadata = default!;
 
     [ViewVariables]
     protected readonly Dictionary<NetUserId, EntityUid> UserMinds = new();
 
-    private HashSet<Entity<MindComponent>> _pickingMinds = new(); // Starlight
+    private readonly EntProtoId _mindProto = "MindBase";
 
     public override void Initialize()
     {
@@ -55,8 +45,6 @@ public abstract partial class SharedMindSystem : EntitySystem
         SubscribeLocalEvent<RoundRestartCleanupEvent>(OnReset);
         SubscribeLocalEvent<MindComponent, ComponentStartup>(OnMindStartup);
         SubscribeLocalEvent<MindComponent, EntityRenamedEvent>(OnRenamed);
-
-        InitializeRelay();
     }
 
     public override void Shutdown()
@@ -90,32 +78,24 @@ public abstract partial class SharedMindSystem : EntitySystem
 
     private void OnReset(RoundRestartCleanupEvent ev)
     {
-        foreach (var mindId in UserMinds.Values.ToArray())
-        {
-            if (!TryComp(mindId, out MindComponent? mind))
-                continue;
-
-            if (IsMindActive(mind))
-                continue;
-
-            WipeMind(mindId, mind);
-        }
+        WipeAllMinds();
     }
 
-    private bool IsMindActive(MindComponent mind)
-    {
-        if (mind.UserId == null)
-            return false;
-
-        return _playerManager.TryGetSessionById(mind.UserId.Value, out var session)
-               && session.State.Status == SessionStatus.InGame;
-    }
     public virtual void WipeAllMinds()
     {
         Log.Info($"Wiping all minds");
         foreach (var mind in UserMinds.Values.ToArray())
         {
             WipeMind(mind);
+        }
+
+        if (UserMinds.Count == 0)
+            return;
+
+        foreach (var mind in UserMinds.Values)
+        {
+            if (Exists(mind))
+                Log.Error($"Failed to wipe mind: {ToPrettyString(mind)}");
         }
 
         UserMinds.Clear();
@@ -234,7 +214,7 @@ public abstract partial class SharedMindSystem : EntitySystem
 
     public Entity<MindComponent> CreateMind(NetUserId? userId, string? name = null)
     {
-        var mindId = Spawn(null, MapCoordinates.Nullspace);
+        var mindId = Spawn(_mindProto, MapCoordinates.Nullspace);
         _metadata.SetEntityName(mindId, name == null ? "mind" : $"mind ({name})");
         var mind = EnsureComp<MindComponent>(mindId);
         mind.CharacterName = name;
@@ -335,28 +315,6 @@ public abstract partial class SharedMindSystem : EntitySystem
 
         TransferTo(mindId.Value, null, createGhost:false, mind: mind);
         SetUserId(mindId.Value, null, mind: mind);
-
-        if (mind.Objectives.Count > 0)
-        {
-            for (var i = mind.Objectives.Count - 1; i >= 0; i--)
-            {
-                TryRemoveObjective(mindId.Value, mind, i);
-            }
-        }
-
-        if (mind.MindRoles.Count > 0)
-        {
-            foreach (var roleEnt in mind.MindRoles.ToArray())
-            {
-                if (Exists(roleEnt))
-                    QueueDel(roleEnt);
-            }
-
-            mind.MindRoles.Clear();
-        }
-
-        Dirty(mindId.Value, mind);
-        QueueDel(mindId.Value);
     }
 
     /// <summary>
@@ -419,16 +377,6 @@ public abstract partial class SharedMindSystem : EntitySystem
         var title = Name(objective);
         _adminLogger.Add(LogType.Mind, LogImpact.Low, $"Objective {objective} ({title}) removed from the mind of {MindOwnerLoggingString(mind)}");
         mind.Objectives.Remove(objective);
-
-        // garbage collection - only delete the objective entity if no mind uses it anymore
-        // This comes up for stuff like paradox clones where the objectives share the same entity
-        var mindQuery = AllEntityQuery<MindComponent>();
-        while (mindQuery.MoveNext(out _, out var queryComp))
-        {
-            if (queryComp.Objectives.Contains(objective))
-                return true;
-        }
-
         Del(objective);
         return true;
     }
@@ -458,33 +406,6 @@ public abstract partial class SharedMindSystem : EntitySystem
         }
         objective = default;
         return false;
-    }
-
-    /// <summary>
-    /// Copies objectives from one mind to another, so that they are shared between two players.
-    /// </summary>
-    /// <remarks>
-    /// Only copies the reference to the objective entity, not the entity itself.
-    /// This relies on the fact that objectives are never changed after spawning them.
-    /// If someone ever changes that, they will have to address this.
-    /// </remarks>
-    /// <param name="source"> mind entity of the player to copy from </param>
-    /// <param name="target"> mind entity of the player to copy to </param>
-    /// <param name="except"> whitelist for objectives that should be copied </param>
-    /// <param name="except"> blacklist for objectives that should not be copied </param>
-    public void CopyObjectives(Entity<MindComponent?> source, Entity<MindComponent?> target, EntityWhitelist? whitelist = null, EntityWhitelist? blacklist = null)
-    {
-        if (!Resolve(source, ref source.Comp) || !Resolve(target, ref target.Comp))
-            return;
-
-        foreach (var objective in source.Comp.Objectives)
-        {
-            if (target.Comp.Objectives.Contains(objective))
-                continue; // target already has this objective
-
-            if (_whitelist.CheckBoth(objective, blacklist, whitelist))
-                AddObjective(target, target.Comp, objective);
-        }
     }
 
     /// <summary>
@@ -617,104 +538,27 @@ public abstract partial class SharedMindSystem : EntitySystem
 
     /// <summary>
     /// Returns a list of every living humanoid player's minds, except for a single one which is exluded.
-    /// A new hashset is allocated for every call, consider using <see cref="AddAliveHumans"/> instead.
     /// </summary>
-    public HashSet<Entity<MindComponent>> GetAliveHumans(EntityUid? exclude = null)
+    public HashSet<Entity<MindComponent>> GetAliveHumans(EntityUid? exclude = null, bool excludeSilicon = false)
     {
         var allHumans = new HashSet<Entity<MindComponent>>();
-        AddAliveHumans(allHumans, exclude);
-        return allHumans;
-    }
-
-    /// <summary>
-    /// Give sentience to a target entity by attaching necessary components.
-    /// </summary>
-    /// <param name="uid">Uid of the target entity.</param>
-    /// <param name="allowMovement">Whether the target entity should be able to move.</param>
-    /// <param name="allowSpeech">Whether the target entity should be able to talk.</param>
-    public void MakeSentient(EntityUid uid, bool allowMovement = true, bool allowSpeech = true)
-    {
-        EnsureComp<MindContainerComponent>(uid);
-        if (allowMovement)
-        {
-            EnsureComp<InputMoverComponent>(uid);
-            EnsureComp<MobMoverComponent>(uid);
-            EnsureComp<MovementSpeedModifierComponent>(uid);
-        }
-
-        if (allowSpeech)
-        {
-            EnsureComp<SpeechComponent>(uid);
-            EnsureComp<EmotingComponent>(uid);
-        }
-
-        // Starlight start
-        var speaker = EnsureComp<LanguageSpeakerComponent>(uid);
-
-        // If the entity already speaks some language (like monkey or robot), we do nothing else.
-        // Otherwise, we give them the fallback language
-        //if (speaker.SpokenLanguages.Count == 0) //Hardlight: Removed conditional logic to ensure all subject entities of MakeSentient receive the fallback: GalacticCommon
-        _language.AddLanguage(uid, SharedLanguageSystem.FallbackLanguagePrototype);
-        // Starlight end
-
-        EnsureComp<ExaminerComponent>(uid);
-    }
-
-    /// <summary>
-    /// Adds to a hashset every living humanoid player's minds, except for a single one which is exluded.
-    /// </summary>
-    public void AddAliveHumans(HashSet<Entity<MindComponent>> allHumans, EntityUid? exclude = null)
-    {
         // HumanoidAppearanceComponent is used to prevent mice, pAIs, etc from being chosen
-        var query = EntityQueryEnumerator<HumanoidAppearanceComponent, MobStateComponent>();
-        while (query.MoveNext(out var uid, out _, out var mobState))
+        var query = EntityQueryEnumerator<MobStateComponent, HumanoidAppearanceComponent>();
+        while (query.MoveNext(out var uid, out var mobState, out _))
         {
             // the player needs to have a mind and not be the excluded one +
             // the player has to be alive
             if (!TryGetMind(uid, out var mind, out var mindComp) || mind == exclude || !_mobState.IsAlive(uid, mobState))
                 continue;
 
-            allHumans.Add((mind, mindComp));
+            // Goobstation: Skip IPCs from selections
+            if (excludeSilicon && HasComp<SiliconComponent>(uid))
+                continue;
+
+            allHumans.Add(new Entity<MindComponent>(mind, mindComp));
         }
-    }
 
-    /// <summary>
-    /// Starlight: Picks a random mind from a pool after applying a list of filters.
-    /// Returns null if no valid mind could be found.
-    /// </summary>
-    public Entity<MindComponent>? PickFromPool(IMindPool pool, List<MindFilter> filters, EntityUid? exclude = null)
-    {
-        _pickingMinds.Clear();
-        pool.FindMinds(_pickingMinds, exclude, EntityManager, this);
-        FilterMinds(_pickingMinds, filters, exclude);
-
-        if (_pickingMinds.Count == 0)
-            return null;
-
-        return _random.Pick(_pickingMinds);
-    }
-
-    /// <summary>
-    /// Starlight: Filters minds from a hashset using a single <see cref="MindFilter"/>.
-    /// </summary>
-    public void FilterMinds(HashSet<Entity<MindComponent>> minds, MindFilter filter, EntityUid? exclude = null)
-    {
-        minds.RemoveWhere(mind => filter.Filter(mind, exclude, EntityManager, this));
-    }
-
-    /// <summary>
-    /// Starlight: Filters minds from a hashset using a list of <see cref="MindFilter"/>s to apply sequentially.
-    /// </summary>
-    public void FilterMinds(HashSet<Entity<MindComponent>> minds, List<MindFilter> filters, EntityUid? exclude = null)
-    {
-        foreach (var filter in filters)
-        {
-            // no point calling it if there are none left
-            if (minds.Count == 0)
-                break;
-
-            FilterMinds(minds, filter, exclude);
-        }
+        return allHumans;
     }
 }
 

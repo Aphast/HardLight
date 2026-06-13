@@ -1,7 +1,8 @@
-﻿using Content.Server.Atmos.EntitySystems;
+using Content.Server.Atmos.EntitySystems;
 using Content.Shared.Explosion.Components.OnTrigger;
 using Content.Shared.Explosion.EntitySystems;
 using Robust.Shared.Timing;
+using Content.Shared.Tag; //Mono
 
 namespace Content.Server.Explosion.EntitySystems;
 
@@ -12,9 +13,10 @@ namespace Content.Server.Explosion.EntitySystems;
 /// </summary>
 public sealed partial class ReleaseGasOnTriggerSystem : SharedReleaseGasOnTriggerSystem
 {
-    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
-    [Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private SharedAppearanceSystem _appearance = default!;
+    [Dependency] private AtmosphereSystem _atmosphereSystem = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private TagSystem _tagSystem = default!; //Mono
 
     public override void Initialize()
     {
@@ -63,6 +65,15 @@ public sealed partial class ReleaseGasOnTriggerSystem : SharedReleaseGasOnTrigge
                 comp.Air.TotalMoles <= 0)
             {
                 UpdateAppearance(uid, false);
+
+                //Mono: Less trash. Controlled with YAML field in case we make a reusable version
+                if (comp.DeleteOnEmpty)
+                {
+                    QueueDel(uid);
+                    continue;
+                }
+                //Mono end
+
                 RemCompDeferred<ReleaseGasOnTriggerComponent>(uid);
                 continue;
             }

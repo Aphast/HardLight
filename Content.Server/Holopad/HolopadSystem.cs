@@ -1,17 +1,15 @@
 using Content.Server.Chat.Systems;
 using Content.Server.Popups;
-using Content.Shared.Chat; // For InGameICChatType
 using Content.Server.Power.EntitySystems;
 using Content.Server.Speech.Components;
 using Content.Server.Telephone;
 using Content.Shared.Access.Systems;
 using Content.Shared.Audio;
+using Content.Shared.Chat; // Einstein Engines - Language
 using Content.Shared.Chat.TypingIndicator;
 using Content.Shared.Holopad;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Labels.Components;
-using Content.Shared.Mobs;
-using Content.Shared.Mobs.Systems;
 using Content.Shared.Power;
 using Content.Shared.Silicons.StationAi;
 using Content.Shared.Speech;
@@ -28,21 +26,21 @@ using Content.Server._NF.Station.Systems; // Frontier
 
 namespace Content.Server.Holopad;
 
-public sealed class HolopadSystem : SharedHolopadSystem
+public sealed partial class HolopadSystem : SharedHolopadSystem
 {
-    [Dependency] private readonly TelephoneSystem _telephoneSystem = default!;
-    [Dependency] private readonly UserInterfaceSystem _userInterfaceSystem = default!;
-    [Dependency] private readonly TransformSystem _xformSystem = default!;
-    [Dependency] private readonly AppearanceSystem _appearanceSystem = default!;
-    [Dependency] private readonly SharedPointLightSystem _pointLightSystem = default!;
-    [Dependency] private readonly SharedAmbientSoundSystem _ambientSoundSystem = default!;
-    [Dependency] private readonly SharedStationAiSystem _stationAiSystem = default!;
-    [Dependency] private readonly AccessReaderSystem _accessReaderSystem = default!;
-    [Dependency] private readonly ChatSystem _chatSystem = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly PvsOverrideSystem _pvs = default!;
-    [Dependency] private readonly StationRenameHolopadsSystem _renameHolopads = default!; // Frontier
+    [Dependency] private TelephoneSystem _telephoneSystem = default!;
+    [Dependency] private UserInterfaceSystem _userInterfaceSystem = default!;
+    [Dependency] private TransformSystem _xformSystem = default!;
+    [Dependency] private AppearanceSystem _appearanceSystem = default!;
+    [Dependency] private SharedPointLightSystem _pointLightSystem = default!;
+    [Dependency] private SharedAmbientSoundSystem _ambientSoundSystem = default!;
+    [Dependency] private SharedStationAiSystem _stationAiSystem = default!;
+    [Dependency] private AccessReaderSystem _accessReaderSystem = default!;
+    [Dependency] private ChatSystem _chatSystem = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private PvsOverrideSystem _pvs = default!;
+    [Dependency] private StationRenameHolopadsSystem _renameHolopads = default!; // Frontier
 
     private float _updateTimer = 1.0f;
     private const float UpdateTime = 1.0f;
@@ -77,15 +75,13 @@ public sealed class HolopadSystem : SharedHolopadSystem
 
         // Misc events
         SubscribeLocalEvent<HolopadUserComponent, EmoteEvent>(OnEmote);
-        SubscribeLocalEvent<HolopadUserComponent, NFEntityEmotedEvent>(OnCustomEmote); // Frontier
         SubscribeLocalEvent<HolopadUserComponent, JumpToCoreEvent>(OnJumpToCore);
         SubscribeLocalEvent<HolopadComponent, GetVerbsEvent<AlternativeVerb>>(AddToggleProjectorVerb);
         SubscribeLocalEvent<HolopadComponent, EntRemovedFromContainerMessage>(OnAiRemove);
 
+        SubscribeLocalEvent<HolopadComponent, MapInitEvent>(OnHolopadMapInit); // Frontier
         SubscribeLocalEvent<HolopadComponent, EntParentChangedMessage>(OnParentChanged);
         SubscribeLocalEvent<HolopadComponent, PowerChangedEvent>(OnPowerChanged);
-        SubscribeLocalEvent<HolopadComponent, MapInitEvent>(OnHolopadMapInit); // Frontier
-        SubscribeLocalEvent<HolopadUserComponent, MobStateChangedEvent>(OnMobStateChanged);
     }
 
     #region: Holopad UI bound user interface messages
@@ -235,7 +231,7 @@ public sealed class HolopadSystem : SharedHolopadSystem
             if (!_stationAiSystem.TryGetHeld((receiver, receiverStationAiCore), out var insertedAi))
                 continue;
 
-            if (_userInterfaceSystem.TryOpenUi(receiverUid, HolopadUiKey.AiRequestWindow, insertedAi.Value))
+            if (_userInterfaceSystem.TryOpenUi(receiverUid, HolopadUiKey.AiRequestWindow, insertedAi))
                 LinkHolopadToUser(entity, args.Actor);
         }
 
@@ -371,7 +367,7 @@ public sealed class HolopadSystem : SharedHolopadSystem
                 continue;
 
             var receivingHolopads = GetLinkedHolopads(linkedHolopad);
-            var range = receivingHolopads.Count > 1 ? ChatTransmitRange.HideChat : ChatTransmitRange.GhostRangeLimitNoAdminCheck; // Frontier: GhostRangeLimit<GhostRangeLimitNoAdminCheck
+            var range = receivingHolopads.Count > 1 ? ChatTransmitRange.HideChat : ChatTransmitRange.GhostRangeLimit;
 
             foreach (var receiver in receivingHolopads)
             {
@@ -387,37 +383,6 @@ public sealed class HolopadSystem : SharedHolopadSystem
             }
         }
     }
-
-    // Frontier: allow custom emotes
-    private void OnCustomEmote(Entity<HolopadUserComponent> entity, ref NFEntityEmotedEvent args)
-    {
-        foreach (var linkedHolopad in entity.Comp.LinkedHolopads)
-        {
-            // Treat the ability to hear speech as the ability to also perceive emotes
-            // (these are almost always going to be linked)
-            if (!HasComp<ActiveListenerComponent>(linkedHolopad))
-                continue;
-
-            if (TryComp<TelephoneComponent>(linkedHolopad, out var linkedHolopadTelephone) && linkedHolopadTelephone.Muted)
-                continue;
-
-            var receivingHolopads = GetLinkedHolopads(linkedHolopad);
-            var range = receivingHolopads.Count > 1 ? ChatTransmitRange.HideChat : ChatTransmitRange.GhostRangeLimitNoAdminCheck;
-
-            foreach (var receiver in receivingHolopads)
-            {
-                if (receiver.Comp.Hologram == null)
-                    continue;
-
-                // Name is based on the physical identity of the user
-                var ent = Identity.Entity(entity, EntityManager);
-                var name = Loc.GetString("holopad-hologram-name", ("name", ent));
-
-                _chatSystem.TrySendInGameICMessage(receiver.Comp.Hologram.Value, args.Emote, InGameICChatType.Emote, range, nameOverride: name, checkRadioPrefix: false, ignoreActionBlocker: true);
-            }
-        }
-    }
-    // End Frontier: allow custom emotes
 
     private void OnJumpToCore(Entity<HolopadUserComponent> entity, ref JumpToCoreEvent args)
     {
@@ -484,17 +449,6 @@ public sealed class HolopadSystem : SharedHolopadSystem
     {
         if (args.Powered)
             UpdateHolopadControlLockoutStartTime(entity);
-    }
-
-    private void OnMobStateChanged(Entity<HolopadUserComponent> ent, ref MobStateChangedEvent args)
-    {
-        if (!HasComp<StationAiHeldComponent>(ent))
-            return;
-
-        foreach (var holopad in ent.Comp.LinkedHolopads)
-        {
-            ShutDownHolopad(holopad);
-        }
     }
 
     #endregion
@@ -656,23 +610,25 @@ public sealed class HolopadSystem : SharedHolopadSystem
         if (entity.Comp.Hologram != null)
             DeleteHologram(entity.Comp.Hologram.Value, entity);
 
-        // Check if the associated holopad user is an AI
-        if (HasComp<StationAiHeldComponent>(entity.Comp.User) &&
-            _stationAiSystem.TryGetCore(entity.Comp.User.Value, out var stationAiCore))
+        if (entity.Comp.User != null)
         {
-            // Return the AI eye to free roaming
-            _stationAiSystem.SwitchRemoteEntityMode(stationAiCore, true);
-
-            // If the AI core is still broadcasting, end its calls
-            if (TryComp<TelephoneComponent>(stationAiCore, out var stationAiCoreTelephone) &&
-                _telephoneSystem.IsTelephoneEngaged((stationAiCore.Owner, stationAiCoreTelephone)))
+            // Check if the associated holopad user is an AI
+            if (TryComp<StationAiHeldComponent>(entity.Comp.User, out var stationAiHeld) &&
+                _stationAiSystem.TryGetCore(entity.Comp.User.Value, out var stationAiCore))
             {
-                _telephoneSystem.EndTelephoneCalls((stationAiCore.Owner, stationAiCoreTelephone));
+                // Return the AI eye to free roaming
+                _stationAiSystem.SwitchRemoteEntityMode(stationAiCore, true);
+
+                // If the AI core is still broadcasting, end its calls
+                if (entity.Owner != stationAiCore.Owner &&
+                    TryComp<TelephoneComponent>(stationAiCore, out var stationAiCoreTelephone) &&
+                    _telephoneSystem.IsTelephoneEngaged((stationAiCore.Owner, stationAiCoreTelephone)))
+                {
+                    _telephoneSystem.EndTelephoneCalls((stationAiCore.Owner, stationAiCoreTelephone));
+                }
             }
-        }
-        else
-        {
-            UnlinkHolopadFromUser(entity, entity.Comp.User);
+
+            UnlinkHolopadFromUser(entity, entity.Comp.User.Value);
         }
 
         Dirty(entity);

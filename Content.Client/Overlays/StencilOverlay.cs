@@ -18,11 +18,14 @@ namespace Content.Client.Overlays;
 /// </summary>
 public sealed partial class StencilOverlay : Overlay
 {
-    [Dependency] private readonly IClyde _clyde = default!;
-    [Dependency] private readonly IEntityManager _entManager = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly IPrototypeManager _protoManager = default!;
+    private static readonly ProtoId<ShaderPrototype> StencilMask = "StencilMask";
+    private static readonly ProtoId<ShaderPrototype> StencilDraw = "StencilDraw";
+
+    [Dependency] private IClyde _clyde = default!;
+    [Dependency] private IEntityManager _entManager = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private IPrototypeManager _protoManager = default!;
     private readonly ParallaxSystem _parallax;
     private readonly SharedTransformSystem _transform;
     private readonly SharedMapSystem _map;
@@ -34,9 +37,6 @@ public sealed partial class StencilOverlay : Overlay
     private readonly OverlayResourceCache<CachedResources> _resources = new();
 
     private readonly ShaderInstance _shader;
-    private static readonly ProtoId<ShaderPrototype> WorldGradientCircleId = "WorldGradientCircle";
-    private static readonly ProtoId<ShaderPrototype> StencilMaskId = "StencilMask";
-    private static readonly ProtoId<ShaderPrototype> StencilDrawId = "StencilDraw";
 
     public StencilOverlay(ParallaxSystem parallax, SharedTransformSystem transform, SharedMapSystem map, SpriteSystem sprite, WeatherSystem weather)
     {
@@ -47,7 +47,7 @@ public sealed partial class StencilOverlay : Overlay
         _sprite = sprite;
         _weather = weather;
         IoCManager.InjectDependencies(this);
-        _shader = _protoManager.Index(WorldGradientCircleId).InstanceUnique();
+        _shader = _protoManager.Index<ShaderPrototype>("WorldGradientCircle").InstanceUnique();
     }
 
     protected override void Draw(in OverlayDrawArgs args)
@@ -55,7 +55,7 @@ public sealed partial class StencilOverlay : Overlay
         var mapUid = _mapManager.GetMapEntityId(args.MapId);
         var invMatrix = args.Viewport.GetWorldToLocalMatrix();
 
-       var res = _resources.GetForViewport(args.Viewport, static _ => new CachedResources());
+        var res = _resources.GetForViewport(args.Viewport, static _ => new CachedResources());
 
         if (res.Blep?.Texture.Size != args.Viewport.Size)
         {

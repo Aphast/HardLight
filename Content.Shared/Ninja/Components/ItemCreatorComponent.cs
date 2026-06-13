@@ -24,7 +24,7 @@ public sealed partial class ItemCreatorComponent : Component
     [DataField(required: true)]
     public EntProtoId<InstantActionComponent> Action = string.Empty;
 
-    [AutoNetworkedField]
+    [DataField, AutoNetworkedField]
     public EntityUid? ActionEntity;
 
     /// <summary>

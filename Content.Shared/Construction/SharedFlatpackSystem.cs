@@ -1,5 +1,4 @@
 using Content.Shared.Construction.Components;
-using Content.Shared.Construction.EntitySystems;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Database;
@@ -12,26 +11,30 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Network;
-using Robust.Shared.Physics;
 using Robust.Shared.Prototypes;
+using Content.Shared.Construction.EntitySystems;
+using Robust.Shared.Physics.Components;
+using Robust.Shared.Physics.Systems;
+using Robust.Shared.Physics;
 
 namespace Content.Shared.Construction;
 
-public abstract class SharedFlatpackSystem : EntitySystem
+public abstract partial class SharedFlatpackSystem : EntitySystem
 {
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] protected readonly IPrototypeManager PrototypeManager = default!;
-    [Dependency] private readonly AnchorableSystem _anchorable = default!;
-    [Dependency] protected readonly SharedAppearanceSystem Appearance = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
-    [Dependency] protected readonly MachinePartSystem MachinePart = default!;
-    [Dependency] protected readonly SharedMaterialStorageSystem MaterialStorage = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly SharedToolSystem _tool = default!;
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] protected IPrototypeManager PrototypeManager = default!;
+    [Dependency] protected SharedAppearanceSystem Appearance = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private EntityLookupSystem _entityLookup = default!;
+    [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] protected MachinePartSystem MachinePart = default!;
+    [Dependency] protected SharedMaterialStorageSystem MaterialStorage = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private SharedToolSystem _tool = default!;
+    [Dependency] private AnchorableSystem _anchorable = default!; // Mono
 
     /// <inheritdoc/>
     public override void Initialize()
@@ -47,7 +50,7 @@ public abstract class SharedFlatpackSystem : EntitySystem
         if (args.Slot.ID != ent.Comp.SlotId || args.Cancelled)
             return;
 
-        if (HasComp<MachineBoardComponent>(args.Item))
+        if (TryComp<MachineBoardComponent>(args.Item, out var board) && board.Flatpackable) // Mono
             return;
 
         if (TryComp<ComputerBoardComponent>(args.Item, out var computer) && computer.Prototype != null)
@@ -69,7 +72,7 @@ public abstract class SharedFlatpackSystem : EntitySystem
 
         args.Handled = true;
 
-        if (comp.Entity == null)
+        if (comp.Entity is not { } flatpackEntity)
         {
             Log.Error($"No entity prototype present for flatpack {ToPrettyString(ent)}.");
 
@@ -78,12 +81,14 @@ public abstract class SharedFlatpackSystem : EntitySystem
             return;
         }
 
-        var buildPos = _map.TileIndicesFor(grid, gridComp, xform.Coordinates);
+        if (!PrototypeManager.Resolve(comp.Entity, out var proto) ||
+            !proto.TryGetComponent<FixturesComponent>(out var fixture, EntityManager.ComponentFactory))
+        {
+            return;
+        }
 
-        // Use the resulting machine's own hard collision layers/mask against anchored
-        // entities on the destination tile, instead of a broad lookup that always trips on
-        // the flatpack itself or on item-mask debris. Mirrors upstream Wizden behaviour.
-        var (layer, mask) = GetPrototypeHardCollision(comp.Entity);
+        var (layer, mask) = SharedPhysicsSystem.GetHardCollision(fixture);
+        var buildPos = _map.TileIndicesFor(grid, gridComp, xform.Coordinates);
 
         if (!_anchorable.TileFree(gridComp, buildPos, layer, mask))
         {
@@ -93,7 +98,7 @@ public abstract class SharedFlatpackSystem : EntitySystem
 
         if (_net.IsServer)
         {
-            var spawn = Spawn(comp.Entity, _map.GridTileToLocal(grid, gridComp, buildPos));
+            var spawn = Spawn(flatpackEntity, _map.GridTileToLocal(grid, gridComp, buildPos));
             if (TryComp(spawn, out TransformComponent? spawnXform)) // Frontier: rotatable flatpacks
                 spawnXform.LocalRotation = xform.LocalRotation.GetCardinalDir().ToAngle(); // Frontier: rotatable flatpacks
             _adminLogger.Add(LogType.Construction,
@@ -110,33 +115,6 @@ public abstract class SharedFlatpackSystem : EntitySystem
         if (!args.IsInDetailsRange)
             return;
         args.PushMarkup(Loc.GetString("flatpack-examine"));
-    }
-
-    /// <summary>
-    /// Aggregates the hard collision layer/mask of a prototype's fixtures so that we can
-    /// check whether the destination tile is free for the resulting machine.
-    /// </summary>
-    private (int Layer, int Mask) GetPrototypeHardCollision(EntProtoId? protoId)
-    {
-        if (protoId == null || !PrototypeManager.TryIndex<EntityPrototype>(protoId, out var proto))
-            return (0, 0);
-
-        if (!proto.TryGetComponent<FixturesComponent>(out var fixtures, EntityManager.ComponentFactory))
-            return (0, 0);
-
-        var layer = 0;
-        var mask = 0;
-
-        foreach (var fixture in fixtures.Fixtures.Values)
-        {
-            if (!fixture.Hard)
-                continue;
-
-            layer |= fixture.CollisionLayer;
-            mask |= fixture.CollisionMask;
-        }
-
-        return (layer, mask);
     }
 
     protected void SetupFlatpack(Entity<FlatpackComponent?> ent, EntProtoId proto, EntityUid board)

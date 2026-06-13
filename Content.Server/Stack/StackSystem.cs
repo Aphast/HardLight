@@ -4,8 +4,6 @@ using Content.Shared.Verbs;
 using JetBrains.Annotations;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Physics;
-using Robust.Shared.Physics.Components;
 
 namespace Content.Server.Stack
 {
@@ -14,119 +12,18 @@ namespace Content.Server.Stack
     ///     This is a good example for learning how to code in an ECS manner.
     /// </summary>
     [UsedImplicitly]
-    public sealed class StackSystem : SharedStackSystem
+    public sealed partial class StackSystem : SharedStackSystem
     {
-        [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-        [Dependency] private readonly SharedUserInterfaceSystem _ui = default!; // Cherry-picked from space-station-14#32938 courtesy of Ilya246
-        [Dependency] private readonly EntityLookupSystem _lookup = default!;
+        [Dependency] private IPrototypeManager _prototypeManager = default!;
+        [Dependency] private SharedUserInterfaceSystem _ui = default!; // Cherry-picked from space-station-14#32938 courtesy of Ilya246
 
         public static readonly int[] DefaultSplitAmounts = { 1, 5, 10, 20, 50, 100, 500, 1000, 5000, 10000 };
-        
-        private const float AutoStackRange = 2f; // 2 tiles
-        private const float AutoStackUpdateInterval = 10f; // Check every 10 seconds
-        private float _autoStackAccumulator;
 
         public override void Initialize()
         {
             base.Initialize();
 
             SubscribeLocalEvent<StackComponent, GetVerbsEvent<AlternativeVerb>>(OnStackAlternativeInteract);
-        }
-
-        public override void Update(float frameTime)
-        {
-            base.Update(frameTime);
-
-            _autoStackAccumulator += frameTime;
-            if (_autoStackAccumulator < AutoStackUpdateInterval)
-                return;
-
-            _autoStackAccumulator -= AutoStackUpdateInterval;
-            AutoStackNearbyItems();
-        }
-
-        private void AutoStackNearbyItems()
-        {
-            var query = EntityQueryEnumerator<StackComponent, TransformComponent, PhysicsComponent>();
-            var processed = new HashSet<EntityUid>();
-
-            while (query.MoveNext(out var uid, out var stack, out var xform, out var physics))
-            {
-                // Skip if already processed or being deleted
-                if (processed.Contains(uid) || TerminatingOrDeleted(uid))
-                    continue;
-
-                // Skip if in a container, in someone's hands, or anchored
-                if (xform.ParentUid.IsValid() && !xform.ParentUid.Equals(xform.GridUid))
-                    continue;
-
-                if (physics.BodyType == BodyType.Static)
-                    continue;
-
-                // Skip unlimited stacks
-                if (stack.Unlimited)
-                    continue;
-
-                // Skip if already at max capacity
-                if (GetAvailableSpace(stack) == 0)
-                    continue;
-
-                // Find nearby stacks within 2 tiles
-                var nearbyStacks = _lookup.GetEntitiesInRange(xform.Coordinates, AutoStackRange, LookupFlags.Dynamic | LookupFlags.Sundries);
-                
-                foreach (var nearbyUid in nearbyStacks)
-                {
-                    if (nearbyUid == uid || processed.Contains(nearbyUid) || TerminatingOrDeleted(nearbyUid))
-                        continue;
-
-                    if (!TryComp<StackComponent>(nearbyUid, out var nearbyStack))
-                        continue;
-
-                    if (!TryComp<TransformComponent>(nearbyUid, out var nearbyXform))
-                        continue;
-
-                    if (!TryComp<PhysicsComponent>(nearbyUid, out var nearbyPhysics))
-                        continue;
-
-                    // Skip if in a container, in someone's hands, or anchored
-                    if (nearbyXform.ParentUid.IsValid() && !nearbyXform.ParentUid.Equals(nearbyXform.GridUid))
-                        continue;
-
-                    if (nearbyPhysics.BodyType == BodyType.Static)
-                        continue;
-
-                    // Check if stacks are compatible
-                    if (string.IsNullOrEmpty(stack.StackTypeId) || !stack.StackTypeId.Equals(nearbyStack.StackTypeId))
-                        continue;
-
-                    if (!StackSignaturesCompatible(uid, nearbyUid))
-                        continue;
-
-                    if (GetAvailableSpace(nearbyStack) == 0)
-                        continue;
-
-                    // Calculate how much to transfer
-                    var transferred = Math.Min(nearbyStack.Count, GetAvailableSpace(stack));
-                    if (transferred <= 0)
-                        continue;
-
-                    // Perform the merge
-                    SetCount(nearbyUid, nearbyStack.Count - transferred, nearbyStack);
-                    SetCount(uid, stack.Count + transferred, stack);
-
-                    // If the donor was fully consumed, mark it as processed
-                    if (nearbyStack.Count <= 0)
-                    {
-                        processed.Add(nearbyUid);
-                    }
-
-                    // If we're now at max capacity, stop
-                    if (GetAvailableSpace(stack) == 0)
-                        break;
-                }
-
-                processed.Add(uid);
-            }
         }
 
         public override void SetCount(EntityUid uid, int amount, StackComponent? component = null)
@@ -157,10 +54,6 @@ namespace Content.Server.Stack
             var prototype = _prototypeManager.TryIndex<StackPrototype>(stack.StackTypeId, out var stackType)
                 ? stackType.Spawn.ToString()
                 : Prototype(uid)?.ID;
-
-            var selfPrototype = Prototype(uid)?.ID;
-            if (HasComp<StackSpawnSelfComponent>(uid) && selfPrototype != null)
-                prototype = selfPrototype;
 
             // Set the output parameter in the event instance to the newly split stack.
             var entity = Spawn(prototype, spawnPosition);
@@ -194,7 +87,7 @@ namespace Content.Server.Stack
         public EntityUid Spawn(int amount, StackPrototype prototype, EntityCoordinates spawnPosition)
         {
             // Set the output result parameter to the new stack entity...
-            var entity = SpawnAtPosition(prototype.Spawn, spawnPosition);
+            var entity = Spawn(prototype.Spawn, spawnPosition);
             var stack = Comp<StackComponent>(entity);
 
             // And finally, set the correct amount!

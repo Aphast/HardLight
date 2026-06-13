@@ -1,7 +1,6 @@
 using Content.Server.Botany.Components;
 using Content.Server.Kitchen.Components;
 using Content.Server.Popups;
-using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Botany;
 using Content.Shared.Examine;
@@ -9,43 +8,31 @@ using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Popups;
 using Content.Shared.Random;
 using Content.Shared.Random.Helpers;
-using Content.Shared.Stacks;
 using Robust.Server.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Content.Shared.Administration.Logs;
-using Content.Shared.Database;
 using Content.Server._NF.Contraband.Systems; // Frontier
 
 namespace Content.Server.Botany.Systems;
 
 public sealed partial class BotanySystem : EntitySystem
 {
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly IRobustRandom _robustRandom = default!;
-    [Dependency] private readonly AppearanceSystem _appearance = default!;
-    [Dependency] private readonly PopupSystem _popupSystem = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly MetaDataSystem _metaData = default!;
-    [Dependency] private readonly RandomHelperSystem _randomHelper = default!;
-    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly ContrabandTurnInSystem _contraband = default!; // Frontier
-
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private IRobustRandom _robustRandom = default!;
+    [Dependency] private AppearanceSystem _appearance = default!;
+    [Dependency] private PopupSystem _popupSystem = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedSolutionContainerSystem _solutionContainerSystem = default!;
+    [Dependency] private MetaDataSystem _metaData = default!;
+    [Dependency] private RandomHelperSystem _randomHelper = default!;
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<SeedComponent, ExaminedEvent>(OnExamined);
-        SubscribeLocalEvent<ProduceComponent, ExaminedEvent>(OnProduceExamined);
-        SubscribeLocalEvent<SeedComponent, ComponentStartup>(OnSeedStartup);
-        SubscribeLocalEvent<ProduceComponent, ComponentStartup>(OnProduceStartup);
-        SubscribeLocalEvent<ProduceComponent, SolutionContainerChangedEvent>(OnProduceSolutionChanged);
-        SubscribeLocalEvent<SeedComponent, StackSplitEvent>(OnSeedSplit);
-        SubscribeLocalEvent<ProduceComponent, StackSplitEvent>(OnProduceSplit);
     }
 
     public bool TryGetSeed(SeedComponent comp, [NotNullWhen(true)] out SeedData? seed)
@@ -103,54 +90,6 @@ public sealed partial class BotanySystem : EntitySystem
         }
     }
 
-    private void OnSeedSplit(EntityUid uid, SeedComponent component, ref StackSplitEvent args)
-    {
-        if (!TryComp(args.NewId, out SeedComponent? newSeed))
-            return;
-
-        if (component.Seed != null)
-            newSeed.Seed = component.Seed.Immutable ? component.Seed : component.Seed.Clone();
-
-        newSeed.SeedId = component.SeedId;
-        newSeed.HealthOverride = component.HealthOverride;
-
-        if (TryComp<ExtractedSeedOwnerComponent>(uid, out var ownerComp))
-        {
-            var newOwnerComp = EnsureComp<ExtractedSeedOwnerComponent>(args.NewId);
-            newOwnerComp.OwnerId = ownerComp.OwnerId;
-            Dirty(args.NewId, newOwnerComp);
-        }
-
-        UpdateSeedStackSignature(args.NewId, newSeed);
-        Dirty(args.NewId, newSeed);
-    }
-
-    private void OnProduceSplit(EntityUid uid, ProduceComponent component, ref StackSplitEvent args)
-    {
-        Solution? sourceSolution = null;
-        if (_solutionContainerSystem.TryGetSolution(uid, component.SolutionName, out _, out var foundSolution))
-            sourceSolution = foundSolution;
-
-        if (TryComp(args.NewId, out ProduceComponent? newProduce))
-        {
-            if (component.Seed != null)
-                newProduce.Seed = component.Seed.Immutable ? component.Seed : component.Seed.Clone();
-
-            newProduce.SeedId = component.SeedId;
-            Dirty(args.NewId, newProduce);
-        }
-
-        if (sourceSolution != null
-            && _solutionContainerSystem.TryGetSolution(args.NewId, component.SolutionName, out var targetSoln, out _))
-        {
-            _solutionContainerSystem.RemoveAllSolution(targetSoln.Value);
-            _solutionContainerSystem.TryAddSolution(targetSoln.Value, new Solution(sourceSolution));
-        }
-
-        if (TryComp(args.NewId, out ProduceComponent? updatedProduce))
-            UpdateProduceStackSignature(args.NewId, updatedProduce, sourceSolution);
-    }
-
     #region SeedPrototype prototype stuff
 
     /// <summary>
@@ -159,11 +98,9 @@ public sealed partial class BotanySystem : EntitySystem
     public EntityUid SpawnSeedPacket(SeedData proto, EntityCoordinates coords, EntityUid user, float? healthOverride = null)
     {
         var seed = SpawnAtPosition(proto.PacketPrototype, coords); // Frontier: Spawn<SpawnAtPosition
-        _contraband.ClearContrabandValue(seed); // Frontier
         var seedComp = EnsureComp<SeedComponent>(seed);
         seedComp.Seed = proto;
         seedComp.HealthOverride = healthOverride;
-        UpdateSeedStackSignature(seed, seedComp);
 
         var name = Loc.GetString(proto.Name);
         var noun = Loc.GetString(proto.Noun);
@@ -179,12 +116,7 @@ public sealed partial class BotanySystem : EntitySystem
     {
         if (position.IsValid(EntityManager) &&
             proto.ProductPrototypes.Count > 0)
-        {
-            if (proto.HarvestLogImpact != null)
-                _adminLogger.Add(LogType.Botany, proto.HarvestLogImpact.Value, $"Auto-harvested {Loc.GetString(proto.Name):seed} at Pos:{position}.");
-
             return GenerateProduct(proto, position, yieldMod);
-        }
 
         return Enumerable.Empty<EntityUid>();
     }
@@ -199,10 +131,6 @@ public sealed partial class BotanySystem : EntitySystem
 
         var name = Loc.GetString(proto.DisplayName);
         _popupSystem.PopupCursor(Loc.GetString("botany-harvest-success-message", ("name", name)), user, PopupType.Medium);
-
-        if (proto.HarvestLogImpact != null)
-            _adminLogger.Add(LogType.Botany, proto.HarvestLogImpact.Value, $"{ToPrettyString(user):player} harvested {Loc.GetString(proto.Name):seed} at Pos:{Transform(user).Coordinates}.");
-
         return GenerateProduct(proto, Transform(user).Coordinates, yieldMod);
     }
 
@@ -229,7 +157,6 @@ public sealed partial class BotanySystem : EntitySystem
             var product = _robustRandom.Pick(proto.ProductPrototypes);
 
             var entity = SpawnAtPosition(product, position); // Frontier: Spawn<SpawnAtPosition
-            _contraband.ClearContrabandValue(entity); // Frontier
             _randomHelper.RandomOffset(entity, 0.25f);
             products.Add(entity);
 

@@ -24,38 +24,19 @@ public sealed class NFCCVars
     /// Respawn time, how long the player has to wait in seconds after death, or on subsequent cryo attempts.
     /// </summary>
     public static readonly CVarDef<float> RespawnTime =
-        CVarDef.Create("nf14.respawn.time", 30.0f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("nf14.respawn.time", 1200.0f, CVar.SERVER | CVar.REPLICATED);
 
     /// <summary>
     /// Whether or not returning from cryosleep is enabled.
     /// </summary>
     public static readonly CVarDef<bool> CryoReturnEnabled =
-        CVarDef.Create("nf14.uncryo.enabled", true, CVar.SERVER | CVar.REPLICATED); // Livyathan: false<true; bodies in cryospace persist for 10 minutes. Might as well let them come back since the body is there, anyway.
+        CVarDef.Create("nf14.uncryo.enabled", true, CVar.SERVER | CVar.REPLICATED);
 
     /// <summary>
     /// The time in seconds after which a cryosleeping body is considered expired and can be deleted from the storage map.
     /// </summary>
     public static readonly CVarDef<float> CryoExpirationTime =
-        CVarDef.Create("nf14.uncryo.maxtime", 10 * 60f, CVar.SERVER | CVar.REPLICATED);
-
-    /*
-     *  Game
-     */
-    /// <summary>
-    /// If false, the game will not display the round's objectives in the summary window.
-    /// </summary>
-    public static readonly CVarDef<bool> GameShowObjectives =
-        CVarDef.Create("nf14.game.showobjectives", true, CVar.ARCHIVE | CVar.SERVERONLY);
-
-    /// <summary>
-    /// HardLight: Seconds to wait after a player disconnects before reopening their tracked job slot
-    /// (per-station and ColComm pools). Set to 0 or negative to disable, in which case slots will only
-    /// reopen via the longer mind-wipe timer or when the body dies/cryos. Reconnecting within this
-    /// window cancels the release; reconnecting after it consumes a fresh slot via the normal
-    /// MindAddedMessage path (or fails gracefully if none is available).
-    /// </summary>
-    public static readonly CVarDef<float> JobSlotReleaseDelay =
-        CVarDef.Create("nf14.game.job_slot_release_delay", 120.0f, CVar.SERVERONLY);
+        CVarDef.Create("nf14.uncryo.maxtime", 180 * 60f, CVar.SERVER | CVar.REPLICATED);
 
     /*
      *  Public Transit
@@ -66,6 +47,26 @@ public sealed class NFCCVars
     public static readonly CVarDef<bool> PublicTransit =
         CVarDef.Create("nf14.publictransit.enabled", true, CVar.SERVERONLY);
 
+    /// <summary>
+    /// The map to use for the public bus.
+	/// Mono: Changed to _Mono busdart.yml
+    /// </summary>
+    public static readonly CVarDef<string> PublicTransitBusMap =
+        CVarDef.Create("nf14.publictransit.bus_map", "/Maps/_Mono/Shuttles/Bus/busdart.yml", CVar.SERVERONLY);
+
+    /// <summary>
+    /// The amount of time the bus waits at a station.
+    /// </summary>
+    public static readonly CVarDef<float> PublicTransitWaitTime =
+        CVarDef.Create("nf14.publictransit.wait_time", 40f, CVar.SERVERONLY);
+
+    /// <summary>
+    /// The amount of time the bus flies through FTL space.
+    /// This does nothing because the transit system is bugged in our favor (instant travel)
+    /// </summary>
+    public static readonly CVarDef<float> PublicTransitFlyTime =
+        CVarDef.Create("nf14.publictransit.fly_time", 15f, CVar.SERVERONLY);
+
     /*
      *  World Gen
      */
@@ -73,7 +74,7 @@ public sealed class NFCCVars
     /// The number of Trade Stations to spawn in every round
     /// </summary>
     public static readonly CVarDef<int> MarketStations =
-        CVarDef.Create("nf14.worldgen.market_stations", 0, CVar.SERVERONLY);
+        CVarDef.Create("nf14.worldgen.market_stations", 1, CVar.SERVERONLY);
 
     /// <summary>
     /// The number of Cargo Depots to spawn in every round
@@ -85,7 +86,7 @@ public sealed class NFCCVars
     /// The number of Optional Points Of Interest to spawn in every round
     /// </summary>
     public static readonly CVarDef<int> OptionalStations =
-        CVarDef.Create("nf14.worldgen.optional_stations", 0, CVar.SERVERONLY);
+        CVarDef.Create("nf14.worldgen.optional_stations", 6, CVar.SERVERONLY);
 
     /// <summary>
     /// The multiplier to add to distance spawning calculations for a smidge of server setting variance
@@ -115,10 +116,10 @@ public sealed class NFCCVars
         CVarDef.Create("shuttle.shipyard", true, CVar.SERVERONLY);
 
     /// <summary>
-    /// Base sell rate (multiplier: 0.75 = 75%)
+    /// Base sell rate (multiplier: 0.85 = 85%)
     /// </summary>
     public static readonly CVarDef<float> ShipyardSellRate =
-        CVarDef.Create("shuttle.shipyard_base_sell_rate", 0.95f, CVar.SERVERONLY);
+        CVarDef.Create("shuttle.shipyard_base_sell_rate", 0.85f, CVar.SERVERONLY);
 
     /*
      * Salvage
@@ -127,25 +128,19 @@ public sealed class NFCCVars
     /// The maximum number of shuttles able to go on expedition at once.
     /// </summary>
     public static readonly CVarDef<int> SalvageExpeditionMaxActive =
-        CVarDef.Create("nf14.salvage.expedition_max_active", 6, CVar.REPLICATED);
+        CVarDef.Create("nf14.salvage.expedition_max_active", 15, CVar.REPLICATED);
 
     /// <summary>
     /// Cooldown for failed missions.
     /// </summary>
     public static readonly CVarDef<float> SalvageExpeditionFailedCooldown =
-        CVarDef.Create("nf14.salvage.expedition_failed_cooldown", 1200f, CVar.REPLICATED);
+        CVarDef.Create("salvage.expedition_failed_cooldown", 450f, CVar.REPLICATED); //Mono 1200->450
 
     /// <summary>
-    /// Transit time in hyperspace in seconds.
+    /// Whether salvage expedition rewards is enabled.
     /// </summary>
-    public static readonly CVarDef<float> SalvageExpeditionTravelTime =
-        CVarDef.Create("nf14.salvage.expedition_travel_time", 50f, CVar.REPLICATED);
-
-    /// <summary>
-    /// Whether or not to skip the expedition proximity check.
-    /// </summary>
-    public static readonly CVarDef<bool> SalvageExpeditionProximityCheck =
-        CVarDef.Create("nf14.salvage.expedition_proximity_check", false, CVar.REPLICATED);
+    public static readonly CVarDef<bool> SalvageExpeditionRewardsEnabled =
+        CVarDef.Create("nf14.salvage.expedition_rewards_enabled", false, CVar.REPLICATED);
 
     /*
      * Smuggling
@@ -155,17 +150,17 @@ public sealed class NFCCVars
     /// Taking another dead drop note will cause the oldest one to be destroyed.
     /// </summary>
     public static readonly CVarDef<int> SmugglingMaxSimultaneousPods =
-        CVarDef.Create("nf14.smuggling.max_simultaneous_pods", 2, CVar.REPLICATED);
+        CVarDef.Create("nf14.smuggling.max_simultaneous_pods", 5, CVar.REPLICATED);
     /// <summary>
     /// The maximum number of dead drops (places to get smuggling notes) to place at once.
     /// </summary>
     public static readonly CVarDef<int> SmugglingMaxDeadDrops =
-        CVarDef.Create("nf14.smuggling.max_sector_dead_drops", 2, CVar.REPLICATED);
+        CVarDef.Create("nf14.smuggling.max_sector_dead_drops", 10, CVar.REPLICATED);
     /// <summary>
-    /// The minimum number of FUCs to spawn for anti-smuggling work.
+    /// The minimum number of FMCs to spawn for anti-smuggling work.
     /// </summary>
-    public static readonly CVarDef<int> SmugglingMinFucPayout =
-        CVarDef.Create("nf14.smuggling.min_fuc_payout", 1, CVar.REPLICATED);
+    public static readonly CVarDef<int> SmugglingMinFMCPayout =
+        CVarDef.Create("nf14.smuggling.min_fmc_payout", 1, CVar.REPLICATED);
     /// <summary>
     /// The shortest time to wait before a dead drop spawns a new smuggling note.
     /// </summary>
@@ -177,12 +172,12 @@ public sealed class NFCCVars
     public static readonly CVarDef<int> DeadDropMaxTimeout =
         CVarDef.Create("nf14.smuggling.max_timeout", 5400, CVar.REPLICATED);
     /// <summary>
-    /// The shortest distance that a smuggling pod will spawn away from Frontier Outpost.
+    /// The shortest distance that a smuggling pod will spawn away from Colonial Outpost.
     /// </summary>
     public static readonly CVarDef<int> DeadDropMinDistance =
-        CVarDef.Create("nf14.smuggling.min_distance", 3000, CVar.REPLICATED);
+        CVarDef.Create("nf14.smuggling.min_distance", 6500, CVar.REPLICATED);
     /// <summary>
-    /// The longest distance that a smuggling pod will spawn away from Frontier Outpost.
+    /// The longest distance that a smuggling pod will spawn away from Colonial Outpost.
     /// </summary>
     public static readonly CVarDef<int> DeadDropMaxDistance =
         CVarDef.Create("nf14.smuggling.max_distance", 8000, CVar.REPLICATED);
@@ -241,76 +236,4 @@ public sealed class NFCCVars
     /// </summary>
     public static readonly CVarDef<float> CrateGenerationGridBoundsScale =
         CVarDef.Create("nf14.events.crate_generation_grid_bounds_scale", 0.6f, CVar.SERVERONLY);
-
-    /*
-     * Atmos
-     */
-    /// <summary>
-    ///     If true, allows map extraction (scrubbing a planet's atmosphere).
-    /// </summary>
-    public static readonly CVarDef<bool> AllowMapGasExtraction =
-        CVarDef.Create("nf14.atmos.allow_map_gas_extraction", true, CVar.SERVER | CVar.REPLICATED);
-
-    /*
-     * Audio
-     */
-
-    /// <summary>
-    /// The volume of expedition ending music.
-    /// </summary>
-    public static readonly CVarDef<float> SalvageExpeditionMusicVolume =
-        CVarDef.Create("nf14.audio.expedition_music_volume", 0.50f, CVar.CLIENTONLY | CVar.ARCHIVE);
-
-    /*
-     * Interface
-     */
-
-    /// <summary>
-    /// If true, the admin overlay will display the players starting position.
-    /// </summary>
-    public static readonly CVarDef<bool> AdminOverlayBalance =
-        CVarDef.Create("nf14.ui.admin_overlay_balance", true, CVar.CLIENTONLY | CVar.ARCHIVE);
-
-    /*
-     * Xenoarchaeology
-     */
-
-    /// <summary>
-    /// If true, the admin overlay will display the players starting position.
-    /// </summary>
-    public static readonly CVarDef<bool> XenoarchSingleUseNodes =
-        CVarDef.Create("nf14.xenoarch.single_use_nodes", false, CVar.REPLICATED);
-
-    /*
-     * Rewards / Payouts
-     */
-    /// <summary>
-    /// Amount paid to a medical rescuer when a critically-injured patient is brought back to alive.
-    /// </summary>
-    public static readonly CVarDef<int> RewardsMedicalReviveAmount =
-        CVarDef.Create("nf14.rewards.medical_revive_amount", 10000, CVar.SERVERONLY);
-
-    /// <summary>
-    /// Cooldown in minutes per rescued person for medical revive payouts.
-    /// </summary>
-    public static readonly CVarDef<float> RewardsMedicalReviveCooldownMinutes =
-        CVarDef.Create("nf14.rewards.medical_revive_cooldown_minutes", 10f, CVar.SERVERONLY);
-
-    /// <summary>
-    /// Amount paid to Security for killing a hostile mob (faction-hostile to NanoTrasen).
-    /// </summary>
-    public static readonly CVarDef<int> RewardsSecurityKillHostileAmount =
-        CVarDef.Create("nf14.rewards.security_kill_hostile_amount", 2000, CVar.SERVERONLY);
-
-    /// <summary>
-    /// Amount paid to Security for killing an antagonist player.
-    /// </summary>
-    public static readonly CVarDef<int> RewardsSecurityKillAntagAmount =
-        CVarDef.Create("nf14.rewards.security_kill_antag_amount", 15000, CVar.SERVERONLY);
-
-    /// <summary>
-    /// Amount paid to each Security member at round end for each antagonist in custody.
-    /// </summary>
-    public static readonly CVarDef<int> RewardsSecurityCustodyPerAntagAmount =
-        CVarDef.Create("nf14.rewards.security_custody_per_antag_amount", 100000, CVar.SERVERONLY);
 }

@@ -1,8 +1,10 @@
-﻿using System.Linq;
+using System.Linq;
 using Content.Server.Administration.Logs;
 using Content.Shared.Materials;
 using Content.Shared.Popups;
 using Content.Shared.Stacks;
+using Content.Server.Storage.Components; // Frontier
+using Content.Server.Cargo.Systems; // Frontier
 using Content.Server.Power.Components;
 using Content.Server.Stack;
 using Content.Shared.ActionBlocker;
@@ -12,27 +14,29 @@ using JetBrains.Annotations;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
-using Content.Server.Storage.Components; // Frontier
-using Content.Server.Cargo.Systems; // Frontier
+
+// Mono
+using Content.Shared.Destructible;
 
 namespace Content.Server.Materials;
 
 /// <summary>
 /// This handles <see cref="SharedMaterialStorageSystem"/>
 /// </summary>
-public sealed class MaterialStorageSystem : SharedMaterialStorageSystem
+public sealed partial class MaterialStorageSystem : SharedMaterialStorageSystem
 {
-    [Dependency] private readonly IAdminLogManager _adminLogger = default!;
-    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly StackSystem _stackSystem = default!;
+    [Dependency] private IAdminLogManager _adminLogger = default!;
+    [Dependency] private IPrototypeManager _prototypeManager = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private StackSystem _stackSystem = default!;
 
     public override void Initialize()
     {
         base.Initialize();
         SubscribeLocalEvent<MaterialStorageComponent, MachineDeconstructedEvent>(OnDeconstructed);
+        SubscribeLocalEvent<MaterialStorageComponent, DestructionEventArgs>(OnDestroyed); // Mono
         SubscribeLocalEvent<MaterialStorageComponent, PriceCalculationEvent>(OnPriceCalculation); // Frontier
 
         SubscribeAllEvent<EjectMaterialMessage>(OnEjectMessage);
@@ -43,10 +47,25 @@ public sealed class MaterialStorageSystem : SharedMaterialStorageSystem
         if (!component.DropOnDeconstruct)
             return;
 
-        foreach (var (material, amount) in component.Storage)
-        {
-            SpawnMultipleFromMaterial(amount, material, Transform(uid).Coordinates);
-        }
+        DropAll((uid, component));
+    }
+
+    // Mono
+    private void OnDestroyed(Entity<MaterialStorageComponent> ent, ref DestructionEventArgs args)
+    {
+        if (!ent.Comp.DropOnDestroy)
+            return;
+
+        DropAll(ent);
+    }
+
+    // Mono
+    public void DropAll(Entity<MaterialStorageComponent> ent)
+    {
+        var coord = Transform(ent).Coordinates;
+
+        foreach (var (material, amount) in ent.Comp.Storage)
+            SpawnMultipleFromMaterial(amount, material, coord);
     }
 
     // Start Frontier: add value of contents to appraisal price
@@ -136,7 +155,7 @@ public sealed class MaterialStorageSystem : SharedMaterialStorageSystem
         if (user != receiver) // Goobstation - for automation to not spam popups
             _popup.PopupEntity(Loc.GetString("machine-insert-item", ("user", user), ("machine", receiver),
                 ("item", toInsert)), receiver);
-        // QueueDel(toInsert); // Frontier
+        //QueueDel(toInsert); // Frontier
 
         // Logging
         TryComp<StackComponent>(toInsert, out var stack);

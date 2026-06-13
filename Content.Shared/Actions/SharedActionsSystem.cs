@@ -1,9 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Collections.Generic;
 using System.Linq;
 using Content.Shared.ActionBlocker;
-using Content.Shared.CM14.Xenos;
-using Content.Shared.Coordinates.Helpers;
 using Content.Shared.Actions.Events;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Database;
@@ -17,28 +14,23 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.GameStates;
 using Robust.Shared.Map;
 using Robust.Shared.Network;
-using Robust.Shared.Map.Components;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Actions;
 
-public abstract class SharedActionsSystem : EntitySystem
+public abstract partial class SharedActionsSystem : EntitySystem
 {
-    [Dependency] protected readonly IGameTiming GameTiming = default!;
-    [Dependency] private   readonly IMapManager _map = default!;
-    [Dependency] private   readonly ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private   readonly ActionBlockerSystem _actionBlockerSystem = default!;
-    [Dependency] private   readonly ActionContainerSystem _actionContainer = default!;
-    [Dependency] private   readonly EntityWhitelistSystem _whitelistSystem = default!;
-    [Dependency] private   readonly RotateToFaceSystem _rotateToFaceSystem = default!;
-    [Dependency] private   readonly SharedAudioSystem _audio = default!;
-    [Dependency] private   readonly SharedInteractionSystem _interactionSystem = default!;
-    [Dependency] private   readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private   readonly INetManager _net = default!;
-    [Dependency] private   readonly SharedMapSystem _mapSystem = default!;
-
-    private readonly List<EntityUid> _anchored = new();
+    [Dependency] protected IGameTiming GameTiming = default!;
+    [Dependency] private INetManager _net = default!; // Goobstation
+    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+    [Dependency] private ActionBlockerSystem _actionBlockerSystem = default!;
+    [Dependency] private RotateToFaceSystem _rotateToFaceSystem = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private ActionContainerSystem _actionContainer = default!;
+    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
     public override void Initialize()
     {
@@ -61,7 +53,6 @@ public abstract class SharedActionsSystem : EntitySystem
         SubscribeLocalEvent<ActionsComponent, DidUnequipEvent>(OnDidUnequip);
         SubscribeLocalEvent<ActionsComponent, DidUnequipHandEvent>(OnHandUnequipped);
         SubscribeLocalEvent<ActionsComponent, RejuvenateEvent>(OnRejuventate);
-        SubscribeLocalEvent<ActionsComponent, ComponentStartup>(OnActionsStartup);
 
         SubscribeLocalEvent<ActionsComponent, ComponentShutdown>(OnShutdown);
 
@@ -80,20 +71,23 @@ public abstract class SharedActionsSystem : EntitySystem
         SubscribeAllEvent<RequestPerformActionEvent>(OnActionRequest);
     }
 
+    // Mono - removed Update()
+
     private void OnActionMapInit(EntityUid uid, BaseActionComponent component, MapInitEvent args)
     {
         component.OriginalIconColor = component.IconColor;
+
+        if (component.Charges == null)
+            return;
+
+        component.MaxCharges ??= component.Charges.Value;
+        Dirty(uid, component);
     }
 
     private void OnActionShutdown(EntityUid uid, BaseActionComponent component, ComponentShutdown args)
     {
         if (component.AttachedEntity != null && !TerminatingOrDeleted(component.AttachedEntity.Value))
             RemoveAction(component.AttachedEntity.Value, uid, action: component);
-    }
-
-    private void OnActionsStartup(EntityUid uid, ActionsComponent component, ComponentStartup args)
-    {
-        SanitizeActionReferences(uid, component);
     }
 
     private void OnShutdown(EntityUid uid, ActionsComponent component, ComponentShutdown args)
@@ -143,7 +137,12 @@ public abstract class SharedActionsSystem : EntitySystem
         result = ev.Action;
 
         if (result != null)
+        {
+            // Mono
+            if (!IsCooldownActive(result) && ShouldResetCharges(result))
+                ResetCharges(uid.Value, dirty: true, action: result);
             return true;
+        }
 
         if (logError)
             Log.Error($"Failed to get action from action entity: {ToPrettyString(uid.Value)}. Trace: {Environment.StackTrace}");
@@ -290,55 +289,72 @@ public abstract class SharedActionsSystem : EntitySystem
         Dirty(actionId.Value, action);
     }
 
+    public void SetCharges(EntityUid? actionId, int? charges)
+    {
+        if (!TryGetActionData(actionId, out var action) ||
+            action.Charges == charges)
+        {
+            return;
+        }
+
+        action.Charges = charges;
+        UpdateAction(actionId, action);
+        Dirty(actionId.Value, action);
+    }
+
+    public int? GetCharges(EntityUid? actionId)
+    {
+        if (!TryGetActionData(actionId, out var action))
+            return null;
+
+        return action.Charges;
+    }
+
+    public void AddCharges(EntityUid? actionId, int addCharges)
+    {
+        if (!TryGetActionData(actionId, out var action) || action.Charges == null || addCharges < 1)
+            return;
+
+        action.Charges += addCharges;
+        UpdateAction(actionId, action);
+        Dirty(actionId.Value, action);
+    }
+
+    public void RemoveCharges(EntityUid? actionId, int? removeCharges)
+    {
+        if (!TryGetActionData(actionId, out var action) || action.Charges == null)
+            return;
+
+        if (removeCharges == null)
+            action.Charges = removeCharges;
+        else
+            action.Charges -= removeCharges;
+
+        if (action.Charges is < 0)
+            action.Charges = null;
+
+        UpdateAction(actionId, action);
+        Dirty(actionId.Value, action);
+    }
+
+    public void ResetCharges(EntityUid actionId, bool update = false, bool dirty = false,
+        BaseActionComponent? action = null) // Mono
+    {
+        if (action == null && !TryGetActionData(actionId, out action))
+            return;
+
+        action.Charges = action.MaxCharges;
+
+        if (update)
+            UpdateAction(actionId, action);
+
+        if (dirty)
+            Dirty(actionId, action);
+    }
+
     private void OnActionsGetState(EntityUid uid, ActionsComponent component, ref ComponentGetState args)
     {
-        args.State = new ActionsComponentState(GetActionNetEntities(uid, component));
-    }
-
-    private HashSet<NetEntity> GetActionNetEntities(EntityUid uid, ActionsComponent component)
-    {
-        var removed = false;
-        var netEntities = new HashSet<NetEntity>(component.Actions.Count);
-
-        foreach (var actionId in component.Actions.ToArray())
-        {
-            if (actionId.IsValid()
-                && !TerminatingOrDeleted(actionId)
-                && HasComp<MetaDataComponent>(actionId)
-                && TryGetNetEntity(actionId, out var netEntity)
-                && netEntity != null)
-            {
-                netEntities.Add(netEntity.Value);
-                continue;
-            }
-
-            component.Actions.Remove(actionId);
-            removed = true;
-        }
-
-        if (removed)
-            Dirty(uid, component);
-
-        return netEntities;
-    }
-
-    private void SanitizeActionReferences(EntityUid uid, ActionsComponent component)
-    {
-        var removed = false;
-
-        foreach (var actionId in component.Actions.ToArray())
-        {
-            if (actionId.IsValid()
-                && !TerminatingOrDeleted(actionId)
-                && HasComp<MetaDataComponent>(actionId))
-                continue;
-
-            component.Actions.Remove(actionId);
-            removed = true;
-        }
-
-        if (removed)
-            Dirty(uid, component);
+        args.State = new ActionsComponentState(GetNetEntitySet(component.Actions));
     }
 
     #endregion
@@ -362,46 +378,21 @@ public abstract class SharedActionsSystem : EntitySystem
             return;
 
         var name = Name(actionEnt, metaData);
-        var protoId = metaData.EntityPrototype?.ID ?? "<no-proto>";
-        var isXenoChoose = protoId == "ActionXenoChooseStructure";
-        var isXenoSecrete = protoId == "ActionXenoSecreteStructure";
-        if (isXenoChoose || isXenoSecrete)
-        {
-            Log.Info($"[XenoAction][srv?] OnActionRequest start user={ToPrettyString(user)} actionEnt={ToPrettyString(actionEnt)} proto={protoId}");
-        }
 
         // Does the user actually have the requested action?
         if (!component.Actions.Contains(actionEnt))
         {
-            if (isXenoChoose || isXenoSecrete)
-                Log.Info($"[XenoAction][srv?] User lacks action entity {ToPrettyString(actionEnt)} for {protoId}");
             _adminLogger.Add(LogType.Action,
                 $"{ToPrettyString(user):user} attempted to perform an action that they do not have: {name}.");
             return;
         }
 
         if (!TryGetActionData(actionEnt, out var action))
-        {
-            if (isXenoChoose || isXenoSecrete)
-                Log.Info($"[XenoAction][srv?] TryGetActionData failed for {ToPrettyString(actionEnt)} {protoId}");
             return;
-        }
 
         DebugTools.Assert(action.AttachedEntity == user);
         if (!action.Enabled)
-        {
-            if (isXenoChoose || isXenoSecrete)
-                Log.Info($"[XenoAction][srv?] Action disabled {ToPrettyString(actionEnt)} {protoId}");
             return;
-        }
-
-        var curTime = GameTiming.CurTime;
-        if (IsCooldownActive(action, curTime))
-        {
-            if (isXenoChoose || isXenoSecrete)
-                Log.Info($"[XenoAction][srv?] Action cooldown active {ToPrettyString(actionEnt)} {protoId}");
-            return;
-        }
 
         // check for action use prevention
         // TODO: make code below use this event with a dedicated component
@@ -410,26 +401,20 @@ public abstract class SharedActionsSystem : EntitySystem
         if (attemptEv.Cancelled)
             return;
 
+        var curTime = GameTiming.CurTime;
+        if (IsCooldownActive(action, curTime))
+            return;
+
+        // TODO: Replace with individual charge recovery when we have the visuals to aid it
+        if (action is { Charges: < 1, RenewCharges: true })
+            ResetCharges(actionEnt, true, true);
+
         BaseActionEvent? performEvent = null;
 
         if (action.CheckConsciousness && !_actionBlockerSystem.CanConsciouslyPerformAction(user))
             return;
 
         // Validate request by checking action blockers and the like:
-        // Proactively ensure certain actions always have an event instance so they can be raised/handled.
-        if (isXenoChoose && action is InstantActionComponent chooseInstant && chooseInstant.Event == null)
-        {
-            chooseInstant.Event = new Content.Shared.CM14.Xenos.Construction.Events.XenoChooseStructureActionEvent();
-            Dirty(actionEnt, chooseInstant);
-            Log.Info("[XenoAction][srv?] Repaired missing Event on ActionXenoChooseStructure at request time.");
-        }
-        if (isXenoSecrete && action is WorldTargetActionComponent secreteWorld && secreteWorld.Event == null)
-        {
-            secreteWorld.Event = new Content.Shared.CM14.Xenos.Construction.Events.XenoSecreteStructureEvent();
-            Dirty(actionEnt, secreteWorld);
-            Log.Info("[XenoAction][srv?] Repaired missing Event on ActionXenoSecreteStructure at request time.");
-        }
-
         switch (action)
         {
             case EntityTargetActionComponent entityAction:
@@ -466,7 +451,7 @@ public abstract class SharedActionsSystem : EntitySystem
                 }
 
                 var entityCoordinatesTarget = GetCoordinates(netCoordinatesTarget);
-                _rotateToFaceSystem.TryFaceCoordinates(user, entityCoordinatesTarget.ToMapPos(EntityManager, _transformSystem));
+                _rotateToFaceSystem.TryFaceCoordinates(user, _transformSystem.ToMapCoordinates(entityCoordinatesTarget).Position);
 
                 if (!ValidateWorldTarget(user, entityCoordinatesTarget, (actionEnt, worldAction)))
                     return;
@@ -523,20 +508,6 @@ public abstract class SharedActionsSystem : EntitySystem
 
         // All checks passed. Perform the action!
         PerformAction(user, component, actionEnt, action, performEvent, curTime);
-
-        if (isXenoChoose || isXenoSecrete)
-        {
-            Log.Info($"[XenoAction][srv?] PerformAction invoked for {protoId} handled={(performEvent?.Handled ?? false)}");
-        }
-
-        // Safety net: If secrete didn't get handled (e.g., wrong raise flags routed it to the action entity),
-        // re-raise the event on the performer so the Xeno system can consume it.
-        if (isXenoSecrete && performEvent is Content.Shared.CM14.Xenos.Construction.Events.XenoSecreteStructureEvent seEv && !seEv.Handled)
-        {
-            Log.Info("[XenoBuild][srv?] Fallback: re-raising XenoSecreteStructureEvent on performer due to unhandled result.");
-            RaiseLocalEvent(user, (object) seEv, broadcast: true);
-        }
-
     }
 
     public bool ValidateEntityTarget(EntityUid user, EntityUid target, Entity<EntityTargetActionComponent> actionEnt)
@@ -628,12 +599,13 @@ public abstract class SharedActionsSystem : EntitySystem
             // even if we don't check for obstructions, we may still need to check the range.
             var xform = Transform(user);
 
-            if (xform.MapID != _transformSystem.GetMapId(coords))
+            if (xform.MapID != coords.GetMapId(EntityManager))
                 return false;
 
             if (range <= 0)
                 return true;
-            return _transformSystem.InRange(coords, xform.Coordinates, range);
+
+            return coords.InRange(EntityManager, _transformSystem, Transform(user).Coordinates, range);
         }
 
         return _interactionSystem.InRangeUnobstructed(user, coords, range: range);
@@ -694,13 +666,6 @@ public abstract class SharedActionsSystem : EntitySystem
             if (action.RaiseOnAction)
                 target = actionId;
 
-            // Debug: trace xeno secrete routing to ensure the event is raised on the performer (has XenoComponent)
-            if (actionEvent is Content.Shared.CM14.Xenos.Construction.Events.XenoSecreteStructureEvent)
-            {
-                var hasXeno = HasComp<Content.Shared.CM14.Xenos.XenoComponent>(target);
-                Log.Info($"[XenoAction][dbg] Raising XenoSecreteStructureEvent on target={ToPrettyString(target)} hasXeno={hasXeno} raiseOnUser={action.RaiseOnUser} raiseOnAction={action.RaiseOnAction}");
-            }
-
             RaiseLocalEvent(target, (object) actionEvent, broadcast: true);
             handled = actionEvent.Handled;
         }
@@ -722,16 +687,12 @@ public abstract class SharedActionsSystem : EntitySystem
         {
             dirty = true;
             action.Charges--;
-            if (action is { Charges: 0, RenewCharges: false, DisableWhenEmpty: true }) // DeltaV - check DisableWhenEmpty
-            {
-                var disabledEv = new ActionGettingDisabledEvent(performer);
-                RaiseLocalEvent(actionId, ref disabledEv);
+            if (action is { Charges: 0, RenewCharges: false })
                 action.Enabled = false;
-            }
         }
 
         action.Cooldown = null;
-        if (action is { UseDelay: not null})
+        if (action is { UseDelay: not null, Charges: null or < 1 })
         {
             dirty = true;
             action.Cooldown = (curTime, curTime + action.UseDelay.Value);
@@ -789,12 +750,6 @@ public abstract class SharedActionsSystem : EntitySystem
         if (!container.IsValid())
             container = performer;
 
-        if (TerminatingOrDeleted(performer) || TerminatingOrDeleted(container))
-        {
-            action = null;
-            return false;
-        }
-
         if (!_actionContainer.EnsureAction(container, ref actionId, out action, actionPrototypeId))
             return false;
 
@@ -812,9 +767,6 @@ public abstract class SharedActionsSystem : EntitySystem
         ActionsContainerComponent? containerComp = null
         )
     {
-        if (TerminatingOrDeleted(performer) || TerminatingOrDeleted(container))
-            return false;
-
         if (!ResolveActionData(actionId, ref action))
             return false;
 
@@ -838,13 +790,10 @@ public abstract class SharedActionsSystem : EntitySystem
         ActionsComponent? comp = null,
         BaseActionComponent? action = null)
     {
-        if (TerminatingOrDeleted(performer))
-            return false;
-
         if (!ResolveActionData(actionId, ref action))
             return false;
 
-        DebugTools.Assert(action.Container == null ||
+        DebugTools.Assert(_net.IsClient || action.Container == null ||
                           (TryComp(action.Container, out ActionsContainerComponent? containerComp)
                            && containerComp.Container.Contains(actionId)));
 
@@ -1043,6 +992,8 @@ public abstract class SharedActionsSystem : EntitySystem
         if (!action.Enabled)
             return false;
 
+        if (action.Charges.HasValue && action.Charges <= 0)
+            return false;
 
         var curTime = GameTiming.CurTime;
         if (action.Cooldown.HasValue && action.Cooldown.Value.End > curTime)
@@ -1152,9 +1103,15 @@ public abstract class SharedActionsSystem : EntitySystem
     /// <summary>
     ///     Checks if the action has a cooldown and if it's still active
     /// </summary>
-    public bool IsCooldownActive(BaseActionComponent action, TimeSpan? curTime = null)
+    protected bool IsCooldownActive(BaseActionComponent action, TimeSpan? curTime = null)
     {
+        curTime ??= GameTiming.CurTime;
         // TODO: Check for charge recovery timer
         return action.Cooldown.HasValue && action.Cooldown.Value.End > curTime;
+    }
+
+    protected bool ShouldResetCharges(BaseActionComponent action)
+    {
+        return action is { Charges: < 1, RenewCharges: true };
     }
 }
