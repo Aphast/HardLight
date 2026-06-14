@@ -1,4 +1,4 @@
-using Content.Shared.Whitelist;
+/* using Content.Shared.Whitelist;
 using Robust.Shared.Analyzers;
 using Robust.Shared.Audio;
 using Robust.Shared.GameObjects;
@@ -96,4 +96,4 @@ public sealed class SmartFridgeDispenseItemMessage(SmartFridgeEntry entry) : Bou
 public sealed class SmartFridgeRemoveEntryMessage(SmartFridgeEntry entry) : BoundUserInterfaceMessage
 {
     public SmartFridgeEntry Entry = entry;
-}
+} */

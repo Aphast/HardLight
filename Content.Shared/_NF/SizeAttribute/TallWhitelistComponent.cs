@@ -1,5 +1,5 @@
 // Must be shared, used by character setup UI
-namespace Content.Shared._NF.SizeAttribute;
+/* namespace Content.Shared._NF.SizeAttribute;
 
 [RegisterComponent]
 public sealed partial class TallWhitelistComponent : Component
@@ -25,3 +25,4 @@ public sealed partial class TallWhitelistComponent : Component
     [DataField]
     public float StoredRotation = 0;
 }
+ */

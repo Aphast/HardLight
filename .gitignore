@@ -313,3 +313,9 @@ Resources/MapImages
 # Link Files
 *.lnk
 
+# lscache
+*.lscache
+
+# Triad: ship-save tamper-protection signing keys (private RSA PEMs), generated at runtime by
+# the server. Never commit these. Default dir is ./triad-signing-keys (cvar triad.tamper_signing_keys_dir).
+triad-signing-keys/
