@@ -1,4 +1,4 @@
-using Content.Shared.Access.Systems;
+/* using Content.Shared.Access.Systems;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction;
@@ -261,3 +261,4 @@ public sealed class SmartFridgeSystem : EntitySystem
         Dirty(ent);
     }
 }
+ */

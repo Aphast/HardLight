@@ -1,4 +1,4 @@
-using Content.Shared.Cargo;
+/* using Content.Shared.Cargo;
 
 namespace Content.Server.Cargo.Components;
 
@@ -16,4 +16,4 @@ public sealed partial class StationBankAccountComponent : Component
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite), DataField("increasePerSecond")]
     public int IncreasePerSecond = 1;
-}
+} */

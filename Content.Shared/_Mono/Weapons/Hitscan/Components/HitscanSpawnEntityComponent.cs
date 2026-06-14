@@ -1,4 +1,4 @@
-using Robust.Shared.GameStates;
+/* using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 
 namespace Content.Shared.Weapons.Hitscan.Components;
@@ -14,4 +14,4 @@ public sealed partial class HitscanSpawnEntityComponent : Component
     /// </summary>
     [DataField(required: true)]
     public EntProtoId SpawnedEntity;
-};
+}; */

@@ -1,4 +1,4 @@
-using Content.Shared.Procedural;
+/* using Content.Shared.Procedural;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype.List;
@@ -26,3 +26,4 @@ public sealed partial class SalvageDungeonModPrototype : IPrototype, IBiomeSpeci
     [DataField(required: true)]
     public ProtoId<DungeonConfigPrototype> Proto = string.Empty;
 }
+ */

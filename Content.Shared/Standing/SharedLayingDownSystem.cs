@@ -1,4 +1,4 @@
-using Content.Shared.ActionBlocker;
+/* using Content.Shared.ActionBlocker;
 using Content.Shared.CCVar;
 using Content.Shared.Floofstation;
 using Content.Shared.DoAfter;
@@ -227,3 +227,4 @@ public enum DropHeldItemsBehavior : byte
     DropIfStanding,
     AlwaysDrop
 }
+ */
