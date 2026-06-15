@@ -1,4 +1,4 @@
-using Content.Shared.Clothing.EntitySystems;
+/* using Content.Shared.Clothing.EntitySystems;
 using Robust.Shared.GameStates;
 using Content.Shared.Inventory;
 
@@ -24,3 +24,4 @@ public sealed partial class UnremovableClothingComponent : Component, IClothingS
     [DataField]
     public SlotFlags Slots { get; set; } = SlotFlags.All;
 }
+ */

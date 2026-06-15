@@ -1,4 +1,4 @@
-using System.Numerics; // Frontier
+/* using System.Numerics; // Frontier
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Serialization;
@@ -91,3 +91,4 @@ public enum VehicleRenderOver
     West = 8,
 }
 // End Frontier
+ */

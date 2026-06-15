@@ -1,4 +1,4 @@
-using Content.Shared._White;
+/* using Content.Shared._White;
 using Content.Shared._White.Standing;
 using Content.Shared.CCVar;
 using Robust.Shared.Configuration;
@@ -25,4 +25,4 @@ public sealed partial class LayingDownSystem : SharedLayingDownSystem
         layingDown.AutoGetUp = _cfg.GetClientCVar(args.SenderSession.Channel, CCVars.AutoGetUp);
         Dirty(uid, layingDown);
     }
-}
+} */

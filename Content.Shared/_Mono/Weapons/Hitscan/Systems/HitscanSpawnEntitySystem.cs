@@ -1,4 +1,4 @@
-using Content.Shared.Damage;
+/* using Content.Shared.Damage;
 using Content.Shared.Explosion.EntitySystems;
 using Content.Shared.Weapons.Hitscan.Components;
 using Content.Shared.Weapons.Hitscan.Events;
@@ -31,3 +31,4 @@ public sealed partial class HitscanSpawnEntitySystem : EntitySystem
         // TODO: maybe split up the effects component or something - this wont play sounds and stuff (maybe that's ok?)
     }
 }
+ */

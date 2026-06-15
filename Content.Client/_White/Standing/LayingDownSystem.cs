@@ -1,4 +1,4 @@
-using Content.Shared._White.Standing;
+/* using Content.Shared._White.Standing;
 using Content.Shared.Buckle;
 using Content.Shared.Rotation;
 using Content.Shared.Standing;
@@ -80,3 +80,4 @@ public sealed partial class LayingDownSystem : SharedLayingDownSystem
         rotationVisuals.HorizontalRotation = Angle.FromDegrees(90);
     }
 }
+ */

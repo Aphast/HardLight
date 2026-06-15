@@ -1,4 +1,4 @@
-/* using Robust.Shared.GameStates;
+using Robust.Shared.GameStates;
 using Robust.Shared.Serialization;
 
 namespace Content.Shared.Standing;
@@ -34,4 +34,4 @@ public sealed class ChangeLayingDownEvent : CancellableEntityEventArgs;
 public sealed class CheckAutoGetUpEvent(NetEntity user) : CancellableEntityEventArgs
 {
     public NetEntity User = user;
-} */
+}

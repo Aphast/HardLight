@@ -1,4 +1,4 @@
-using Content.Shared.Clothing.Components;
+/* using Content.Shared.Clothing.Components;
 using Content.Shared.Examine;
 using Content.Shared.Inventory;
 using Content.Shared.Inventory.Events;
@@ -95,3 +95,4 @@ public sealed partial class UnremovableClothingSystem : EntitySystem
             args.PushMarkup(Loc.GetString("comp-unremovable-clothing"));
     }
 }
+ */

@@ -1,4 +1,4 @@
-using Content.Shared.Atmos.Components;
+/* using Content.Shared.Atmos.Components;
 using Content.Shared.SprayPainter;
 using Content.Shared.SprayPainter.Components;
 using Content.Shared.SprayPainter.Prototypes;
@@ -74,3 +74,4 @@ public sealed class SprayPaintPersistenceSystem : EntitySystem
         RaiseLocalEvent(target, ref ev);
     }
 }
+ */
