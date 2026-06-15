@@ -1,4 +1,4 @@
-using Robust.Shared.GameStates;
+/* using Robust.Shared.GameStates;
 
 namespace Content.Shared.Vehicle.Components
 {
@@ -15,3 +15,4 @@ namespace Content.Shared.Vehicle.Components
         [ViewVariables] public VehicleComponent? Vehicle;
     }
 }
+ */

@@ -5,6 +5,7 @@ using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory.Events;
 using Content.Shared.Item;
 using Content.Shared.Bed.Sleep;
+using Content.Shared.Damage.Components;
 using Content.Shared.Database;
 using Content.Shared.Hands;
 using Content.Shared.Mobs;
@@ -16,30 +17,27 @@ using Content.Shared.StatusEffect;
 using Content.Shared.Throwing;
 using Content.Shared.Whitelist;
 using Robust.Shared.Audio.Systems;
+using Robust.Shared.Containers;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
-using Robust.Shared.Containers;
-//using Content.Shared._White.Standing;
-using Content.Shared.Jittering;
-using Content.Shared.Speech.EntitySystems;
+using Robust.Shared.Timing;
 
 namespace Content.Shared.Stunnable;
 
 public abstract partial class SharedStunSystem : EntitySystem
 {
-    [Dependency] private ActionBlockerSystem _blocker = default!;
-    [Dependency] private SharedBroadphaseSystem _broadphase = default!;
-    [Dependency] private ISharedAdminLogManager _adminLogger = default!;
-    [Dependency] private MovementSpeedModifierSystem _movementSpeedModifier = default!;
-    [Dependency] private SharedAudioSystem _audio = default!;
-    [Dependency] private EntityWhitelistSystem _entityWhitelist = default!;
-    [Dependency] private StandingStateSystem _standingState = default!;
-    [Dependency] private StatusEffectsSystem _statusEffect = default!;
-    [Dependency] private SharedLayingDownSystem _layingDown = default!; // WD EDIT
-    [Dependency] private SharedContainerSystem _container = default!; // WD EDIT
-    [Dependency] private SharedStutteringSystem _stutter = default!; // goob edit
-    [Dependency] private SharedJitteringSystem _jitter = default!; // goob edit
+    [Dependency] protected readonly ActionBlockerSystem Blocker = default!;
+    [Dependency] private readonly SharedBroadphaseSystem _broadphase = default!;
+    [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
+    [Dependency] private readonly MovementSpeedModifierSystem _movementSpeedModifier = default!;
+    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] protected readonly SharedAppearanceSystem Appearance = default!;
+    [Dependency] private readonly EntityWhitelistSystem _entityWhitelist = default!;
+    [Dependency] private readonly StandingStateSystem _standingState = default!;
+    [Dependency] private readonly StatusEffectsSystem _statusEffect = default!;
+    [Dependency] private readonly SharedLayingDownSystem _layingDown = default!; // EE
+    [Dependency] private readonly SharedContainerSystem _container = default!; // EE
 
     /// <summary>
     /// Friction modifier for knocked down players.
@@ -57,7 +55,7 @@ public abstract partial class SharedStunSystem : EntitySystem
         SubscribeLocalEvent<SlowedDownComponent, ComponentShutdown>(OnSlowRemove);
 
         SubscribeLocalEvent<StunnedComponent, ComponentStartup>(UpdateCanMove);
-        SubscribeLocalEvent<StunnedComponent, ComponentShutdown>(UpdateCanMove);
+        SubscribeLocalEvent<StunnedComponent, ComponentShutdown>(OnStunShutdown);
 
         SubscribeLocalEvent<StunOnContactComponent, ComponentStartup>(OnStunOnContactStartup);
         SubscribeLocalEvent<StunOnContactComponent, StartCollideEvent>(OnStunOnContactCollide);
@@ -80,6 +78,9 @@ public abstract partial class SharedStunSystem : EntitySystem
         SubscribeLocalEvent<StunnedComponent, IsEquippingAttemptEvent>(OnEquipAttempt);
         SubscribeLocalEvent<StunnedComponent, IsUnequippingAttemptEvent>(OnUnequipAttempt);
         SubscribeLocalEvent<MobStateComponent, MobStateChangedEvent>(OnMobStateChanged);
+
+        // Stun Appearance Data
+        InitializeAppearance();
     }
 
     private void OnAttemptInteract(Entity<StunnedComponent> ent, ref InteractionAttemptEvent args)
@@ -116,9 +117,16 @@ public abstract partial class SharedStunSystem : EntitySystem
 
     }
 
+    private void OnStunShutdown(Entity<StunnedComponent> ent, ref ComponentShutdown args)
+    {
+        // This exists so the client can end their funny animation if they're playing one.
+        UpdateCanMove(ent, ent.Comp, args);
+        Appearance.RemoveData(ent, StunVisuals.SeeingStars);
+    }
+
     private void UpdateCanMove(EntityUid uid, StunnedComponent component, EntityEventArgs args)
     {
-        _blocker.UpdateCanMove(uid);
+        Blocker.UpdateCanMove(uid);
     }
 
     private void OnStunOnContactStartup(Entity<StunOnContactComponent> ent, ref ComponentStartup args)
@@ -139,18 +147,19 @@ public abstract partial class SharedStunSystem : EntitySystem
             return;
 
         TryStun(args.OtherEntity, ent.Comp.Duration, true, status);
-        TryKnockdown(args.OtherEntity, ent.Comp.Duration, true, status);
+        TryKnockdown(args.OtherEntity, ent.Comp.Duration, true, force: true, status);
     }
 
     private void OnKnockInit(EntityUid uid, KnockedDownComponent component, ComponentInit args)
     {
-        RaiseNetworkEvent(new CheckAutoGetUpEvent(GetNetEntity(uid))); // WD EDIT
-        _layingDown.TryLieDown(uid, null, null, DropHeldItemsBehavior.DropIfStanding); // WD EDIT
+        // EE changes
+        RaiseNetworkEvent(new CheckAutoGetUpEvent(GetNetEntity(uid)));
+        _layingDown.TryLieDown(uid, null, null, DropHeldItemsBehavior.DropIfStanding);
     }
 
     private void OnKnockShutdown(EntityUid uid, KnockedDownComponent component, ComponentShutdown args)
     {
-        // WD EDIT START
+        // EE changes
         if (!TryComp(uid, out StandingStateComponent? standing))
             return;
 
@@ -162,7 +171,6 @@ public abstract partial class SharedStunSystem : EntitySystem
         }
 
         _standingState.Stand(uid, standing);
-        // WD EDIT END
     }
 
     private void OnStandAttempt(EntityUid uid, KnockedDownComponent component, StandAttemptEvent args)
@@ -205,11 +213,6 @@ public abstract partial class SharedStunSystem : EntitySystem
         if (!_statusEffect.TryAddStatusEffect<StunnedComponent>(uid, "Stun", time, refresh))
             return false;
 
-        // goob edit
-        _jitter.DoJitter(uid, time, refresh);
-        _stutter.DoStutter(uid, time, refresh);
-        // goob edit end
-
         var ev = new StunnedEvent();
         RaiseLocalEvent(uid, ref ev);
 
@@ -220,7 +223,7 @@ public abstract partial class SharedStunSystem : EntitySystem
     /// <summary>
     ///     Knocks down the entity, making it fall to the ground.
     /// </summary>
-    public bool TryKnockdown(EntityUid uid, TimeSpan time, bool refresh,
+    public bool TryKnockdown(EntityUid uid, TimeSpan time, bool refresh, bool force = false,
         StatusEffectsComponent? status = null)
     {
         if (time <= TimeSpan.Zero)
@@ -247,7 +250,7 @@ public abstract partial class SharedStunSystem : EntitySystem
         if (!Resolve(uid, ref status, false))
             return false;
 
-        return TryKnockdown(uid, time, refresh, status) && TryStun(uid, time, refresh, status);
+        return TryKnockdown(uid, time, refresh, force: true, status) && TryStun(uid, time, refresh, status);
     }
 
     /// <summary>
@@ -274,15 +277,68 @@ public abstract partial class SharedStunSystem : EntitySystem
             slowed.SprintSpeedModifier *= runSpeedMultiplier;
 
             _movementSpeedModifier.RefreshMovementSpeedModifiers(uid);
-
             return true;
         }
 
         return false;
     }
 
+    /// <summary>
+    /// Updates the movement speed modifiers of an entity by applying or removing the <see cref="SlowedDownComponent"/>.
+    /// If both walk and run modifiers are approximately 1 (i.e. normal speed) and <see cref="StaminaComponent.StaminaDamage"/> is 0,
+    /// or if the both modifiers are 0, the slowdown component is removed to restore normal movement.
+    /// Otherwise, the slowdown component is created or updated with the provided modifiers,
+    /// and the movement speed is refreshed accordingly.
+    /// </summary>
+    /// <param name="ent">Entity whose movement speed should be updated.</param>
+    /// <param name="walkSpeedModifier">New walk speed modifier. Default is 1f (normal speed).</param>
+    /// <param name="runSpeedModifier">New run (sprint) speed modifier. Default is 1f (normal speed).</param>
+    public void UpdateStunModifiers(Entity<StaminaComponent?> ent,
+        float walkSpeedModifier = 1f,
+        float runSpeedModifier = 1f)
+    {
+        if (!Resolve(ent, ref ent.Comp))
+            return;
+
+        if (
+            (MathHelper.CloseTo(walkSpeedModifier, 1f) && MathHelper.CloseTo(runSpeedModifier, 1f) && ent.Comp.StaminaDamage == 0f) ||
+            (walkSpeedModifier == 0f && runSpeedModifier == 0f)
+        )
+        {
+            RemComp<SlowedDownComponent>(ent);
+            return;
+        }
+
+        EnsureComp<SlowedDownComponent>(ent, out var comp);
+
+        comp.WalkSpeedModifier = walkSpeedModifier;
+
+        comp.SprintSpeedModifier = runSpeedModifier;
+
+        _movementSpeedModifier.RefreshMovementSpeedModifiers(ent);
+
+        Dirty(ent);
+    }
+
+    /// <summary>
+    /// A convenience overload of <see cref="UpdateStunModifiers(EntityUid, float, float, StaminaComponent?)"/> that sets both
+    /// walk and run speed modifiers to the same value.
+    /// </summary>
+    /// <param name="ent">Entity whose movement speed should be updated.</param>
+    /// <param name="speedModifier">New walk and run speed modifier. Default is 1f (normal speed).</param>
+    /// <param name="component">
+    /// Optional <see cref="StaminaComponent"/> of the entity.
+    /// </param>
+    public void UpdateStunModifiers(Entity<StaminaComponent?> ent, float speedModifier = 1f)
+    {
+        UpdateStunModifiers(ent, speedModifier, speedModifier);
+    }
+
     private void OnInteractHand(EntityUid uid, KnockedDownComponent knocked, InteractHandEvent args)
     {
+        // This is currently disabled in favor of an interaction verb with the same effect, but more obvious usage.
+        return;
+
         if (args.Handled || knocked.HelpTimer > 0f)
             return;
 

@@ -1,6 +1,6 @@
 using Content.Shared.Damage.Systems;
 using Content.Shared.Weapons.Hitscan.Components;
-using Content.Shared.Weapons.Hitscan.Events;
+using Content.Shared.Weapons.Ranged.Events;
 
 namespace Content.Shared.Weapons.Hitscan.Systems;
 

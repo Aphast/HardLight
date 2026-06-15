@@ -1,4 +1,6 @@
+using System.Numerics;
 using Content.Shared.Alert;
+using Content.Shared.FixedPoint;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
@@ -21,7 +23,7 @@ public sealed partial class StaminaComponent : Component
     /// How much stamina reduces per second.
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite), DataField, AutoNetworkedField]
-    public float Decay = 5f; // goob edit
+    public float Decay = 3f;
 
     /// <summary>
     /// How much time after receiving damage until stamina starts decreasing.
@@ -45,7 +47,7 @@ public sealed partial class StaminaComponent : Component
     /// How long will this mob be stunned for?
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite), DataField]
-    public TimeSpan StunTime = TimeSpan.FromSeconds(5); // goob edit
+    public TimeSpan StunTime = TimeSpan.FromSeconds(6);
 
     /// <summary>
     /// To avoid continuously updating our data we track the last time we updated so we can extrapolate our current stamina.
@@ -56,4 +58,107 @@ public sealed partial class StaminaComponent : Component
 
     [DataField]
     public ProtoId<AlertPrototype> StaminaAlert = "Stamina";
+
+    /// <summary>
+    /// This flag indicates whether the value of <see cref="StaminaDamage"/> decreases after the entity exits stamina crit.
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public bool AfterCritical;
+
+    /// <summary>
+    /// This float determines how fast stamina will regenerate after exiting the stamina crit.
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public float AfterCritDecayMultiplier = 5f;
+
+    /// <summary>
+    /// Thresholds that determine an entity's slowdown as a function of stamina damage.
+    /// </summary>
+    [DataField]
+    public Dictionary<FixedPoint2, float> StunModifierThresholds = new() { {0, 1f }, { 60, 0.7f }, { 80, 0.5f } };
+
+    #region Animation Data
+
+    /// <summary>
+    /// Threshold at which low stamina animations begin playing. This should be set to a value that means something.
+    /// At 50, it is aligned so when you hit 60 stun the entity will be breathing once per second (well above hyperventilation).
+    /// </summary>
+    [DataField]
+    public float AnimationThreshold = 50;
+
+    /// <summary>
+    /// Minimum y vector displacement for breathing at AnimationThreshold
+    /// </summary>
+    [DataField]
+    public float BreathingAmplitudeMin = 0.04f;
+
+    /// <summary>
+    /// Maximum y vector amount we add to the BreathingAmplitudeMin
+    /// </summary>
+    [DataField]
+    public float BreathingAmplitudeMod = 0.04f;
+
+    /// <summary>
+    /// Minimum vector displacement for jittering at AnimationThreshold
+    /// </summary>
+    [DataField]
+    public float JitterAmplitudeMin;
+
+    /// <summary>
+    /// Maximum vector amount we add to the JitterAmplitudeMin
+    /// </summary>
+    [DataField]
+    public float JitterAmplitudeMod = 0.04f;
+
+    /// <summary>
+    /// Min multipliers for JitterAmplitude in the X and Y directions, animation randomly chooses between these min and max multipliers
+    /// </summary>
+    [DataField]
+    public Vector2 JitterMin = Vector2.Create(0.5f, 0.125f);
+
+    /// <summary>
+    /// Max multipliers for JitterAmplitude in the X and Y directions, animation randomly chooses between these min and max multipliers
+    /// </summary>
+    [DataField]
+    public Vector2 JitterMax = Vector2.Create(1f, 0.25f);
+
+    /// <summary>
+    /// Minimum total animations per second
+    /// </summary>
+    [DataField]
+    public float FrequencyMin = 0.25f;
+
+    /// <summary>
+    /// Maximum amount we add to the Frequency min just before crit
+    /// </summary>
+    [DataField]
+    public float FrequencyMod = 1.75f;
+
+    /// <summary>
+    /// Jitter keyframes per animation
+    /// </summary>
+    [DataField]
+    public int Jitters = 4;
+
+    /// <summary>
+    /// Vector of the last Jitter so we can make sure we don't jitter in the same quadrant twice in a row.
+    /// </summary>
+    [DataField]
+    public Vector2 LastJitter;
+
+    /// <summary>
+    ///     The offset that an entity had before jittering started,
+    ///     so that we can reset it properly.
+    /// </summary>
+    [DataField]
+    public Vector2 StartOffset = Vector2.Zero;
+
+    #endregion
+
+    /// <summary>
+    /// A dictionary of active stamina drains, with the key being the source of the drain,
+    /// DrainRate how much it changes per tick, and ModifiesSpeed if it should slow down the user.
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public Dictionary<EntityUid, (float DrainRate, bool ModifiesSpeed)> ActiveDrains = new();
 }
