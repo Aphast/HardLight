@@ -1,6 +1,10 @@
+// New Frontiers - This file is licensed under AGPLv3
+// Copyright (c) 2024 New Frontiers Contributors
+// See AGPLv3.txt for details.
+
+using Content.Shared.Vehicle;
 using Content.Shared._NF.Vehicle.Components;
 using Content.Shared.Actions;
-using Content.Shared._NF.Vehicle;
 using Robust.Shared.Audio.Systems;
 
 namespace Content.Shared._NF.Vehicle.EntitySystems;
@@ -15,7 +19,7 @@ public sealed class VehicleHornSystem : EntitySystem
     {
         SubscribeLocalEvent<VehicleHornComponent, ComponentInit>(OnVehicleHornInit);
         SubscribeLocalEvent<VehicleHornComponent, ComponentShutdown>(OnVehicleHornShutdown);
-        SubscribeLocalEvent<VehicleHornComponent, HornActionEvent>(OnHornHonkAction);
+        SubscribeLocalEvent<VehicleHornComponent, HonkActionEvent>(OnHornHonkAction);
     }
 
     /// Horn-only functions
@@ -36,7 +40,7 @@ public sealed class VehicleHornSystem : EntitySystem
     /// <summary>
     /// This fires when the vehicle entity presses the honk action
     /// </summary>
-    private void OnHornHonkAction(EntityUid uid, VehicleHornComponent vehicle, HornActionEvent args)
+    private void OnHornHonkAction(EntityUid uid, VehicleHornComponent vehicle, HonkActionEvent args)
     {
         if (args.Handled || vehicle.HornSound == null)
             return;

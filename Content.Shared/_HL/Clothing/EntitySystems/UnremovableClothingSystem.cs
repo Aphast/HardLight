@@ -1,4 +1,4 @@
-/* using Content.Shared._HL.Clothing.Components;
+using Content.Shared._HL.Clothing.Components;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Examine;
 using Content.Shared.Inventory;
@@ -32,4 +32,3 @@ public sealed class UnremovableClothingSystem : EntitySystem
         args.PushMarkup(Loc.GetString(unremovableClothing.Comp.ReasonMessage));
     }
 }
- */

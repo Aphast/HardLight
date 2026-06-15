@@ -2,13 +2,13 @@ using Content.Shared._Goobstation.MartialArts.Events; // Goobstation - Martial A
 using Content.Shared._EinsteinEngines.Contests; // Goobstation - Grab Intent
 using Content.Shared._Goobstation.MartialArts.Components; // Goobstation - Grab Intent
 using Content.Shared._White.Grab; // Goobstation
+using Content.Shared.Cuffs; // Goobstation - AddCuffDoAfterEvent
 using Content.Shared.ActionBlocker;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Alert;
 using Content.Shared.Buckle.Components;
 using Content.Shared.CombatMode;
 using Content.Shared.CombatMode.Pacification; // Goobstation
-using Content.Shared.Cuffs; // Goobstation
 using Content.Shared.Cuffs.Components; // Goobstation
 using Content.Shared.Damage;
 using Content.Shared.Damage.Components; // Goobstation
