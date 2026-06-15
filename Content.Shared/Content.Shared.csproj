@@ -1,21 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Work around https://github.com/dotnet/project-system/issues/4314 -->
+    <TargetFramework>$(TargetFramework)</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <IsPackable>false</IsPackable>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <WarningsAsErrors>RA0032;nullable</WarningsAsErrors>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
-  <Import Project="../MSBuild/Content.props" />
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
-
-  <Import Project="..\RobustToolbox\Imports\Lidgren.props" />
-  <Import Project="..\RobustToolbox\Imports\Shared.props" />
-
   <ItemGroup>
     <ProjectReference Include="..\Content.Shared.Database\Content.Shared.Database.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Folder Include="DeltaV\Abilities\" />
+    <Folder Include="_Impstation\" />
+  </ItemGroup>
+  <!-- Explicitly include .CM14 shared sources; dot-prefixed folders may be excluded by default globs -->
+  <ItemGroup>
+    <Compile Include=".CM14\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+      <Compile Include="..\Content.Goobstation.Common\**\*.cs" />
+  </ItemGroup>
+  <!-- Additional shared code from Goobstation modules (outside the regular project folder) -->
+  <ItemGroup>
+    <!-- Components, systems, etc. defined in Content.Goobstation.Shared -->
+    <Compile Include="..\Content.Goobstation.Shared\**\*.cs" />
+  </ItemGroup>
+  <Import Project="..\RobustToolbox\Imports\Shared.props" />
+  <Import Project="..\RobustToolbox\Imports\Lidgren.props" />
   <Import Project="..\RobustToolbox\MSBuild\Robust.Properties.targets" />
   <Import Project="..\RobustToolbox\MSBuild\Robust.CompNetworkGenerator.targets" />
 </Project>
