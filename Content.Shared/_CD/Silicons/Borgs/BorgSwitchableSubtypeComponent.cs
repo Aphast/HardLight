@@ -1,4 +1,4 @@
-/* using Robust.Shared.GameStates;
+using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 
 namespace Content.Shared._CD.Silicons.Borgs;
@@ -15,4 +15,4 @@ public sealed partial class BorgSwitchableSubtypeComponent : Component
     /// </summary>
     [DataField, AutoNetworkedField]
     public ProtoId<BorgSubtypePrototype>? BorgSubtype;
-} */
+}

@@ -9,20 +9,21 @@ using Robust.Shared.Audio;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Network;
 using Robust.Shared.Player;
+using Robust.Shared.Prototypes; // HardLight
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
 
 namespace Content.Shared.Interaction;
 
-public sealed partial class InteractionPopupSystem : EntitySystem
+public sealed class InteractionPopupSystem : EntitySystem
 {
-    [Dependency] private IGameTiming _gameTiming = default!;
-    [Dependency] private IRobustRandom _random = default!;
-    [Dependency] private MobStateSystem _mobStateSystem = default!;
-    [Dependency] private SharedPopupSystem _popupSystem = default!;
-    [Dependency] private SharedAudioSystem _audio = default!;
-    [Dependency] private SharedTransformSystem _transform = default!;
-    [Dependency] private INetManager _netMan = default!;
+    [Dependency] private readonly IGameTiming _gameTiming = default!;
+    [Dependency] private readonly IRobustRandom _random = default!;
+    [Dependency] private readonly MobStateSystem _mobStateSystem = default!;
+    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
+    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private readonly INetManager _netMan = default!;
 
     public override void Initialize()
     {
@@ -131,10 +132,17 @@ public sealed partial class InteractionPopupSystem : EntitySystem
         {
             _popupSystem.PopupEntity(msg, uid, user);
 
-            if (component.SoundPerceivedByOthers)
-                _audio.PlayPvs(sfx, target);
-            else
-                _audio.PlayEntity(sfx, Filter.Entities(user, target), target, false);
+            try
+            {
+                if (component.SoundPerceivedByOthers)
+                    _audio.PlayPvs(sfx, target);
+                else
+                    _audio.PlayEntity(sfx, Filter.Entities(user, target), target, false);
+            }
+            catch (ArgumentException)
+            {
+            }
+
             return;
         }
 
@@ -145,18 +153,38 @@ public sealed partial class InteractionPopupSystem : EntitySystem
 
         if (component.SoundPerceivedByOthers)
         {
-            _audio.PlayPredicted(sfx, target, user);
+            try
+            {
+                _audio.PlayPredicted(sfx, target, user);
+            }
+            catch (ArgumentException)
+            {
+            }
             return;
         }
 
         if (_netMan.IsClient)
         {
             if (_gameTiming.IsFirstTimePredicted)
-                _audio.PlayEntity(sfx, Filter.Local(), target, true);
+            {
+                try
+                {
+                    _audio.PlayEntity(sfx, Filter.Local(), target, true);
+                }
+                catch (ArgumentException)
+                {
+                }
+            }
         }
         else
         {
-            _audio.PlayEntity(sfx, Filter.Empty().FromEntities(target), target, false);
+            try
+            {
+                _audio.PlayEntity(sfx, Filter.Empty().FromEntities(target), target, false);
+            }
+            catch (ArgumentException)
+            {
+            }
         }
     }
 
@@ -180,5 +208,31 @@ public sealed partial class InteractionPopupSystem : EntitySystem
     public void SetInteractFailureString(Entity<InteractionPopupComponent> ent, string str)
     {
         ent.Comp.InteractFailureString = str;
+    }
+
+    /// <summary>
+    /// HardLight: Applies a full interaction popup override to an entity.
+    /// </summary>
+    public void ConfigureInteractionPopup(
+        Entity<InteractionPopupComponent> ent,
+        float successChance,
+        string? successString,
+        string? failureString,
+        SoundSpecifier? successSound,
+        SoundSpecifier? failureSound,
+        EntProtoId? successSpawn,
+        EntProtoId? failureSpawn,
+        string? messagePerceivedByOthers,
+        bool soundPerceivedByOthers)
+    {
+        ent.Comp.SuccessChance = successChance;
+        ent.Comp.InteractSuccessString = successString;
+        ent.Comp.InteractFailureString = failureString;
+        ent.Comp.InteractSuccessSound = successSound;
+        ent.Comp.InteractFailureSound = failureSound;
+        ent.Comp.InteractSuccessSpawn = successSpawn;
+        ent.Comp.InteractFailureSpawn = failureSpawn;
+        ent.Comp.MessagePerceivedByOthers = messagePerceivedByOthers;
+        ent.Comp.SoundPerceivedByOthers = soundPerceivedByOthers;
     }
 }

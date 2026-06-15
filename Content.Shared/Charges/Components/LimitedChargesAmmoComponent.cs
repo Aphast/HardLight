@@ -1,4 +1,3 @@
-// Mono - whole file
 using Content.Shared.Charges.Systems;
 using Content.Shared.Whitelist;
 using Robust.Shared.GameStates;

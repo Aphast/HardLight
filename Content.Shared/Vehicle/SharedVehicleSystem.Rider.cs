@@ -1,4 +1,4 @@
-using Content.Shared.Hands;
+/* using Content.Shared.Hands;
 using Content.Shared.Movement.Pulling.Events;
 using Content.Shared.Vehicle.Components;
 using Robust.Shared.GameStates;
@@ -39,3 +39,4 @@ public abstract partial class SharedVehicleSystem
             args.Cancelled = true;
     }
 }
+ */

@@ -1,4 +1,4 @@
-using System.Linq;
+/* using System.Linq;
 using Content.Shared.Damage.Prototypes;
 using Content.Shared.Damage;
 using Content.Shared.FixedPoint;
@@ -68,3 +68,4 @@ public sealed partial class GhostSpriteStateSystem : EntitySystem
             _appearance.SetData(ent, GhostVisuals.Damage, ent.Comp.Prefix + spriteState, appearance);
     }
 }
+ */

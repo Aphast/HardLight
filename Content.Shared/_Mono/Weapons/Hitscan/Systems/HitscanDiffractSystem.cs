@@ -1,4 +1,4 @@
-using System.Numerics;
+/* using System.Numerics;
 using Content.Shared.Physics;
 using Content.Shared.Weapons.Hitscan.Components;
 using Content.Shared.Weapons.Hitscan.Events;
@@ -122,4 +122,4 @@ public sealed partial class HitscanDiffractSystem : EntitySystem
             vector.X * sin + vector.Y * cos
         );
     }
-}
+} */

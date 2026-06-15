@@ -32,7 +32,7 @@ public abstract partial class SharedCriminalRecordsHackerSystem : EntitySystem
             BreakOnDamage = true,
             BreakOnMove = true,
             MovementThreshold = 0.5f,
-            MultiplyDelay = false, // Goobstation
+            //MultiplyDelay = false, // Goobstation
         };
 
         _doAfter.TryStartDoAfter(doAfterArgs);

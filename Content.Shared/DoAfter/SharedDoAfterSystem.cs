@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Content.Shared._Goobstation.DoAfter;
+using Content.Shared._Goobstation.DoAfter; // Goobstation
+using Content.Shared._Funkystation.Genetics.Mutations.Components;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Damage;
 using Content.Shared.Hands.Components;
@@ -15,10 +16,10 @@ namespace Content.Shared.DoAfter;
 
 public abstract partial class SharedDoAfterSystem : EntitySystem
 {
-    [Dependency] protected IGameTiming GameTiming = default!;
-    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private SharedTransformSystem _transform = default!;
-    [Dependency] private TagSystem _tag = default!;
+    [Dependency] protected readonly IGameTiming GameTiming = default!;
+    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private readonly TagSystem _tag = default!;
 
     /// <summary>
     ///     We'll use an excess time so stuff like finishing effects can show.
@@ -81,6 +82,7 @@ public abstract partial class SharedDoAfterSystem : EntitySystem
         ev.Repeat = false;
         ev.DoAfter = doAfter;
 
+        // Always raise the event, even if cancelled, so handlers can clean up properly
         if (Exists(doAfter.Args.EventTarget))
             RaiseLocalEvent(doAfter.Args.EventTarget.Value, (object)ev, doAfter.Args.Broadcast);
         else if (doAfter.Args.Broadcast)
@@ -128,7 +130,6 @@ public abstract partial class SharedDoAfterSystem : EntitySystem
             doAfterArgs.Used = EnsureEntity<DoAfterComponent>(doAfterArgs.NetUsed, uid);
             doAfterArgs.User = EnsureEntity<DoAfterComponent>(doAfterArgs.NetUser, uid);
             doAfterArgs.EventTarget = EnsureEntity<DoAfterComponent>(doAfterArgs.NetEventTarget, uid);
-            doAfterArgs.ShowTo = EnsureEntity<DoAfterComponent>(doAfterArgs.NetShowTo, uid); // Goobstation - Show doAfter popup to another entity
         }
 
         comp.NextId = state.NextId;
@@ -205,16 +206,16 @@ public abstract partial class SharedDoAfterSystem : EntitySystem
             return false;
         }
 
-        // Goobstation start
-        if (args.MultiplyDelay)
-        {
-            var delayMultiplierEv = new GetDoAfterDelayMultiplierEvent();
-            RaiseLocalEvent(args.User, delayMultiplierEv);
-            args.Delay *= delayMultiplierEv.Multiplier;
-        }
-        // Goobstation end
-
         id = new DoAfterId(args.User, comp.NextId++);
+
+        // Funkystation - Genetics DoAfter Modifier Mutation
+        if (TryComp<MutationDoAfterModifierComponent>(args.User, out var modComp))
+        {
+            var newSeconds = args.Delay.TotalSeconds * modComp.Multiplier;
+            args.Delay = TimeSpan.FromSeconds(newSeconds);
+        }
+        // End of Funkystation changes
+
         var doAfter = new DoAfter(id.Value.Index, args, GameTiming.CurTime);
 
         // Networking yay
@@ -354,6 +355,28 @@ public abstract partial class SharedDoAfterSystem : EntitySystem
         }
 
         InternalCancel(doAfter, comp);
+        Dirty(entity, comp);
+    }
+
+    /// <summary>
+    ///     HardLight: Cancels and immediately removes all do-afters on an entity.
+    ///     Useful when moving entities to paused maps where update-driven cleanup would not run.
+    /// </summary>
+    public void CancelAndClearAll(EntityUid entity, DoAfterComponent? comp = null)
+    {
+        if (!Resolve(entity, ref comp, false))
+            return;
+
+        if (comp.DoAfters.Count == 0)
+            return;
+
+        foreach (var doAfter in comp.DoAfters.Values)
+        {
+            InternalCancel(doAfter, comp);
+        }
+
+        comp.DoAfters.Clear();
+        RemCompDeferred<ActiveDoAfterComponent>(entity);
         Dirty(entity, comp);
     }
 
