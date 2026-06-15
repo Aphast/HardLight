@@ -19,7 +19,7 @@ using Content.Shared.Inventory;
 using Content.Shared.Random;
 
 // Mono
-using Content.Shared._White.Standing;
+using Content.Shared.Standing;
 
 namespace Content.Shared.Body.Systems;
 

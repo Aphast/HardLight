@@ -1,4 +1,5 @@
 using Content.Shared._Goobstation.Factory.Filters;
+using Content.Shared.Chemistry.Components;
 using Content.Shared.DeviceLinking;
 using Content.Shared.Whitelist;
 using Robust.Shared.Prototypes;
@@ -99,7 +100,7 @@ public abstract partial class AutomationSlot
             _device.EnsureSourcePorts(Owner, output);
     }
 
-    /// <summary>
+        /// <summary>
     /// Called to remove all of this slot's ports from the machine.
     /// </summary>
     public virtual void RemovePorts()
@@ -108,5 +109,14 @@ public abstract partial class AutomationSlot
             _device.RemoveSinkPort(Owner, input);
         if (Output is {} output)
             _device.RemoveSourcePort(Owner, output);
+    }
+
+    /// <summary>
+    /// Get a solution from this slot for use by liquid pumps.
+    /// Returns null if this slot does not provide a solution.
+    /// </summary>
+    public virtual Entity<SolutionComponent>? GetSolution()
+    {
+        return null;
     }
 }

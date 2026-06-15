@@ -1,4 +1,4 @@
-/* using Content.Shared.Actions;
+using Content.Shared.Actions;
 using Robust.Shared.Serialization;
 
 namespace Content.Shared.Toggleable;
@@ -35,4 +35,4 @@ public enum LightLayers : byte
     ///     Use this instead of creating a unique single-purpose "unshaded" enum for every visualizer.
     /// </summary>
     Unshaded,
-} */
+}

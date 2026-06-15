@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Numerics;
-using Content.Shared._White.Standing;
+using Content.Shared.Standing;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Physics;
 using Content.Shared.Popups;
