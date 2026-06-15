@@ -543,9 +543,9 @@
         - SyndicateNavalCommanderGearA
     - type: Stamina
       critThreshold: 500 # Extra hard to incapacitate and loot
-    - type: AutoImplant
-      implants:
-      - DeathRattleImplant
+    #- type: AutoImplant
+      #implants:
+      #- DeathRattleImplant // Literally no point for people in stationspace to be getting alerted of someone clearing an expedition.
       #- DeathAcidifierImplantNF
     - type: RechargeBasicEntityAmmo
       rechargeCooldown: 1.5
