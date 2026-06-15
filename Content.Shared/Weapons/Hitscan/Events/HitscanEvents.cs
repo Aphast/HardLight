@@ -41,8 +41,8 @@ public record struct HitscanTraceEvent
 /// Results of a hitscan raycast and will be raised on the raycast entity on itself. Stuff like the reflection system
 /// or damage system will listen for this.
 /// </summary>
-[ByRefEvent]
-public record struct HitscanRaycastFiredEvent
+//[ByRefEvent]
+/* public record struct HitscanRaycastFiredEvent
 {
     /// <summary>
     /// Location the hitscan was fired from.
@@ -79,7 +79,7 @@ public record struct HitscanRaycastFiredEvent
     /// Cancelled hitscans should not apply damage or trigger follow-up effects.
     /// </summary>
     public bool Canceled;
-}
+} */
 
 [ByRefEvent]
 public record struct HitscanDamageDealtEvent

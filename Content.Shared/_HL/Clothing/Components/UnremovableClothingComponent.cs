@@ -1,4 +1,4 @@
-/* using Content.Shared._HL.Clothing.EntitySystems;
+using Content.Shared._HL.Clothing.EntitySystems;
 using Robust.Shared.GameStates;
 
 namespace Content.Shared._HL.Clothing.Components;
@@ -16,4 +16,3 @@ public sealed partial class UnremovableClothingComponent : Component
     [DataField, AutoNetworkedField]
     public LocId ReasonMessage = "comp-unremovable-clothing";
 }
- */

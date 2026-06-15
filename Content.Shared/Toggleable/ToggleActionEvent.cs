@@ -25,7 +25,7 @@ public enum ToggleableVisuals : byte
 /// <summary>
 ///     Generic sprite layer keys.
 /// </summary>
-[Serializable, NetSerializable]
+/* [Serializable, NetSerializable]
 public enum LightLayers : byte
 {
     Light,
@@ -35,4 +35,4 @@ public enum LightLayers : byte
     ///     Use this instead of creating a unique single-purpose "unshaded" enum for every visualizer.
     /// </summary>
     Unshaded,
-}
+} */
