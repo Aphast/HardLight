@@ -1880,13 +1880,21 @@
     variance: 0.1
     entries:
     - id: SpawnRandomHumanoidCorpseMedicalBounty
-    - id: SpawnRandomHumanoidCorpseMedicalBountyService5
-    - id: SpawnRandomHumanoidCorpseMedicalBountyEngineering5
-    - id: SpawnRandomHumanoidCorpseMedicalBountyCargo5
-    - id: SpawnRandomHumanoidCorpseMedicalBountyMedical5
-    - id: SpawnRandomHumanoidCorpseMedicalBountyScience5
-    - id: SpawnRandomHumanoidCorpseMedicalBountySecurity5
+      prob: 0.02
+    - id: SpawnRandomHumanoidCorpseMedicalBountyService
+      prob: 0.015
+    - id: SpawnRandomHumanoidCorpseMedicalBountyEngineering
+      prob: 0.015
+    - id: SpawnRandomHumanoidCorpseMedicalBountyCargo
+      prob: 0.015
+    - id: SpawnRandomHumanoidCorpseMedicalBountyMedical
+      prob: 0.015
+    - id: SpawnRandomHumanoidCorpseMedicalBountyScience
+      prob: 0.015
+    - id: SpawnRandomHumanoidCorpseMedicalBountySecurity
+      prob: 0.015
     - id: SpawnRandomHumanoidCorpseMedicalBountyCommand
+      prob: 0.01
 
 - type: entity
   id: CarpVents
