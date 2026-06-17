@@ -175,7 +175,6 @@ namespace Content.Server.Stack
 
             var ev = new StackSplitEvent(entity);
             RaiseLocalEvent(uid, ref ev);
-
             return entity;
         }
 

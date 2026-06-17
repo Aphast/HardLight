@@ -733,6 +733,7 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         List<ShuttleExclusionObject>? exclusions = null;
         List<ShuttleStationObject>? stations = null;
         GetBeacons(ref beacons);
+        //RemoveCurrentLavalandBeacons(shuttle.Owner, beacons);
         GetExclusions(ref exclusions);
         GetStations(ref stations);
 

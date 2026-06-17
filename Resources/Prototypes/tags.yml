@@ -860,6 +860,9 @@
 - type: Tag
   id: Knife
 
+- type: Tag # Used on DungeonRoom prototypes.
+  id: LavalandLavaBrig # PrefabDunGen whitelist on LavalandLavaBrig DungeonConfig.
+
 - type: Tag
   id: LavaBrig
 

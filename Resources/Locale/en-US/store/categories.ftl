@@ -28,3 +28,12 @@ store-caregory-spellbook-events = Event Spells
 store-category-blessing-minor = Minor Miracles
 store-category-blessing-lesser = Lesser Miracles
 store-category-blessing-greater = Greater Miracles
+# Nukie Delivery
+store-category-nukie-delivery = Offers
+
+# Lavaland
+store-category-lavaland-mining-equipment = Equipment
+store-category-lavaland-mining-tools = Tools
+store-category-lavaland-mining-utility = Utility
+store-category-lavaland-mining-medical = Medical
+store-category-lavaland-mining-contraband = Contraband

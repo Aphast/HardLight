@@ -55,7 +55,7 @@
   - type: MobThresholds
     thresholds:
       0: Alive
-      250: Dead
+      300: Dead
   - type: MeleeWeapon
     soundHit:
       path: "/Audio/Weapons/smash.ogg"
@@ -64,8 +64,8 @@
     animation: WeaponArcPunch
     damage:
       types:
-        Slash: 10
-        Piercing: 10
+        Blunt: 25
+        Structural: 50
   - type: NpcFactionMember
     factions:
     - SimpleHostile
@@ -75,9 +75,11 @@
       task: GoliathCompound
     blackboard:
       VisionRadius: !type:Single
-        6
+        5
       AggroVisionRadius: !type:Single
-        10
+        9
+      NavSmash: !type:Bool
+        true
   - type: NPCUseActionOnTarget
     actionId: ActionGoliathTentacle
   - type: Tag
@@ -89,9 +91,13 @@
   - type: Butcherable
     spawned:
     - id: FoodMeatGoliath
-      amount: 3
+      amount: 2
     - id: MaterialGoliathHide1
-      amount: 3
+      amount: 1
+    - id: MaterialBones1
+      amount: 2
+    - id: PKAUpgradeDamage
+      prob: 0.05
 
 - type: entity
   id: ActionGoliathTentacle
@@ -108,6 +114,11 @@
       state: goliath_tentacle_wiggle
     sound:
       path: "/Audio/Weapons/slash.ogg"
+
+    useDelay: 12
+  - type: TargetAction
+    range: 7
+  - type: WorldTargetAction
     event: !type:GoliathSummonTentacleAction
     useDelay: 8
     range: 10
@@ -202,8 +213,8 @@
       Dead:
         Base: hivelord_dead
   - type: MovementSpeedModifier
-    baseWalkSpeed : 3.5
-    baseSprintSpeed : 4.0
+    baseWalkSpeed : 3.0
+    baseSprintSpeed : 3.5
   - type: MobThresholds
     thresholds:
       0: Alive
@@ -213,7 +224,7 @@
       types:
         Blunt: 0
   - type: Gun
-    fireRate: 0.66
+    fireRate: 0.5
     selectedMode: SemiAuto
     showExamineText: false
     availableModes:
@@ -241,6 +252,8 @@
   - type: Butcherable
     spawned:
     - id: FoodHivelordRemains
+    - id: PKAUpgradeFireRate
+      prob: 0.05
 
 - type: entity
   id: MobHivelordBrood
@@ -268,7 +281,7 @@
     animation: WeaponArcPunch
     damage:
       types:
-        Slash: 7
+        Slash: 2
   - type: Ammo
     muzzleFlash: null
   - type: Destructible
@@ -291,7 +304,7 @@
       AggroVisionRadius: !type:Single
         15
   - type: TimedDespawn
-    lifetime: 100
+    lifetime: 12
 
 - type: entity
   id: FoodHivelordRemains

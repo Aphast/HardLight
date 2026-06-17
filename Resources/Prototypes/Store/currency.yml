@@ -24,6 +24,17 @@
   id: MinorBlessing
   displayName: store-currency-display-blessing
   canWithdraw: false
+  
+- type: currency
+  id: LavalandMiningPoint
+  displayName: store-currency-display-lavaland-mining-point
+  canWithdraw: false
+
+- type: currency
+  id: ChangelingDNA
+  displayName: store-currency-display-dna
+  canWithdraw: false
+
 
 #debug
 - type: currency

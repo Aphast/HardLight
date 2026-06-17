@@ -22,6 +22,12 @@ public sealed partial class CCVars
         public static readonly CVarDef<int> MaxAmbientSources =
             CVarDef.Create("ambience.max_sounds", 16, CVar.ARCHIVE | CVar.CLIENTONLY);
 
+        public static readonly CVarDef<bool> BossMusicEnabled =
+            CVarDef.Create("audio.boss_music_enabled", true, CVar.CLIENTONLY | CVar.ARCHIVE);
+
+        public static readonly CVarDef<float> BossMusicVolume =
+            CVarDef.Create("audio.boss_music_volume", 1f, CVar.CLIENTONLY | CVar.ARCHIVE);
+
         /// <summary>
         ///     The minimum value the user can set for ambience.max_sounds
         /// </summary>

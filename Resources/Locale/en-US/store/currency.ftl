@@ -12,3 +12,6 @@ store-currency-display-stolen-essence = Stolen Essence
 store-currency-display-silicon-memory = Memory
 store-currency-display-wizcoin = Wiz€oin™
 store-currency-display-blessing = Minor Blessing
+store-currency-display-lavaland-mining-point = Mining Points
+store-currency-display-dna = DNA
+
