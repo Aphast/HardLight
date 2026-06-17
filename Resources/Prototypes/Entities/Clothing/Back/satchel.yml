@@ -566,6 +566,42 @@
       shader: unshaded
   - type: Item
     size: Ginormous
+    inhandVisuals: # Frontier
+      left: # Frontier
+      - state: inhand-left # Frontier
+      - state: inhand-left-unlit # Frontier
+        shader: unshaded # Frontier
+      right: # Frontier
+      - state: inhand-right # Frontier
+      - state: inhand-right-unlit # Frontier
+        shader: unshaded # Frontier
+  - type: Storage
+    maxItemSize: Huge
+    grid:
+    - 0,0,19,9 # Frontier: Was 0,0,19,9 - FRONTIER MADE IT 0,0,7,7 AND THAT'S DUMB - Loki
+  - type: ClothingSpeedModifier
+    sprintModifier: 0.75 # movespeed nerf in exchange for massive storage
+  - type: HeldSpeedModifier
+  - type: Clothing # Frontier
+    sprite: _NF/Clothing/Back/Satchels/holding.rsi # Frontier
+    clothingVisuals: # Frontier
+      back: # Frontier
+      - state: equipped-BACKPACK # Frontier
+      - state: equipped-BACKPACK-unlit # Frontier
+        shader: unshaded # Frontier
+  - type: ChameleonClothing
+    slot: [back]
+    default: ClothingBackpackSatchelHolding
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.ChameleonUiKey.Key:
+        type: ChameleonBoundUserInterface
+  - type: Tag
+    tags:
+    - ScurretWearable
+    - WhitelistChameleon
     inhand
   - type: Construction
     deconstructionTarget: null
