@@ -26,6 +26,9 @@
             "directions": 4
         },
 		{
+            "name": "icon-ammo"
+        },
+		{
             "name": "ammo-equipped-BACKPACK",
             "directions": 4
         },
@@ -37,7 +40,10 @@
             "name": "ammo-inhand-right",
             "directions": 4
         },
-		        {
+		{
+            "name": "icon-med"
+        },
+		{
             "name": "med-equipped-BACKPACK",
             "directions": 4
         },
