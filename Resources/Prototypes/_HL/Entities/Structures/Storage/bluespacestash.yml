@@ -28,7 +28,7 @@
   - type: Storage
     grid:
     - 0,0,25,20
-    maxItemSize: Ginormous
+    maxItemSize: Huge
     blacklist:
       tags:
       - Admin

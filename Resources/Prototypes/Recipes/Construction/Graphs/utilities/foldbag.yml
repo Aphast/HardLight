@@ -1,0 +1,1092 @@
+- type: constructionGraph
+  id: bagfolding
+  start: backpack
+  graph:
+  - node: backpack
+    entity: ClothingBackpack
+    edges:
+    - to: foldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: foldedbackpack
+    entity: ClothingBackpackFolded
+    edges:
+    - to: backpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: clownbackpack
+    entity: ClothingBackpackClown
+    edges:
+    - to: clownfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: clownfoldedbackpack
+    entity: ClothingBackpackClownFolded
+    edges:
+    - to: clownbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ianbackpack
+    entity: ClothingBackpackIan
+    edges:
+    - to: ianfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ianfoldedbackpack
+    entity: ClothingBackpackIanFolded
+    edges:
+    - to: ianbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: securitybackpack
+    entity: ClothingBackpackSecurity
+    edges:
+    - to: securityfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: securityfoldedbackpack
+    entity: ClothingBackpackSecurityFolded
+    edges:
+    - to: securitybackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: brigmedicbackpack
+    entity: ClothingBackpackBrigmedic
+    edges:
+    - to: brigmedicfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: brigmedicfoldedbackpack
+    entity: ClothingBackpackBrigmedicFolded
+    edges:
+    - to: brigmedicbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: engineeringbackpack
+    entity: ClothingBackpackEngineering
+    edges:
+    - to: engineeringfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: engineeringfoldedbackpack
+    entity: ClothingBackpackEngineeringFolded
+    edges:
+    - to: engineeringbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: atmosphericsbackpack
+    entity: ClothingBackpackAtmospherics
+    edges:
+    - to: atmosphericsfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: atmosphericsfoldedbackpack
+    entity: ClothingBackpackAtmosphericsFolded
+    edges:
+    - to: atmosphericsbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: medicalbackpack
+    entity: ClothingBackpackMedical
+    edges:
+    - to: medicalfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: medicalfoldedbackpack
+    entity: ClothingBackpackMedicalFolded
+    edges:
+    - to: medicalbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: captainbackpack
+    entity: ClothingBackpackCaptain
+    edges:
+    - to: captainfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: captainfoldedbackpack
+    entity: ClothingBackpackCaptainFolded
+    edges:
+    - to: captainbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mimebackpack
+    entity: ClothingBackpackMime
+    edges:
+    - to: mimefoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mimefoldedbackpack
+    entity: ClothingBackpackMimeFolded
+    edges:
+    - to: mimebackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: chemistrybackpack
+    entity: ClothingBackpackChemistry
+    edges:
+    - to: chemistryfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: chemistryfoldedbackpack
+    entity: ClothingBackpackChemistryFolded
+    edges:
+    - to: chemistrybackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: hydroponicsbackpack
+    entity: ClothingBackpackHydroponics
+    edges:
+    - to: hydroponicsfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: hydroponicsfoldedbackpack
+    entity: ClothingBackpackHydroponicsFolded
+    edges:
+    - to: hydroponicsbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: sciencebackpack
+    entity: ClothingBackpackScience
+    edges:
+    - to: sciencefoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: sciencefoldedbackpack
+    entity: ClothingBackpackScienceFolded
+    edges:
+    - to: sciencebackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: virologybackpack
+    entity: ClothingBackpackVirology
+    edges:
+    - to: virologyfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: virologyfoldedbackpack
+    entity: ClothingBackpackVirologyFolded
+    edges:
+    - to: virologybackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: geneticsbackpack
+    entity: ClothingBackpackGenetics
+    edges:
+    - to: geneticsfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: geneticsfoldedbackpack
+    entity: ClothingBackpackGeneticsFolded
+    edges:
+    - to: geneticsbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cargobackpack
+    entity: ClothingBackpackCargo
+    edges:
+    - to: cargofoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cargofoldedbackpack
+    entity: ClothingBackpackCargoFolded
+    edges:
+    - to: cargobackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: salvagebackpack
+    entity: ClothingBackpackSalvage
+    edges:
+    - to: salvagefoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: salvagefoldedbackpack
+    entity: ClothingBackpackSalvageFolded
+    edges:
+    - to: salvagebackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mercenarybackpack
+    entity: ClothingBackpackMercenary
+    edges:
+    - to: mercenaryfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mercenaryfoldedbackpack
+    entity: ClothingBackpackMercenaryFolded
+    edges:
+    - to: mercenarybackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertleaderbackpack
+    entity: ClothingBackpackERTLeader
+    edges:
+    - to: ertleaderfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertleaderfoldedbackpack
+    entity: ClothingBackpackERTLeaderFolded
+    edges:
+    - to: ertleaderbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertsecuritybackpack
+    entity: ClothingBackpackERTSecurity
+    edges:
+    - to: ertsecurityfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertsecurityfoldedbackpack
+    entity: ClothingBackpackERTSecurityFolded
+    edges:
+    - to: ertsecuritybackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertmedicalbackpack
+    entity: ClothingBackpackERTMedical
+    edges:
+    - to: ertmedicalfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertmedicalfoldedbackpack
+    entity: ClothingBackpackERTMedicalFolded
+    edges:
+    - to: ertmedicalbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertengineerbackpack
+    entity: ClothingBackpackERTEngineer
+    edges:
+    - to: ertengineerfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertengineerfoldedbackpack
+    entity: ClothingBackpackERTEngineerFolded
+    edges:
+    - to: ertengineerbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertjanitorbackpack
+    entity: ClothingBackpackERTJanitor
+    edges:
+    - to: ertjanitorfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertjanitorfoldedbackpack
+    entity: ClothingBackpackERTJanitorFolded
+    edges:
+    - to: ertjanitorbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertclownbackpack
+    entity: ClothingBackpackERTClown
+    edges:
+    - to: ertclownfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertclownfoldedbackpack
+    entity: ClothingBackpackERTClownFolded
+    edges:
+    - to: ertclownbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertchaplainbackpack
+    entity: ClothingBackpackERTChaplain
+    edges:
+    - to: ertchaplainfoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: ertchaplainfoldedbackpack
+    entity: ClothingBackpackERTChaplainFolded
+    edges:
+    - to: ertchaplainbackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: syndicatebackpack
+    entity: ClothingBackpackSyndicate
+    edges:
+    - to: syndicatefoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: syndicatefoldedbackpack
+    entity: ClothingBackpackSyndicateFolded
+    edges:
+    - to: syndicatebackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: bluespacebackpack
+    entity: ClothingBackpackHolding
+    edges:
+    - to: bluespacefoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: bluespacefoldedbackpack
+    entity: ClothingBackpackHoldingFolded
+    edges:
+    - to: bluespacebackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+- node: cluwnebackpack
+    entity: ClothingBackpackCluwne
+    edges:
+    - to: cluwnefoldedbackpack
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cluwnefoldedbackpack
+    entity: ClothingBackpackCluwneFolded
+    edges:
+    - to: cluwnebackpack
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: backpackduffel
+    entity: ClothingBackpackDuffel
+    edges:
+    - to: foldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: foldedbackpackduffel
+    entity: ClothingBackpackDuffelFolded
+    edges:
+    - to: backpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: clownbackpackduffel
+    entity: ClothingBackpackDuffelClown
+    edges:
+    - to: clownfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: clownfoldedbackpackduffel
+    entity: ClothingBackpackDuffelClownFolded
+    edges:
+    - to: clownbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: securitybackpackduffel
+    entity: ClothingBackpackDuffelSecurity
+    edges:
+    - to: securityfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: securityfoldedbackpackduffel
+    entity: ClothingBackpackDuffelSecurityFolded
+    edges:
+    - to: securitybackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: brigmedicbackpackduffel
+    entity: ClothingBackpackDuffelBrigmedic
+    edges:
+    - to: brigmedicfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: brigmedicfoldedbackpackduffel
+    entity: ClothingBackpackDuffelBrigmedicFolded
+    edges:
+    - to: brigmedicbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: engineeringbackpackduffel
+    entity: ClothingBackpackDuffelEngineering
+    edges:
+    - to: engineeringfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: engineeringfoldedbackpackduffel
+    entity: ClothingBackpackDuffelEngineeringFolded
+    edges:
+    - to: engineeringbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: atmosphericsbackpackduffel
+    entity: ClothingBackpackDuffelAtmospherics
+    edges:
+    - to: atmosphericsfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: atmosphericsfoldedbackpackduffel
+    entity: ClothingBackpackDuffelAtmosphericsFolded
+    edges:
+    - to: atmosphericsbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: medicalbackpackduffel
+    entity: ClothingBackpackDuffelMedical
+    edges:
+    - to: medicalfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: medicalfoldedbackpackduffel
+    entity: ClothingBackpackDuffelMedicalFolded
+    edges:
+    - to: medicalbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: captainbackpackduffel
+    entity: ClothingBackpackDuffelCaptain
+    edges:
+    - to: captainfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: captainfoldedbackpackduffel
+    entity: ClothingBackpackDuffelCaptainFolded
+    edges:
+    - to: captainbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mimebackpackduffel
+    entity: ClothingBackpackDuffelMime
+    edges:
+    - to: mimefoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mimefoldedbackpackduffel
+    entity: ClothingBackpackDuffelMimeFolded
+    edges:
+    - to: mimebackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: chemistrybackpackduffel
+    entity: ClothingBackpackDuffelChemistry
+    edges:
+    - to: chemistryfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: chemistryfoldedbackpackduffel
+    entity: ClothingBackpackDuffelChemistryFolded
+    edges:
+    - to: chemistrybackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: hydroponicsbackpackduffel
+    entity: ClothingBackpackDuffelHydroponics
+    edges:
+    - to: hydroponicsfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: hydroponicsfoldedbackpackduffel
+    entity: ClothingBackpackDuffelHydroponicsFolded
+    edges:
+    - to: hydroponicsbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: sciencebackpackduffel
+    entity: ClothingBackpackDuffelScience
+    edges:
+    - to: sciencefoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: sciencefoldedbackpackduffel
+    entity: ClothingBackpackDuffelScienceFolded
+    edges:
+    - to: sciencebackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: virologybackpackduffel
+    entity: ClothingBackpackDuffelVirology
+    edges:
+    - to: virologyfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: virologyfoldedbackpackduffel
+    entity: ClothingBackpackDuffelVirologyFolded
+    edges:
+    - to: virologybackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: geneticsbackpackduffel
+    entity: ClothingBackpackDuffelGenetics
+    edges:
+    - to: geneticsfoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: geneticsfoldedbackpackduffel
+    entity: ClothingBackpackDuffelGeneticsFolded
+    edges:
+    - to: geneticsbackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cargobackpackduffel
+    entity: ClothingBackpackDuffelCargo
+    edges:
+    - to: cargofoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cargofoldedbackpackduffel
+    entity: ClothingBackpackDuffelCargoFolded
+    edges:
+    - to: cargobackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: salvagebackpackduffel
+    entity: ClothingBackpackDuffelSalvage
+    edges:
+    - to: salvagefoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: salvagefoldedbackpackduffel
+    entity: ClothingBackpackDuffelSalvageFolded
+    edges:
+    - to: salvagebackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: syndicatebackpackduffel
+    entity: ClothingBackpackDuffelSyndicate
+    edges:
+    - to: syndicatefoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: syndicatefoldedbackpackduffel
+    entity: ClothingBackpackDuffelSyndicateFolded
+    edges:
+    - to: syndicatebackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: bluespacebackpackduffel
+    entity: ClothingBackpackDuffelHolding
+    edges:
+    - to: bluespacefoldedbackpackduffel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: bluespacefoldedbackpackduffel
+    entity: ClothingBackpackDuffelHoldingFolded
+    edges:
+    - to: bluespacebackpackduffel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: backpacksatchel
+    entity: ClothingBackpackSatchel
+    edges:
+    - to: foldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: foldedbackpacksatchel
+    entity: ClothingBackpackSatchelFolded
+    edges:
+    - to: backpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: clownbackpacksatchel
+    entity: ClothingBackpackSatchelClown
+    edges:
+    - to: clownfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: clownfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelClownFolded
+    edges:
+    - to: clownbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: securitybackpacksatchel
+    entity: ClothingBackpackSatchelSecurity
+    edges:
+    - to: securityfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: securityfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelSecurityFolded
+    edges:
+    - to: securitybackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: brigmedicbackpacksatchel
+    entity: ClothingBackpackSatchelBrigmedic
+    edges:
+    - to: brigmedicfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: brigmedicfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelBrigmedicFolded
+    edges:
+    - to: brigmedicbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: engineeringbackpacksatchel
+    entity: ClothingBackpackSatchelEngineering
+    edges:
+    - to: engineeringfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: engineeringfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelEngineeringFolded
+    edges:
+    - to: engineeringbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: atmosphericsbackpacksatchel
+    entity: ClothingBackpackSatchelAtmospherics
+    edges:
+    - to: atmosphericsfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: atmosphericsfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelAtmosphericsFolded
+    edges:
+    - to: atmosphericsbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: medicalbackpacksatchel
+    entity: ClothingBackpackSatchelMedical
+    edges:
+    - to: medicalfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: medicalfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelMedicalFolded
+    edges:
+    - to: medicalbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: captainbackpacksatchel
+    entity: ClothingBackpackSatchelCaptain
+    edges:
+    - to: captainfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: captainfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelCaptainFolded
+    edges:
+    - to: captainbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mimebackpacksatchel
+    entity: ClothingBackpackSatchelMime
+    edges:
+    - to: mimefoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: mimefoldedbackpacksatchel
+    entity: ClothingBackpackSatchelMimeFolded
+    edges:
+    - to: mimebackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: chemistrybackpacksatchel
+    entity: ClothingBackpackSatchelChemistry
+    edges:
+    - to: chemistryfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: chemistryfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelChemistryFolded
+    edges:
+    - to: chemistrybackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: hydroponicsbackpacksatchel
+    entity: ClothingBackpackSatchelHydroponics
+    edges:
+    - to: hydroponicsfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: hydroponicsfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelHydroponicsFolded
+    edges:
+    - to: hydroponicsbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: sciencebackpacksatchel
+    entity: ClothingBackpackSatchelScience
+    edges:
+    - to: sciencefoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: sciencefoldedbackpacksatchel
+    entity: ClothingBackpackSatchelScienceFolded
+    edges:
+    - to: sciencebackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: virologybackpacksatchel
+    entity: ClothingBackpackSatchelVirology
+    edges:
+    - to: virologyfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: virologyfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelVirologyFolded
+    edges:
+    - to: virologybackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: geneticsbackpacksatchel
+    entity: ClothingBackpackSatchelGenetics
+    edges:
+    - to: geneticsfoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: geneticsfoldedbackpacksatchel
+    entity: ClothingBackpackSatchelGeneticsFolded
+    edges:
+    - to: geneticsbackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cargobackpacksatchel
+    entity: ClothingBackpackSatchelCargo
+    edges:
+    - to: cargofoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: cargofoldedbackpacksatchel
+    entity: ClothingBackpackSatchelCargoFolded
+    edges:
+    - to: cargobackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: salvagebackpacksatchel
+    entity: ClothingBackpackSatchelSalvage
+    edges:
+    - to: salvagefoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: salvagefoldedbackpacksatchel
+    entity: ClothingBackpackSatchelSalvageFolded
+    edges:
+    - to: salvagebackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: syndicatebackpacksatchel
+    entity: ClothingBackpackSatchelSyndicate
+    edges:
+    - to: syndicatefoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: syndicatefoldedbackpacksatchel
+    entity: ClothingBackpackSatchelSyndicateFolded
+    edges:
+    - to: syndicatebackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: bluespacebackpacksatchel
+    entity: ClothingBackpackSatchelHolding
+    edges:
+    - to: bluespacefoldedbackpacksatchel
+      conditions:
+        - !type:ContainerEmpty
+          container: "storagebase"
+      steps:
+      - tool: Rolling
+        doAfter: 2
+  - node: bluespacefoldedbackpacksatchel
+    entity: ClothingBackpackSatchelHoldingFolded
+    edges:
+    - to: bluespacebackpacksatchel
+      steps:
+      - tool: Rolling
+        doAfter: 2
