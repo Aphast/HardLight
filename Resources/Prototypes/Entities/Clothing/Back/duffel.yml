@@ -661,7 +661,8 @@
     tags:
     - ScurretWearable
     - WhitelistChameleon
-
+    
+- type: entity
   parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
   id: ClothingBackpackDuffelHoldingFolded
   name: folded salvage duffel bag
