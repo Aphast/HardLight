@@ -13384,13 +13384,13 @@ entities:
     - type: Transform
       pos: 17.5,4.5
       parent: 1
-- proto: LavalandMiningShop
-  entities:
-  - uid: 308
-    components:
-    - type: Transform
-      pos: -15.5,11.5
-      parent: 1
+# - proto: LavalandMiningShop
+  # entities:
+  # - uid: 308
+    # components:
+    # - type: Transform
+      # pos: -15.5,11.5
+      # parent: 1
 - proto: VendingMachineSnackGreen
   entities:
   - uid: 2236
