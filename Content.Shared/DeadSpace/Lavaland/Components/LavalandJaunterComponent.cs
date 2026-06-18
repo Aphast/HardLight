@@ -1,4 +1,4 @@
-using Robust.Shared.Audio;
+/* using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
@@ -25,3 +25,4 @@ public sealed partial class LavalandJaunterComponent : Component
     [DataField]
     public TimeSpan AutomaticUseCooldown = TimeSpan.FromSeconds(1);
 }
+ */

@@ -1,4 +1,4 @@
-using System.Linq;
+/* using System.Linq;
 using Content.Shared.Access.Components;
 using Content.Shared.Access.Systems;
 using Content.Shared.Containers.ItemSlots;
@@ -185,3 +185,4 @@ public sealed class SharedLavalandMiningShopSystem : EntitySystem
             LavalandMiningVoucherUi.CreateState(voucher, powered: true));
     }
 }
+ */

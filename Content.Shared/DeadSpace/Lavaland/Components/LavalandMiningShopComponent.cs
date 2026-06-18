@@ -1,4 +1,4 @@
-using Content.Shared.Access;
+/* using Content.Shared.Access;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Store;
 using Robust.Shared.GameStates;
@@ -31,3 +31,4 @@ public sealed partial class LavalandMiningShopComponent : Component
         "SeniorSalvage",
     };
 }
+ */

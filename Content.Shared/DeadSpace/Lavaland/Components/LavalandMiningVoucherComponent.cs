@@ -1,4 +1,4 @@
-using Content.Shared.Storage;
+/* using Content.Shared.Storage;
 using Robust.Shared.GameStates;
 
 namespace Content.Shared.DeadSpace.Lavaland.Components;
@@ -19,3 +19,4 @@ public sealed partial class LavalandMiningVoucherReward
     [DataField(required: true)]
     public List<EntitySpawnEntry> Entries = new();
 }
+ */

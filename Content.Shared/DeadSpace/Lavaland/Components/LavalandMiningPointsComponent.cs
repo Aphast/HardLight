@@ -1,4 +1,4 @@
-using Robust.Shared.GameStates;
+/* using Robust.Shared.GameStates;
 
 namespace Content.Shared.DeadSpace.Lavaland.Components;
 
@@ -8,3 +8,4 @@ public sealed partial class LavalandMiningPointsComponent : Component
     [DataField, AutoNetworkedField]
     public int Balance;
 }
+ */
