@@ -271,23 +271,22 @@
       children:
       - id: FultonBeacon
       - id: Fulton
-        amount: 4
     - !type:AllSelector
       weight: 0.8
       children:
       - id: PKAUpgradeDamage
       - id: PKAUpgradeRange
       - id: PKAUpgradeFireRate
-    - id: LavalandSuperResonator
-      weight: 1.1
+    # - id: LavalandSuperResonator
+      # weight: 1.1
     - id: LavalandSonicJackhammer
       weight: 0.9
-    - id: LavalandShelterCapsule
-      weight: 0.9
-    - id: LavalandWormholeJaunter
-      weight: 0.8
-    - id: LavalandMiningVoucher
-      weight: 0.7
+    # - id: LavalandShelterCapsule
+      # weight: 0.9
+    # - id: LavalandWormholeJaunter
+      # weight: 0.8
+    # - id: LavalandMiningVoucher
+      # weight: 0.7
     - id: HandTeleporter
       weight: 0.7
     - id: SyndicateJawsOfLife
@@ -410,14 +409,14 @@
       - id: ClothingHandsGlovesCombat
       - id: DoubleEmergencyOxygenTankFilled
       - id: DoubleEmergencyNitrogenTankFilled
-    - !type:AllSelector
-      weight: 0.008
-      children:
-      - id: ClothingOuterHardsuitDeathsquad
-      - id: ClothingMaskGasSyndicate
-      - id: ClothingHandsGlovesCombat
-      - id: DoubleEmergencyOxygenTankFilled
-      - id: DoubleEmergencyNitrogenTankFilled
+    # - !type:AllSelector
+      # weight: 0.008
+      # children:
+      # - id: ClothingOuterHardsuitDeathsquad
+      # - id: ClothingMaskGasSyndicate
+      # - id: ClothingHandsGlovesCombat
+      # - id: DoubleEmergencyOxygenTankFilled
+      # - id: DoubleEmergencyNitrogenTankFilled
     - !type:AllSelector
       weight: 0.2
       children:
