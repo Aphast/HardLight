@@ -457,29 +457,35 @@
       children:
       # - id: WeaponRifleEstoc
       - id: MagazineRifle
-        amount: 3
+        amount: !type:ConstantNumberSelector
+          value: 3
     - !type:AllSelector
       weight: 0.35
       children:
       - id: WeaponRifleM90GrenadeLauncher
       - id: MagazineRifle
-        amount: 2
+        amount: !type:ConstantNumberSelector
+          value: 2
       - id: GrenadeFrag
-        amount: 2
+        amount: !type:ConstantNumberSelector
+          value: 2
     - !type:AllSelector
       weight: 0.25
       children:
       - id: WeaponLauncherChinaLake
       - id: GrenadeBlast
-        amount: 3
+        amount: !type:ConstantNumberSelector
+          value: 3
       - id: GrenadeFrag
-        amount: 2
+        amount: !type:ConstantNumberSelector
+          value: 2
     - !type:AllSelector
       weight: 0.05
       children:
       - id: WeaponLightMachineGunL6
       - id: MagazineLightRifleBox
-        amount: 2
+        amount: !type:ConstantNumberSelector
+          value: 2
     - !type:AllSelector
       weight: 0.15
       children:
