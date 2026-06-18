@@ -53,8 +53,7 @@
   - type: AltFireMelee # Frontier
     attackType: Light # Frontier
   - type: GunDamageModifier
-    damageType: Piercing
-    damageMultiplier: 1.3
+    multiplier: 1.3
   - type: BallisticAmmoProvider
     whitelist:
       tags:
@@ -81,8 +80,7 @@
     soundGunshot:
       path: /Audio/Weapons/Guns/Gunshots/sniper.ogg
   - type: GunDamageModifier
-    damageType: Piercing
-    damageMultiplier: 1.3
+    multiplier: 1.3
   - type: BallisticAmmoProvider
     whitelist:
       tags:

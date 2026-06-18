@@ -144,8 +144,7 @@
           tags:
             - Cartridge556x45mmFMJ
   - type: GunDamageModifier
-    damageType: Piercing
-    damageMultiplier: 1.3
+    multiplier: 1.3
   - type: ContainerContainer
     containers:
       gun_magazine: !type:ContainerSlot

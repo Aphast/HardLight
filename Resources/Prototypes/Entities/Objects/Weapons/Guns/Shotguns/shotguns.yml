@@ -67,8 +67,7 @@
     - suitStorage
   - type: AmmoCounter
   - type: GunDamageModifier
-    damageType: Piercing
-    damageMultiplier: 1.3
+    multiplier: 1.3
   - type: GunRequiresWield #remove when inaccuracy on spreads is fixed
   - type: Gun
     fireRate: 2
