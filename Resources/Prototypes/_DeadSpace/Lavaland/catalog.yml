@@ -170,29 +170,29 @@
   # cost:
     # LavalandMiningPoint: 400
 
-- type: listing
-  id: LavalandMiningMagmiteAccelerator
-  productEntity: WeaponMagmiteAccelerator
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 1750
+# - type: listing
+  # id: LavalandMiningMagmiteAccelerator
+  # productEntity: WeaponMagmiteAccelerator
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 1750
 
-- type: listing
-  id: LavalandMiningWeaponMagmiteCrusher
-  productEntity: WeaponMagmiteCrusher
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 1750
+# - type: listing
+  # id: LavalandMiningWeaponMagmiteCrusher
+  # productEntity: WeaponMagmiteCrusher
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 1750
 
-- type: listing
-  id: LavalandMiningWeaponMagmiteCrusherGlaive
-  productEntity: WeaponMagmiteCrusherGlaive
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 1750
+# - type: listing
+  # id: LavalandMiningWeaponMagmiteCrusherGlaive
+  # productEntity: WeaponMagmiteCrusherGlaive
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 1750
 
 - type: listing
   id: LavalandMiningPKAUpgradeDamage
@@ -478,53 +478,53 @@
 
 # Детали
 
-- type: listing
-  id: LavalandDetailsPlastineOfSalvageAdvancedRIG
-  productEntity: PlastineOfSalvageAdvancedRIG
-  categories:
-  - LavalandMiningDetails
-  cost:
-    LavalandMiningPoint: 1125
+# - type: listing
+  # id: LavalandDetailsPlastineOfSalvageAdvancedRIG
+  # productEntity: PlastineOfSalvageAdvancedRIG
+  # categories:
+  # - LavalandMiningDetails
+  # cost:
+    # LavalandMiningPoint: 1125
 
-- type: listing
-  id: LavalandDetailsClothingHeadHelmetRIGSalvageAdvanced
-  productEntity: ClothingHeadHelmetRIGSalvageAdvanced
-  categories:
-  - LavalandMiningDetails
-  cost:
-    LavalandMiningPoint: 1000
+# - type: listing
+  # id: LavalandDetailsClothingHeadHelmetRIGSalvageAdvanced
+  # productEntity: ClothingHeadHelmetRIGSalvageAdvanced
+  # categories:
+  # - LavalandMiningDetails
+  # cost:
+    # LavalandMiningPoint: 1000
 
-- type: listing
-  id: LavalandDetailsSpeedModifierModuleSalvageAdvanced
-  productEntity: SpeedModifierModuleSalvageAdvanced
-  categories:
-  - LavalandMiningDetails
-  cost:
-    LavalandMiningPoint: 850
+# - type: listing
+  # id: LavalandDetailsSpeedModifierModuleSalvageAdvanced
+  # productEntity: SpeedModifierModuleSalvageAdvanced
+  # categories:
+  # - LavalandMiningDetails
+  # cost:
+    # LavalandMiningPoint: 850
 
-- type: listing
-  id: LavalandDetailsBlueprintRIGSalvageAdvancedOneUse
-  productEntity: BlueprintRIGSalvageAdvancedOneUse
-  categories:
-  - LavalandMiningDetails
-  cost:
-    LavalandMiningPoint: 750
+# - type: listing
+  # id: LavalandDetailsBlueprintRIGSalvageAdvancedOneUse
+  # productEntity: BlueprintRIGSalvageAdvancedOneUse
+  # categories:
+  # - LavalandMiningDetails
+  # cost:
+    # LavalandMiningPoint: 750
 
-- type: listing
-  id: LavalandDetailsBlueprintRIGSalvageAdvancedThreeUse
-  productEntity: BlueprintRIGSalvageAdvancedThreeUse
-  categories:
-  - LavalandMiningDetails
-  cost:
-    LavalandMiningPoint: 1000
+# - type: listing
+  # id: LavalandDetailsBlueprintRIGSalvageAdvancedThreeUse
+  # productEntity: BlueprintRIGSalvageAdvancedThreeUse
+  # categories:
+  # - LavalandMiningDetails
+  # cost:
+    # LavalandMiningPoint: 1000
 
-- type: listing
-  id: LavalandDetailsBlueprintRIGSalvageAdvancedInfinite
-  productEntity: BlueprintRIGSalvageAdvancedInfinite
-  categories:
-  - LavalandMiningDetails
-  cost:
-    LavalandMiningPoint: 1600
+# - type: listing
+  # id: LavalandDetailsBlueprintRIGSalvageAdvancedInfinite
+  # productEntity: BlueprintRIGSalvageAdvancedInfinite
+  # categories:
+  # - LavalandMiningDetails
+  # cost:
+    # LavalandMiningPoint: 1600
 
 # Контра
 
@@ -576,15 +576,15 @@
   cost:
     LavalandMiningPoint: 250
 
-- type: listing
-  id: LavalandMiningBoxLethalshotMagnum
-  name: магнум картечь (12х70)
-  description: Патрон что может снести посёлок городского типа за 1 выстрел.
-  productEntity: BoxLethalshotMagnum
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 550
+# - type: listing
+  # id: LavalandMiningBoxLethalshotMagnum
+  # name: магнум картечь (12х70)
+  # description: Патрон что может снести посёлок городского типа за 1 выстрел.
+  # productEntity: BoxLethalshotMagnum
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 550
 
 - type: listing
   id: LavalandMiningCigPackSyndicate
@@ -594,61 +594,61 @@
   cost:
     LavalandMiningPoint: 600
 
-- type: listing
-  id: LavalandMiningADTClothingShoesBootsMagAdvSynd
-  productEntity: ADTClothingShoesBootsMagAdvSynd
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 950
+# - type: listing
+  # id: LavalandMiningADTClothingShoesBootsMagAdvSynd
+  # productEntity: ADTClothingShoesBootsMagAdvSynd
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 950
 
-- type: listing
-  id: LavalandMiningPlastineOfOtherHardsuit
-  productEntity: PlastineOfOtherHardsuit
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 1250
+# - type: listing
+  # id: LavalandMiningPlastineOfOtherHardsuit
+  # productEntity: PlastineOfOtherHardsuit
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 1250
 
-- type: listing
-  id: LavalandMiningClothingHeadHelmetRIGNukeOps
-  productEntity: ClothingHeadHelmetRIGNukeOps
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 1150
+# - type: listing
+  # id: LavalandMiningClothingHeadHelmetRIGNukeOps
+  # productEntity: ClothingHeadHelmetRIGNukeOps
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 1150
 
-- type: listing
-  id: LavalandMiningClothingHeadHelmetRIGNukeOpsElite
-  productEntity: ClothingHeadHelmetRIGNukeOpsElite
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 1350
+# - type: listing
+  # id: LavalandMiningClothingHeadHelmetRIGNukeOpsElite
+  # productEntity: ClothingHeadHelmetRIGNukeOpsElite
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 1350
 
-- type: listing
-  id: LavalandMiningBlueprintRIGRIGNukeOpsEliteOneUse
-  productEntity: BlueprintRIGRIGNukeOpsEliteOneUse
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 1760
+# - type: listing
+  # id: LavalandMiningBlueprintRIGRIGNukeOpsEliteOneUse
+  # productEntity: BlueprintRIGRIGNukeOpsEliteOneUse
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 1760
 
-- type: listing
-  id: LavalandMiningBlueprintRIGRIGNukeOpsOneUse
-  productEntity: BlueprintRIGRIGNukeOpsOneUse
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 1350
+# - type: listing
+  # id: LavalandMiningBlueprintRIGRIGNukeOpsOneUse
+  # productEntity: BlueprintRIGRIGNukeOpsOneUse
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 1350
 
-- type: listing
-  id: LavalandMiningHyperCoreForModifiedBackpack
-  productEntity: HyperCoreForModifiedBackpack
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 850
+# - type: listing
+  # id: LavalandMiningHyperCoreForModifiedBackpack
+  # productEntity: HyperCoreForModifiedBackpack
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 850
 
 - type: listing
   id: LavalandMiningC4
@@ -660,10 +660,10 @@
   cost:
     LavalandMiningPoint: 1500
 
-- type: listing
-  id: LavalandMiningAutosurgeonRevive
-  productEntity: AutosurgeonRevive
-  categories:
-  - LavalandMiningContraband
-  cost:
-    LavalandMiningPoint: 1250
+# - type: listing
+  # id: LavalandMiningAutosurgeonRevive
+  # productEntity: AutosurgeonRevive
+  # categories:
+  # - LavalandMiningContraband
+  # cost:
+    # LavalandMiningPoint: 1250
