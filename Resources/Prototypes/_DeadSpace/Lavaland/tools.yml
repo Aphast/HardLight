@@ -445,12 +445,9 @@
   description: Создает короткий крестообразный взрыв в указанной точке.
   categories: [ HideSpawnMenu ]
   components:
-  - type: Action
-    useDelay: 8
-  - type: TargetAction
-    range: 8
-    checkCanAccess: false
   - type: WorldTargetAction
+    useDelay: 8
+    range: 8
     event: !type:LavalandHierophantStaffCrossActionEvent
       telegraphPrototype: LavalandHierophantTelegraphCardinal
 
@@ -461,12 +458,9 @@
   description: Выпускает расходящуюся квадратную волну вокруг указанной точки.
   categories: [ HideSpawnMenu ]
   components:
-  - type: Action
-    useDelay: 11
-  - type: TargetAction
-    range: 7
-    checkCanAccess: false
   - type: WorldTargetAction
+    useDelay: 11
+    range: 7
     event: !type:LavalandHierophantStaffBurstActionEvent
 
 - type: entity
@@ -476,12 +470,9 @@
   description: Телепортирует в ближайшую точку и вызывает взрывы вокруг старой и новой позиции.
   categories: [ HideSpawnMenu ]
   components:
-  - type: Action
-    useDelay: 14
-  - type: TargetAction
-    range: 9
-    checkCanAccess: false
   - type: WorldTargetAction
+    useDelay: 14
+    range: 9
     event: !type:LavalandHierophantStaffBlinkActionEvent
 
 - type: entity
@@ -491,12 +482,9 @@
   description: Отправляет короткую линию взрывов к выбранному существу.
   categories: [ HideSpawnMenu ]
   components:
-  - type: Action
-    useDelay: 12
-  - type: TargetAction
-    range: 8
-    checkCanAccess: false
   - type: EntityTargetAction
+    useDelay: 12
+    range: 8
     canTargetSelf: false
     whitelist:
       components:

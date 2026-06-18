@@ -417,7 +417,7 @@
       children:
       - id: ClothingOuterHardsuitERTSecurity
       - id: MedkitCombatFilled
-      - id: ClothingEyesHudAdvanced
+      #- id: ClothingEyesHudAdvanced
       - id: ClothingMaskBreath
       - id: DoubleEmergencyOxygenTankFilled
 
@@ -444,14 +444,16 @@
       children:
       - id: WeaponShotgunBulldog
       - id: MagazineShotgun
-        amount: 3
+        amount: !type:ConstantNumberSelector
+          value: 3
       - id: MagazineShotgunSlug
     - !type:AllSelector
       weight: 0.8
       children:
       - id: WeaponRifleAk
       - id: MagazineLightRifle
-        amount: 4
+        amount: !type:ConstantNumberSelector
+          value: 3
     - !type:AllSelector
       weight: 0.55
       children:
@@ -543,7 +545,8 @@
       children:
       - id: RadioJammer
       - id: EmpGrenade
-        amount: 2
+        amount: !type:ConstantNumberSelector
+          value: 3
       - id: EmpImplanter
     - !type:AllSelector
       weight: 0.45

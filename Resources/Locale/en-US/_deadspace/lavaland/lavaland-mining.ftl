@@ -16,7 +16,7 @@ lavaland-mining-shop-wrong-card = The machine rejects the card.
 lavaland-mining-shop-wrong-voucher = The machine rejects the voucher.
 lavaland-mining-shop-card-inserted = The card is accepted.
 lavaland-mining-shop-emagged = The vendor unlocks a hidden stock list.
-
+stack-watcher-sinew = Watcher Sinew
 lavaland-mining-voucher-examine = Use it on a mining equipment vendor to pick one starter kit.
 lavaland-mining-voucher-examine-reward = - {$reward}
 lavaland-mining-voucher-redeemed = The vendor dispenses the {$reward}.

@@ -28,12 +28,12 @@
   - LavalandOreSalt
   - LavalandOreSilver
   - LavalandOreGold
-  - LavalandOreMagmite
+  #- LavalandOreMagmite
   - LavalandOreUranium
   - LavalandOreBananium
   - LavalandOreArtifactFragment
   - LavalandOreDiamond
-  - LavalandOreBluespaceCrystal
+  #- LavalandOreBluespaceCrystal
   - LavalandChasms
   - LavalandChasmsMedium
   - LavalandChasmsLarge
