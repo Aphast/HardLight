@@ -234,16 +234,16 @@
     lifetime: 1.25
 
 - type: entity
-  parent: [ BaseMobAsteroid, BaseMobLavalandFauna ]
+  parent: BaseMobAsteroid
   id: MobLavalandHierophant
   name: Иерофант
   description: Массивная машина, покрытая пульсирующими квадратными узорами.
   suffix: Lavaland, Boss
   categories: [ HideSpawnMenu ]
   components:
-  - type: IgnoreKudzu
+  #- type: IgnoreKudzu
   - type: Insulated
-  - type: StunImmune
+  #- type: StunImmune
   - type: Sprite
     drawdepth: Mobs
     scale: 1.2, 1.2
@@ -262,16 +262,16 @@
         damage: 1000000
       behaviors:
       - !type:GibBehavior { }
-  - type: LavalandBoss
-    bossName: Иерофант
-    maxHealth: 2500
-    music: /Audio/_DeadSpace/Lavaland/Bosses/title1.ogg
-    deathSound: /Audio/_DeadSpace/Lavaland/Hierophant/repulse.ogg
-    deathRewards:
-    - LavalandNecropolisChest
-    - LavalandNecropolisChest
-    - LavalandHierophantStaff
-  - type: LavalandHierophant
+  # - type: LavalandBoss
+    # bossName: Иерофант
+    # maxHealth: 2500
+    # music: /Audio/_DeadSpace/Lavaland/Bosses/title1.ogg
+    # deathSound: /Audio/_DeadSpace/Lavaland/Hierophant/repulse.ogg
+    # deathRewards:
+    # - LavalandNecropolisChest
+    # - LavalandNecropolisChest
+    # - LavalandHierophantStaff
+  #- type: LavalandHierophant
   - type: NpcFactionMember
     factions:
     - SimpleHostile
@@ -456,16 +456,16 @@
     color: "#ff4f2d"
 
 - type: entity
-  parent: [ BaseMobAsteroid, BaseMobLavalandFauna ]
+  parent: BaseMobAsteroid
   id: MobLavalandAshDrake
   name: пепельный дракон
   description: Огромный крылатый хранитель некрополя.
   suffix: Lavaland, Boss
   categories: [ HideSpawnMenu ]
   components:
-  - type: IgnoreKudzu
+  #- type: IgnoreKudzu
   - type: Insulated
-  - type: StunImmune
+  #- type: StunImmune
   - type: Sprite
     drawdepth: Mobs
     sprite: _DeadSpace/Lavaland/Mobs/AshDrake.rsi
@@ -493,18 +493,18 @@
         damage: 1000000
       behaviors:
       - !type:GibBehavior { }
-  - type: LavalandBoss
-    bossName: пепельный дракон
-    maxHealth: 2500
-    music: /Audio/_DeadSpace/Lavaland/Bosses/drake_fight.ogg
-    deathSound: /Audio/_DeadSpace/Lavaland/AshDrake/demon_dies.ogg
-    deathRewards:
-    - LavalandNecropolisChest
-    - LavalandNecropolisChest
-    - LavalandSpectralBlade
-    - LavalandFireStaff
-    - LavalandAshDrakeFireballSpellbookDrop
-  - type: LavalandAshDrake
+  # - type: LavalandBoss
+    # bossName: пепельный дракон
+    # maxHealth: 2500
+    # music: /Audio/_DeadSpace/Lavaland/Bosses/drake_fight.ogg
+    # deathSound: /Audio/_DeadSpace/Lavaland/AshDrake/demon_dies.ogg
+    # deathRewards:
+    # - LavalandNecropolisChest
+    # - LavalandNecropolisChest
+    # - LavalandSpectralBlade
+    # - LavalandFireStaff
+    # - LavalandAshDrakeFireballSpellbookDrop
+  #- type: LavalandAshDrake
   - type: NpcFactionMember
     factions:
     - SimpleHostile
@@ -801,16 +801,16 @@
     lifetime: 1.2
 
 - type: entity
-  parent: [ BaseMobAsteroid, BaseMobLavalandFauna ]
+  parent: BaseMobAsteroid
   id: MobLavalandBubblegum
   name: баблгам
   description: Король демонов резни, оставляющий за собой следы густой крови.
   suffix: Lavaland, Boss
   categories: [ HideSpawnMenu ]
   components:
-  - type: IgnoreKudzu
+  #- type: IgnoreKudzu
   - type: Insulated
-  - type: StunImmune
+  #- type: StunImmune
   - type: Sprite
     drawdepth: Mobs
     sprite: _DeadSpace/Lavaland/Mobs/Bubblegum.rsi
@@ -828,17 +828,17 @@
         damage: 1000000
       behaviors:
       - !type:GibBehavior { }
-  - type: LavalandBoss
-    bossName: баблгам
-    maxHealth: 2500
-    music: /Audio/_DeadSpace/Lavaland/Bosses/bubblegum_fight.ogg
-    deathSound: /Audio/_DeadSpace/Lavaland/Bubblegum/enter_blood.ogg
-    deathRewards:
-    - LavalandNecropolisChest
-    - LavalandNecropolisChest
-    - LavalandSpellBlade
-    - EnergyShield
-  - type: LavalandBubblegum
+  # - type: LavalandBoss
+    # bossName: баблгам
+    # maxHealth: 2500
+    # music: /Audio/_DeadSpace/Lavaland/Bosses/bubblegum_fight.ogg
+    # deathSound: /Audio/_DeadSpace/Lavaland/Bubblegum/enter_blood.ogg
+    # deathRewards:
+    # - LavalandNecropolisChest
+    # - LavalandNecropolisChest
+    # - LavalandSpellBlade
+    # - EnergyShield
+  #- type: LavalandBubblegum
   - type: NpcFactionMember
     factions:
     - SimpleHostile
@@ -883,7 +883,7 @@
     - CannotSuicide
 
 - type: entity
-  parent: [ BaseMobAsteroid, FlyingMobBase, BaseMobLavalandFauna ]
+  parent: [ BaseMobAsteroid, FlyingMobBase ]
   id: MobLavalandBubblegumSlaughterling
   name: slaughterling
   description: A half-formed demon crawling out of Bubblegum's blood.

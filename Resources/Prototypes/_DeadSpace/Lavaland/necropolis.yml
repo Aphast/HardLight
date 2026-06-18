@@ -1,106 +1,106 @@
-- type: entity
-  parent: BaseStructure
-  id: LavalandNecropolisTendrilBase
-  name: necropolis tendril
-  description: A pulsing organic growth that keeps drawing hostile life from below.
-  abstract: true
-  placement:
-    mode: SnapgridCenter
-    snap:
-    - Wall
-  components:
-  - type: Transform
-    anchored: true
-    noRot: true
-  - type: Sprite
-    noRot: true
-    drawdepth: Mobs
-    sprite: _DeadSpace/Lavaland/Structures/NecropolisTendril.rsi
-    layers:
-    - state: tendril
-  - type: Icon
-    sprite: _DeadSpace/Lavaland/Structures/NecropolisTendril.rsi
-    state: tendril
-  - type: Damageable
-    damageContainer: Biological
-    damageModifierSet: Web
-  - type: Destructible
-    thresholds:
-    - trigger:
-        !type:DamageTrigger
-        damage: 250
-      behaviors:
-      - !type:DoActsBehavior
-        acts: [ "Destruction" ]
-  - type: LavalandNecropolisTendril
-  - type: PointLight
-    radius: 2
-    energy: 2
-    color: "#9b2e2e"
-  - type: Fixtures
-    fixtures:
-      fix1:
-        shape:
-          !type:PhysShapeAabb
-          bounds: "-0.4,-0.4,0.4,0.4"
-        density: 120
-        mask:
-        - MachineMask
-        layer:
-        - MidImpassable
-        - LowImpassable
-  - type: Tag
-    tags:
-    - Structure
-  - type: RequireProjectileTarget
+# - type: entity
+  # parent: BaseStructure
+  # id: LavalandNecropolisTendrilBase
+  # name: necropolis tendril
+  # description: A pulsing organic growth that keeps drawing hostile life from below.
+  # abstract: true
+  # placement:
+    # mode: SnapgridCenter
+    # snap:
+    # - Wall
+  # components:
+  # - type: Transform
+    # anchored: true
+    # noRot: true
+  # - type: Sprite
+    # noRot: true
+    # drawdepth: Mobs
+    # sprite: _DeadSpace/Lavaland/Structures/NecropolisTendril.rsi
+    # layers:
+    # - state: tendril
+  # - type: Icon
+    # sprite: _DeadSpace/Lavaland/Structures/NecropolisTendril.rsi
+    # state: tendril
+  # - type: Damageable
+    # damageContainer: Biological
+    # damageModifierSet: Web
+  # - type: Destructible
+    # thresholds:
+    # - trigger:
+        # !type:DamageTrigger
+        # damage: 250
+      # behaviors:
+      # - !type:DoActsBehavior
+        # acts: [ "Destruction" ]
+  # - type: LavalandNecropolisTendril
+  # - type: PointLight
+    # radius: 2
+    # energy: 2
+    # color: "#9b2e2e"
+  # - type: Fixtures
+    # fixtures:
+      # fix1:
+        # shape:
+          # !type:PhysShapeAabb
+          # bounds: "-0.4,-0.4,0.4,0.4"
+        # density: 120
+        # mask:
+        # - MachineMask
+        # layer:
+        # - MidImpassable
+        # - LowImpassable
+  # - type: Tag
+    # tags:
+    # - Structure
+  # - type: RequireProjectileTarget
 
-- type: entity
-  parent: LavalandNecropolisTendrilBase
-  id: LavalandNecropolisTendrilWatcher
-  suffix: Lavaland, Watcher
-  components:
-  - type: LavalandNecropolisTendril
-    spawnPrototypes:
-    - MobWatcherLavaland
+# - type: entity
+  # parent: LavalandNecropolisTendrilBase
+  # id: LavalandNecropolisTendrilWatcher
+  # suffix: Lavaland, Watcher
+  # components:
+  # - type: LavalandNecropolisTendril
+    # spawnPrototypes:
+    # - MobWatcherLavaland
 
-- type: entity
-  parent: LavalandNecropolisTendrilBase
-  id: LavalandNecropolisTendrilGoliath
-  suffix: Lavaland, Goliath
-  components:
-  - type: LavalandNecropolisTendril
-    spawnPrototypes:
-    - MobLavalandGoliath
+# - type: entity
+  # parent: LavalandNecropolisTendrilBase
+  # id: LavalandNecropolisTendrilGoliath
+  # suffix: Lavaland, Goliath
+  # components:
+  # - type: LavalandNecropolisTendril
+    # spawnPrototypes:
+    # - MobLavalandGoliath
 
-- type: entity
-  parent: LavalandNecropolisTendrilBase
-  id: LavalandNecropolisTendrilLegion
-  suffix: Lavaland, Legion
-  components:
-  - type: LavalandNecropolisTendril
-    spawnPrototypes:
-    - MobLavalandLegion
+# - type: entity
+  # parent: LavalandNecropolisTendrilBase
+  # id: LavalandNecropolisTendrilLegion
+  # suffix: Lavaland, Legion
+  # components:
+  # - type: LavalandNecropolisTendril
+    # spawnPrototypes:
+    # - MobLavalandLegion
 
-- type: entity
-  id: LavalandNecropolisTendrilCollapse
-  name: collapsing ground
-  description: The ground is shaking violently.
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: Transform
-    anchored: true
-  - type: Sprite
-    noRot: true
-    drawdepth: Effects
-    sprite: Effects/chronofield.rsi
-    layers:
-    - state: chronofield
-      color: "#6b1e1e"
-  - type: PointLight
-    radius: 2
-    energy: 1.5
-    color: "#d0472f"
-  - type: LavalandTendrilCollapse
+# - type: entity
+  # id: LavalandNecropolisTendrilCollapse
+  # name: collapsing ground
+  # description: The ground is shaking violently.
+  # categories: [ HideSpawnMenu ]
+  # components:
+  # - type: Transform
+    # anchored: true
+  # - type: Sprite
+    # noRot: true
+    # drawdepth: Effects
+    # sprite: Effects/chronofield.rsi
+    # layers:
+    # - state: chronofield
+      # color: "#6b1e1e"
+  # - type: PointLight
+    # radius: 2
+    # energy: 1.5
+    # color: "#d0472f"
+  # - type: LavalandTendrilCollapse
 
 - type: entity
   parent: CrateGeneric

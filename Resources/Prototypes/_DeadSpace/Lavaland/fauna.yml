@@ -1,63 +1,36 @@
 - type: entity
   id: BaseMobLavalandFauna
   abstract: true
-  components:
-  - type: LavalandWeatherImmune
-  - type: LavalandChasmImmune
-  - type: PressureImmunity
-  - type: Flammable
-    maximumFireStacks: 0
-    firestacksOnIgnite: 0
-    fireSpread: false
-    canResistFire: false
-    damage:
-      types: {}
-  - type: TemperatureDamage
-    heatDamageThreshold: 100000
-    coldDamageThreshold: -1
-    heatDamage:
-      types: {}
-    coldDamage:
-      types: {}
+#  components:
+#  - type: LavalandWeatherImmune
+ # - type: LavalandChasmImmune
+#  - type: PressureImmunity
+#  - type: Flammable
+#    maximumFireStacks: 0
+#    firestacksOnIgnite: 0
+#    fireSpread: false
+#    canResistFire: false
+#    damage:
+#      types: {}
+#  - type: TemperatureDamage
+#    heatDamageThreshold: 100000
+#    coldDamageThreshold: -1
+#    heatDamage:
+#      types: {}
+#    coldDamage:
+#      types: {}
 
 - type: entity
   id: MobLavalandGoliath
-  parent: [ MobGoliath, BaseMobLavalandFauna ]
+  parent: MobGoliath
   suffix: Lavaland
   components:
   - type: Sprite
     sprite: _DeadSpace/Lavaland/Mobs/lavaland_monsters.rsi
 
-# - type: entity
-  # id: MobLavalandBasilisk
-  # parent:  BaseMobLavalandFauna 
-  # suffix: Lavaland
-  # components:
-  # - type: MobThresholds
-    # thresholds:
-      # 0: Alive
-      # 150: Dead
-  # - type: MovementSpeedModifier
-    # baseWalkSpeed: 2.1
-    # baseSprintSpeed: 3.1
-  # - type: MeleeWeapon
-    # angle: 0
-    # animation: WeaponArcBite
-    # soundHit:
-      # path: /Audio/Effects/bite.ogg
-    # damage:
-      # types:
-        # Slash: 10
-        # Piercing: 8
-  # - type: Butcherable
-    # spawned:
-    # - id: DiamondOre1
-      # amount: 2
-      # maxAmount: 4
-
 - type: entity
   id: MobLavalandGoldgrub
-  parent: [ BaseMobAsteroid, BaseMobLavalandFauna ]
+  parent: BaseMobAsteroid
   name: goldgrub
   description: A skittish ore-fed grub with a hoard of valuable minerals in its gut.
   suffix: Lavaland
@@ -77,7 +50,7 @@
   - type: MovementSpeedModifier
     baseWalkSpeed: 2.4
     baseSprintSpeed: 3.4
-  - type: LavalandGoldgrub
+  #- type: LavalandGoldgrub
   - type: MobThresholds
     thresholds:
       0: Alive
@@ -92,7 +65,7 @@
 
 - type: entity
   id: MobLavalandHivelord
-  parent: [ MobHivelord, BaseMobLavalandFauna ]
+  parent: MobHivelord
   suffix: Lavaland
   components:
   - type: Sprite
@@ -104,7 +77,7 @@
 
 - type: entity
   id: MobLavalandHivelordBrood
-  parent: [ MobHivelordBrood, BaseMobLavalandFauna ]
+  parent: MobHivelordBrood
   suffix: Lavaland
   components:
   - type: Sprite
@@ -112,7 +85,7 @@
 
 - type: entity
   id: MobLavalandLegion
-  parent: [ BaseMobAsteroid, MobBloodstream, BaseMobLavalandFauna ]
+  parent: [ BaseMobAsteroid, MobBloodstream ]
   name: legion
   description: You can still see what was once human under the shifting mass of corruption.
   components:
@@ -131,8 +104,8 @@
   - type: MovementSpeedModifier
     baseWalkSpeed: 2.2
     baseSprintSpeed: 2.6
-  - type: LavalandLegion
-    maxActiveHeads: 2
+  #- type: LavalandLegion
+  #  maxActiveHeads: 2
   - type: MobThresholds
     thresholds:
       0: Alive
@@ -197,7 +170,7 @@
 
 - type: entity
   id: MobLavalandLegionHead
-  parent: [ BaseMobAsteroid, FlyingMobBase, BaseMobLavalandFauna ]
+  parent: [ BaseMobAsteroid, FlyingMobBase ]
   name: legion head
   description: One of many.
   components:
@@ -216,7 +189,7 @@
   - type: MovementSpeedModifier
     baseWalkSpeed: 4
     baseSprintSpeed: 4.5
-  - type: LavalandLegionHead
+  #- type: LavalandLegionHead
   - type: MobThresholds
     thresholds:
       0: Alive

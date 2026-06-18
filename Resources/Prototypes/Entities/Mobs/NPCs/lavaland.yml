@@ -1,17 +1,17 @@
 - type: entity
   name: watcher
   id: MobWatcherBase
-  parent: [ SimpleSpaceMobBase, FlyingMobBase, BaseMobLavalandFauna ]
+  parent: [ SimpleSpaceMobBase, FlyingMobBase ]
   abstract: true
   description: It's like it's staring right through you.
   components:
-  - type: Flammable
-    maximumFireStacks: 0
-    firestacksOnIgnite: 0
-    fireSpread: false
-    canResistFire: false
-    damage:
-      types: {}
+  #- type: Flammable
+  #  maximumFireStacks: 0
+  #  firestacksOnIgnite: 0
+  #  fireSpread: false
+  #  canResistFire: false
+  #  damage:
+  #    types: {}
   - type: NpcFactionMember
     factions:
     - SimpleHostile
@@ -68,7 +68,6 @@
     - id: PKAUpgradeRange
       prob: 0.05
   - type: MovementSpeedModifier
-
     baseWalkSpeed: 3
     baseSprintSpeed: 3.5
   - type: MeleeWeapon
