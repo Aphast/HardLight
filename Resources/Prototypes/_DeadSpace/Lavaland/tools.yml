@@ -217,7 +217,7 @@
       # - id: MineralScanner
 
 - type: entity
-  parent: [ BaseSword, BaseMajorContraband ]
+  parent: BaseSword
   id: LavalandSpectralBlade
   name: спектральный клинок
   description: Призрачный клинок с Некрополя. Почти бесполезен сам по себе, но становится сильнее, когда рядом есть мертвые гуманоиды или призванные духи.
@@ -255,7 +255,7 @@
   - type: DisarmMalus
 
 - type: entity
-  parent: [ BaseSword, BaseMajorContraband ]
+  parent: BaseSword
   id: LavalandSpellBlade
   name: клинок заклинаний
   description: Магический клинок, выпускающий разящие энергетические лезвия.
