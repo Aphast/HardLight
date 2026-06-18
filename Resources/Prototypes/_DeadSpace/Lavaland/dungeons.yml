@@ -2,75 +2,71 @@
   id: LavalandLavaBrig
   layers:
   - !type:PrefabDunGen
-    roomWhitelist:
-      tags:
-      - LavalandLavaBrig
+    # roomWhitelist:
+      # tags:
+      # - LavalandLavaBrig
     presets:
     - Bucket
     - Wow
     - SpaceShip
     - Tall
 
-  - !type:CorridorDunGen
-    width: 3
-    tile: FloorGrayConcrete
+  # - !type:CorridorDunGen
+    # width: 3
+    # tile: FloorGrayConcrete
 
-  - !type:DungeonEntranceDunGen
-    count: 2
-    tile: FloorGrayConcrete
-    contents: BaseAirlock
+  # - !type:DungeonEntranceDunGen
+    # count: 2
+    # tile: FloorGrayConcrete
+    # contents: BaseAirlock
 
-  - !type:RoomEntranceDunGen
-    tile: FloorGrayConcrete
-    contents: BaseAirlock
+  # - !type:RoomEntranceDunGen
+    # tile: FloorGrayConcrete
+    # contents: BaseAirlock
 
-  - !type:EntranceFlankDunGen
-    tile: FloorGrayConcrete
-    contents: BaseWindow
+  # - !type:EntranceFlankDunGen
+    # tile: FloorGrayConcrete
+    # contents: BaseWindow
 
-  - !type:ExternalWindowDunGen
-    tile: FloorGrayConcrete
-    contents: BaseWindow
+  # - !type:ExternalWindowDunGen
+    # tile: FloorGrayConcrete
+    # contents: BaseWindow
 
-  - !type:WallMountDunGen
-    contents: ScienceLabsWalls
-    tile: FloorGrayConcrete
+  # - !type:WallMountDunGen
+    # contents: ScienceLabsWalls
+    # tile: FloorGrayConcrete
 
-  - !type:BoundaryWallDunGen
-    wall: WallReinforcedSolidDark
-    cornerWall: WallReinforcedSolidDark
-    tile: FloorGrayConcrete
+  # - !type:BoundaryWallDunGen
+    # wall: WallReinforcedSolidDark
+    # cornerWall: WallReinforcedSolidDark
+    # tile: FloorGrayConcrete
 
-  - !type:CornerClutterDunGen
-    contents: BaseClutter
+  # - !type:CornerClutterDunGen
+    # contents: BaseClutter
 
-  - !type:MobsDunGen
-    minCount: 3
-    maxCount: 6
-    contents: LavalandLavaBrigMobs
+  # - !type:MobsDunGen
+    # minCount: 3
+    # maxCount: 6
+    # contents: LavalandLavaBrigMobs
 
   - !type:EntityTableDunGen
     minCount: 25
     maxCount: 40
-    perDungeon: true
     table: !type:NestedSelector
       tableId: SalvageScrapSpawnerCommon
   - !type:EntityTableDunGen
     minCount: 30
     maxCount: 40
-    perDungeon: true
     table: !type:NestedSelector
       tableId: SalvageScrapSpawnerValuable
   - !type:EntityTableDunGen
     minCount: 30
     maxCount: 45
-    perDungeon: true
     table: !type:NestedSelector
       tableId: SalvageTreasureSpawnerCommon
   - !type:EntityTableDunGen
     minCount: 30
     maxCount: 45    
-    perDungeon: true
     table: !type:NestedSelector
       tableId: SalvageTreasureSpawnerValuable
 
@@ -83,8 +79,8 @@
       weight: 8
     - id: MobLavalandHivelord
       weight: 6
-    - id: MobLavalandBasilisk
-      weight: 4
+    # - id: MobLavalandBasilisk
+      # weight: 4
     - id: MobLavalandGoliath
       weight: 3
     - id: MobWatcherMagmawing

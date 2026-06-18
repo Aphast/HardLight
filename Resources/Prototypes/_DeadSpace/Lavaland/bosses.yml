@@ -24,7 +24,7 @@
   id: FloorHierophantArena
   name: tiles-hierophant-arena-floor
   parent: FloorBasalt
-  weather: false
+  # weather: false
 
 - type: entity
   id: LavalandHierophantArenaLight
@@ -337,7 +337,7 @@
   id: FloorAshDrakeArena
   name: tiles-ash-drake-arena-floor
   parent: FloorBasalt
-  weather: false
+  # weather: false
 
 - type: entity
   parent: WallRockBasaltLavalandBoundary
@@ -585,7 +585,7 @@
   id: FloorBubblegumArena
   name: tiles-bubblegum-arena-floor
   parent: FloorBasalt
-  weather: false
+  # weather: false
 
 - type: entity
   parent: WallRockBasaltLavalandBoundary

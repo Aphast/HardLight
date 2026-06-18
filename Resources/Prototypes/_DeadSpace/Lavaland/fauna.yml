@@ -140,7 +140,7 @@
     - Dead
   - type: SpawnOnTrigger
     proto: MobLavalandLegionHead
-    useMapCoords: true
+    # useMapCoords: true
   - type: NpcFactionMember
     factions:
     - SimpleHostile

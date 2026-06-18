@@ -174,8 +174,8 @@
       weight: 1.1
     - id: WeaponWandPolymorphDoor
       weight: 1
-    - id: WeaponWandDeath
-      weight: 0.1
+    # - id: WeaponWandDeath
+      # weight: 0.1
     - id: WizardTeleportScroll
       weight: 0.8
     - id: BlinkBook
@@ -213,11 +213,6 @@
       weight: 0.7
     - id: ComplexXenoArtifactItem
       weight: 0.4
-    - !type:AllSelector
-      weight: 0.6
-      children:
-      - id: SheetMagmite10
-      - id: SheetBluespaceCrystal10
     - id: AnomalyCorePyroclastic
       weight: 0.6
     - id: AnomalyCoreGravity
@@ -236,8 +231,8 @@
       weight: 0.5
     - id: AnomalyCoreFlora
       weight: 0.5
-    - id: AnomalyCoreNecro
-      weight: 0.35
+    # - id: AnomalyCoreNecro
+      # weight: 0.35
     - id: AnomalyCoreShadow
       weight: 0.45
     - id: AnomalyCoreTech
@@ -291,14 +286,14 @@
       weight: 0.7
     - id: SyndicateJawsOfLife
       weight: 1
-    - id: OmnitoolSyndicate
-      weight: 0.9
-    - id: BluespaceHandHeldMassScanner
-      weight: 0.8
+    # - id: OmnitoolSyndicate
+      # weight: 0.9
+    # - id: BluespaceHandHeldMassScanner
+      # weight: 0.8
     - id: BluespaceBeaker
       weight: 0.9
-    - id: BluespaceVial
-      weight: 0.7
+    # - id: BluespaceVial
+      # weight: 0.7
     - id: JetpackBlackFilled
       weight: 0.7
     - id: ClothingShoesBootsJump
@@ -307,8 +302,8 @@
       weight: 0.8
     - id: ClothingEyesHudOmni
       weight: 0.7
-    - id: ClothingEyesHudAdvanced
-      weight: 0.7
+    # - id: ClothingEyesHudAdvanced
+      # weight: 0.7
 
 - type: entityTable
   id: LavalandNecropolisChestMedicalLootTable
@@ -460,7 +455,7 @@
     - !type:AllSelector
       weight: 0.55
       children:
-      - id: WeaponRifleEstoc
+      # - id: WeaponRifleEstoc
       - id: MagazineRifle
         amount: 3
     - !type:AllSelector
@@ -547,7 +542,7 @@
     - !type:AllSelector
       weight: 0.45
       children:
-      - id: ClothingBackpackDuffelSyndicateFilledStarterKit
+      #- id: ClothingBackpackDuffelSyndicateFilledStarterKit
       - id: MedkitCombatFilled
     - id: ClothingBackpackDuffelSyndicateC4tBundle
       weight: 0.45

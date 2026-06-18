@@ -40,13 +40,13 @@
   cost:
     LavalandMiningPoint: 250
 
-- type: listing
-  id: LavalandMiningClothingEyesPNVAdv
-  productEntity: ClothingEyesPNVAdv
-  categories:
-  - LavalandMiningEquipment
-  cost:
-    LavalandMiningPoint: 650
+# - type: listing
+  # id: LavalandMiningClothingEyesPNVAdv
+  # productEntity: ClothingEyesPNVAdv
+  # categories:
+  # - LavalandMiningEquipment
+  # cost:
+    # LavalandMiningPoint: 650
 
 - type: listing
   id: LavalandMiningClothingShoesBootsMagBlinding
@@ -146,29 +146,29 @@
   cost:
     LavalandMiningPoint: 100
 
-- type: listing
-  id: LavalandMiningKineticAcceleratorRepeater
-  productEntity: WeaponProtoKineticAcceleratorReapeter
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 200
+# - type: listing
+  # id: LavalandMiningKineticAcceleratorRepeater
+  # productEntity: WeaponProtoKineticAcceleratorReapeter
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 200
 
-- type: listing
-  id: LavalandMiningKineticAcceleratorShotgun
-  productEntity: WeaponProtoKineticAcceleratorShotgun
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 250
+# - type: listing
+  # id: LavalandMiningKineticAcceleratorShotgun
+  # productEntity: WeaponProtoKineticAcceleratorShotgun
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 250
 
-- type: listing
-  id: LavalandMiningSeniorKineticAccelerator
-  productEntity: WeaponSeniorKinetik
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 400
+# - type: listing
+  # id: LavalandMiningSeniorKineticAccelerator
+  # productEntity: WeaponSeniorKinetik
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 400
 
 - type: listing
   id: LavalandMiningMagmiteAccelerator

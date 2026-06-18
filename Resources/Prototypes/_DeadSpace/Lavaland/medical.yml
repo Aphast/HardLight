@@ -42,9 +42,6 @@
   - type: Injector
     solutionName: pen
     currentTransferAmount: null
-    activeModeProtoId: HyposprayInjectMode
-    allowedModes:
-    - HyposprayInjectMode
   - type: SolutionContainerManager
     solutions:
       pen:

@@ -62,9 +62,9 @@
   - prototype: MobLavalandHivelord
     weight: 18
     maxCount: 46
-  - prototype: MobLavalandBasilisk
-    weight: 14
-    maxCount: 36
+  # - prototype: MobLavalandBasilisk
+    # weight: 14
+    # maxCount: 36
   - prototype: MobLavalandGoliath
     weight: 11
     maxCount: 28

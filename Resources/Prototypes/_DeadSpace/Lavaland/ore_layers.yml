@@ -65,14 +65,14 @@
   maxGroupSize: 8
   radius: 4
 
-- type: biomeMarkerLayer
-  id: LavalandOreMagmite
-  entityMask:
-    WallRockBasalt: WallRockBasaltMagmite
-  maxCount: 10
-  minGroupSize: 3
-  maxGroupSize: 6
-  radius: 4
+# - type: biomeMarkerLayer
+  # id: LavalandOreMagmite
+  # entityMask:
+    # WallRockBasalt: WallRockBasaltMagmite
+  # maxCount: 10
+  # minGroupSize: 3
+  # maxGroupSize: 6
+  # radius: 4
 
 - type: biomeMarkerLayer
   id: LavalandOreUranium
@@ -110,14 +110,14 @@
   maxGroupSize: 2
   radius: 4
 
-- type: biomeMarkerLayer
-  id: LavalandOreBluespaceCrystal
-  entityMask:
-    WallRockBasalt: WallRockBasaltBluespaceCrystal
-  maxCount: 18
-  minGroupSize: 1
-  maxGroupSize: 2
-  radius: 4
+# - type: biomeMarkerLayer
+  # id: LavalandOreBluespaceCrystal
+  # entityMask:
+    # WallRockBasalt: WallRockBasaltBluespaceCrystal
+  # maxCount: 18
+  # minGroupSize: 1
+  # maxGroupSize: 2
+  # radius: 4
 
 # Chasms are split into several sparse layers so Lavaland gets readable hazards
 # instead of only tiny single holes or too many constant obstacles.
