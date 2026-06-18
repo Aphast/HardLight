@@ -102,6 +102,7 @@
     - id: Abyssvents
     - id: glimmervents
     - id: HostileLizardVents
+    - id: Lavavents
     # - id: GiftsEngineering
     # - id: GiftsFireProtection
     # - id: GiftsJanitor
@@ -2551,7 +2552,6 @@
       - id: LavaTalon
       - id: MobGoliath
       - id: MobHivelord
-      - ic: MobHivelordBrood
       - id: MobLavalandGoliath
       - id: MobLavalandGoldgrub
       - ic: MobLavalandHivelord
