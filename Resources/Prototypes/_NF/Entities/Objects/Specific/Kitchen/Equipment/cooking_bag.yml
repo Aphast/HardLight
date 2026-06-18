@@ -7,7 +7,7 @@
   - type: Sprite
     sprite: _NF/Objects/Specific/Kitchen/Equipment/cooking_bag.rsi
   - type: Item
-    size: Ginormous
+    size: Huge
   - type: Clothing
     quickEquip: false
     slots:

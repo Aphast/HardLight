@@ -461,7 +461,7 @@
       steps:
       - tool: Rolling
         doAfter: 2
-- node: cluwnebackpack
+  - node: cluwnebackpack
     entity: ClothingBackpackCluwne
     edges:
     - to: cluwnebackpackfolded
