@@ -1,49 +1,49 @@
-- type: entity
-  parent: BaseItem
-  id: LavalandResonator
-  name: резонатор
-  description: Устройство, создающее резонансные поля для подрыва породы. Иногда дестабилизирует рудные жилы, выбивая больше руды.
-  components:
-  - type: Sprite
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/resonator.rsi
-    state: icon
-  - type: Item
-    size: Normal
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/resonator.rsi
-    storedRotation: -45
-  - type: UseDelay
-    delay: 0.35
-  - type: LavalandResonator
-    maxFields: 4
-    shortBurstDelay: 1.8
-    longBurstDelay: 3
-    bonusYieldChance: 0.35
-    bonusYieldMultiplier: 2
+# - type: entity
+  # parent: BaseItem
+  # id: LavalandResonator
+  # name: резонатор
+  # description: Устройство, создающее резонансные поля для подрыва породы. Иногда дестабилизирует рудные жилы, выбивая больше руды.
+  # components:
+  # - type: Sprite
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/resonator.rsi
+    # state: icon
+  # - type: Item
+    # size: Normal
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/resonator.rsi
+    # storedRotation: -45
+  # - type: UseDelay
+    # delay: 0.35
+  # - type: LavalandResonator
+    # maxFields: 4
+    # shortBurstDelay: 1.8
+    # longBurstDelay: 3
+    # bonusYieldChance: 0.35
+    # bonusYieldMultiplier: 2
 
-- type: entity
-  parent: LavalandResonator
-  id: LavalandSuperResonator
-  name: супер резонатор
-  description: Улучшенная версия обычного резонатора, что взрывает чутка больше в объёме.
-  components:
-  - type: Sprite
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/super_resonator.rsi
-    state: icon
-  - type: Item
-    size: Normal
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/super_resonator.rsi
-    storedRotation: -45
-  - type: UseDelay
-    delay: 0.18
-  - type: LavalandResonator
-    maxFields: 6
-    shortBurstDelay: 0.75
-    longBurstDelay: 1.5
-    bonusYieldChance: 0
-    bonusYieldMultiplier: 1
-    burstProjectilePrototype: LavalandResonanceBolt
-    burstProjectileCount: 4
-    burstProjectileSpeed: 9
+# - type: entity
+  # parent: LavalandResonator
+  # id: LavalandSuperResonator
+  # name: супер резонатор
+  # description: Улучшенная версия обычного резонатора, что взрывает чутка больше в объёме.
+  # components:
+  # - type: Sprite
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/super_resonator.rsi
+    # state: icon
+  # - type: Item
+    # size: Normal
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/super_resonator.rsi
+    # storedRotation: -45
+  # - type: UseDelay
+    # delay: 0.18
+  # - type: LavalandResonator
+    # maxFields: 6
+    # shortBurstDelay: 0.75
+    # longBurstDelay: 1.5
+    # bonusYieldChance: 0
+    # bonusYieldMultiplier: 1
+    # burstProjectilePrototype: LavalandResonanceBolt
+    # burstProjectileCount: 4
+    # burstProjectileSpeed: 9
 
 - type: entity
   parent: Pickaxe
@@ -144,77 +144,77 @@
     delay: 2.5
   - type: LavalandSonicJackhammer
 
-- type: entity
-  parent: BaseItem
-  id: LavalandShelterCapsule
-  name: блюспейс капсула
-  description: Капсула что позволяет вам сделать маленькую избушку на курьих ножках, да бы спастись от бури.
-  components:
-  - type: Sprite
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/survival_capsule.rsi
-    state: icon
-  - type: Item
-    size: Small
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/survival_capsule.rsi
-  - type: UseDelay
-    delay: 1
-  - type: LavalandShelterCapsule
+# - type: entity
+  # parent: BaseItem
+  # id: LavalandShelterCapsule
+  # name: блюспейс капсула
+  # description: Капсула что позволяет вам сделать маленькую избушку на курьих ножках, да бы спастись от бури.
+  # components:
+  # - type: Sprite
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/survival_capsule.rsi
+    # state: icon
+  # - type: Item
+    # size: Small
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/survival_capsule.rsi
+  # - type: UseDelay
+    # delay: 1
+  # - type: LavalandShelterCapsule
 
-- type: entity
-  parent: BaseItem
-  id: LavalandWormholeJaunter
-  name: джаунтер
-  description: Устройство, способное спасти владельца от падения в пропасть. Должно быть в руке или надето на пояс; из сумки не срабатывает.
-  components:
-  - type: Sprite
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/wormhole_jaunter.rsi
-    state: icon
-  - type: Item
-    size: Small
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/wormhole_jaunter.rsi
-    storedRotation: -90
-  - type: Clothing
-    slots: [Belt]
-    quickEquip: false
-  - type: UseDelay
-    delay: 1
-  - type: LavalandJaunter
+# - type: entity
+  # parent: BaseItem
+  # id: LavalandWormholeJaunter
+  # name: джаунтер
+  # description: Устройство, способное спасти владельца от падения в пропасть. Должно быть в руке или надето на пояс; из сумки не срабатывает.
+  # components:
+  # - type: Sprite
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/wormhole_jaunter.rsi
+    # state: icon
+  # - type: Item
+    # size: Small
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/wormhole_jaunter.rsi
+    # storedRotation: -90
+  # - type: Clothing
+    # slots: [Belt]
+    # quickEquip: false
+  # - type: UseDelay
+    # delay: 1
+  # - type: LavalandJaunter
 
-- type: entity
-  parent: BaseItem
-  id: LavalandMiningVoucher
-  name: ваучер стартового набора шахтёра
-  description: Ваучер что позволяет вам получить первый набор для работы. Используется на продвинутом Утильмаге в лаваленде.
-  components:
-  - type: Sprite
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/mining_voucher.rsi
-    state: icon
-  - type: Item
-    size: Tiny
-    sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/mining_voucher.rsi
-  - type: LavalandMiningVoucher
-    rewards:
-    - name: lavaland-mining-voucher-reward-survival
-      entries:
-      - id: LavalandShelterCapsule
-      - id: ClothingBeltSalvageWebbing
-    - name: lavaland-mining-voucher-reward-resonator
-      entries:
-      - id: LavalandResonator
-      - id: MineralScanner
-    - name: lavaland-mining-voucher-reward-crusher
-      entries:
-      - id: WeaponCrusher
-      - id: ClothingBeltSalvageWebbing
-      - id: FireExtinguisherMini
-    - name: lavaland-mining-voucher-reward-extraction
-      entries:
-      - id: Fulton
-      - id: FultonBeacon
-    - name: lavaland-mining-voucher-reward-drill
-      entries:
-      - id: MiningDrill
-      - id: MineralScanner
+# - type: entity
+  # parent: BaseItem
+  # id: LavalandMiningVoucher
+  # name: ваучер стартового набора шахтёра
+  # description: Ваучер что позволяет вам получить первый набор для работы. Используется на продвинутом Утильмаге в лаваленде.
+  # components:
+  # - type: Sprite
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/mining_voucher.rsi
+    # state: icon
+  # - type: Item
+    # size: Tiny
+    # sprite: _DeadSpace/Lavaland/Objects/Specific/Mining/mining_voucher.rsi
+  # - type: LavalandMiningVoucher
+    # rewards:
+    # - name: lavaland-mining-voucher-reward-survival
+      # entries:
+      # - id: LavalandShelterCapsule
+      # - id: ClothingBeltSalvageWebbing
+    # - name: lavaland-mining-voucher-reward-resonator
+      # entries:
+      # - id: LavalandResonator
+      # - id: MineralScanner
+    # - name: lavaland-mining-voucher-reward-crusher
+      # entries:
+      # - id: WeaponCrusher
+      # - id: ClothingBeltSalvageWebbing
+      # - id: FireExtinguisherMini
+    # - name: lavaland-mining-voucher-reward-extraction
+      # entries:
+      # - id: Fulton
+      # - id: FultonBeacon
+    # - name: lavaland-mining-voucher-reward-drill
+      # entries:
+      # - id: MiningDrill
+      # - id: MineralScanner
 
 - type: entity
   parent: [ BaseSword, BaseMajorContraband ]

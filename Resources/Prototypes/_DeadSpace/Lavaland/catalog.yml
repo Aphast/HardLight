@@ -226,21 +226,21 @@
   cost:
     LavalandMiningPoint: 400
 
-- type: listing
-  id: LavalandMiningResonator
-  productEntity: LavalandResonator
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 250
+# - type: listing
+  # id: LavalandMiningResonator
+  # productEntity: LavalandResonator
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 250
 
-- type: listing
-  id: LavalandMiningSuperResonator
-  productEntity: LavalandSuperResonator
-  categories:
-  - LavalandMiningTools
-  cost:
-    LavalandMiningPoint: 1000
+# - type: listing
+  # id: LavalandMiningSuperResonator
+  # productEntity: LavalandSuperResonator
+  # categories:
+  # - LavalandMiningTools
+  # cost:
+    # LavalandMiningPoint: 1000
 
 # Утилиты
 
@@ -316,21 +316,21 @@
   cost:
     LavalandMiningPoint: 150
 
-- type: listing
-  id: LavalandMiningWormholeJaunter
-  productEntity: LavalandWormholeJaunter
-  categories:
-  - LavalandMiningUtility
-  cost:
-    LavalandMiningPoint: 250
+# - type: listing
+  # id: LavalandMiningWormholeJaunter
+  # productEntity: LavalandWormholeJaunter
+  # categories:
+  # - LavalandMiningUtility
+  # cost:
+    # LavalandMiningPoint: 250
 
-- type: listing
-  id: LavalandMiningShelterCapsule
-  productEntity: LavalandShelterCapsule
-  categories:
-  - LavalandMiningUtility
-  cost:
-    LavalandMiningPoint: 400
+# - type: listing
+  # id: LavalandMiningShelterCapsule
+  # productEntity: LavalandShelterCapsule
+  # categories:
+  # - LavalandMiningUtility
+  # cost:
+    # LavalandMiningPoint: 400
 
 - type: listing
   id: LavalandMiningEmergencyOxygenTank
