@@ -1056,23 +1056,23 @@
       steps:
       - tool: Rolling
         doAfter: 2
-  - node: syndicatebackpacksatchel
-    entity: ClothingBackpackSatchelSyndicate
-    edges:
-    - to: syndicatebackpacksatchelfolded
-      conditions:
-        - !type:ContainerEmpty
-          container: "storagebase"
-      steps:
-      - tool: Rolling
-        doAfter: 2
-  - node: syndicatebackpacksatchelfolded
-    entity: ClothingBackpackSatchelSyndicateFolded
-    edges:
-    - to: syndicatebackpacksatchel
-      steps:
-      - tool: Rolling
-        doAfter: 2
+  # - node: syndicatebackpacksatchel
+    # entity: ClothingBackpackSatchelSyndicate
+    # edges:
+    # - to: syndicatebackpacksatchelfolded
+      # conditions:
+        # - !type:ContainerEmpty
+          # container: "storagebase"
+      # steps:
+      # - tool: Rolling
+        # doAfter: 2
+  # - node: syndicatebackpacksatchelfolded
+    # entity: ClothingBackpackSatchelSyndicateFolded
+    # edges:
+    # - to: syndicatebackpacksatchel
+      # steps:
+      # - tool: Rolling
+        # doAfter: 2
   - node: bluespacebackpacksatchel
     entity: ClothingBackpackSatchelHolding
     edges:
