@@ -436,12 +436,12 @@
   name: hydroponics duffel bag
   description: A large duffel bag for holding extra gardening tools.
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Duffels/hydroponics.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: hydroponicsbackpackduffel
+  - type: Sprite
+    sprite: Clothing/Back/Duffels/hydroponics.rsi
+  - type: Construction
+    deconstructionTarget: null
+    graph: bagfolding
+    node: hydroponicsbackpackduffel
 
 # Folded
 - type: entity
@@ -468,12 +468,12 @@
   name: cargo duffel bag
   description: A large duffel bag for stealing cargo's precious loot.
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Duffels/cargo.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: cargobackpackduffel
+  - type: Sprite
+    sprite: Clothing/Back/Duffels/cargo.rsi
+  - type: Construction
+    deconstructionTarget: null
+    graph: bagfolding
+    node: cargobackpackduffel
 
 # Folded
 - type: entity
@@ -500,12 +500,12 @@
   name: salvage duffel bag
   description: A large duffel bag for holding extra exotic treasures.
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Duffels/salvage.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: salvagebackpackduffel
+  - type: Sprite
+    sprite: Clothing/Back/Duffels/salvage.rsi
+  - type: Construction
+    deconstructionTarget: null
+    graph: bagfolding
+    node: salvagebackpackduffel
 
 # Folded
 - type: entity
@@ -563,48 +563,48 @@
   id: ClothingBackpackDuffelSyndicateBundle
   abstract: true
   components:
-    - type: Tag
-      tags: [] # ignore "WhitelistChameleon" tag
+  - type: Tag
+    tags: [] # ignore "WhitelistChameleon" tag
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicate
   id: ClothingBackpackDuffelSyndicateAmmo
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Duffels/syndicate.rsi
-      state: icon-ammo
-    - type: Item
-      heldPrefix: ammo
-    - type: Clothing
-      equippedPrefix: ammo
+  - type: Sprite
+    sprite: Clothing/Back/Duffels/syndicate.rsi
+    state: icon-ammo
+  - type: Item
+    heldPrefix: ammo
+  - type: Clothing
+    equippedPrefix: ammo
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicateAmmo
   id: ClothingBackpackDuffelSyndicateAmmoBundle
   abstract: true
   components:
-    - type: Tag
-      tags: [] # ignore "WhitelistChameleon" tag
+  - type: Tag
+    tags: [] # ignore "WhitelistChameleon" tag
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicate
   id: ClothingBackpackDuffelSyndicateMedical
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Duffels/syndicate.rsi
-      state: icon-med
-    - type: Item
-      heldPrefix: med
-    - type: Clothing
-      equippedPrefix: med
+  - type: Sprite
+    sprite: Clothing/Back/Duffels/syndicate.rsi
+    state: icon-med
+  - type: Item
+    heldPrefix: med
+  - type: Clothing
+    equippedPrefix: med
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicateMedical
   id: ClothingBackpackDuffelSyndicateMedicalBundle
   abstract: true
   components:
-    - type: Tag
-      tags: [] # ignore "WhitelistChameleon" tag
+  - type: Tag
+    tags: [] # ignore "WhitelistChameleon" tag
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel

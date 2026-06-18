@@ -33,8 +33,6 @@
     graph: bagfolding
     node: backpacksatchelfolded
 
-
-
 - type: entity
   parent: ClothingBackpackSatchel
   id: ClothingBackpackSatchelLeather
@@ -64,8 +62,6 @@
     # deconstructionTarget: null
     # graph: bagfolding
     # node: leatherbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -97,8 +93,6 @@
     graph: bagfolding
     node: engineeringbackpacksatchelfolded
 
-
-
 - type: entity
   parent: ClothingBackpackSatchel
   id: ClothingBackpackSatchelAtmospherics
@@ -128,8 +122,6 @@
     deconstructionTarget: null
     graph: bagfolding
     node: atmosphericbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -163,8 +155,6 @@
     deconstructionTarget: null
     graph: bagfolding
     node: clownbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -492,12 +482,12 @@
   name: cargo satchel
   description: A robust satchel for stealing cargo's loot.
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Satchels/cargo.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: cargobackpacksatchel
+  - type: Sprite
+    sprite: Clothing/Back/Satchels/cargo.rsi
+  - type: Construction
+    deconstructionTarget: null
+    graph: bagfolding
+    node: cargobackpacksatchel
 
 # Folded
 - type: entity
@@ -524,12 +514,12 @@
   name: salvage satchel
   description: A robust satchel for stashing your loot.
   components:
-    - type: Sprite
-      sprite: Clothing/Back/Satchels/salvage.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: salvagebackpacksatchel
+  - type: Sprite
+    sprite: Clothing/Back/Satchels/salvage.rsi
+  - type: Construction
+    deconstructionTarget: null
+    graph: bagfolding
+    node: salvagebackpacksatchel
 
 # Folded
 - type: entity

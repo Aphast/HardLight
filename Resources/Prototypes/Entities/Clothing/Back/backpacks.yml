@@ -771,9 +771,9 @@
   name: death squad backpack
   description: Holds the kit of ColComm's most feared agents.
   components:
-    - type: Storage
-      grid:
-      - 0,0,7,6
+  - type: Storage
+    grid:
+    - 0,0,7,6
 
 #Syndicate
 - type: entity
