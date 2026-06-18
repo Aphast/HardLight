@@ -1,4 +1,4 @@
-using Content.Client.UserInterface.Controls;
+/* using Content.Client.UserInterface.Controls;
 using Content.Shared.DeadSpace.Lavaland;
 using JetBrains.Annotations;
 using Robust.Client.UserInterface;
@@ -115,3 +115,4 @@ public sealed class LavalandMiningVoucherBoundUserInterface : BoundUserInterface
         SendMessage(new LavalandMiningVoucherEjectMessage());
     }
 }
+ */
