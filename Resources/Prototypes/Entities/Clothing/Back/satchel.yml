@@ -592,7 +592,6 @@
     tags:
     - ScurretWearable
     - WhitelistChameleon
-    inhand
   - type: Construction
     deconstructionTarget: null
     graph: bagfolding
