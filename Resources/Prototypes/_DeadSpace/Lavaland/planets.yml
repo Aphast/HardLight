@@ -16,30 +16,6 @@
   minStructureSeparation: 95
   structures:
     LavalandLavaBrig: 4
-  tendrilsEnabled: true
-  tendrilSpawnCount: 16
-  tendrilRespawnInterval: 1200
-  tendrilRespawnBatchMin: 1
-  tendrilRespawnBatchMax: 1
-  tendrilSpawnAttempts: 320
-  tendrilMinDistance: 120
-  tendrilMaxDistance: 320
-  tendrilMinSeparation: 80
-  tendrilClearRadius: 1
-  tendrilMapEdgePadding: 24
-  tendrilOutpostExclusionRadius: 100
-  tendrilLandingExclusionRadius: 56
-  tendrilFtlBeaconExclusionRadius: 56
-  tendrilSpawns:
-  - prototype: LavalandNecropolisTendrilWatcher
-    weight: 3
-    maxCount: 5
-  - prototype: LavalandNecropolisTendrilGoliath
-    weight: 2
-    maxCount: 7
-  - prototype: LavalandNecropolisTendrilLegion
-    weight: 1
-    maxCount: 4
   bossArenas:
     LavalandHierophantArena: 1
     LavalandAshDrakeArena: 1
