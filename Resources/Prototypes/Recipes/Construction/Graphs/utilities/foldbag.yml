@@ -158,14 +158,14 @@
   - node: mimebackpack
     entity: ClothingBackpackMime
     edges:
-    - to: mimebackpackfoldedfolded
+    - to: mimebackpackfolded
       conditions:
         - !type:ContainerEmpty
           container: "storagebase"
       steps:
       - tool: Rolling
         doAfter: 2
-  - node: mimebackpackfoldedfolded
+  - node: mimebackpackfolded
     entity: ClothingBackpackMimeFolded
     edges:
     - to: mimebackpack
