@@ -4876,3 +4876,11 @@ Entries:
       message: Added Tradeband language
   id: 522
   time: '2026-06-18T10:55:22.0000000+00:00'
+- author: Iisazel
+  changes:
+    - type: Add
+      message: >-
+        Figurines (And sex toys) now save when left on the floor! Please dont
+        explode the server with this power
+  id: 523
+  time: '2026-06-18T10:57:25.0000000+00:00'
