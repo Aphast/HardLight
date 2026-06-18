@@ -444,7 +444,7 @@
     - ActionLavalandHierophantStaffChaser
 
 - type: entity
-  parent: BaseAction
+  #parent: BaseAction
   id: ActionLavalandHierophantStaffCross
   name: крест Иерофанта
   description: Создает короткий крестообразный взрыв в указанной точке.
@@ -460,7 +460,7 @@
       telegraphPrototype: LavalandHierophantTelegraphCardinal
 
 - type: entity
-  parent: BaseAction
+  #parent: BaseAction
   id: ActionLavalandHierophantStaffBurst
   name: волна Иерофанта
   description: Выпускает расходящуюся квадратную волну вокруг указанной точки.
@@ -475,7 +475,7 @@
     event: !type:LavalandHierophantStaffBurstActionEvent
 
 - type: entity
-  parent: BaseAction
+  #parent: BaseAction
   id: ActionLavalandHierophantStaffBlink
   name: скачок Иерофанта
   description: Телепортирует в ближайшую точку и вызывает взрывы вокруг старой и новой позиции.
@@ -490,7 +490,7 @@
     event: !type:LavalandHierophantStaffBlinkActionEvent
 
 - type: entity
-  parent: BaseAction
+  #parent: BaseAction
   id: ActionLavalandHierophantStaffChaser
   name: преследователь Иерофанта
   description: Отправляет короткую линию взрывов к выбранному существу.
