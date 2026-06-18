@@ -64,7 +64,7 @@
 - type: entity
   id: ClothingBackpackSatchelNT
   name: Nanotrasen satchel
-  parent: [ ClothingBackpackSatchel ]
+  parent: ClothingBackpackSatchel 
   description: A satchel produced by Nanotrasen.
   components:
   - type: Sprite
@@ -73,7 +73,7 @@
 - type: entity
   id: ClothingBackpackDuffelNT
   name: Nanotrasen duffel
-  parent: [ NFClothingDuffel ]
+  parent:  NFClothingDuffel 
   description: A duffelbag produced by Nanotrasen.
   components:
   - type: Sprite
