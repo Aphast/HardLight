@@ -74,10 +74,10 @@
         Brute: 11
       types:
         Structural: 35
-  - type: LavalandMiningTool
-    yieldMultiplier: 2
-    cleaveTargets: 1
-    cleaveYieldMultiplier: 1
+  # - type: LavalandMiningTool
+    # yieldMultiplier: 2
+    # cleaveTargets: 1
+    # cleaveYieldMultiplier: 1
 
 - type: entity
   parent: Pickaxe
@@ -108,10 +108,10 @@
         Brute: 13
       types:
         Structural: 45
-  - type: LavalandMiningTool
-    yieldMultiplier: 4
-    cleaveTargets: 2
-    cleaveYieldMultiplier: 2
+  # - type: LavalandMiningTool
+    # yieldMultiplier: 4
+    # cleaveTargets: 2
+    # cleaveYieldMultiplier: 2
 
 - type: entity
   parent: MiningDrill
