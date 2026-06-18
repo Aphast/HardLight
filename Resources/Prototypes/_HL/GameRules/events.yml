@@ -2555,7 +2555,6 @@
       - id: MobLavalandGoliath
       - id: MobLavalandGoldgrub
       - ic: MobLavalandHivelord
-      - id: MobLavalandHivelordBrood
       - id: MobLavalandLegion
       - id: MobLavalandHierophant
       - id: MobLavalandAshDrake
