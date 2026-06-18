@@ -43,10 +43,10 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/leather.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: leatherbackpacksatchel
+  # - type: Construction
+    # deconstructionTarget: null
+    # graph: bagfolding
+    # node: leatherbackpacksatchel
 
 # Folded
 - type: entity
@@ -60,10 +60,10 @@
     state: folded
   - type: Item
     size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: leatherbackpacksatchelfolded
+  # - type: Construction
+    # deconstructionTarget: null
+    # graph: bagfolding
+    # node: leatherbackpacksatchelfolded
 
 
 
