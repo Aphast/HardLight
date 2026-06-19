@@ -62,7 +62,7 @@
   name: Thalmyr
   description: Space dragon
   components:
-    - type: Sprite
+  - type: Sprite
     sprite: _HL/Mobs/Characters/thalmyr.rsi
     noRot: true
     layers:
@@ -71,6 +71,6 @@
     - map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
       state: alive-unshaded
       shader: unshaded
-    - type: ActionGun
+  - type: ActionGun
     action: ActionDragonsBreath
     gunProto: DragonsBreathGun
