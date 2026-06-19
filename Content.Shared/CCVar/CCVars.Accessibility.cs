@@ -87,4 +87,12 @@ public sealed partial class CCVars
     public static readonly CVarDef<bool> DisableLanguageIcons =
         CVarDef.Create("accessibility.disable_language_icons", false, CVar.CLIENTONLY | CVar.ARCHIVE);
     #endregion Starlight
+
+    #region Starlight
+    /// <summary>
+    /// If enabled, censors spiders by replacing them with slimes.
+    /// </summary>
+    public static readonly CVarDef<bool> AccessibilityArachnophobia =
+            CVarDef.Create("accessibility.arachnophobia", false, CVar.CLIENTONLY | CVar.ARCHIVE);
+    #endregion Starlight
 }

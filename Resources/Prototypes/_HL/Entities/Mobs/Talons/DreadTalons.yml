@@ -15,6 +15,7 @@
   - type: CombatMode
     canDisarm: false
   - type: InputMover
+  - type: ComplexInteraction
   - type: MobMover
   - type: GhostRole
     allowMovement: true
@@ -398,3 +399,109 @@
         Base: crit
       Dead:
         Base: dead
+
+- type: entity
+  name: Spoder
+  id: Spoder
+  parent: SuperTalon
+  description: oh god what the fuck is that
+#  categories: [ HideSpawnMenu ] # Frontier
+  components:
+  - type: OptionsVisualizer
+    visuals:
+      base:
+        - options: Default
+          data:
+            drawdepth: Mobs
+            sprite: _HL\Mobs\Player\borgs\quads.rsi
+            map: ["movement"]
+            state: spider
+        - options: Arachnophobia
+          data:
+            drawdepth: Mobs
+            sprite: _HL\Mobs\Player\borgs\quads.rsi
+            map: ["movement"]
+            state: spidermosaic
+      baseUnshaded:
+        - options: Default
+          data:
+            drawdepth: Mobs
+            sprite: _HL\Mobs\Player\borgs\quads.rsi
+            map: ["enum.BorgVisualLayers.Light"]
+            state: spiderr
+            shader: unshaded
+        - options: Arachnophobia
+          data:
+            drawdepth: Mobs
+            sprite: _HL\Mobs\Player\borgs\quads.rsi
+            map: ["enum.BorgVisualLayers.Light"]
+            state: spiderrmosaic
+            shader: unshaded
+  - type: Bloodstream
+    bloodMaxVolume: 250
+    bloodReagent: Mutagen
+  - type: Fixtures
+    fixtures:
+      fix1:
+        shape:
+          !type:PhysShapeCircle
+          radius: 0.35
+        density: 120
+        mask:
+        - MobMask
+        layer:
+        - MobLayer
+  - type: MeleeWeapon
+    soundHit:
+      path: /Audio/Effects/bite.ogg
+    angle: 0
+    animation: WeaponArcBite
+    damage:
+      types:
+        Piercing: 6
+        Poison: 4
+  - type: SolutionContainerManager
+    solutions:
+      melee:
+        reagents:
+        - ReagentId: ChloralHydrate
+          Quantity: 80
+  - type: MeleeChemicalInjector
+    solution: melee
+    transferAmount: 4
+  - type: NoSlip
+  - type: IgnoreSpiderWeb
+  - type: Speech
+    speechVerb: Arachnid
+    speechSounds: Arachnid
+    allowedEmotes: ['Click', 'Chitter']
+  - type: Vocal
+    sounds:
+      Male: UnisexArachnid
+      Female: UnisexArachnid
+      Unsexed: UnisexArachnid
+  - type: DamageStateVisuals
+    states:
+      Alive:
+        Base: spider
+        BaseUnshaded: spiderr
+      Critical:
+        Base: spidercrit
+      Dead:
+        Base: spiderdead
+  - type: TypingIndicator
+    proto: spider
+  - type: SpriteMovement
+    movementLayers:
+      movement:
+        state: spider_moving
+    noMovementLayers:
+      movement:
+        state: spider
+  - type: SpriteStateToggle
+    spriteLayer: movement
+    stateOff: spider
+    stateOn: spiderballz
+    movementStateOff: spider_moving
+    movementStateOn: spider_movingballz
+  
