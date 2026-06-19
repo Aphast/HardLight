@@ -4983,3 +4983,13 @@ Entries:
       message: minor cleanup of broken assets from previous PR
   id: 535
   time: '2026-06-19T10:11:35.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Add
+      message: >-
+        Added the ability to give custom names to NSFW markings, among a few
+        other customisable options!
+    - type: Fix
+      message: Fixed felionoids not getting any NSFW marking options
+  id: 536
+  time: '2026-06-19T10:12:16.0000000+00:00'
