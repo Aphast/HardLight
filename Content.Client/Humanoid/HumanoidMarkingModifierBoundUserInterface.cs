@@ -24,7 +24,7 @@ public sealed class HumanoidMarkingModifierBoundUserInterface : BoundUserInterfa
         _window = this.CreateWindowCenteredLeft<HumanoidMarkingModifierWindow>();
         _window.OnMarkingAdded += SendMarkingSet;
         _window.OnMarkingRemoved += SendMarkingSet;
-        _window.OnMarkingColorChange += SendMarkingSetNoResend;
+        _window.OnMarkingDataChanged += SendMarkingSetNoResend; // Coyote: OnMarkingColorChange to OnMarkingDataChanged
         _window.OnMarkingRankChange += SendMarkingSet;
         _window.OnLayerInfoModified += SendBaseLayer;
     }

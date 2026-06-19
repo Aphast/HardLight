@@ -452,7 +452,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
             {
                 if (!prototype.ForcedColoring)
                 {
-                    AddMarking(uid, marking.MarkingId, marking.MarkingColors, marking.IsGlowing, false); //starlight
+                    AddMarking(uid, marking, marking.MarkingColors, marking.IsGlowing, false); //starlight isGlowing // coyote marking.MarkingId -> marking
                 }
                 else
                 {
@@ -491,7 +491,7 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
                 profile.Appearance.EyeColor,
                 humanoid.MarkingSet
             );
-            AddMarking(uid, marking.MarkingId, markingColors, marking.IsGlowing, false); //starlight
+            AddMarking(uid, marking, markingColors, marking.IsGlowing, false); //starlight isGlowing // coyote marking.MarkingId -> marking
         }
 
         EnsureDefaultMarkings(uid, humanoid);
@@ -573,24 +573,48 @@ public abstract class SharedHumanoidAppearanceSystem : EntitySystem
     /// <param name="humanoid">Humanoid component of the entity</param>
     public void AddMarking(EntityUid uid, string marking, IReadOnlyList<Color> colors, bool isGlowing, bool sync = true, bool forced = false, HumanoidAppearanceComponent? humanoid = null) //starlight
     {
+        if (!_markingManager.Markings.TryGetValue(marking, out var prototype))
+            return;
+
+        var markingObject = prototype.AsMarking();
+        markingObject.IsGlowing = isGlowing;
+        AddMarking(uid, markingObject, colors, isGlowing, sync, forced, humanoid);
+    }
+
+    /// <summary>
+    ///     Adds a marking to this humanoid while preserving per-marking metadata.
+    /// </summary>
+    public void AddMarking(EntityUid uid, Marking marking, IReadOnlyList<Color> colors, bool isGlowing, bool sync = true, bool forced = false, HumanoidAppearanceComponent? humanoid = null) //starlight
+    {
         if (!Resolve(uid, ref humanoid)
-            || !_markingManager.Markings.TryGetValue(marking, out var prototype))
+            || !_markingManager.Markings.TryGetValue(marking.MarkingId, out var prototype))
         {
             return;
         }
 
-        var markingObject = new Marking(marking, colors, isGlowing) //starlight
+        // Coyote
+        // Older DB rows lack toggle metadata, so hydrate defaults from the prototype/category.
+        var sourceMarking = marking.ToggleDataInitialized
+            ? marking
+            : prototype.AsMarking();
+
+        var markingObject = new Marking(sourceMarking, colors) //starlight
         {
-            Forced = forced
+            Forced = forced,
+            IsGlowing = isGlowing,
         };
+
         humanoid.MarkingSet.AddBack(prototype.MarkingCategory, markingObject);
+
+        if (!markingObject.ShowAtStart)
+            humanoid.HiddenMarkings.Add(markingObject.MarkingId);
 
         if (prototype.BodyPart == HumanoidVisualLayers.Penis
             && humanoid.MarkingSet.TryGetCategory(MarkingCategories.UndergarmentBottom, out var undies))
         {
             // If we're wearing underwear, hide the penis.
             if (undies.Any(undie => !humanoid.HiddenMarkings.Contains(undie.MarkingId)))
-                humanoid.HiddenMarkings.Add(marking);
+                humanoid.HiddenMarkings.Add(markingObject.MarkingId);
         }
 
         if (prototype.MarkingCategory == MarkingCategories.UndergarmentBottom

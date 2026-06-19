@@ -59,10 +59,10 @@
       points: 0
       required: false
     UndergarmentTop:
-      points: 1
+      points: 3
       required: false
     UndergarmentBottom:
-      points: 1
+      points: 3
       required: false
     Genital:
       points: 35

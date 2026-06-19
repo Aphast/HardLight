@@ -14,21 +14,9 @@
             "name": "folded"
         },
         {
-            "name": "equipped-BACKPACK",
-            "directions": 4
-        },
-        {
-            "name": "inhand-left",
-            "directions": 4
-        },
-        {
-            "name": "inhand-right",
-            "directions": 4
-        },
-		{
             "name": "icon-ammo"
         },
-		{
+        {
             "name": "ammo-equipped-BACKPACK",
             "directions": 4
         },
@@ -40,10 +28,10 @@
             "name": "ammo-inhand-right",
             "directions": 4
         },
-		{
+        {
             "name": "icon-med"
         },
-		{
+        {
             "name": "med-equipped-BACKPACK",
             "directions": 4
         },
@@ -53,6 +41,18 @@
         },
         {
             "name": "med-inhand-right",
+            "directions": 4
+        },
+        {
+            "name": "equipped-BACKPACK",
+            "directions": 4
+        },
+        {
+            "name": "inhand-left",
+            "directions": 4
+        },
+        {
+            "name": "inhand-right",
             "directions": 4
         }
   ]

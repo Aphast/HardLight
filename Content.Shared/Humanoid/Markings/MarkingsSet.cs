@@ -256,7 +256,8 @@ public sealed partial class MarkingSet
 
                 if (marking.Sprites.Count != list[i].MarkingColors.Count)
                 {
-                    list[i] = new Marking(marking.ID, marking.Sprites.Count);
+                    // Coyote marking improvements
+                    list[i] = new Marking(list[i], marking.Sprites.Count);
                 }
             }
 
@@ -296,7 +297,8 @@ public sealed partial class MarkingSet
                             eyeColor,
                             this
                         );
-                    var marking = new Marking(points.DefaultMarkings[index], colors, false); //starlight
+                    // Coyote marking improvements
+                    var marking = new Marking(points.DefaultMarkings[index], colors, false, prototype.MarkingCategory); //starlight
 
                     AddBack(category, marking);
                 }

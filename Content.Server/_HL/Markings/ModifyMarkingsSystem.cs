@@ -33,7 +33,11 @@ public sealed class ModifyMarkingsSystem : SharedModifyMarkingsSystem
             return;
 
         var isVisible = args.IsVisible;
-        var localizedName = args.MarkingPrototypeName;
+        var marking = args.Marking;
+        // Integrated from floofs's modifyundies into ModifyMarkings system.
+        var localizedName = string.IsNullOrWhiteSpace(marking.CustomName)
+            ? args.MarkingPrototypeName
+            : marking.CustomName;
 
         var user = args.User;
         var target = args.Target.Value;
@@ -43,20 +47,27 @@ public sealed class ModifyMarkingsSystem : SharedModifyMarkingsSystem
 
         if (isMine)
         {
-            var selfString = isVisible ? "undies-removed-self" : "undies-equipped-self";
-            var selfPopup = Loc.GetString(selfString, ("undie", localizedName));
+            var selfPopup = Loc.GetString(
+                "marking-toggle-self",
+                ("marking-name", localizedName),
+                ("verb", isVisible ? marking.TakeOffVerb : marking.PutOnVerb));
             _popupSystem.PopupClient(selfPopup, target, target, PopupType.Medium);
         }
         else
         {
             // to the user
-            var userString = isVisible ? "undies-removed-user" : "undies-equipped-user";
-            var userPopup = Loc.GetString(userString, ("undie", localizedName));
+            var userPopup = Loc.GetString(
+                "marking-toggle-other",
+                ("marking-name", localizedName),
+                ("verb", isVisible ? marking.TakeOffVerb : marking.PutOnVerb));
             _popupSystem.PopupClient(userPopup, user, user, PopupType.Medium);
 
             // to the target
-            var targetString = isVisible ? "undies-removed-target" : "undies-equipped-target";
-            var targetPopup = Loc.GetString(targetString, ("undie", localizedName), ("user", Identity.Entity(user, _entMan)));
+            var targetPopup = Loc.GetString(
+                "marking-toggle-by-other",
+                ("marking-name", localizedName),
+                ("verb", isVisible ? marking.TakeOffVerb2p : marking.PutOnVerb2p),
+                ("other", Identity.Entity(user, _entMan)));
             _popupSystem.PopupClient(targetPopup, target, target, PopupType.MediumCaution);
         }
 

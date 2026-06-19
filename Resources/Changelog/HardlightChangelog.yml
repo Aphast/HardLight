@@ -4912,3 +4912,90 @@ Entries:
       message: syndicate equipment no longer saves
   id: 527
   time: '2026-06-18T11:27:33.0000000+00:00'
+- author: IngvarJackal
+  changes:
+    - type: Fix
+      message: >-
+        Fixed saved ships losing their consoles and air vents/scrubbers when
+        loaded. Previously-saved ships are repaired automatically on load.
+  id: 528
+  time: '2026-06-19T09:44:29.0000000+00:00'
+- author: IngvarJackal
+  changes:
+    - type: Fix
+      message: >-
+        Light sensitivity traits no longer burn you in light levels they
+        shouldn't.
+  id: 529
+  time: '2026-06-19T09:44:43.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Add
+      message: >-
+        Added: Audible Ping for when you receive chat highlights! (You can
+        toggle it on/off in Accessibility settings or adjust the volume in Audio
+        settings.)
+  id: 530
+  time: '2026-06-19T09:45:38.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Add
+      message: >-
+        Added an undock all button, no longer will you have to iterate through
+        all of your docks manually
+  id: 531
+  time: '2026-06-19T09:46:49.0000000+00:00'
+- author: Petalpool
+  changes:
+    - type: Add
+      message: (Elkridge Depot) Pisoner wardrobe wall locker to perma
+    - type: Add
+      message: (Elkridge Depot) Bowl for prisoners in perma
+    - type: Tweak
+      message: >-
+        (Elkridge Depot) Cargo is no longer all access, and is instead, cargo
+        access.
+  id: 532
+  time: '2026-06-19T10:04:23.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Add
+      message: >-
+        Added arachnophobia mode! No longer will you have to see the spiders if
+        you don't want to.
+  id: 533
+  time: '2026-06-19T10:05:34.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Fix
+      message: Fixed finished votes being left on screen
+  id: 534
+  time: '2026-06-19T10:05:55.0000000+00:00'
+- author: fenndragon
+  changes:
+    - type: Remove
+      message: temporarily reverting syndicate weapon values
+    - type: Remove
+      message: temporarily reverting the stash item size change for bags
+    - type: Remove
+      message: 'temporarily reverting the stash banned items '
+    - type: Remove
+      message: minor cleanup of broken assets from previous PR
+  id: 535
+  time: '2026-06-19T10:11:35.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Add
+      message: >-
+        Added the ability to give custom names to NSFW markings, among a few
+        other customisable options!
+    - type: Fix
+      message: Fixed felionoids not getting any NSFW marking options
+  id: 536
+  time: '2026-06-19T10:12:16.0000000+00:00'
+- author: IngvarJackal
+  changes:
+    - type: Tweak
+      message: Size affects pitch of emotes
+  id: 537
+  time: '2026-06-19T10:12:35.0000000+00:00'

@@ -82,8 +82,6 @@
       map: ["enum.GunVisualLayers.Base"]
     - state: mag-3
       map: ["enum.GunVisualLayers.Mag"]
-  - type: GunDamageModifier
-    multiplier: 1.3
   - type: MagazineVisuals
     magState: mag
     steps: 4
@@ -121,8 +119,6 @@
     - type: ContainerContainer
       containers:
         ballistic-ammo: !type:Container
-    - type: GunDamageModifier
-      multiplier: 1.3
     - type: ProjectileBatteryAmmoProvider
       proto: Cartridge762x39mmFMJ
       fireCost: 100

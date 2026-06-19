@@ -8,9 +8,10 @@
   },
   "states": [
     {
-      "name": "icon"
+      "name": "icon",
+      "directions": 1
     },
-	{
+    {
       "name": "folded"
     },
     {

@@ -27,10 +27,6 @@
       enum.StorageUiKey.Key:
         type: StorageBoundUserInterface
   # to prevent bag open/honk spam
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: backpack
   - type: UseDelay
     delay: 0.5
   - type: ExplosionResistance
@@ -40,23 +36,7 @@
     tags:
     - WhitelistChameleon
     - Backpack
-    
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/backpack.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: backpackfolded
-    
+
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
   id: ClothingBackpackClown
@@ -68,26 +48,6 @@
   - type: Storage
     storageOpenSound:
       collection: BikeHorn
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: clownbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackClownFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/clown.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: clownbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -100,26 +60,6 @@
   - type: Storage
     storageOpenSound:
       collection: IanBark
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ianbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackIanFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ian.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ianbackpackfolded
 
 - type: entity
   parent: [NFClothingBackpack, BaseC1Contraband ] # Frontier: BaseSecurityContraband<BaseC1Contraband, ClothingBackpack<NFClothingBackpack
@@ -129,26 +69,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/security.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: securitybackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSecurityFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ian.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: securitybackpackfolded
 
 - type: entity
   parent: [NFClothingBackpack, BaseC2ContrabandUnredeemable ] # Frontier: BaseSecurityContraband<BaseC2ContrabandUnredeemable, ClothingBackpack<NFClothingBackpack
@@ -158,26 +78,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/brigmedic.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: brigmedicbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackBrigmedicFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/brigmedic.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: brigmedicbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -187,26 +87,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/engineering.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: engineeringbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackEngineeringFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/engineering.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: engineeringbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -216,26 +96,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/atmospherics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: atmosphericsbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackAtmosphericsFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/atmospherics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: atmosphericsbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -245,26 +105,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/medical.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: medicalbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackMedicalFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/medical.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: medicalbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack # Frontier: removed BaseCommandContraband
@@ -274,26 +114,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/captain.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: captainbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackCaptainFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/captain.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: captainbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -303,27 +123,7 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/mime.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mimebackpack
 
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackMimeFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/mime.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mimebackpackfolded
-    
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
   id: ClothingBackpackChemistry
@@ -332,26 +132,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/chemistry.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: chemistrybackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackChemistryFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/chemistry.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: chemistrybackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -361,26 +141,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/hydroponics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: hydroponicsbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackHydroponicsFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/hydroponics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: hydroponicsbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -390,26 +150,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/science.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: sciencebackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackScienceFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/science.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: sciencebackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -419,26 +159,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/virology.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: virologybackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackVirologyFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/virology.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: virologybackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -448,26 +168,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/genetics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: geneticsbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackGeneticsFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/genetics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: geneticsbackpackfolded
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -475,28 +175,8 @@
   name: cargo backpack
   description: A robust backpack for stealing cargo's loot.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/cargo.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cargobackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackCargoFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/cargo.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cargobackpackfolded
+    - type: Sprite
+      sprite: Clothing/Back/Backpacks/cargo.rsi
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -504,28 +184,8 @@
   name: salvage bag
   description: A robust backpack for stashing your loot.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/salvage.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: salvagebackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSalvageFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/salvage.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: salvagebackpackfolded
+    - type: Sprite
+      sprite: Clothing/Back/Backpacks/salvage.rsi
 
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
@@ -533,28 +193,8 @@
   name: mercenary backpack
   description: A backpack that has been in many dangerous places, a reliable combat backpack.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/merc.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mercenarybackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackMercenaryFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/merc.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mercenarybackpackfolded
+    - type: Sprite
+      sprite: Clothing/Back/Backpacks/merc.rsi
 
 #ERT
 - type: entity
@@ -570,26 +210,6 @@
     - 0,0,10,3
   - type: ExplosionResistance # Goobstation
     damageCoefficient: 0.1
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertleaderbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTLeaderFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ertleader.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertleaderbackpackfolded
 
 - type: entity
   parent: ClothingBackpackERTLeader
@@ -599,26 +219,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/ertsec.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertsecuritybackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTSecurityFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ertsec.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertsecuritybackpackfolded
 
 - type: entity
   parent: ClothingBackpackERTLeader
@@ -628,26 +228,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/ertmed.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertmedicalbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTMedicalFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ertmed.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertmedicalbackpackfolded
 
 - type: entity
   parent: ClothingBackpackERTLeader
@@ -657,26 +237,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/erteng.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertengineerbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTEngineerFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/erteng.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertengineerbackpackfolded
 
 - type: entity
   parent: ClothingBackpackERTLeader
@@ -686,26 +246,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/ertjanitor.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertjanitorbackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTJanitorFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ertjanitor.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertjanitorbackpackfolded
 
 - type: entity
   parent: ClothingBackpackERTLeader
@@ -715,27 +255,7 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/ertclown.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertclownbackpack
 
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTClownFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ertclown.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertclownbackpackfolded
-  
 - type: entity
   parent: ClothingBackpackERTLeader
   id: ClothingBackpackERTChaplain
@@ -744,36 +264,16 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Backpacks/ertchaplain.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertchaplainbackpack
 
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackERTChaplainFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/ertchaplain.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: ertchaplainbackpackfolded
-    
 - type: entity
   parent: ClothingBackpackERTSecurity
   id: ClothingBackpackDeathSquad
   name: death squad backpack
   description: Holds the kit of ColComm's most feared agents.
   components:
-  - type: Storage
-    grid:
-    - 0,0,7,6
+    - type: Storage
+      grid:
+      - 0,0,7,6
 
 #Syndicate
 - type: entity
@@ -790,26 +290,6 @@
     grid:
     - 0,0,7,3
     - 8,1,8,3
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: syndicatebackpack
-
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSyndicateFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/syndicate.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: syndicatebackpackfolded
 
 #Special
 - type: entity
@@ -833,10 +313,6 @@
       - state: holding-equipped-BACKPACK-unlit # Frontier
         shader: unshaded # Frontier
     # equippedPrefix: holding # Frontier
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: bluespacebackpack
   - type: Item
     size: Ginormous
     inhandVisuals: # Frontier
@@ -870,22 +346,6 @@
     - WhitelistChameleon
 
 - type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackHoldingFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/holding.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: bluespacebackpackfolded
-    
-- type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpackClown
   id: ClothingBackpackCluwne
   name: jiggles von jonkerton
@@ -896,27 +356,7 @@
     sprite: Clothing/Back/Backpacks/cluwne.rsi
   - type: Unremoveable
     deleteOnDrop: false
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cluwnebackpack
 
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackCluwneFolded
-  name: folded backpack
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Backpacks/cluwne.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cluwnebackpackfolded
-    
 - type: entity
   parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
   id: ClothingBackpackElectropack

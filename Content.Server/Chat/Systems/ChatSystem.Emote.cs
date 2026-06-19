@@ -1,8 +1,11 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Numerics;
 using Content.Shared.Chat;
 using Content.Shared.Chat.Prototypes;
+using Content.Shared.Humanoid;
 using Content.Shared.Speech;
+using Content.Shared.Sprite;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 
@@ -158,8 +161,52 @@ public partial class ChatSystem
 
         // if general params for all sounds set - use them
         var param = proto.GeneralParams ?? sound.Params;
+
+        // Halve the random pitch spread so the size-based shift reads clearly against it.
+        if (param.Variation is { } variation)
+            param = param.WithVariation(variation * EmoteVariationMultiplier);
+
+        // Shift pitch by size: bigger sounds deeper, smaller squeakier.
+        param = param.WithPitchScale(param.Pitch * GetEmoteSizePitch(uid));
+
         _audio.PlayPvs(sound, uid, param);
         return true;
+    }
+
+    private const float EmoteVariationMultiplier = 0.5f; // halve every emote's random pitch spread
+    // pitch = size^(-strength); big side steeper so giants boom harder than tinies squeak.
+    private const float EmoteSizePitchStrengthSmall = 0.5f; // size<1: +6 st at the 0.5 floor
+    private const float EmoteSizePitchStrengthBig = 1.0f;   // size>1: -12 st at the 2.0 ceiling
+    // Clamp to the original Gaussian's note range: +/-1 octave = +/-12 semitones.
+    private const float EmoteSizePitchMin = 0.5f;
+    private const float EmoteSizePitchMax = 2.0f;
+
+    /// <summary>
+    ///     Returns a pitch multiplier for an entity's emote sounds based on its size.
+    /// </summary>
+    private float GetEmoteSizePitch(EntityUid uid)
+    {
+        var size = 1f;
+
+        if (TryComp<AppearanceComponent>(uid, out var appearance))
+        {
+            // HumanoidVisuals.Scale carries both the editor height/width sliders and the
+            // Big/Small/Tiny traits; ScaleVisuals.Scale covers borgs and admin-scaled mobs.
+            if (_appearance.TryGetData<Vector2>(uid, HumanoidVisuals.Scale, out var humanoidScale, appearance))
+                size = (humanoidScale.X + humanoidScale.Y) / 2f;
+            else if (_appearance.TryGetData<Vector2>(uid, ScaleVisuals.Scale, out var spriteScale, appearance))
+                size = (spriteScale.X + spriteScale.Y) / 2f;
+        }
+        else if (TryComp<HumanoidAppearanceComponent>(uid, out var humanoid))
+        {
+            // Fallback when default size left the appearance datum unset.
+            size = (humanoid.Height + humanoid.Width) / 2f;
+        }
+
+        size = Math.Clamp(size, 0.5f, 2f);
+
+        var strength = size >= 1f ? EmoteSizePitchStrengthBig : EmoteSizePitchStrengthSmall;
+        return Math.Clamp(MathF.Pow(size, -strength), EmoteSizePitchMin, EmoteSizePitchMax);
     }
     /// <summary>
     /// Checks if a valid emote was typed, to play sounds and etc and invokes an event.

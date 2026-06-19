@@ -1,11 +1,10 @@
-
-
 ## About the PR
 <!-- What did you change? -->
 <!-- If this is a code change, summarize at high level how your new code works. This makes it easier to review. -->
 
 ## Why / Balance
 <!-- Discuss how this would affect game balance or explain why it was changed. Link any relevant discussions or issues. -->
+<!-- If your PR closes an open issue put `closes #issuenumber` here so that the accompanying issue is automatically closed-->
 
 ## Technical details
 <!-- Summary of code changes for easier review. -->
@@ -14,7 +13,7 @@
 <!-- Describe a procedure to test this feature, along with expected output/behavior. -->
 
 ## Media
-<!-- Attach media if the PR makes ingame changes (clothing, items, features, etc). 
+<!-- Attach media if the PR makes ingame changes (clothing, items, features, etc).
 Small fixes/refactors are exempt. Media may be used in SS14 progress reports with credit. -->
 
 ## Breaking changes

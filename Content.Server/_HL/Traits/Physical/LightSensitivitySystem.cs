@@ -5,6 +5,7 @@ using Content.Shared._Starlight;
 using Content.Shared._Starlight.Shadekin;
 using Content.Shared.Alert;
 using Content.Shared.Damage;
+using Content.Shared.FixedPoint;
 using Content.Shared.Movement.Systems;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
@@ -19,16 +20,61 @@ public sealed class LightSensitivitySystem : EntitySystem
 {
     private static readonly ProtoId<AlertPrototype> LightExposureAlert = "Shadekin";
 
+    /// <summary>
+    /// Concrete shadekin prototype the light-exposure thresholds are read from, so non-shadekins
+    /// bucket light off the same YAML data shadekins use rather than a duplicated hardcoded curve.
+    /// </summary>
+    private static readonly EntProtoId ShadekinProto = "MobShadekin";
+
     [Dependency] private readonly AlertsSystem _alerts = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly MovementSpeedModifierSystem _speed = default!;
     [Dependency] private readonly ShadekinSystem _shadekin = default!;
+    [Dependency] private readonly IPrototypeManager _proto = default!;
+    [Dependency] private readonly IComponentFactory _compFactory = default!;
+
+    // Cached thresholds resolved from the shadekin prototype; invalidated on prototype reload.
+    private SortedDictionary<FixedPoint2, ShadekinState>? _thresholds;
 
     public override void Initialize()
     {
         base.Initialize();
         SubscribeLocalEvent<LightSensitivityComponent, RefreshMovementSpeedModifiersEvent>(OnRefreshSpeedModifiers);
+        SubscribeLocalEvent<PrototypesReloadedEventArgs>(_ => _thresholds = null);
+    }
+
+    /// <summary>
+    /// The shadekin light-exposure thresholds, read once from <see cref="ShadekinProto"/>'s
+    /// <see cref="ShadekinComponent"/>. Falls back to the canonical default curve if the prototype or
+    /// component can't be read, so light sensitivity keeps working.
+    /// </summary>
+    private SortedDictionary<FixedPoint2, ShadekinState> Thresholds
+    {
+        get
+        {
+            if (_thresholds != null)
+                return _thresholds;
+
+            if (_proto.TryIndex(ShadekinProto, out var proto)
+                && proto.TryGetComponent<ShadekinComponent>(out var shadekin, _compFactory))
+            {
+                _thresholds = shadekin.Thresholds;
+            }
+            else
+            {
+                Log.Error($"Could not read light-exposure thresholds from prototype '{ShadekinProto}'; falling back to default curve.");
+                _thresholds = new()
+                {
+                    { FixedPoint2.New(0.8f), ShadekinState.Low },
+                    { FixedPoint2.New(5), ShadekinState.Annoying },
+                    { FixedPoint2.New(10), ShadekinState.High },
+                    { FixedPoint2.New(15), ShadekinState.Extreme },
+                };
+            }
+
+            return _thresholds;
+        }
     }
 
     private void OnRefreshSpeedModifiers(EntityUid uid, LightSensitivityComponent comp, RefreshMovementSpeedModifiersEvent args)
@@ -59,24 +105,16 @@ public sealed class LightSensitivitySystem : EntitySystem
 
             comp.NextUpdate = curTime + comp.UpdateCooldown;
 
-            // Discretize to 0-4 scale matching ShadekinSystem so thresholds (burnThreshold, slowdownThreshold)
-            // behave identically for non-shadekins as they do for shadekins.
+            // Discretize to the 1-5 ShadekinState scale via the shared mapping, off the shadekin's own
+            // YAML thresholds, so thresholds (burnThreshold, slowdownThreshold) and the alert behave
+            // identically for non-shadekins as they do for shadekins.
             var raw = _shadekin.GetLightExposure(uid);
-            comp.CurrentLightExposure = DiscretizeExposure(raw);
+            comp.CurrentLightExposure = (int) ShadekinSystem.GetLightExposureLevel(Thresholds, raw);
 
             ApplyBurnDamage(uid, comp);
             _speed.RefreshMovementSpeedModifiers(uid);
             _alerts.ShowAlert(uid, LightExposureAlert, (short) comp.CurrentLightExposure);
         }
-    }
-
-    private static float DiscretizeExposure(float raw) // However made this, please look at ShadekinComp Thresholds, PLEASE!
-    {
-        if (raw >= 15f) return 5f;
-        if (raw >= 10f) return 4f;
-        if (raw >= 5f) return 3f;
-        if (raw >= 0.8f) return 2f;
-        return 1f;
     }
 
     private void ApplyBurnDamage(EntityUid uid, LightSensitivityComponent comp)

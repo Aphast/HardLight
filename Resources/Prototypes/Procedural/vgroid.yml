@@ -40,25 +40,25 @@
       entityMask: # upstream#33105
       - IronRock # upstream#33105
       entity: IronRockCoal
-      count: 14
-      minGroupSize: 5
-      maxGroupSize: 9
+      count: 50
+      minGroupSize: 8
+      maxGroupSize: 12
     - !type:OreDunGen
       # replacement: IronRock # upstream#33105
       entityMask: # upstream#33105
       - IronRock # upstream#33105
       entity: IronRockQuartz
-      count: 18
-      minGroupSize: 7
-      maxGroupSize: 11
+      count: 50
+      minGroupSize: 10
+      maxGroupSize: 15
     - !type:OreDunGen
       # replacement: IronRock # upstream#33105
       entityMask: # upstream#33105
       - IronRock # upstream#33105
       entity: IronRockSalt
-      count: 10
-      minGroupSize: 4
-      maxGroupSize: 7
+      count: 50
+      minGroupSize: 8
+      maxGroupSize: 12
     - !type:OreDunGen
       # replacement: IronRock # upstream#33105
       entityMask: # upstream#33105

@@ -1,5 +1,5 @@
 - type: entity
-  parent: ClothingBackpack
+  parent: NFClothingBackpack # Frontier: ClothingBackpack<NFClothingBackpack
   id: ClothingBackpackSatchel
   name: satchel
   description: A trendy looking satchel.
@@ -11,27 +11,6 @@
     - 0,0,1,3
     - 3,0,6,3
     - 8,0,9,3
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: backpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelFolded
-  name: folded satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/satchel.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: backpacksatchelfolded
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -41,27 +20,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/leather.rsi
-  # - type: Construction
-    # deconstructionTarget: null
-    # graph: bagfolding
-    # node: leatherbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelLeatherFolded
-  name: folded leather satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/leather.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  # - type: Construction
-    # deconstructionTarget: null
-    # graph: bagfolding
-    # node: leatherbackpacksatchelfolded
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -71,27 +29,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/engineering.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: engineeringbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelEngineeringFolded
-  name: folded engineering satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/engineering.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: engineeringbackpacksatchelfolded
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -101,27 +38,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/atmospherics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: atmosphericbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelAtmosphericsFolded
-  name: folded atmospherics satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/atmospherics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: atmosphericbackpacksatchelfolded
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -134,27 +50,6 @@
   - type: Storage
     storageOpenSound:
       collection: BikeHorn
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: clownbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelClownFolded
-  name: folded clown satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/clown.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: clownbackpacksatchelfolded
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -164,29 +59,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/mime.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mimebackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelMimeFolded
-  name: folded mime satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/mime.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mimebackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -196,29 +68,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/medical.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: medicalbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelMedicalFolded
-  name: folded medical satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/medical.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: medicalbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -228,29 +77,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/chemistry.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: chemistrybackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelChemistryFolded
-  name: folded chemistry satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/chemistry.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: chemistrybackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -260,29 +86,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/virology.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: virologybackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelVirologyFolded
-  name: folded virology satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/virology.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: virologybackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -292,29 +95,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/genetics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: geneticsbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelGeneticsFolded
-  name: folded genetics satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/genetics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: geneticsbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -324,125 +104,33 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/science.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: sciencebackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelScienceFolded
-  name: folded science satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/science.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: sciencebackpacksatchelfolded
-
-
 
 - type: entity
-  parent: [ClothingBackpackSatchel, BaseC1Contraband]
+  parent: [ClothingBackpackSatchel, BaseC1Contraband] # Frontier: BaseSecurityContraband<BaseC1Contraband
   id: ClothingBackpackSatchelSecurity
   name: security satchel
   description: A robust satchel for security related needs.
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/security.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: securitybackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelSecurityFolded
-  name: folded security satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/security.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: securitybackpacksatchelfolded
-
-
 
 - type: entity
-  parent: [ClothingBackpackSatchel, BaseC2ContrabandUnredeemable]
+  parent: [ClothingBackpackSatchel, BaseC2ContrabandUnredeemable] # Frontier: BaseSecurityContraband<BaseC2ContrabandUnredeemable
   id: ClothingBackpackSatchelBrigmedic
   name: brigmedic satchel
   description: A sterile satchel for medical related needs.
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/brigmedic.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: brigmedicbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelBrigmedicFolded
-  name: folded brigmedic satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/brigmedic.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: brigmedicbackpacksatchelfolded
-
-
 
 - type: entity
-  parent: ClothingBackpackSatchel
+  parent: ClothingBackpackSatchel # Frontier: removed BaseCommandContraband
   id: ClothingBackpackSatchelCaptain
   name: captain's satchel
   description: An exclusive satchel for TSF officers.
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/captain.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: captainbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelCaptainFolded
-  name: folded captain's satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/captain.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: captainbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -452,29 +140,6 @@
   components:
   - type: Sprite
     sprite: Clothing/Back/Satchels/hydroponics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: hydroponicsbackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelHydroponicsFolded
-  name: folded hydroponics satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/hydroponics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: hydroponicsbackpacksatchelfolded
-
-
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -482,31 +147,8 @@
   name: cargo satchel
   description: A robust satchel for stealing cargo's loot.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/cargo.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cargobackpacksatchel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelCargoFolded
-  name: folded cargo satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/cargo.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cargobackpacksatchelfolded
-
-
+    - type: Sprite
+      sprite: Clothing/Back/Satchels/cargo.rsi
 
 - type: entity
   parent: ClothingBackpackSatchel
@@ -514,33 +156,9 @@
   name: salvage satchel
   description: A robust satchel for stashing your loot.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/salvage.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: salvagebackpacksatchel
+    - type: Sprite
+      sprite: Clothing/Back/Satchels/salvage.rsi
 
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelSalvageFolded
-  name: folded salvage satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/salvage.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: salvagebackpacksatchelfolded
-
-
-
-# Satchel of Holding — DOES NOT FOLD
 - type: entity
   parent: ClothingBackpackSatchel
   id: ClothingBackpackSatchelHolding
@@ -548,7 +166,7 @@
   description: A satchel that opens into a localized pocket of bluespace. It is unwieldy due to condensed gravitational emissions.
   components:
   - type: Sprite
-    sprite: _NF/Clothing/Back/Satchels/holding.rsi
+    sprite: _NF/Clothing/Back/Satchels/holding.rsi # Frontier
     state: icon
     layers:
     - state: icon
@@ -592,25 +210,3 @@
     tags:
     - ScurretWearable
     - WhitelistChameleon
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: holdingbackpacksatchel
-    
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackSatchelHoldingFolded
-  name: folded holding satchel
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Satchels/holding.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: holdingbackpacksatchelfolded
-

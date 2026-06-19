@@ -8,7 +8,9 @@
     grid:
     - 0,0,6,3
   - type: Item
-    size: Ginormous
+    size: Huge
+    shape:
+    - 0,0,7,5
 
 - type: entity
   parent: [BaseSubfloorAnchorStorage, ClothingBackpackDuffel]
@@ -20,7 +22,9 @@
     grid:
     - 0,0,7,4
   - type: Item
-    size: Ginormous
+    size: Huge
+    shape:
+    - 0,0,7,5
 
 - type: entity
   abstract: true

@@ -82,7 +82,8 @@ namespace Content.Shared.Humanoid.Markings
         // end impstation edit
         public Marking AsMarking()
         {
-            return new Marking(ID, Sprites.Count);
+            // Coyote marking improvements
+            return new Marking(ID, Sprites.Count, MarkingCategory);
         }
     }
 }

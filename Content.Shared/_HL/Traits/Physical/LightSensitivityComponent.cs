@@ -1,3 +1,4 @@
+using Content.Shared._Starlight.Shadekin;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
 namespace Content.Shared._HL.Traits.Physical;
@@ -11,16 +12,18 @@ namespace Content.Shared._HL.Traits.Physical;
 public sealed partial class LightSensitivityComponent : Component
 {
     /// <summary>
-    /// Minimum LightExposure level at which burning starts. Replaces the default of 4.
+    /// Minimum LightExposure level (1–5, see <see cref="ShadekinState"/>) at which burning starts.
+    /// Defaults to 5 (Extreme) so light sensitivity only burns in the brightest light unless overridden.
     /// </summary>
     [DataField]
-    public int BurnThreshold = 4;
+    public int BurnThreshold = 5;
 
     /// <summary>
-    /// Minimum LightExposure level at which movement slowing starts. Replaces the default of 4.
+    /// Minimum LightExposure level (1–5, see <see cref="ShadekinState"/>) at which movement slowing starts.
+    /// Defaults to 5 (Extreme).
     /// </summary>
     [DataField]
-    public int SlowdownThreshold = 4;
+    public int SlowdownThreshold = 5;
 
     /// <summary>
     /// Speed multiplier applied to both walk and sprint when above SlowdownThreshold.
@@ -29,7 +32,8 @@ public sealed partial class LightSensitivityComponent : Component
     public float SpeedMultiplier = 0.9f;
 
     /// <summary>
-    /// Computed light exposure level (0–4) for non-shadekin entities. Updated by LightSensitivitySystem.
+    /// Computed light exposure level (1–5, matching <see cref="ShadekinState"/>) for non-shadekin entities.
+    /// Updated by LightSensitivitySystem, which discretizes ambient light using the shadekin's own thresholds.
     /// </summary>
     [ViewVariables]
     public float CurrentLightExposure;

@@ -134,7 +134,6 @@ public sealed partial class DungeonSystem : SharedDungeonSystem
         }
     }
 
-
     /// <summary>
     /// Generates a dungeon in the background with the specified config.
     /// </summary>

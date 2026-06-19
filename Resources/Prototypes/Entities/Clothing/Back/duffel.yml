@@ -15,160 +15,45 @@
     walkModifier: 1
     sprintModifier: 0.9
   - type: HeldSpeedModifier
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: backpackduffel
-
-# Folded version
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelFolded
-  name: folded duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/duffel.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: backpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelEngineering
   name: engineering duffel bag
   description: A large duffel bag for holding extra tools and supplies.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/engineering.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: engineeringbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelEngineeringFolded
-  name: folded engineering duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/engineering.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: engineeringbackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelAtmospherics
   name: atmospherics duffel bag
   description: A large duffel bag made of fire resistant fibers. Smells like plasma.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/atmospherics.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: atmosphericsbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelAtmosphericsFolded
-  name: folded atmospherics duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/atmospherics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: atmosphericsbackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelMedical
   name: medical duffel bag
   description: A large duffel bag for holding extra medical supplies.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/medical.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: medicalbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelMedicalFolded
-  name: folded medical duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/medical.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: medicalbackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel # Frontier: removed BaseCommandContraband
   id: ClothingBackpackDuffelCaptain
   name: captain's duffel bag
   description: A large duffel bag for holding extra captainly goods.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/captain.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: captainbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelCaptainFolded
-  name: folded captain's duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/captain.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: captainbackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelClown
   name: clown duffel bag
   description: A large duffel bag for holding extra honk goods.
@@ -178,192 +63,54 @@
     - type: Storage
       storageOpenSound:
         collection: BikeHorn
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: clownbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelClownFolded
-  name: folded clown duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/clown.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: clownbackpackduffelfolded
-
-
 
 - type: entity
-  parent: [NFClothingDuffel, BaseC1Contraband]
+  parent: [NFClothingDuffel, BaseC1Contraband ] # Frontier: BaseSecurityContraband<BaseC1Contraband, ClothingBackpackDuffel<NFClothingDuffel
   id: ClothingBackpackDuffelSecurity
   name: security duffel bag
   description: A large duffel bag for holding extra security related goods.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/security.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: securitybackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelSecurityFolded
-  name: folded security duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/security.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: securitybackpackduffelfolded
-
-
 
 - type: entity
-  parent: [NFClothingDuffel, BaseC2ContrabandUnredeemable]
+  parent: [NFClothingDuffel, BaseC2ContrabandUnredeemable ] # Frontier: BaseSecurityContraband<BaseC2ContrabandUnredeemable, ClothingBackpackDuffel<NFClothingDuffel
   id: ClothingBackpackDuffelBrigmedic
   name: brigmedic duffel bag
   description: A large duffel bag for holding extra medical related goods.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/brigmedic.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: brigmedicbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelBrigmedicFolded
-  name: folded brigmedic duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/brigmedic.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: brigmedicbackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelChemistry
   name: chemistry duffel bag
   description: A large duffel bag for holding extra beakers and test tubes.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/chemistry.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: chemistrybackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelChemistryFolded
-  name: folded chemistry duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/chemistry.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: chemistrybackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelVirology
   name: virology duffel bag
   description: A large duffel bag made of hypo-allergenic fibers. It's designed to help prevent the spread of disease. Smells like monkey.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/virology.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: virologybackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelVirologyFolded
-  name: folded virology duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/virology.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: virologybackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelGenetics
   name: genetics duffel bag
   description: A large duffel bag for holding extra genetic mutations.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/genetics.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: geneticsbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelGeneticsFolded
-  name: folded genetics duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/genetics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: geneticsbackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelMime
   name: mime duffel bag
   description: A large duffel bag for holding... mime... stuff.
@@ -374,155 +121,42 @@
         collection: null
       storageInsertSound:
         collection: null
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: mimebackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelMimeFolded
-  name: folded mime duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/mime.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: mimebackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelScience
   name: science duffel bag
   description: A large duffel bag for holding extra science related goods.
   components:
     - type: Sprite
       sprite: Clothing/Back/Duffels/science.rsi
-    - type: Construction
-      deconstructionTarget: null
-      graph: bagfolding
-      node: sciencebackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelScienceFolded
-  name: folded science duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/science.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: sciencebackpackduffelfolded
-
-
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelHydroponics
   name: hydroponics duffel bag
   description: A large duffel bag for holding extra gardening tools.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/hydroponics.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: hydroponicsbackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelHydroponicsFolded
-  name: folded hydroponics duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/hydroponics.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: hydroponicsbackpackduffelfolded
-
-
+    - type: Sprite
+      sprite: Clothing/Back/Duffels/hydroponics.rsi
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelCargo
   name: cargo duffel bag
   description: A large duffel bag for stealing cargo's precious loot.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/cargo.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cargobackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelCargoFolded
-  name: folded cargo duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/cargo.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: cargobackpackduffelfolded
-
-
+    - type: Sprite
+      sprite: Clothing/Back/Duffels/cargo.rsi
 
 - type: entity
-  parent: NFClothingDuffel
+  parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
   id: ClothingBackpackDuffelSalvage
   name: salvage duffel bag
   description: A large duffel bag for holding extra exotic treasures.
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/salvage.rsi
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: salvagebackpackduffel
-
-# Folded
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelSalvageFolded
-  name: folded salvage duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/salvage.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: salvagebackpackduffelfolded
+    - type: Sprite
+      sprite: Clothing/Back/Duffels/salvage.rsi
 
 - type: entity
   parent: [NFClothingDuffel, ContrabandClothing] # Frontier: BaseSyndicateContraband<BaseC3Contraband, added ContrabandClothing as parent
@@ -537,74 +171,54 @@
   - type: Storage
     grid:
     - 0,0,8,4
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: syndicatebackpackduffel
-    
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelSyndicateFolded
-  name: folded salvage duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/syndicate.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: syndicatebackpackduffelfolded
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicate
   id: ClothingBackpackDuffelSyndicateBundle
   abstract: true
   components:
-  - type: Tag
-    tags: [] # ignore "WhitelistChameleon" tag
+    - type: Tag
+      tags: [] # ignore "WhitelistChameleon" tag
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicate
   id: ClothingBackpackDuffelSyndicateAmmo
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/syndicate.rsi
-    state: icon-ammo
-  - type: Item
-    heldPrefix: ammo
-  - type: Clothing
-    equippedPrefix: ammo
+    - type: Sprite
+      sprite: Clothing/Back/Duffels/syndicate.rsi
+      state: icon-ammo
+    - type: Item
+      heldPrefix: ammo
+    - type: Clothing
+      equippedPrefix: ammo
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicateAmmo
   id: ClothingBackpackDuffelSyndicateAmmoBundle
   abstract: true
   components:
-  - type: Tag
-    tags: [] # ignore "WhitelistChameleon" tag
+    - type: Tag
+      tags: [] # ignore "WhitelistChameleon" tag
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicate
   id: ClothingBackpackDuffelSyndicateMedical
   components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/syndicate.rsi
-    state: icon-med
-  - type: Item
-    heldPrefix: med
-  - type: Clothing
-    equippedPrefix: med
+    - type: Sprite
+      sprite: Clothing/Back/Duffels/syndicate.rsi
+      state: icon-med
+    - type: Item
+      heldPrefix: med
+    - type: Clothing
+      equippedPrefix: med
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffelSyndicateMedical
   id: ClothingBackpackDuffelSyndicateMedicalBundle
   abstract: true
   components:
-  - type: Tag
-    tags: [] # ignore "WhitelistChameleon" tag
+    - type: Tag
+      tags: [] # ignore "WhitelistChameleon" tag
 
 - type: entity
   parent: NFClothingDuffel # Frontier: ClothingBackpackDuffelNFClothingDuffel
@@ -634,10 +248,6 @@
     maxItemSize: Huge
     grid:
     - 0,0,19,9 # Frontier: Was 0,0,19,9 - FRONTIER MADE IT 0,0,7,7 AND THAT'S DUMB - Loki
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: bluespacebackpackduffel
   - type: ClothingSpeedModifier
     sprintModifier: 0.75 # movespeed nerf in exchange for massive storage
   - type: HeldSpeedModifier
@@ -661,23 +271,7 @@
     tags:
     - ScurretWearable
     - WhitelistChameleon
-    
-- type: entity
-  parent: [ContentsExplosionResistanceBase, RecyclableItemClothBasic]
-  id: ClothingBackpackDuffelHoldingFolded
-  name: folded salvage duffel bag
-  description: it's folded
-  components:
-  - type: Sprite
-    sprite: Clothing/Back/Duffels/holding.rsi
-    state: folded
-  - type: Item
-    size: Tiny
-  - type: Construction
-    deconstructionTarget: null
-    graph: bagfolding
-    node: bluespacebackpackduffelfolded
-    
+
 - type: entity
   parent: [ NFClothingDuffel, BaseColcommContraband ] # Frontier: ClothingBackpackDuffel<NFClothingDuffel
   id: ClothingBackpackDuffelCBURN

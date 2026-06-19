@@ -29,6 +29,15 @@ namespace Content.Shared.Humanoid.Markings
         }
 
         public Marking(string markingId,
+            List<Color> markingColors,
+            bool isGlowing,
+            MarkingCategories category)
+            : this(markingId, markingColors.Count, isGlowing, category)
+        {
+            _markingColors = markingColors;
+        }
+
+        public Marking(string markingId,
             IReadOnlyList<Color> markingColors, bool isGlowing) //starlight, glowing
             : this(markingId, new List<Color>(markingColors), isGlowing)
         {
@@ -43,6 +52,63 @@ namespace Content.Shared.Humanoid.Markings
             _markingColors = colors;
         }
 
+        public Marking(string markingId, int colorCount, MarkingCategories category)
+            : this(markingId, colorCount)
+        {
+            // Coyote marking improvements
+            ToggleDataInitialized = true;
+            if (category == MarkingCategories.UndergarmentBottom || category == MarkingCategories.UndergarmentTop)
+            {
+                CanToggleVisible = true;
+                OtherCanToggleVisible = true;
+            }
+            else if (category == MarkingCategories.Genital)
+            {
+                ShowAtStart = false;
+                CanToggleVisible = true;
+                OtherCanToggleVisible = false;
+                PutOnVerb = "show";
+                PutOnVerb2p = "shows";
+                TakeOffVerb = "hide";
+                TakeOffVerb2p = "hides";
+            }
+            else
+            {
+                PutOnVerb = "show";
+                PutOnVerb2p = "shows";
+                TakeOffVerb = "hide";
+                TakeOffVerb2p = "hides";
+            }
+        }
+
+        // HardLight - integrating the glows into this has been a pain
+        public Marking(string markingId, int colorCount, bool isGlowing, MarkingCategories category)
+            : this(markingId, colorCount, category)
+        {
+            IsGlowing = isGlowing;
+        }
+
+        public Marking(Marking marking, IReadOnlyList<Color> markingColors, bool isGlowing)
+            : this(marking, markingColors)
+        {
+            IsGlowing = isGlowing;
+        }
+
+        public Marking(Marking marking, IReadOnlyList<Color> markingColors)
+            : this(marking)
+        {
+            _markingColors = new(markingColors);
+        }
+
+        public Marking(Marking marking, int colorCount)
+            : this(marking)
+        {
+            List<Color> colors = new();
+            for (int i = 0; i < colorCount; i++)
+                colors.Add(Color.White);
+            _markingColors = colors;
+        }
+
         public Marking(Marking other)
         {
             MarkingId = other.MarkingId;
@@ -50,6 +116,17 @@ namespace Content.Shared.Humanoid.Markings
             Visible = other.Visible;
             Forced = other.Forced;
             IsGlowing = other.IsGlowing; //starlight
+
+            // Coyote marking improvements
+            CustomName = other.CustomName;
+            ToggleDataInitialized = other.ToggleDataInitialized;
+            ShowAtStart = other.ShowAtStart;
+            CanToggleVisible = other.CanToggleVisible;
+            OtherCanToggleVisible = other.OtherCanToggleVisible;
+            PutOnVerb = other.PutOnVerb;
+            PutOnVerb2p = other.PutOnVerb2p;
+            TakeOffVerb = other.TakeOffVerb;
+            TakeOffVerb2p = other.TakeOffVerb2p;
         }
 
         /// <summary>
@@ -69,6 +146,50 @@ namespace Content.Shared.Humanoid.Markings
         /// </summary>
         [DataField("visible")]
         public bool Visible = true;
+
+        /// <summary>
+        ///     Optional display name used by the in-game marking toggle verbs.
+        /// </summary>
+        // Coyote marking improvements
+        [DataField("customName")]
+        public string? CustomName;
+
+        /// <summary>
+        ///     Whether the in-game toggle metadata has been initialized from prototype/category defaults.
+        ///     Older DB rows do not carry this, so profile load can safely hydrate their defaults.
+        /// </summary>
+        [DataField("toggleDataInitialized")]
+        public bool ToggleDataInitialized;
+
+        /// <summary>
+        ///     Whether this marking should start visible after profile load.
+        /// </summary>
+        [DataField("showAtStart")]
+        public bool ShowAtStart = true;
+
+        /// <summary>
+        ///     Whether this marking can be toggled by its wearer in-game.
+        /// </summary>
+        [DataField("canToggleVisible")]
+        public bool CanToggleVisible;
+
+        /// <summary>
+        ///     Whether this marking can be toggled by other players in-game.
+        /// </summary>
+        [DataField("otherCanToggleVisible")]
+        public bool OtherCanToggleVisible;
+
+        [DataField("putOnVerb")]
+        public string PutOnVerb = "put on";
+
+        [DataField("takeOffVerb")]
+        public string TakeOffVerb = "take off";
+
+        [DataField("putOnVerb2p")]
+        public string PutOnVerb2p = "puts on";
+
+        [DataField("takeOffVerb2p")]
+        public string TakeOffVerb2p = "takes off";
 
         /// <summary>
         ///     If this marking should be forcefully applied, regardless of points.
@@ -115,7 +236,16 @@ namespace Content.Shared.Humanoid.Markings
                 && _markingColors.SequenceEqual(other._markingColors)
                 && Visible.Equals(other.Visible)
                 && Forced.Equals(other.Forced)
-                && IsGlowing.Equals(other.IsGlowing); //starlight
+                && IsGlowing.Equals(other.IsGlowing) //starlight
+                && CustomName == other.CustomName
+                && ToggleDataInitialized == other.ToggleDataInitialized
+                && ShowAtStart == other.ShowAtStart
+                && CanToggleVisible == other.CanToggleVisible
+                && OtherCanToggleVisible == other.OtherCanToggleVisible
+                && PutOnVerb == other.PutOnVerb
+                && PutOnVerb2p == other.PutOnVerb2p
+                && TakeOffVerb == other.TakeOffVerb
+                && TakeOffVerb2p == other.TakeOffVerb2p;
         }
     }
 }

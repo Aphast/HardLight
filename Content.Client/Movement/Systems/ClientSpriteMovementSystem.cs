@@ -1,3 +1,4 @@
+using Content.Client.Options;
 using Content.Shared.Movement.Components;
 using Content.Shared.Sprite;
 using Content.Shared.Movement.Systems;
@@ -34,14 +35,16 @@ public sealed class ClientSpriteMovementSystem : SharedSpriteMovementSystem
         {
             foreach (var (layer, state) in ent.Comp.MovementLayers)
             {
-                _sprite.LayerSetData((ent.Owner, sprite), layer, state);
+                if (!TryComp(ent.Owner, out OptionsVisualizerComponent? _) || _sprite.LayerExists((ent.Owner, sprite), layer))
+                    _sprite.LayerSetData((ent.Owner, sprite), layer, state);
             }
         }
         else
         {
             foreach (var (layer, state) in ent.Comp.NoMovementLayers)
             {
-                _sprite.LayerSetData((ent.Owner, sprite), layer, state);
+                if (!TryComp(ent.Owner, out OptionsVisualizerComponent? _) || _sprite.LayerExists((ent.Owner, sprite), layer))
+                    _sprite.LayerSetData((ent.Owner, sprite), layer, state);
             }
         }
 

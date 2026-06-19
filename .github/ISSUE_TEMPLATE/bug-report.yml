@@ -16,7 +16,7 @@ body:
     attributes:
       label: What happened?
       description: Describe what actually occurred, including any error messages.
-      placeholder: "When I do X, Y occurs. Error log: ..."
+      placeholder: "When I do X, Y occurs. Error logs or images also help!"
     validations:
       required: true
 
@@ -51,36 +51,8 @@ body:
         - Minor (visual glitch, typo, annoyance)
         - Moderate (feature partially broken, workaround exists)
         - Major (feature completely broken, impacts gameplay)
-        - Critical (crash, data loss, server issue)
     validations:
       required: true
-
-  - type: input
-    id: version
-    attributes:
-      label: Game version / build
-      description: Which version of Hardlight are you running?
-      placeholder: "e.g., v1.2.3 or latest main branch commit hash"
-    validations:
-      required: true
-
-  - type: input
-    id: context
-    attributes:
-      label: Server / Round ID / Timestamp
-      description: If applicable – helps us match server logs.
-      placeholder: "e.g., Hardlight-Main, Round 4821, 2026-05-06 ~14:30 UTC"
-    validations:
-      required: false
-
-  - type: textarea
-    id: logs
-    attributes:
-      label: Relevant logs / screenshots
-      description: Paste any error logs, console output, or attach screenshots.
-      placeholder: "Paste logs here or drag and drop images"
-    validations:
-      required: false
 
   - type: checkboxes
     id: checklist
@@ -91,6 +63,4 @@ body:
         - label: I have searched for existing issues and this is not a duplicate
           required: true
         - label: I can reproduce this bug consistently with the steps above
-          required: true
-        - label: I understand that bug fixes will be tested locally before PR and tested again before merge
           required: true

@@ -37,6 +37,11 @@
     LFoot: MobFelionoidLFoot
     RFoot: MobFelionoidRFoot
     Tail: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking # Hardlight
+    UndergarmentBottom: MobHumanoidAnyMarking # Hardlight
+    Genital: MobHumanoidAnyMarking # Hardlight
+    Penis: MobHumanoidAnyMarking # Hardlight
+    Breasts: MobHumanoidAnyMarking # Hardlight
 
 - type: markingPoints
   id: MobFelionoidMarkingLimits
@@ -67,6 +72,16 @@
       points: 1
       required: true
       defaultMarkings: [ FelionoidTailAnimated ]
+    # Hardlight Add:
+    Genital:
+      points: 35
+      required: false
+    UndergarmentTop:
+      points: 3
+      required: false
+    UndergarmentBottom:
+      points: 3
+      required: false
 
 - type: humanoidBaseSprite
   id: MobFelionoidEyes

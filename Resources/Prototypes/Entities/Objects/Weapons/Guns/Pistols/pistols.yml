@@ -100,8 +100,6 @@
         whitelist:
           tags:
             - Cartridge9x19mmFMJ
-  - type: GunDamageModifier
-    multiplier: 1.3
   - type: ContainerContainer
     containers:
       gun_magazine: !type:ContainerSlot
@@ -204,8 +202,6 @@
         volume: -14
     availableModes:
     - SemiAuto
-  - type: GunDamageModifier
-    multiplier: 1.3
   - type: ItemSlots
     slots:
       gun_magazine:

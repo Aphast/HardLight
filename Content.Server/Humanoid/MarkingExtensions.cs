@@ -20,7 +20,18 @@ public static class MarkingExtensions
             {
                 MarkingId = sanitizedName,
                 Colors = colorStringList,
-                IsGlowing = Marking.IsGlowing
+                IsGlowing = Marking.IsGlowing,
+
+                // Coyote marking improvements
+                ToggleDataInitialized = Marking.ToggleDataInitialized,
+                CustomName = Marking.CustomName,
+                ShowAtStart = Marking.ShowAtStart,
+                CanToggleVisible = Marking.CanToggleVisible,
+                OtherCanToggleVisible = Marking.OtherCanToggleVisible,
+                PutOnVerb = Marking.PutOnVerb,
+                PutOnVerb2p = Marking.PutOnVerb2p,
+                TakeOffVerb = Marking.TakeOffVerb,
+                TakeOffVerb2p = Marking.TakeOffVerb2p
             });
 
             return json;
@@ -34,6 +45,17 @@ public static class MarkingExtensions
             public string MarkingId { get; set; } = default!;
             public List<string> Colors { get; set; } = new();
             public bool IsGlowing { get; set; } = false;
+
+            // Coyote marking improvements
+            public bool? ToggleDataInitialized { get; set; }
+            public string? CustomName { get; set; }
+            public bool? ShowAtStart { get; set; }
+            public bool? CanToggleVisible { get; set; }
+            public bool? OtherCanToggleVisible { get; set; }
+            public string? PutOnVerb { get; set; }
+            public string? TakeOffVerb { get; set; }
+            public string? PutOnVerb2p { get; set; }
+            public string? TakeOffVerb2p { get; set; }
         }
 
         public static Marking? ParseFromDbString(string input)
@@ -52,7 +74,28 @@ public static class MarkingExtensions
                 foreach (string color in json.Colors)
                     colorList.Add(Color.FromHex(color));
 
-                return new Marking(json.MarkingId, colorList, json.IsGlowing);
+                var marking = new Marking(json.MarkingId, colorList, json.IsGlowing);
+
+                // Coyote marking improvements
+                marking.CustomName = json.CustomName;
+                marking.ShowAtStart = json.ShowAtStart ?? marking.ShowAtStart;
+                marking.CanToggleVisible = json.CanToggleVisible ?? marking.CanToggleVisible;
+                marking.OtherCanToggleVisible = json.OtherCanToggleVisible ?? marking.OtherCanToggleVisible;
+                marking.PutOnVerb = json.PutOnVerb ?? marking.PutOnVerb;
+                marking.PutOnVerb2p = json.PutOnVerb2p ?? marking.PutOnVerb2p;
+                marking.TakeOffVerb = json.TakeOffVerb ?? marking.TakeOffVerb;
+                marking.TakeOffVerb2p = json.TakeOffVerb2p ?? marking.TakeOffVerb2p;
+                marking.ToggleDataInitialized = json.ToggleDataInitialized
+                    ?? (json.ShowAtStart != null
+                        || json.CanToggleVisible != null
+                        || json.OtherCanToggleVisible != null
+                        || json.CustomName != null
+                        || json.PutOnVerb != null
+                        || json.PutOnVerb2p != null
+                        || json.TakeOffVerb != null
+                        || json.TakeOffVerb2p != null);
+
+                return marking;
             }
 
             if (input.Length == 0) return null;

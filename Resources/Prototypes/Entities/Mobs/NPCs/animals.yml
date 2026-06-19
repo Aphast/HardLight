@@ -2753,12 +2753,23 @@
   id: MobGiantSpider
   description: Widely recognized to be the literal worst thing in existence.
   components:
-  - type: Sprite
-    drawdepth: Mobs
-    layers:
-    - map: ["enum.DamageStateVisualLayers.Base", "movement"]
-      state: tarantula
-      sprite: Mobs/Animals/spider.rsi
+  # Starlight start
+  - type: OptionsVisualizer
+    visuals:
+      base:
+        - options: Default
+          data:
+            drawdepth: Mobs
+            sprite: Mobs/Animals/spider.rsi
+            map: ["enum.DamageStateVisualLayers.Base", "movement"]
+            state: tarantula
+        - options: Arachnophobia
+          data:
+            drawdepth: Mobs
+            sprite: _Starlight/Mobs/Animals/Spiders/Arachnophobia/spider.rsi
+            map: ["enum.DamageStateVisualLayers.Base", "movement"]
+            state: tarantula
+  # Starlight end
   - type: SpriteMovement
     movementLayers:
       movement:
@@ -2796,12 +2807,23 @@
   id: MobClownSpider
   description: Combines the two most terrifying things in existence, spiders and clowns.
   components:
-  - type: Sprite
-    drawdepth: Mobs
-    layers:
-    - map: ["enum.DamageStateVisualLayers.Base"]
-      state: clown
-      sprite: Mobs/Animals/clownspider.rsi
+  # Starlight start
+  - type: OptionsVisualizer
+    visuals:
+      base:
+        - options: Default
+          data:
+            drawdepth: Mobs
+            sprite: Mobs/Animals/clownspider.rsi
+            map: ["enum.DamageStateVisualLayers.Base"]
+            state: clown
+        - options: Arachnophobia
+          data:
+            drawdepth: Mobs
+            sprite: _Starlight/Mobs/Animals/Spiders/Arachnophobia/clownspider.rsi
+            map: ["enum.DamageStateVisualLayers.Base"]
+            state: clown
+  # Starlight end
   - type: Butcherable
     spawned:
     - id: MaterialBananium1

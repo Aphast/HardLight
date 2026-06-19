@@ -143,8 +143,6 @@
         whitelist:
           tags:
             - Cartridge556x45mmFMJ
-  - type: GunDamageModifier
-    multiplier: 1.3
   - type: ContainerContainer
     containers:
       gun_magazine: !type:ContainerSlot

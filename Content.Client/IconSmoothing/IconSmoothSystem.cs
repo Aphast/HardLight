@@ -1,4 +1,5 @@
 using System.Numerics;
+using Content.Client.Options;
 using Content.Shared.CCVar; // HardLight
 using Content.Shared.IconSmoothing;
 using Content.Shared.Tag; // HardLight
@@ -27,6 +28,7 @@ namespace Content.Client.IconSmoothing
 
         [Dependency] private readonly IConfigurationManager _cfg = default!; // HardLight
         [Dependency] private readonly SharedMapSystem _mapSystem = default!;
+        [Dependency] private readonly OptionsVisualizerSystem _optionsVisualizer = default!;
         [Dependency] private readonly SpriteSystem _sprite = default!;
         [Dependency] private readonly TagSystem _tagSystem = default!; // HardLight
 
@@ -121,6 +123,9 @@ namespace Content.Client.IconSmoothing
             _sprite.LayerSetDirOffset(sprite, CornerLayers.NW, DirectionOffset.Flip);
             _sprite.LayerMapSet(sprite, CornerLayers.SW, _sprite.AddRsiLayer(sprite, state0));
             _sprite.LayerSetDirOffset(sprite, CornerLayers.SW, DirectionOffset.Clockwise);
+
+            if (TryComp(sprite.Owner, out OptionsVisualizerComponent? visComp) && sprite.Comp != null)
+                _optionsVisualizer.UpdateComponent(sprite.Owner, visComp, sprite.Comp);
         }
 
         private void OnShutdown(EntityUid uid, IconSmoothComponent component, ComponentShutdown args)

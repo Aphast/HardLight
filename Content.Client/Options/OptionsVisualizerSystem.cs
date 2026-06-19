@@ -14,6 +14,7 @@ public sealed class OptionsVisualizerSystem : EntitySystem
     {
         (OptionVisualizerOptions.Test, CCVars.DebugOptionVisualizerTest),
         (OptionVisualizerOptions.ReducedMotion, CCVars.ReducedMotion),
+        (OptionVisualizerOptions.Arachnophobia, CCVars.AccessibilityArachnophobia), // Starlight
     };
 
     [Dependency] private readonly IConfigurationManager _cfg = default!;
@@ -70,7 +71,7 @@ public sealed class OptionsVisualizerSystem : EntitySystem
         UpdateComponent(uid, component, sprite);
     }
 
-    private void UpdateComponent(EntityUid uid, OptionsVisualizerComponent component, SpriteComponent sprite)
+    public void UpdateComponent(EntityUid uid, OptionsVisualizerComponent component, SpriteComponent sprite)
     {
         foreach (var (layerKeyRaw, layerData) in component.Visuals)
         {
@@ -86,11 +87,20 @@ public sealed class OptionsVisualizerSystem : EntitySystem
             if (matchedDatum == null)
                 continue;
 
-            var layerIndex = _reflection.TryParseEnumReference(layerKeyRaw, out var @enum)
-                ? _sprite.LayerMapReserve((uid, sprite), @enum)
-                : _sprite.LayerMapReserve((uid, sprite), layerKeyRaw);
+            var layerIndex = -1;
+            if (_reflection.TryParseEnumReference(layerKeyRaw, out var @enum))
+            {
+                if (layerKeyRaw == "base" || _sprite.LayerExists((uid, sprite), @enum))
+                    layerIndex = _sprite.LayerMapReserve((uid, sprite), @enum);
+            }
+            else
+            {
+                if (layerKeyRaw == "base" || _sprite.LayerExists((uid, sprite), layerKeyRaw))
+                    layerIndex = _sprite.LayerMapReserve((uid, sprite), layerKeyRaw);
+            }
 
-            _sprite.LayerSetData((uid, sprite), layerIndex, matchedDatum.Data);
+            if (layerKeyRaw == "base" || layerIndex >= 0)
+                _sprite.LayerSetData((uid, sprite), layerIndex, matchedDatum.Data);
         }
     }
 }

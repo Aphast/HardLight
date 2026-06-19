@@ -53,12 +53,5 @@
     slots:
     - suitStorage
     - Belt
-  - type: UpgradeableGun
-    whitelist:
-      tags:
-      - PKAUpgrade
-  - type: ContainerContainer
-    containers:
-      upgrades: !type:Container
   - type: UseDelay
     delay: 1

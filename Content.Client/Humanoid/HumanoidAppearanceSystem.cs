@@ -245,7 +245,7 @@ public sealed class HumanoidAppearanceSystem : SharedHumanoidAppearanceSystem
                 profile.Appearance.EyeColor,
                 markings
             );
-            markings.AddBack(prototype.MarkingCategory, new Marking(marking.MarkingId, markingColors, marking.IsGlowing)); // Starlight: Glowing
+            markings.AddBack(prototype.MarkingCategory, new Marking(marking, markingColors, marking.IsGlowing)); // Starlight: Glowing
         }
 
         markings.EnsureSpecies(profile.Species, profile.Appearance.SkinColor, _markingManager, _prototypeManager);

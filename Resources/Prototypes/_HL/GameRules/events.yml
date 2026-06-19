@@ -98,11 +98,6 @@
     - id: LizardVents
     - id: WawaVents
     - id: IrradiatedPests
-    - id: XenoVentsLarva
-    - id: Abyssvents
-    - id: glimmervents
-    - id: HostileLizardVents
-    - id: Lavavents
     # - id: GiftsEngineering
     # - id: GiftsFireProtection
     # - id: GiftsJanitor
@@ -773,7 +768,6 @@
       - id: MobAdultSlimesBlueAngry
       - id: MobAdultSlimesGreenAngry
       - id: MobAdultSlimesYellowAngry
-      
 - type: entity
   id: SnakeSpawn
   parent: BaseStationEventShortDelay
@@ -799,8 +793,7 @@
       - id: MobPurpleSnake
       - id: MobSmallPurpleSnake
       - id: MobCobraSpace
-      - id: NFMobSmallRainbowSnake
-      
+
 
 - type: entity
   id: SpiderSpawn
@@ -825,7 +818,6 @@
         range: 1, 50
       children:
       - id: MobGiantSpiderAngry
-      - id: MobSpiderSpace
 
 - type: entity
   id: SpiderClownSpawn
@@ -1877,8 +1869,6 @@
         range: 1, 50
       children:
       - id: MobTick
-      - id: MobTickSalvage
-      - id: NFMobTick
 
 
 - type: entity
@@ -1947,9 +1937,6 @@
       - id: MobCarpRainbow
       - id: MobShark
       - id: MobCarpDragon
-      - id: NFMobRainbowWyvernIce
-      - id: NFMobRainbowWyvernFire
-      - id: NFMobRainbowWyvernCaustic
 
 - type: entity
   id: SpaceVents
@@ -2081,38 +2068,6 @@
       - id: MobXenoBloodyLarva
       - id: MobXenoLurker
       - id: MobXenoWarrior
-
-- type: entity
-  id: XenoVentsLarva
-  parent: BaseGameRule
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: StationEvent
-    startAnnouncement: station-event-vent-creatures-start-announcement
-    startAudio:
-      path: /Audio/Announcements/aliens.ogg
-    earliestStart: 30
-    reoccurrenceDelay: 200
-    minimumPlayers: 30
-    weight: 6 # Really weak compared to other critters
-    duration: 60
-    requiredJobs:
-      HeadOfSecurity: 1
-      SecurityOfficer: 1
-      Warden: 1
-  - type: VentHordeRule
-    table: !type:GroupSelector
-      rolls: !type:RangeNumberSelector
-        range: 1, 50
-      children:
-      - id: MobXenoSpitterLarva
-      - id: MobXenoSneakyLarva
-      - id: MobXenoMaleLarva
-      - id: MobXenoFemaleLarva
-      - id: MobXenoSpeedyLarva
-      - id: MobXenoLarva
-      - id: MobXenoParasite
-      - id: MobXenoBloodyLarva
 
 - type: entity
   id: AiVents
@@ -2415,7 +2370,7 @@
   - type: VentHordeRule
     table: !type:GroupSelector
       rolls: !type:RangeNumberSelector
-        range: 1, 12
+        range: 1, 50
       children:
       - id: BlueRainLizard
       - id: HostileBlueRainLizard
@@ -2430,35 +2385,6 @@
       - id: RedRainLizard
       - id: HostileRedRainLizard
       - id: TrainRainLizard
-      - id: HostileTrainRainLizard
-      
-- type: entity
-  id: HostileLizardVents
-  parent: BaseGameRule
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: StationEvent
-    startAnnouncement: station-event-vent-creatures-start-announcement
-    startAudio:
-      path: /Audio/Announcements/attention.ogg
-    earliestStart: 30
-    reoccurrenceDelay: 200
-    minimumPlayers: 10
-    weight: 6 # Really weak compared to other critters
-    duration: 60
-    requiredJobs:
-      HeadOfSecurity: 1
-  - type: VentHordeRule
-    table: !type:GroupSelector
-      rolls: !type:RangeNumberSelector
-        range: 1, 12
-      children:
-      - id: HostileBlueRainLizard
-      - id: HostileGreenRainLizard
-      - id: HostilePinkRainLizard
-      - id: HostileWhiteRainLizard
-      - id: HostileCyanRainLizard
-      - id: HostileRedRainLizard
       - id: HostileTrainRainLizard
 
 - type: entity
@@ -2483,84 +2409,6 @@
       - id: MobEmotionalSupportScurret
 
 - type: entity
-  id: glimmervents
-  parent: BaseGameRule
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: StationEvent
-    startAnnouncement: station-event-vent-creatures-start-announcement
-    startAudio:
-      path: /Audio/Announcements/attention.ogg
-    earliestStart: 30
-    reoccurrenceDelay: 200
-    minimumPlayers: 40
-    weight: 6 # Really weak compared to other critters
-    duration: 60
-  - type: VentHordeRule
-    table: !type:GroupSelector
-      rolls: !type:RangeNumberSelector
-        range: 1, 10
-      children:
-      - id: MobGlimmerMite
-
-- type: entity
-  id: Abyssvents
-  parent: BaseGameRule
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: StationEvent
-    startAnnouncement: station-event-vent-creatures-start-announcement
-    startAudio:
-      path: /Audio/Announcements/attention.ogg
-    earliestStart: 30
-    reoccurrenceDelay: 200
-    minimumPlayers: 40
-    weight: 6 # Really weak compared to other critters
-    duration: 60
-  - type: VentHordeRule
-    table: !type:GroupSelector
-      rolls: !type:RangeNumberSelector
-        range: 1, 10
-      children:
-      - id: PortalAbyssal
-      - id: PortalAbyssalGhost
-      
-- type: entity
-  id: Lavavents
-  parent: BaseGameRule
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: StationEvent
-    startAnnouncement: station-event-vent-creatures-start-announcement
-    startAudio:
-      path: /Audio/Announcements/attention.ogg
-    earliestStart: 30
-    reoccurrenceDelay: 200
-    minimumPlayers: 40
-    weight: 6 # Really weak compared to other critters
-    duration: 60
-  - type: VentHordeRule
-    table: !type:GroupSelector
-      rolls: !type:RangeNumberSelector
-        range: 1, 5
-      children:
-      - id: MobWatcherLavaland
-      - id: MobWatcherIcewing
-      - id: MobWatcherMagmawing
-      - id: MobWatcherPride
-      - id: MobHellspawn
-      - id: LavaTalon
-      - id: MobGoliath
-      - id: MobHivelord
-      - id: MobLavalandGoliath
-      - id: MobLavalandGoldgrub
-      - id: MobLavalandLegion
-      - id: MobLavalandHierophant
-      - id: MobLavalandAshDrake
-      - id: MobLavalandBubblegum
-
-
-- type: entity
   id: Beehallucination
   parent: BaseGameRule
   categories: [ HideSpawnMenu ]
@@ -2573,7 +2421,7 @@
     reoccurrenceDelay: 200
     minimumPlayers: 40
     weight: 6 # Really weak compared to other critters
-    duration: 10
+    duration: 60
   - type: VentHordeRule
     table: !type:GroupSelector
       rolls: !type:RangeNumberSelector

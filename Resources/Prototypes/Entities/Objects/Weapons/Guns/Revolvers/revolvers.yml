@@ -152,8 +152,6 @@
   id: WeaponRevolverPythonAP # For the uplink.
   suffix: armor-piercing
   components:
-  - type: GunDamageModifier
-    multiplier: 1.3
   - type: RevolverAmmoProvider
     whitelist:
       tags:

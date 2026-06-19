@@ -25,7 +25,7 @@ public sealed partial class MarkingPicker : Control
 
     public Action<MarkingSet>? OnMarkingAdded;
     public Action<MarkingSet>? OnMarkingRemoved;
-    public Action<MarkingSet>? OnMarkingColorChange;
+    public Action<MarkingSet>? OnMarkingDataChanged; // Coyote: OnMarkingColorChange to OnMarkingDataChanged
     public Action<MarkingSet>? OnMarkingRankChange;
 
     private List<Color> _currentMarkingColors = new();
@@ -147,6 +147,18 @@ public sealed partial class MarkingPicker : Control
 
         CMarkingSearch.OnTextChanged += args => Populate(args.Text);
 
+        // Coyote: Marking System Improvements start
+        CanPutOnToggle.OnToggled += args => SetCanToggle(args.Pressed);
+        CanPutOnByOtherToggle.OnToggled += args => SetOtherCanToggle(args.Pressed);
+        StartVisibleToggle.OnToggled += args => SetVisibleAtStart(args.Pressed);
+        CustomNameTextEdit.OnTextChanged += _ => SetCustomText();
+        PutOnTextEdit.OnTextChanged += _ => SetCustomText();
+        TakeOffTextEdit.OnTextChanged += _ => SetCustomText();
+        PutOnOtherTextEdit.OnTextChanged += _ => SetCustomText();
+        TakeOffOtherTextEdit.OnTextChanged += _ => SetCustomText();
+        SampleButton.OnPressed += _ => ToggleSample();
+        // Marking system improvements end
+
         //starlight start
         Glowing.OnToggled += args =>
         {
@@ -158,11 +170,124 @@ public sealed partial class MarkingPicker : Control
 
             var marking = new Marking(_currentMarkings.Markings[_selectedMarkingCategory][markingIndex]);
             marking.IsGlowing = args.Pressed;
+            marking.ToggleDataInitialized = true;
             _currentMarkings.Replace(_selectedMarkingCategory, markingIndex, marking);
 
-            OnMarkingColorChange?.Invoke(_currentMarkings);
+            OnMarkingDataChanged?.Invoke(_currentMarkings);
         };
         //starlight end
+    }
+
+    // Hardlight start
+    private void SetCheckboxVisibility()
+    {
+        PutOnTextEdit.Visible = CanPutOnToggle.Pressed;
+        TakeOffTextEdit.Visible = CanPutOnToggle.Pressed;
+        PutOnTextEditLabel.Visible = CanPutOnToggle.Pressed;
+        TakeOffTextEditLabel.Visible = CanPutOnToggle.Pressed;
+
+        PutOnOtherTextEdit.Visible = CanPutOnByOtherToggle.Pressed;
+        TakeOffOtherTextEdit.Visible = CanPutOnByOtherToggle.Pressed;
+        PutOnOtherTextEditLabel.Visible = CanPutOnByOtherToggle.Pressed;
+        TakeOffOtherTextEditLabel.Visible = CanPutOnByOtherToggle.Pressed;
+    }
+
+    private Marking? GetSelectedMarkingCopy(out int markingIndex)
+    {
+        markingIndex = -1;
+        if (_selectedMarking is null)
+            return null;
+
+        var markingPrototype = (MarkingPrototype)_selectedMarking.Metadata!;
+        markingIndex = _currentMarkings.FindIndexOf(_selectedMarkingCategory, markingPrototype.ID);
+        if (markingIndex < 0)
+            return null;
+
+        return new Marking(_currentMarkings.Markings[_selectedMarkingCategory][markingIndex]);
+    }
+
+    private void ReplaceSelectedMarking(int markingIndex, Marking marking)
+    {
+        _currentMarkings.Replace(_selectedMarkingCategory, markingIndex, marking);
+        OnMarkingDataChanged?.Invoke(_currentMarkings);
+    }
+
+    private void SetCanToggle(bool canToggle)
+    {
+        var marking = GetSelectedMarkingCopy(out var markingIndex);
+        if (marking == null)
+            return;
+
+        marking.CanToggleVisible = canToggle;
+        marking.ToggleDataInitialized = true;
+        ReplaceSelectedMarking(markingIndex, marking);
+        SetCheckboxVisibility();
+    }
+
+    private void SetOtherCanToggle(bool canToggle)
+    {
+        var marking = GetSelectedMarkingCopy(out var markingIndex);
+        if (marking == null)
+            return;
+
+        marking.OtherCanToggleVisible = canToggle;
+        marking.ToggleDataInitialized = true;
+        ReplaceSelectedMarking(markingIndex, marking);
+        SetCheckboxVisibility();
+    }
+
+    private void SetVisibleAtStart(bool visible)
+    {
+        var marking = GetSelectedMarkingCopy(out var markingIndex);
+        if (marking == null)
+            return;
+
+        marking.ShowAtStart = visible;
+        marking.ToggleDataInitialized = true;
+        ReplaceSelectedMarking(markingIndex, marking);
+    }
+
+    private void SetCustomText()
+    {
+        var marking = GetSelectedMarkingCopy(out var markingIndex);
+        if (marking == null || _selectedMarking is null)
+            return;
+
+        var markingPrototype = (MarkingPrototype)_selectedMarking.Metadata!;
+        marking.CustomName = CustomNameTextEdit.Text;
+        marking.PutOnVerb = PutOnTextEdit.Text;
+        marking.PutOnVerb2p = PutOnOtherTextEdit.Text;
+        marking.TakeOffVerb = TakeOffTextEdit.Text;
+        marking.TakeOffVerb2p = TakeOffOtherTextEdit.Text;
+        marking.ToggleDataInitialized = true;
+
+        var name = string.IsNullOrWhiteSpace(marking.CustomName) ? GetMarkingName(markingPrototype) : marking.CustomName;
+        var putOn = string.IsNullOrWhiteSpace(marking.PutOnVerb) ? Loc.GetString("marking-toggle-self-default-verb-on") : marking.PutOnVerb;
+        var putOnOther = string.IsNullOrWhiteSpace(marking.PutOnVerb2p) ? Loc.GetString("marking-toggle-other-default-verb-on") : marking.PutOnVerb2p;
+        var takeOff = string.IsNullOrWhiteSpace(marking.TakeOffVerb) ? Loc.GetString("marking-toggle-self-default-verb-off") : marking.TakeOffVerb;
+        var takeOffOther = string.IsNullOrWhiteSpace(marking.TakeOffVerb2p) ? Loc.GetString("marking-toggle-other-default-verb-off") : marking.TakeOffVerb2p;
+
+        SampleText.Text = GetSampleText(name, putOn, putOnOther) + "\n" + GetSampleText(name, takeOff, takeOffOther);
+        ReplaceSelectedMarking(markingIndex, marking);
+    }
+
+    private void ToggleSample()
+    {
+        SampleBox.Visible = !SampleBox.Visible;
+        SampleButton.Text = Loc.GetString(SampleBox.Visible ? "marking-hide-sample-text" : "marking-show-sample-text");
+        if (SampleBox.Visible)
+            SetCustomText();
+    }
+    // Hardlight end
+
+    private string GetSampleText(string name, string verb, string verb2p) // Coyote marking system improvements
+    {
+        return Loc.GetString("marking-toggle-self-start", ("marking-name", name), ("verb", verb))
+            + "\n" + Loc.GetString("marking-toggle-self", ("marking-name", name), ("verb", verb))
+            + "\n" + Loc.GetString("marking-toggle-other-start", ("marking-name", name), ("verb", verb))
+            + "\n" + Loc.GetString("marking-toggle-other", ("marking-name", name), ("verb", verb))
+            + "\n" + Loc.GetString("marking-toggle-by-other-start", ("other", "Someone"), ("marking-name", name), ("verb", verb))
+            + "\n" + Loc.GetString("marking-toggle-by-other", ("other", "Someone"), ("marking-name", name), ("verb", verb2p));
     }
 
     private void SetupCategoryButtons()
@@ -174,7 +299,7 @@ public sealed partial class MarkingPicker : Control
         {
             var category = _markingCategories[i];
             var markings = GetMarkings(category);
-            
+
             // Check if the category should be ignored
             if (_ignoreCategories.Contains(category) || markings.Count == 0)
             {
@@ -258,7 +383,11 @@ public sealed partial class MarkingPicker : Control
     public void PopulateUsed()
     {
         CMarkingsUsed.Clear();
+        MarkingData.Visible = false; // Coyote
         CMarkingColors.Visible = false;
+        SampleBox.Visible = false; // Coyote
+        SampleButton.Visible = false; // Coyote
+        SampleButton.Text = Loc.GetString("marking-show-sample-text"); // Coyote
         _selectedMarking = null;
 
         if (!IgnoreSpecies)
@@ -412,89 +541,108 @@ public sealed partial class MarkingPicker : Control
     {
         _selectedMarking = CMarkingsUsed[item.ItemIndex];
         var prototype = (MarkingPrototype)_selectedMarking.Metadata!;
+        var markingIndex = _currentMarkings.FindIndexOf(_selectedMarkingCategory, prototype.ID);
+        if (markingIndex < 0)
+            return;
+
+        var marking = _currentMarkings.Markings[_selectedMarkingCategory][markingIndex];
 
         if (prototype.ForcedColoring)
         {
             CMarkingColors.Visible = false;
-
-            return;
         }
-
-        var stateNames = GetMarkingStateNames(prototype);
-        _currentMarkingColors.Clear();
-        CMarkingColors.DisposeAllChildren();
-        List<ColorSelectorSliders> colorSliders = new();
-        for (int i = 0; i < prototype.Sprites.Count; i++)
+        else
         {
-            // first, check if the coloration is parented to another marking
-            // and if so, just kinda sorta dont display it
-            var skipdraw = false;
-            if (prototype.ColorLinks?.Count > 0)
+            var stateNames = GetMarkingStateNames(prototype);
+            _currentMarkingColors.Clear();
+            CMarkingColors.DisposeAllChildren();
+            List<ColorSelectorSliders> colorSliders = new();
+            for (int i = 0; i < prototype.Sprites.Count; i++)
             {
-                var name = prototype.Sprites[i] switch
+                // first, check if the coloration is parented to another marking
+                // and if so, just kinda sorta dont display it
+                var skipdraw = false;
+                if (prototype.ColorLinks?.Count > 0)
                 {
-                    SpriteSpecifier.Rsi rsi => rsi.RsiState,
-                    SpriteSpecifier.Texture texture => texture.TexturePath.Filename,
-                    _ => null
+                    var name = prototype.Sprites[i] switch
+                    {
+                        SpriteSpecifier.Rsi rsi => rsi.RsiState,
+                        SpriteSpecifier.Texture texture => texture.TexturePath.Filename,
+                        _ => null
+                    };
+
+                    if (name != null && prototype.ColorLinks.ContainsKey(name))
+                    {
+                        // dont show it, cus its parented to another marking
+                        skipdraw = true;
+                    }
+                }
+                var colorContainer = new BoxContainer
+                {
+                    Orientation = LayoutOrientation.Vertical,
                 };
 
-                if (name != null && prototype.ColorLinks.ContainsKey(name))
+                // so.
+                // the color selector sliders decide which destination color to modify
+                // based on its index in the list of color selectors.
+                // this is a problem if we, say, want to *not* show a certain slider
+                // cus then it'll modify the wrong color, unless the color happened to
+                // be in index 0.
+                if(!skipdraw)
+                    CMarkingColors.AddChild(colorContainer);
+
+                ColorSelectorSliders colorSelector = new ColorSelectorSliders();
+                colorSliders.Add(colorSelector);
+
+                colorContainer.AddChild(new Label { Text = $"{stateNames[i]} color:" });
+                colorContainer.AddChild(colorSelector);
+
+                var listing = _currentMarkings.Markings[_selectedMarkingCategory];
+
+                var color = listing[listing.Count - 1 - item.ItemIndex].MarkingColors[i];
+                var currentColor = new Color(
+                    color.RByte,
+                    color.GByte,
+                    color.BByte
+                );
+                colorSelector.Color = currentColor;
+                _currentMarkingColors.Add(currentColor);
+                var colorIndex = _currentMarkingColors.Count - 1;
+
+                Action<Color> colorChanged = _ =>
                 {
-                    // dont show it, cus its parented to another marking
-                    skipdraw = true;
-                }
+                    _currentMarkingColors[colorIndex] = colorSelector.Color;
+
+                    ColorChanged(colorIndex);
+                };
+                colorSelector.OnColorChanged += colorChanged;
             }
-            var colorContainer = new BoxContainer
-            {
-                Orientation = LayoutOrientation.Vertical,
-            };
 
-            // so.
-            // the color selector sliders decide which destination color to modify
-            // based on its index in the list of color selectors.
-            // this is a problem if we, say, want to *not* show a certain slider
-            // cus then it'll modify the wrong color, unless the color happened to
-            // be in index 0.
-            if(!skipdraw)
-                CMarkingColors.AddChild(colorContainer);
-
-            ColorSelectorSliders colorSelector = new ColorSelectorSliders();
-            colorSliders.Add(colorSelector);
-
-            colorContainer.AddChild(new Label { Text = $"{stateNames[i]} color:" });
-            colorContainer.AddChild(colorSelector);
-
-            var listing = _currentMarkings.Markings[_selectedMarkingCategory];
-
-            var color = listing[listing.Count - 1 - item.ItemIndex].MarkingColors[i];
-            var currentColor = new Color(
-                color.RByte,
-                color.GByte,
-                color.BByte
-            );
-            colorSelector.Color = currentColor;
-            _currentMarkingColors.Add(currentColor);
-            var colorIndex = _currentMarkingColors.Count - 1;
-
-            Action<Color> colorChanged = _ =>
-            {
-                _currentMarkingColors[colorIndex] = colorSelector.Color;
-
-                ColorChanged(colorIndex);
-            };
-            colorSelector.OnColorChanged += colorChanged;
+            CMarkingColors.Visible = true;
         }
 
-        CMarkingColors.Visible = true;
+        // Coyote Marking System Improvements
+        CustomNameTextEdit.Text = marking.CustomName ?? "";
+        StartVisibleToggle.Pressed = marking.ShowAtStart;
+        CanPutOnToggle.Pressed = marking.CanToggleVisible;
+        CanPutOnByOtherToggle.Pressed = marking.OtherCanToggleVisible;
+        PutOnTextEdit.Text = marking.PutOnVerb;
+        TakeOffTextEdit.Text = marking.TakeOffVerb;
+        PutOnOtherTextEdit.Text = marking.PutOnVerb2p;
+        TakeOffOtherTextEdit.Text = marking.TakeOffVerb2p;
+        MarkingData.Visible = true;
+        SampleButton.Visible = true;
+        SetCheckboxVisibility();
+        // Coyote end
 
         //starlight start
         if (_selectedMarking is null) return;
         var markingPrototype = (MarkingPrototype)_selectedMarking.Metadata!;
-        int markingIndex = _currentMarkings.FindIndexOf(_selectedMarkingCategory, markingPrototype.ID);
+        markingIndex = _currentMarkings.FindIndexOf(_selectedMarkingCategory, markingPrototype.ID);
 
         if (markingIndex < 0) return;
 
-        var marking = _currentMarkings.Markings[_selectedMarkingCategory][markingIndex];
+        marking = _currentMarkings.Markings[_selectedMarkingCategory][markingIndex];
 
         Glowing.Pressed = marking.IsGlowing;
         //starlight end
@@ -514,7 +662,7 @@ public sealed partial class MarkingPicker : Control
         marking.SetColor(colorIndex, _currentMarkingColors[colorIndex]);
         _currentMarkings.Replace(_selectedMarkingCategory, markingIndex, marking);
 
-        OnMarkingColorChange?.Invoke(_currentMarkings);
+        OnMarkingDataChanged?.Invoke(_currentMarkings); // Coyote: OnMarkingColorChange? to OnMarkingDataChanged?
     }
 
     private void MarkingAdd()
@@ -589,6 +737,7 @@ public sealed partial class MarkingPicker : Control
             Metadata = marking,
         };
         CMarkingsUsed.Insert(0, item);
+        OnUsedMarkingSelected(new ItemList.ItemListSelectedEventArgs(0, CMarkingsUsed)); // Coyote: Select the newly added marking
 
         _selectedUnusedMarking = null;
         OnMarkingAdded?.Invoke(_currentMarkings);
@@ -612,7 +761,10 @@ public sealed partial class MarkingPicker : Control
             item.Metadata = marking;
         }
         _selectedMarking = null;
+        MarkingData.Visible = false; // Coyote
         CMarkingColors.Visible = false;
+        SampleBox.Visible = false;
+        SampleButton.Visible = false;
         OnMarkingRemoved?.Invoke(_currentMarkings);
     }
 }

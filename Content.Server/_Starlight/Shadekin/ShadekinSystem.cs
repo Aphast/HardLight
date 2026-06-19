@@ -6,6 +6,7 @@ using Content.Shared.Examine;
 using Robust.Server.Containers;
 using Content.Shared._Starlight.Shadekin;
 using Content.Shared.Damage.Components;
+using Content.Shared.FixedPoint;
 using Content.Shared.Mobs;
 using Content.Shared.Movement.Systems;
 using Content.Shared.Movement.Components;
@@ -257,24 +258,30 @@ public sealed partial class ShadekinSystem : EntitySystem
             RemComp<NightVisionComponent>(uid);
     }
 
+    /// <summary>
+    /// Maps a raw light-exposure value to a discrete <see cref="ShadekinState"/> using the supplied
+    /// thresholds (ascending exposure -> state). Any value below the lowest threshold is <see cref="ShadekinState.Dark"/>.
+    /// Shared by LightSensitivitySystem so non-shadekins bucket light identically to shadekins, off the same data.
+    /// </summary>
+    public static ShadekinState GetLightExposureLevel(SortedDictionary<FixedPoint2, ShadekinState> thresholds, float rawExposure)
+    {
+        var state = ShadekinState.Dark;
+        foreach (var (threshold, shadekinState) in thresholds)
+        {
+            if (rawExposure < threshold)
+                break;
+
+            state = shadekinState;
+        }
+
+        return state;
+    }
+
     private void CheckThresholds(EntityUid uid, ShadekinComponent component, float lightExposure)
     {
-        foreach (var (threshold, shadekinState) in component.Thresholds.Reverse())
-        {
-            var selectedstate = shadekinState;
-            if (lightExposure < threshold)
-            {
-                if (selectedstate == ShadekinState.Low) // If Low is below the threshold, then we auto-jump to Dark.
-                    selectedstate = ShadekinState.Dark;
-                else
-                    continue;
-            }
-
-            component.CurrentState = selectedstate;
-            UpdateAlert(uid, component, (short)selectedstate);
-            Dirty(uid, component);
-            break;
-        }
+        component.CurrentState = GetLightExposureLevel(component.Thresholds, lightExposure);
+        UpdateAlert(uid, component, (short) component.CurrentState);
+        Dirty(uid, component);
     }
 
     public override void Update(float frameTime)

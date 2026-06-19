@@ -217,7 +217,7 @@ public sealed class RadioSystem : EntitySystem
             ChatChannel.Radio,
             originalMessage ?? message,
             wrappedMessage,
-            NetEntity.Invalid,
+            GetNetEntity(messageSource), // Goobstation - Chat Pings -- Added GetNetEntity(messageSource), to source
             null)
         {
             RadioChannelId = channel.ID
@@ -228,7 +228,7 @@ public sealed class RadioSystem : EntitySystem
             ChatChannel.Radio,
             obfuscated,
             obfuscatedWrapped,
-            NetEntity.Invalid,
+            GetNetEntity(messageSource), // Goobstation - Chat Pings -- Added GetNetEntity(messageSource), to source
             null)
         {
             RadioChannelId = channel.ID

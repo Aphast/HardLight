@@ -22,6 +22,8 @@
     Head: MobProtogenHead
     Eyes: MobProtogenEyes
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -195,6 +197,8 @@
     Head: MobProtoVulpHead
     Eyes: MobProtogenEyes #looks odd, but this just removes eyes since they're replaced by the LEDs.
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -367,6 +371,8 @@
     Head: MobVoxHead
     Eyes: MobProtogenEyes
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -533,6 +539,8 @@
     Head: MobSlimeHead
     Eyes: MobProtogenEyes
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -616,6 +624,8 @@
     Head: MobShadekinHead
     Eyes: MobProtogenEyes
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -706,6 +716,8 @@
     Eyes: MobProtogenEyes
     Head: MobResomiHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -777,7 +789,7 @@
   femaleFirstNames: NamesReptilianFemale
   naming: FirstDashFirst
   loadout: ProtogenLoadout
-  
+
 - type: speciesBaseSprites
   id: MobProtoReptileSprites
   sprites:
@@ -786,6 +798,8 @@
     Eyes: MobProtogenEyes
     Head: MobReptilianHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -858,7 +872,7 @@
   femaleFirstNames: NamesMothFirstFemale
   lastNames: NamesMothLast
   loadout: ProtogenLoadout
-  
+
 - type: speciesBaseSprites
   id: MobProtoMothSprites
   sprites:
@@ -867,6 +881,8 @@
     Eyes: MobProtogenEyes
     Head: MobMothHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -936,7 +952,7 @@
   subspeciesOf: Protogen
   subspeciesName: subspecies-name-protohumie
   loadout: ProtogenLoadout
-  
+
 - type: speciesBaseSprites
   id: MobProtoHumieSprites
   sprites:
@@ -945,6 +961,8 @@
     Eyes: MobProtogenEyes
     Head: MobHumanHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -1024,6 +1042,8 @@
     Eyes: MobProtogenEyes
     Head: MobFelionoidHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -1157,6 +1177,8 @@
     Eyes: MobProtogenEyes
     Head: MobDionaHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -1245,6 +1267,8 @@
     Eyes: MobProtogenEyes
     Head: MobAvaliHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation
@@ -1332,6 +1356,8 @@
     Eyes: MobProtogenEyes
     Head: MobArachnidHead
     Snout: MobHumanoidAnyMarking
+    UndergarmentTop: MobHumanoidAnyMarking #HL modifcation
+    UndergarmentBottom: MobHumanoidAnyMarking #HL modifcation
     Genital: MobHumanoidAnyMarking #HL modifcation
     Penis: MobHumanoidAnyMarking #HL modifcation
     Breasts: MobHumanoidAnyMarking #HL modifcation

@@ -32,6 +32,30 @@
         </BoxContainer>
 
         <CheckBox Name="Glowing" Text="{Loc 'marking-glowing'}" /> <!-- Starlight -->
+        <!-- Coyote Marking system improvements -->
+        <GridContainer Columns="2" Name="MarkingData" Visible="False" HorizontalExpand="True">
+            <Label Text="{Loc marking-custom-name}" HorizontalExpand="True" />
+            <LineEdit Name="CustomNameTextEdit" HorizontalExpand="True" />
+            <Label Text="{Loc visible-at-start}" />
+            <CheckBox Name="StartVisibleToggle" HorizontalExpand="True" />
+            <Label Text="{Loc marking-can-toggle}" />
+            <CheckBox Name="CanPutOnToggle" HorizontalExpand="True" />
+            <Label Name="PutOnTextEditLabel" Text="{Loc marking-put-on-text-label}" />
+            <LineEdit Name="PutOnTextEdit" HorizontalExpand="True" />
+            <Label Name="TakeOffTextEditLabel" Text="{Loc marking-take-off-text-label}" />
+            <LineEdit Name="TakeOffTextEdit" HorizontalExpand="True" />
+            <Label Text="{Loc marking-can-toggle-other}" />
+            <CheckBox Name="CanPutOnByOtherToggle" HorizontalExpand="True" />
+            <Label Name="PutOnOtherTextEditLabel" Text="{Loc marking-put-on-text-label-other}" />
+            <LineEdit Name="PutOnOtherTextEdit" HorizontalExpand="True" />
+            <Label Name="TakeOffOtherTextEditLabel" Text="{Loc marking-take-off-text-label-other}" />
+            <LineEdit Name="TakeOffOtherTextEdit" HorizontalExpand="True" />
+        </GridContainer>
+        <Button Name="SampleButton" Visible="False" Text="{Loc marking-show-sample-text}" />
+        <BoxContainer Name="SampleBox" Orientation="Vertical" Visible="False">
+            <Label Text="{Loc marking-sample-text}" />
+            <Label Name="SampleText" />
+        </BoxContainer>
         <!-- Colors -->
         <BoxContainer Name="CMarkingColors" Orientation="Vertical" Visible="False" />
     </BoxContainer>

@@ -16,7 +16,7 @@ using Robust.Shared.Utility;
 namespace Content.Shared._HL.Markings;
 
 /// <summary>
-/// System that controls removing and adding underwear to humanoid entities through a verb.
+/// System that controls showing and hiding eligible humanoid markings through verbs.
 /// </summary>
 public abstract class SharedModifyMarkingsSystem : EntitySystem
 {
@@ -65,11 +65,16 @@ public abstract class SharedModifyMarkingsSystem : EntitySystem
             if (!ent.Comp.BodyPartTargets.Contains(mProt.BodyPart))
                 continue;
 
-            // You cannot toggle other people's genitals
-            if (mProt.MarkingCategory != MarkingCategories.Genital && args.User != args.Target)
+            // Integrated from floof's modifyundies into HardLight's ModifyMarkings
+            if (isMine && !marking.CanToggleVisible)
                 continue;
 
-            var localizedName = Loc.GetString($"marking-{mProt.ID}");
+            if (!isMine && !marking.OtherCanToggleVisible)
+                continue;
+
+            var localizedName = string.IsNullOrWhiteSpace(marking.CustomName)
+                ? Loc.GetString($"marking-{mProt.ID}")
+                : marking.CustomName;
             var partSlot = mProt.BodyPart;
             var isVisible = !humApp.HiddenMarkings.Contains(mProt.ID);
 
@@ -96,7 +101,9 @@ public abstract class SharedModifyMarkingsSystem : EntitySystem
                     ("undies", localizedName),
                     ("isVisible", isVisible),
                     ("isMine", isMine),
-                    ("target", Identity.Entity(target, _entMan))
+                    ("target", Identity.Entity(target, _entMan)),
+                    ("putOnVerb", isMine ? marking.PutOnVerb : marking.PutOnVerb2p),
+                    ("takeOffVerb", isMine ? marking.TakeOffVerb : marking.TakeOffVerb2p)
                 ),
 
                 Icon = underwearIcon,
@@ -122,20 +129,27 @@ public abstract class SharedModifyMarkingsSystem : EntitySystem
 
                     if (isMine)
                     {
-                        var selfString = isVisible ? "undies-removed-self-start" : "undies-equipped-self-start";
-                        var selfPopup = Loc.GetString(selfString, ("undie", localizedName));
+                        var selfPopup = Loc.GetString(
+                            "marking-toggle-self-start",
+                            ("marking-name", localizedName),
+                            ("verb", isVisible ? marking.TakeOffVerb : marking.PutOnVerb));
                         _popupSystem.PopupClient(selfPopup, target, target, PopupType.Medium);
                     }
                     else
                     {
                         // to the user
-                        var userString = isVisible ? "undies-removed-user-start" : "undies-equipped-user-start";
-                        var userPopup = Loc.GetString(userString, ("undie", localizedName));
+                        var userPopup = Loc.GetString(
+                            "marking-toggle-other-start",
+                            ("marking-name", localizedName),
+                            ("verb", isVisible ? marking.TakeOffVerb : marking.PutOnVerb));
                         _popupSystem.PopupClient(userPopup, user, user, PopupType.Medium);
 
                         // to the target
-                        var targetString = isVisible ? "undies-removed-target-start" : "undies-equipped-target-start";
-                        var targetPopup = Loc.GetString(targetString, ("undie", localizedName), ("user", Identity.Entity(user, _entMan)));
+                        var targetPopup = Loc.GetString(
+                            "marking-toggle-by-other-start",
+                            ("marking-name", localizedName),
+                            ("verb", isVisible ? marking.TakeOffVerb2p : marking.PutOnVerb2p),
+                            ("other", Identity.Entity(user, _entMan)));
                         _popupSystem.PopupClient(targetPopup, target, target, PopupType.MediumCaution);
                     }
 

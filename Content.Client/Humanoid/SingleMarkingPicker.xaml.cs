@@ -15,7 +15,7 @@ public sealed partial class SingleMarkingPicker : BoxContainer
     [Dependency] private readonly IEntityManager _entityManager = default!;
 
     private readonly SpriteSystem _sprite;
-    
+
     /// <summary>
     ///     What happens if a marking is selected.
     ///     It will send the 'slot' (marking index)
@@ -239,7 +239,7 @@ public sealed partial class SingleMarkingPicker : BoxContainer
 
         if (marking.MarkingColors.Count != proto.Sprites.Count)
         {
-            marking = new Marking(marking.MarkingId, proto.Sprites.Count);
+            marking = new Marking(marking, proto.Sprites.Count); // Coyote: marking.MarkingId to marking
         }
 
         for (var i = 0; i < marking.MarkingColors.Count; i++)

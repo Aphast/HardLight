@@ -24,6 +24,7 @@ namespace Content.Server._Mono.SpaceArtillery;
 public sealed partial class SpaceArtillerySystem : EntitySystem
 {
     [Dependency] private readonly GunSystem _gun = default!;
+    [Dependency] private readonly DeviceLinkSystem _deviceLink = default!;
     [Dependency] private readonly BatterySystem _battery = default!;
     [Dependency] private readonly SharedTransformSystem _xform = default!;
     [Dependency] private readonly SharedCameraRecoilSystem _recoilSystem = default!;
@@ -137,26 +138,21 @@ public sealed partial class SpaceArtillerySystem : EntitySystem
             return;
         }
 
-        // Check if ShootCoordinates is already set (e.g., by fire control system)
-        // If not, calculate a default target based on the gun's facing direction
-        EntityCoordinates targetCoordinates;
+        var worldPosX = _xform.GetWorldPosition(uid).X;
+        var worldPosY = _xform.GetWorldPosition(uid).Y;
+        var worldRot = _xform.GetWorldRotation(uid) + Math.PI;
+        var targetSpot = new Vector2(worldPosX - DISTANCE * (float)Math.Sin(worldRot), worldPosY + DISTANCE * (float)Math.Cos(worldRot));
 
-        if (gun.ShootCoordinates != null)
-        {
-            // Use the coordinates provided by the fire control system
-            targetCoordinates = gun.ShootCoordinates.Value;
-        }
-        else
-        {
-            // No fire control - calculate target based on gun's facing direction
-            var localRot = xform.LocalRotation;
-            var localDirection = localRot.ToVec();
-            var localTargetPos = xform.LocalPosition + localDirection * DISTANCE;
-            targetCoordinates = new EntityCoordinates(xform.ParentUid, localTargetPos);
-            gun.ShootCoordinates = targetCoordinates;
-        }
+        // Create coordinates for the target and source positions
+        var sourceCoordinates = xform.Coordinates;
+        var targetCoordinates = new EntityCoordinates(xform.MapUid!.Value, targetSpot);
 
-        // Call AttemptShoot with the target coordinates
+        // We need to set the ShootCoordinates for the gun component
+        // This is important to ensure it uses the proper calculations in SharedGunSystem
+        gun.ShootCoordinates = targetCoordinates;
+
+        // Call AttemptShoot with the correct signature that includes target coordinates
+        // This will eventually call GunSystem.Shoot which correctly handles grid velocity
         _gun.AttemptShoot(uid, gunUid, gun, targetCoordinates);
     }
 

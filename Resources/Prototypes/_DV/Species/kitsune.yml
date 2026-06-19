@@ -60,10 +60,10 @@
       required: true
       defaultMarkings: [ KitsuneEarsDefault ]
     UndergarmentTop:
-      points: 1
+      points: 3
       required: false
     UndergarmentBottom:
-      points: 1
+      points: 3
       required: false
     Chest:
       points: 6

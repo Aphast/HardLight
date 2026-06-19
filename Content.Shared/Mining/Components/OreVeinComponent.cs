@@ -41,5 +41,4 @@ public sealed partial class OreVeinComponent : Component
     /// </summary>
     [DataField]
     public EntityWhitelist? GatherDestructionWhitelist;
-
 }
