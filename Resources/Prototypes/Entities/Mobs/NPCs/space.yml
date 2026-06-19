@@ -11,16 +11,15 @@
   - type: NpcFactionMember
     factions:
     - SimpleHostile
-  # Starlight - remove bear texture from base space mob so space spiders aren't suddenly bears
-  #- type: Sprite
-  #  drawdepth: Mobs
-  #  sprite: Mobs/Animals/bear.rsi
-  #  layers:
-  #  - map: [ "enum.DamageStateVisualLayers.Base" ]
-  #    state: bear
-  #  - map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
-  #    state: glow
-  #    shader: unshaded
+  - type: Sprite
+    drawdepth: Mobs
+    sprite: Mobs/Animals/bear.rsi
+    layers:
+    - map: [ "enum.DamageStateVisualLayers.Base" ]
+      state: bear
+    - map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
+      state: glow
+      shader: unshaded
   - type: Fixtures
     fixtures:
       fix1:
@@ -120,15 +119,6 @@
 #  categories: [ HideSpawnMenu ] # Frontier
   components:
   - type: NFSalvageMobRestrictions # Frontier: SalvageMobRestrictions<NFSalvageMobRestrictions
-  - type: Sprite
-    drawdepth: Mobs
-    sprite: Mobs/Animals/bear.rsi
-    layers:
-    - map: [ "enum.DamageStateVisualLayers.Base" ]
-      state: bear
-    - map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
-      state: glow
-      shader: unshaded
 
 - type: entity
   name: space kangaroo
@@ -200,38 +190,15 @@
   description: It's so glowing, it looks dangerous.
 #  categories: [ HideSpawnMenu ] # Frontier
   components:
-  # 🌟Starlight🌟 start
-  - type: OptionsVisualizer
-    visuals:
-      base:
-        - options: Default
-          data:
-            drawdepth: Mobs
-            sprite: Mobs/Animals/spacespider.rsi
-            map: [ "enum.DamageStateVisualLayers.Base" ]
-            state: spacespider
-        - options: Arachnophobia
-          data:
-            drawdepth: Mobs
-            sprite: _Starlight/Mobs/Animals/Spiders/Arachnophobia/spacespider.rsi
-            map: [ "enum.DamageStateVisualLayers.Base" ]
-            state: spacespider
-      baseUnshaded:
-        - options: Default
-          data:
-            drawdepth: Mobs
-            sprite: Mobs/Animals/spacespider.rsi
-            map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
-            state: glow
-            shader: unshaded
-        - options: Arachnophobia
-          data:
-            drawdepth: Mobs
-            sprite: _Starlight/Mobs/Animals/Spiders/Arachnophobia/spacespider.rsi
-            map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
-            state: glow
-            shader: unshaded
-  # 🌟Starlight🌟 end
+  - type: Sprite
+    drawdepth: Mobs
+    sprite: Mobs/Animals/spacespider.rsi
+    layers:
+    - map: [ "enum.DamageStateVisualLayers.Base" ]
+      state: spacespider
+    - map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
+      state: glow
+      shader: unshaded
   - type: MobThresholds
     thresholds:
       0: Alive

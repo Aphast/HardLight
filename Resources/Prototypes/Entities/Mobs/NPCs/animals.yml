@@ -2753,23 +2753,12 @@
   id: MobGiantSpider
   description: Widely recognized to be the literal worst thing in existence.
   components:
-  # 🌟Starlight🌟 start
-  - type: OptionsVisualizer
-    visuals:
-      base:
-        - options: Default
-          data:
-            drawdepth: Mobs   
-            sprite: Mobs/Animals/spider.rsi
-            map: ["enum.DamageStateVisualLayers.Base", "movement"]
-            state: tarantula
-        - options: Arachnophobia
-          data:
-            drawdepth: Mobs
-            sprite: _Starlight/Mobs/Animals/Spiders/Arachnophobia/spider.rsi
-            map: ["enum.DamageStateVisualLayers.Base", "movement"]
-            state: tarantula
-  # 🌟Starlight🌟 end
+  - type: Sprite
+    drawdepth: Mobs
+    layers:
+    - map: ["enum.DamageStateVisualLayers.Base", "movement"]
+      state: tarantula
+      sprite: Mobs/Animals/spider.rsi
   - type: SpriteMovement
     movementLayers:
       movement:
@@ -2807,65 +2796,51 @@
   id: MobClownSpider
   description: Combines the two most terrifying things in existence, spiders and clowns.
   components:
-  # 🌟Starlight🌟 start
-    - type: OptionsVisualizer
-      visuals:
-        base:
-          - options: Default
-            data:
-              drawdepth: Mobs   
-              sprite: Mobs/Animals/clownspider.rsi
-              map: ["enum.DamageStateVisualLayers.Base", "movement"]
-              state: clown
-          - options: Arachnophobia
-            data:
-              drawdepth: Mobs
-              sprite: _Starlight/Mobs/Animals/Spiders/Arachnophobia/clownspider.rsi
-              map: ["enum.DamageStateVisualLayers.Base", "movement"]
-              state: clown
-  # 🌟Starlight🌟 end
-    - type: Butcherable
-      spawned:
-        - id: MaterialBananium1
-          amount: 1
-    - type: DamageStateVisuals
-      states:
-        Alive:
-          Base: clown
-        Critical:
-          Base: dead
-        Dead:
-          Base: dead
-    - type: MobThresholds
-      thresholds:
-        0: Alive
-        180: Dead
-    - type: Spider
-      webPrototype: SpiderWebClown
-    - type: Tag
-      tags:
-      - DoorBumpOpener
-      - FootstepSound
-    - type: NpcFactionMember
-      factions:
-      - HonkHostile
-    - type: MeleeWeapon
-      altDisarm: false
-      angle: 0
-      animation: WeaponArcBite
-      soundHit:
-        path: /Audio/Effects/bite.ogg
-      damage:
-        types:
-          Piercing: 8
-    - type: FootstepModifier
-      footstepSoundCollection:
-        collection: FootstepClownFast
-    - type: Speech
-      speechVerb: Cluwne
-    - type: Bloodstream
-      bloodMaxVolume: 150
-      bloodReagent: Laughter
+  - type: Sprite
+    drawdepth: Mobs
+    layers:
+    - map: ["enum.DamageStateVisualLayers.Base"]
+      state: clown
+      sprite: Mobs/Animals/clownspider.rsi
+  - type: Butcherable
+    spawned:
+    - id: MaterialBananium1
+      amount: 1
+  - type: DamageStateVisuals
+    states:
+      Alive:
+        Base: clown
+      Critical:
+        Base: dead
+      Dead:
+        Base: dead
+  - type: MobThresholds
+    thresholds:
+      0: Alive
+      180: Dead
+  - type: Spider
+    webPrototype: SpiderWebClown
+  - type: MeleeWeapon
+    altDisarm: false
+    angle: 0
+    animation: WeaponArcBite
+    soundHit:
+      path: /Audio/Effects/bite.ogg
+    damage:
+      types:
+        Piercing: 8
+  - type: FootstepModifier
+    footstepSoundCollection:
+      collection: FootstepClownFast
+  - type: Speech
+    speechVerb: Cluwne
+  - type: Bloodstream
+    bloodMaxVolume: 150
+    bloodReagent: Laughter
+  - type: Genetics # Funkystation - Genetics
+    baseMutations:
+    - id: ClownSpiderWeb
+      chance: 0.4
 
 - type: entity
   name: wizard spider

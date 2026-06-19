@@ -26,7 +26,6 @@ public sealed partial class AccessibilityTab : Control
         Control.AddOptionColorSlider(CCVars.ChatHighlightsColor, HighlightsColorSlider);
 
         Control.AddOptionCheckBox(CCVars.AccessibilityClientCensorNudity, CensorNudityCheckBox);
-        Control.AddOptionCheckBox(CCVars.AccessibilityArachnophobia, ArachnophobiaCheckBox); // 🌟Starlight🌟
 
         Control.AddOptionCheckBox(CCVars.DisableJobIconAnimation, DisableJobIconAnimationCheckBox); // 🌟Starlight🌟
         Control.AddOptionCheckBox(CCVars.DisableLanguageIcons, DisableLanguageIconsCheckBox); // HardLight
