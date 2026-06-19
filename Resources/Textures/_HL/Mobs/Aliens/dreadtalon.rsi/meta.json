@@ -89,7 +89,7 @@
       "name": "tritalonglow",
       "directions": 4
     },
-			{
+	{
         "name": "spider",
         "directions": 4
     },
@@ -205,19 +205,15 @@
     },
 	{
         "name": "spidercrit"
-        
     },
 	{
         "name": "spiderdead"
-        
     },
 	{
-        "name": "spidercritmosaic"
-        
+        "name": "spidercritmosaic"  
     },
 	{
-        "name": "spiderdeadmosaic"
-        
+        "name": "spiderdeadmosaic"   
     },
     {
         "name": "spider_movingballzmosaic",
