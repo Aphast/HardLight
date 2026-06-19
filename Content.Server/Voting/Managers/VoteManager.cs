@@ -119,6 +119,9 @@ namespace Content.Server.Voting.Managers
             if (!IsValidOption(v, option))
                 throw new ArgumentOutOfRangeException(nameof(option), "Invalid vote option ID");
 
+            if (option != null && !CheckVoterEligibility(player, v.VoterEligibility)) // Hardlight
+                return;
+
             if (v.CastVotes.TryGetValue(player, out var existingOption))
             {
                 v.Entries[existingOption].Votes -= 1;
@@ -388,7 +391,7 @@ namespace Content.Server.Voting.Managers
             }
 
             // Remove ineligible votes that somehow slipped through
-            foreach (var playerVote in v.CastVotes)
+            foreach (var playerVote in v.CastVotes.ToArray()) // Hardlight v.CastVotes -> v.CastVotes.ToArray()
             {
                 if (!CheckVoterEligibility(playerVote.Key, v.VoterEligibility))
                 {
