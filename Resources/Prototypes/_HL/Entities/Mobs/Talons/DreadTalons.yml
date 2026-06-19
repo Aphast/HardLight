@@ -481,9 +481,9 @@
       Dead:
         Base: spiderdead
   - type: Sericulture
-      action: ActionSericulture
-      productionLength: 2
-      entityProduced: MaterialWebSilk1
+    action: ActionSericulture
+    productionLength: 2
+    entityProduced: MaterialWebSilk1
   - type: TypingIndicator
     proto: spider
   - type: SpriteMovement
