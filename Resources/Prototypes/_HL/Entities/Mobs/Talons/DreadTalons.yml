@@ -423,7 +423,7 @@
       visible: false
   - type: Bloodstream
     bloodMaxVolume: 250
-    bloodReagent: Mutagen
+    bloodReagent: UnstableMutagen
   - type: ItemTogglePointLight
   - type: PointLight
     enabled: false
