@@ -18,6 +18,7 @@
     HeadSide: MobHumanoidAnyMarking
     Hair: MobSlimeMarkingFollowSkin
     FacialHair: MobSlimeMarkingFollowSkin
+    Snout: MobHumanoidAnyMarking
     UndergarmentTop: MobHumanoidAnyMarking
     UndergarmentBottom: MobHumanoidAnyMarking
     Genital: MobHumanoidAnyMarking
@@ -47,6 +48,9 @@
       points: 2
       required: false
     FacialHair:
+      points: 1
+      required: false
+    Snout:
       points: 1
       required: false
     Chest:
