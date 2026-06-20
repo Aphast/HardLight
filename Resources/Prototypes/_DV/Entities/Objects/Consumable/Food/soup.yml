@@ -65,6 +65,8 @@
     tags:
     - Fruit
     - Soup
+  - type: StaticPrice # HL: Price balancing
+    price: 10
 
 - type: entity
   name: purple tomato soup
@@ -96,3 +98,5 @@
     tags:
     - Fruit
     - Soup
+  - type: StaticPrice # HL: Price balancing
+    price: 10

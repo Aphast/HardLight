@@ -180,7 +180,7 @@
     stackRequirements:
       Steel: 5
   - type: StaticPrice
-    price: 18 # 12.5<18
+    price: 35 # HL: Price balancing
   - type: Tag # Frontier
     tags: # Frontier
     - SmallThrusterMachineCircuitboard # Frontier
@@ -216,7 +216,7 @@
     stackRequirements:
       Glass: 2
   - type: StaticPrice
-    price: 20
+    price: 35 # HL: Price balancing
 
 - type: entity
   id: GyroscopeNfsdMachineCircuitboard
@@ -250,7 +250,7 @@
     stackRequirements:
       Glass: 2
   - type: StaticPrice
-    price: 18 # 12.5<18
+    price: 35 # HL: Price balancing
 
 - type: entity
   id: SmallGyroscopeMachineCircuitboard
@@ -267,7 +267,7 @@
     stackRequirements:
       Glass: 2
   - type: StaticPrice
-    price: 17.5
+    price: 35 # HL: Price balancing
 
 - type: entity
   parent: BaseMachineCircuitboard

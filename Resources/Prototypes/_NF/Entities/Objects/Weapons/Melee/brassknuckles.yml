@@ -32,7 +32,7 @@
     materialComposition:
       Brass: 100
   - type: StaticPrice
-    price: 30 # Ensures these can be sold and have a reasonable vending value
+    price: 50 # HL: Price balancing
 
 - type: entity
   name: crass knuckles
@@ -73,5 +73,5 @@
   - type: PhysicalComposition
     materialComposition:
       Brass: 100
-  - type: StaticPrice
-    price: 30 # Ensures these can be sold and have a reasonable vending value
+  - type: StaticPrice # HL: Price balancing
+    price: 30

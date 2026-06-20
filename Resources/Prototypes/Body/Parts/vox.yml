@@ -126,6 +126,8 @@
           sound:
             collection: MeatLaserImpact
     # Shitmed Change End
+    - type: StaticPrice # HL: Price balancing
+      price: 150
 
 - type: entity
   id: HeadVox

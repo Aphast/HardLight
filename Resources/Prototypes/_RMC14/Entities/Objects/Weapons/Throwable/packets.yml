@@ -16,6 +16,7 @@
     whitelist:
       tags:
       - Grenade
+      - HandGrenade
   - type: UseDelay
     delay: 0.5
   # - type: FixedItemSizeStorage
@@ -112,7 +113,7 @@
   - type: StorageFill
     contents:
     - id: RMCGrenadeFlashBang
-      amount: 8
+      amount: 3
 
 - type: entity
   parent: CMPacketBase

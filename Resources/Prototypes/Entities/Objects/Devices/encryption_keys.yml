@@ -12,7 +12,7 @@
   - type: Sprite
     sprite: Objects/Devices/encryption_keys.rsi
   - type: StaticPrice # Frontier
-    price: 2 # Frontier
+    price: 5 # HL: Price balancing
 
 - type: entity
   parent: [EncryptionKey, RecyclableItemDeviceTiny] # Frontier: added RecyclableItemDeviceTiny

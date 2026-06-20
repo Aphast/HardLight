@@ -5,7 +5,7 @@
     sprite: Objects/Tools/cable-coils.rsi
     state: coillv-30
   product: CrateEngineeringCableLV
-  cost: 400
+  cost: 450 # HL: Balancing prices for Cargo Arbitrage
   category: cargoproduct-category-name-engineering
   group: market
 
@@ -16,7 +16,7 @@
     sprite: Objects/Tools/cable-coils.rsi
     state: coilmv-30
   product: CrateEngineeringCableMV
-  cost: 400
+  cost: 450 # HL: Balancing prices for Cargo Arbitrage
   category: cargoproduct-category-name-engineering
   group: market
 

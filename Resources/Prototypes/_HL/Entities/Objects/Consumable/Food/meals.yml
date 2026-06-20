@@ -35,6 +35,8 @@
       sprite: _HL/Objects/Consumable/Food/tha_slop.rsi
       layers:
         - state: emptyslopcan
+    - type: StaticPrice
+      price: 6
 
 - type: entity
   name: Nutrient Paste Drink
@@ -144,7 +146,7 @@
     - type: Sprite
       layers:
       - state: meatbrick
-    
+
 - type: entity
   name: meat on a bone
   parent: FoodMeatRawBase
@@ -152,7 +154,7 @@
   description: A huge chunk of raw meat on a bone.
   components:
   - type: Food
-    trash: 
+    trash:
     - MaterialBones1
   - type: Sprite
     sprite: _HL/Objects/Consumable/Food/meatonbone.rsi
@@ -182,7 +184,7 @@
     damage:
       types:
         Blunt: 10
-    
+
 - type: entity
   name: cooked meat on a bone
   parent: FoodMeatBase
@@ -208,7 +210,7 @@
     count: 3
     slice: FoodMeatCooked
   - type: Food
-    trash: 
+    trash:
     - MaterialBones1
   - type: Construction
     graph: MeatOnBone

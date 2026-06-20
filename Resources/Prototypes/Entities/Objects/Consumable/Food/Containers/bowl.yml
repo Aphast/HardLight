@@ -65,7 +65,7 @@
     tags:
     - Trash
   - type: StaticPrice # Frontier
-    price: 4 # Frontier
+    price: 10 # HL: Price balancing
   - type: NFCookware # Frontier
 
 - type: entity
@@ -85,7 +85,7 @@
       Glass: 50
   - type: SpaceGarbage
   - type: StaticPrice
-    price: 4 # Frontier 0<4 4 needed for arbitrage
+    price: 8 # HL: Price balancing
   - type: NFCookware # Frontier
 
 - type: entity
@@ -102,4 +102,4 @@
       state: fill-1
       visible: false
   - type: StaticPrice # Frontier
-    price: 5 # Frontier
+    price: 10 # HL: Price balancing

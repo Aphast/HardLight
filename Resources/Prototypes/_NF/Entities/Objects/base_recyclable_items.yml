@@ -49,7 +49,7 @@
   components:
   - type: PhysicalComposition
     materialComposition:
-      Steel: 10
+      Steel: 9 # HL: Material balancing
 
 ## Small
 - type: entity # Weapon magazines, grenades idk

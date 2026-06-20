@@ -57,7 +57,7 @@
   - type: StaticPrice
     price: 0
   - type: StackPrice
-    price: 5 # Frontier: 7.5<5 - TODO: material value rework
+    price: 7.5 # HL: Price balancing
   - type: Extractable
     grindableSolutionName: rod
   - type: SolutionContainerManager

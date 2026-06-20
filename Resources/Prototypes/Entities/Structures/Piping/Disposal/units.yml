@@ -75,7 +75,7 @@
     containers:
       disposals: !type:Container
   - type: StaticPrice
-    price: 62 # Frontier: 70<62 - TODO: material value rework
+    price: 70 # HL: Price balancing
   - type: PowerSwitch
   - type: ApcPowerReceiver # Frontier
     powerLoad: 250 # Allows us to not use the 1000 baseline

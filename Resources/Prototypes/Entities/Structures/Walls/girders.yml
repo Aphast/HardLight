@@ -101,7 +101,7 @@
               sound:
                 collection: MetalBreak
     - type: StaticPrice
-      price: 70 # Frontier: 130<70
+      price: 130 # HL: Price balancing
 
 - type: entity
   id: ClockworkGirder

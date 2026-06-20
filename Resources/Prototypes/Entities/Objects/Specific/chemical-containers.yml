@@ -48,8 +48,6 @@
       fillBaseName: jug
       inHandsMaxFillLevels: 5
       inHandsFillBaseName: -fill-
-    - type: StaticPrice
-      price: 10
     - type: Damageable
       damageContainer: Inorganic
     - type: Destructible

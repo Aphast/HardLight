@@ -56,7 +56,7 @@
     damageOverlay:
       sprite: Structures/Windows/cracks.rsi
   - type: StaticPrice
-    price: 70 # Frontier: 150<70
+    price: 150 # HL: Price balancing
   - type: ShipRepairable
     repairTime: 6
     repairCost: 6

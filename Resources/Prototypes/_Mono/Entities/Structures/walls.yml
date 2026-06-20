@@ -187,7 +187,7 @@
       - !type:DoActsBehavior
         acts: [ "Destruction" ]
   - type: StaticPrice
-    price: 75
+    price: 125
   - type: ArmorThickness
     thickness: 15
   - type: ShipRepairable

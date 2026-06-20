@@ -54,7 +54,7 @@
     damageOverlay:
       sprite: Structures/Windows/cracks.rsi
   - type: StaticPrice
-    price: 65
+    price: 120 # HL: Price balancing
 
 - type: entity
   id: PlasmaReinforcedWindowDirectional
@@ -110,7 +110,7 @@
       - !type:DoActsBehavior
         acts: [ "Destruction" ]
   - type: StaticPrice
-    price: 30
+    price: 60 # HL: Price balancing
 
 - type: entity
   parent: ReinforcedPlasmaWindow

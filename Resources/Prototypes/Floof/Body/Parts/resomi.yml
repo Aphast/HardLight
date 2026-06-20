@@ -96,6 +96,8 @@
       - !type:PlaySoundBehavior
         sound:
           collection: MeatLaserImpact
+  - type: StaticPrice # HL: Price balancing
+    price: 150
   # HardLight Change end
 
 - type: entity

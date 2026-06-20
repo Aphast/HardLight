@@ -169,7 +169,7 @@
     containers:
     - board
   - type: StaticPrice
-    price: 100 # Frontier: 150<100 - TODO: material value rework
+    price: 150 # HL: Price balancing
   - type: PryUnpowered
   - type: Tag
     tags:
@@ -244,7 +244,7 @@
     graph: Windoor
     node: windoorSecure
   - type: StaticPrice
-    price: 200 # Frontier: 350<200 - TODO: material value rework
+    price: 350 # HL: Price balancing
   - type: Tag
     tags:
       - SecureWindoor
@@ -315,7 +315,7 @@
     graph: Windoor
     node: pwindoor
   - type: StaticPrice
-    price: 170 # Frontier: 500<170 - TODO: material value rework
+    price: 500 # HL: Price balancing
   - type: RadiationBlocker
     resistance: 2
 
@@ -381,7 +381,7 @@
     graph: Windoor
     node: pwindoorSecure
   - type: StaticPrice
-    price: 312 # Frontier: 500<312 - material value rework
+    price: 500 # HL: Price balancing
   - type: RadiationBlocker
     resistance: 4
   - type: Tag
@@ -454,7 +454,7 @@
     graph: Windoor
     node: uwindoor
   - type: StaticPrice
-    price: 180 # Frontier: 560<180 - TODO: material value rework
+    price: 560 # HL: Price balancing
   - type: RadiationBlocker
     resistance: 3
 
@@ -520,7 +520,7 @@
     graph: Windoor
     node: uwindoorSecure
   - type: StaticPrice
-    price: 462 # Frontier: 750<462 - TODO: material value rework
+    price: 750 # HL: Price balancing
   - type: RadiationBlocker
     resistance: 5
   - type: Tag

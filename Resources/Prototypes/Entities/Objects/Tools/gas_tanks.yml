@@ -48,7 +48,7 @@
     materialComposition:
       Steel: 185
   - type: StaticPrice
-    price: 20 # Frontier: 30<20 - TODO: material value rework
+    price: 30 # HL: Price balancing
 
 - type: entity
   abstract: true

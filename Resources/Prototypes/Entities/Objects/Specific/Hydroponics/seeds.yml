@@ -26,7 +26,7 @@
       count: 1
     - type: StackSignature
     - type: StackSpawnSelf
-    - type: StaticPrice
+    - type: StackPrice # HL: Fixed price of the stack not changing with quantity
       price: 20
     - type: ItemSlots
     - type: ContainerContainer

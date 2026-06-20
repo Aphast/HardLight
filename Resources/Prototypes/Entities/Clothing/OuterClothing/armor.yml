@@ -353,9 +353,9 @@
   - type: ProtectedFromStepTriggers
     slots: WITHOUT_POCKET
   - type: Tag
-    tags: 
+    tags:
     - BoneArmor
-    
+
 
 - type: entity
   parent: [ ClothingOuterBaseLarge, BaseC1Contraband, AllowSuitStorageClothing ] # Frontier: BaseMajorContraband<BaseC1Contraband
@@ -423,3 +423,5 @@
   - type: Construction
     graph: cardArmour
     node: cardarmour
+  - type: StaticPrice
+    price: 230

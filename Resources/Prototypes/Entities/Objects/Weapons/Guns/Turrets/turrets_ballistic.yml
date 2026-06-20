@@ -185,6 +185,8 @@
   - type: Flatpack
     entity: SearchlightBoxDeployable
   - type: Anchorable
+  - type: StaticPrice # HL: Price balancing
+    price: 30
 
 - type: entity
   parent: BaseItem

@@ -158,7 +158,7 @@
     inHandsMaxFillLevels: 5
     inHandsFillBaseName: -fill-
   - type: StaticPrice
-    price: 10
+    price: 20 # HL: Price balancing
   - type: Damageable
     damageContainer: Inorganic
   - type: Destructible

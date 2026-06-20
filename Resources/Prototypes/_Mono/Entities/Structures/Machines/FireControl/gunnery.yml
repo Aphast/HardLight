@@ -41,6 +41,8 @@
   - type: BatterySelfRecharger
   - type: PirateBountyItem
     id: GunneryServer
+  - type: StaticPrice
+    price: 30
 
 - type: entity
   id: GunneryServerLow
@@ -185,6 +187,8 @@
   - type: RadarBlip
     radarColor: "#FFFF33"
     scale: 1
+  - type: StaticPrice
+    price: 30 # HL: Price balancing
 
 # Monolith : Gunnery Computer
 - type: entity

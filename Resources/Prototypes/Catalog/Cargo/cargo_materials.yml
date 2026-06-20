@@ -103,7 +103,7 @@
     sprite: Objects/Materials/Sheets/other.rsi
     state: generic_materials
   product: CrateMaterialBasicResource
-  cost: 2100
+  cost: 2150 # HL: Balancing prices for Cargo Arbitrage
   category: cargoproduct-category-name-materials
   group: market
 

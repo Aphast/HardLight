@@ -56,9 +56,9 @@
     price: 1200
   - type: PhysicalComposition
     materialComposition:
-      Plasteel: 1500
-      Gold: 100
-      Silver: 100
+      Plasteel: 750 # HL: Material balancing
+      Gold: 50
+      Silver: 50
   - type: Tag
     tags:
     - HighPressureCasing

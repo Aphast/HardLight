@@ -15,7 +15,7 @@
     - MonkeyWearable
     - WhitelistChameleon
   - type: StaticPrice # Frontier
-    price: 30 # Frontier
+    price: 45 # HL: Price balancing
     vendPrice: 1500 # Frontier
 
 #Sec EVA
@@ -34,7 +34,7 @@
     - SuitEVA
     - MonkeyWearable
   - type: StaticPrice # Frontier
-    price: 30 # Frontier
+    price: 45 # HL: Price balancing
     vendPrice: 2500 # Frontier
 
 #Syndicate EVA

@@ -44,7 +44,7 @@
     resistance: 1
   - type: BlockWeather
   - type: StaticPrice
-    price: 10
+    price: 20 # HL: Price balancing
   # HardLight change end
 
 - type: entity # HardLight

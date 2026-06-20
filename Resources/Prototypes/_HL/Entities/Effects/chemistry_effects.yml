@@ -97,9 +97,9 @@
   name: blessing
   categories: [ HideSpawnMenu ]
   components:
-  - type: SmoothEdge
-  - type: IconSmooth
-    mode: NoSprite
+#  - type: SmoothEdge
+#  - type: IconSmooth
+#    mode: NoSprite
   - type: Sprite
     sprite: _HL/Structures/Magic/Misc/blessing.rsi
     layers:

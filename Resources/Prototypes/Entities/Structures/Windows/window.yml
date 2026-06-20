@@ -114,7 +114,7 @@
     node: tintedWindow
   - type: Occluder
   - type: StaticPrice
-    price: 35 # Frontier: 70<35 - TODO: material rebalance
+    price: 70 # HL: Price balancing
 
 - type: entity
   id: WindowRCDResistant

@@ -32,7 +32,7 @@
     containers:
     - entity_storage
   - type: StaticPrice
-    price: 80 # Frontier: 100<80 - TODO: material value rework
+    price: 100 # HL: Price balancing
   - type: Paintable
     group: CratePlastic
 
@@ -430,7 +430,7 @@
         layer:
         - LargeMobLayer
   - type: StaticPrice
-    price: 60 # Frontier: 75<60 - TODO: material value rework
+    price: 75 # HL: Price balancing
 
 - type: entity
   id: CrateBaseLockBox

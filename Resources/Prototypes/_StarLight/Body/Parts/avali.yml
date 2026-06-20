@@ -94,6 +94,8 @@
       - !type:PlaySoundBehavior
         sound:
           collection: MeatLaserImpact
+  - type: StaticPrice # HL: Price balancing
+    price: 150
 
 - type: entity
   parent: [ PartAvali, BaseHead ]

@@ -115,7 +115,7 @@
     stateDoorOpen: generic_open
     stateDoorClosed: generic_door
   - type: StaticPrice
-    price: 50 # Frontier: 75<50 - TODO: material value rework
+    price: 75 # HL: Price balancing
 
 # steel closet base (that can be constructed/deconstructed)
 - type: entity
@@ -146,7 +146,7 @@
   - type: WallMount
     arc: 175
   - type: StaticPrice
-    price: 50 # Frontier: 75<50 - TODO: material value rework
+    price: 75 # HL: Price balancing
   - type: Transform
     noRot: false
   - type: Sprite
@@ -246,7 +246,7 @@
   #- type: Anchorable
   #  delay: 2
   - type: StaticPrice
-    price: 80
+    price: 100 # HL: Price balancing
   - type: ResistLocker
   - type: Transform
     noRot: true

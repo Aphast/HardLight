@@ -41,7 +41,7 @@
     - state: magb-1
       map: ["enum.GunVisualLayers.Mag"]
   - type: MagazineVisuals
-    magState: mag-big
+    magState: magb
     steps: 4
     zeroVisible: false
   - type: Appearance

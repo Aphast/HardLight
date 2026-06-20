@@ -53,7 +53,7 @@
         sound:
           collection: MetalGlassBreak
   - type: StaticPrice
-    price: 5
+    price: 15 # HL: Price balancing
   # Add mono ship repair
   - type: ShipRepairable
     repairTime: 1

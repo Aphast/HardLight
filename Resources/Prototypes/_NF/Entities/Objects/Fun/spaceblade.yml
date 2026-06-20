@@ -227,6 +227,12 @@
   components:
   - type: Sprite
     state: pizza
+  - type: StackPrice
+    price: 20
+  - type: StaticPrice
+    price: 0
+  - type: Stack # HL: Bananas can stack, so cap it to 1, and use a StackPrice to make the unit tests happy.
+    maxCountOverride: 1
 
 - type: entity
   id: SpaceBladeSingularity

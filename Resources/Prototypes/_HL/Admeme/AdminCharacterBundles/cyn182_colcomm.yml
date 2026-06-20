@@ -160,7 +160,7 @@
 - type: entity
   id: JetpackBlackLiquidNitrogen
   parent: JetpackBlack
-  name: Jetpack 
+  name: Jetpack
   suffix: CYN182, Admin
   categories: [ HideSpawnMenu ]
   components:
@@ -443,6 +443,10 @@
   - type: Tag
     tags:
     - Admin
+  - type: Storage
+    whitelist:
+      tags:
+      - CableCoil
   - type: StorageFill
     contents:
     - id: CableHVStack

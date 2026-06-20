@@ -16,7 +16,7 @@
   - type: Physics
     bodyType: Static
   - type: StaticPrice
-    price: 20 # Frontier: 35<20
+    price: 35 # HL: Price balancing
   - type: Construction # HL: Make Craftable
     graph: SLBenches
     node: comfySolo

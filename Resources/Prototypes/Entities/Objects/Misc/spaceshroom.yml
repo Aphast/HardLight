@@ -74,7 +74,7 @@
   - type: RandomFillSolution
     solution: food
     weightedRandomId: RandomFillSpaceshroom
-  - type: StaticPrice
+  - type: StackPrice
     price: 20
   - type: Fixtures
     fixtures:
@@ -149,7 +149,7 @@
     sprite: Objects/Misc/spaceshroom.rsi
     state: spaceshroom_cooked
   - type: Produce
-  - type: StaticPrice
+  - type: StackPrice
     price: 40
   - type: Construction
     graph: CookedSpaceshroom

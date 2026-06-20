@@ -15,7 +15,7 @@
   - type: Physics
     bodyType: Static
   - type: StaticPrice
-    price: 35
+    price: 80 # HL: Price balancing
   - type: Construction
     graph: SLSofas
     node: dinerLeft
@@ -36,7 +36,7 @@
   - type: Physics
     bodyType: Static
   - type: StaticPrice
-    price: 35
+    price: 80 # HL: Price balancing
   - type: Construction
     graph: SLSofas
     node: dinerRight
@@ -57,7 +57,7 @@
   - type: Physics
     bodyType: Static
   - type: StaticPrice
-    price: 35
+    price: 80 # HL: Price balancing
   - type: Construction
     graph: SLSofas
     node: dinerMiddle

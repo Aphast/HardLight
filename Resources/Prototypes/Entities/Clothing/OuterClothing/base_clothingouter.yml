@@ -9,7 +9,8 @@
   - type: Sprite
     state: icon
   - type: StaticPrice # Frontier: setting base price to make material arbitrage happier
-    price: 30 # Frontier
+    price: 45 # HL: Price balancing
+  - type: Appearance
 
 - type: entity
   abstract: true
@@ -43,7 +44,7 @@
       enum.StorageUiKey.Key:
         type: StorageBoundUserInterface
   - type: StaticPrice
-    price: 35 # Frontier 70<35
+    price: 75 # HL: Price balancing
   - type: Appearance
 
 - type: entity

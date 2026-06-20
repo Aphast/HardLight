@@ -79,19 +79,19 @@
     - id: FoodBowlBig
       amount: 4
     - id: IceCreamBowl
-      amount: 4
+      amount: 3
     - id: FoodPlate
       amount: 4
     - id: FoodPlateSmall
       amount: 4
     - id: FoodKebabSkewer
-      amount: 4
+      amount: 3
     - id: KitchenKnife
       amount: 1
     - id: DrinkGlass
       amount: 4
     - id: FoodPlateTin
-      amount: 4
+      amount: 3
     - id: Fork
       amount: 2
     - id: Spoon
@@ -238,7 +238,7 @@
     - id: FoodMealHappyHonkBigBite
       amount: 2
     - id: DrinkColaCan
-      amount: 8
+      amount: 6
     - id: DrinkGrapeCan
       amount: 4
     - id: DrinkRootBeerCan
@@ -261,19 +261,19 @@
     - type: StorageFill
       contents:
       - id: DrinkColaCan
-        amount: 8
+        amount: 5
       - id: DrinkGrapeCan
-        amount: 4
+        amount: 3
       - id: DrinkRootBeerCan
-        amount: 4
+        amount: 3
       - id: DrinkIcedTeaCan
-        amount: 4
+        amount: 3
       - id: DrinkLemonLimeCan
-        amount: 8
+        amount: 5
       - id: DrinkLemonLimeCranberryCan
-        amount: 8
+        amount: 5
       - id: DrinkFourteenLokoCan
-        amount: 4
+        amount: 3
       - id: DrinkNNNCan # Floof
-        amount: 4
+        amount: 3
 

@@ -58,7 +58,7 @@
   - type: Material
   - type: PhysicalComposition
     materialComposition:
-      Paper: 100
+      Paper: 10 # HL: Material balancing
 
 - type: entity
   name: paper

@@ -64,6 +64,9 @@
     maxWritableArea: 256.0, 0.0
   - type: Paper
     contentSize: 280 # Tweet
+  - type: PhysicalComposition
+    materialComposition:
+      Paper: 10 # HL: Material balancing
   - type: InteractionPopupOnUse
     whitelist:
       components:

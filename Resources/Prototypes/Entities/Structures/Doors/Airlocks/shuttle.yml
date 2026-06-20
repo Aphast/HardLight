@@ -56,7 +56,7 @@
     graph: AirlockShuttle
     node: airlock
   - type: StaticPrice
-    price: 350
+    price: 375 # HL: Price balancing
   - type: Paintable
     group: null
 

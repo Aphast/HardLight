@@ -114,7 +114,7 @@
           components:
             - GasTank
     - type: StaticPrice
-      price: 125 # Frontier: 200<125
+      price: 200 # HL: Price balancing
     - type: AccessReader
 #      access: [["Atmospherics"], ["Engineering"], ["Research"], ["Captain"]] # Frontier
     - type: Construction # Frontier
@@ -806,8 +806,8 @@
     - type: PhysicalComposition
       materialComposition:
         Steel: 500
-    - type: StaticPrice
-      price: 60 # Frontier: 125<60 - TODO: material value rework
+    - type: StaticPrice # HL: Price balancing
+      price: 125
 
 - type: entity
   parent: GasCanisterBrokenBase

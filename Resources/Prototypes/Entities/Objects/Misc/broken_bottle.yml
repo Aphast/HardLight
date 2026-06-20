@@ -33,4 +33,4 @@
     refineResult:
     - id: SheetGlass1
   - type: StaticPrice # Frontier
-    price: 4 # Frontier
+    price: 7.5 # HL: Price balancing

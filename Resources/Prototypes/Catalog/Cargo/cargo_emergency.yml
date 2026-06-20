@@ -49,7 +49,7 @@
     sprite: Structures/Wallmounts/signs.rsi
     state: radiation
   product: CrateEmergencyRadiation
-  cost: 1000
+  cost: 1100 # HL: Balancing prices for Cargo Arbitrage
   category: cargoproduct-category-name-emergency
   group: market
 

@@ -63,7 +63,7 @@
                   min: 2
                   max: 2
     - type: StaticPrice
-      price: 50 # Frontier: 100<50 - TODO: material value rework
+      price: 100 # HL: Price balancing
 
 #Security Shields
 

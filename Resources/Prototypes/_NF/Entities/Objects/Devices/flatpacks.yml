@@ -63,7 +63,7 @@
   - type: Flatpack
     entity: PowerCellRecharger
   - type: StaticPrice
-    price: 15
+    price: 35 # HL: Price balancing
   - type: Sprite
     layers:
     - state: power_charger

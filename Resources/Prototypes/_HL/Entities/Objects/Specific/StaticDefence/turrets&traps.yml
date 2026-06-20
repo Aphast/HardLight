@@ -45,6 +45,8 @@
         0
       SoundTargetInLOS: !type:SoundPathSpecifier
         path: /Audio/_NF/Effects/silence.ogg
+  - type: StaticPrice # HL: Price balancing
+    price: 30
 
 - type: entity
   parent: BaseItem
