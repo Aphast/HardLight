@@ -113,6 +113,80 @@
 
 - type: entity
   parent: BasePlushie
+  id: PlushieXTalal
+  name: 100% real best captain ever Plushie!
+  description: It yearns for the communications console.
+  components:
+  - type: Sprite
+    sprite: _HL/Objects/Fun/patreon_plushies.rsi
+    state: AspenPlush
+    scale: 0.8, 0.8
+  - type: EmitSoundOnLand
+    sound:
+      path: /Audio/Effects/Emotes/parp1.ogg
+  - type: EmitSoundOnCollide
+    sound:
+      path: /Audio/Announcements/announce.ogg
+  - type: MeleeWeapon
+    wideAnimationRotation: 180
+    soundHit:
+      path: /Audio/Effects/Emotes/parp1.ogg
+
+- type: entity
+  parent: BasePlushie
+  id: PlushieNova
+  name: Green bird creature Plushie
+  description: This avali plushie looks like is going to fall apart on its own.
+  components:
+  - type: Sprite
+    sprite: _HL/Objects/Fun/patreon_plushies.rsi
+    state: NovaPlush
+    scale: 0.8, 0.8
+  - type: EmitSoundOnUse
+    sound:
+      path: /Audio/_Starlight/Voice/Resomi/resomi_chirp1.ogg
+  - type: EmitSoundOnLand
+    sound:
+      path: /Audio/_RMC14/Voice/Avali/avali_scream.ogg
+  - type: EmitSoundOnActivate
+    sound:
+      path: /Audio/_Starlight/Voice/Resomi/resomi_chirp1.ogg
+  - type: EmitSoundOnTrigger
+    sound:
+      path: /Audio/_Starlight/Voice/Resomi/resomi_chirp1.ogg
+  - type: EmitSoundOnCollide
+    sound:
+      path: /Audio/_RMC14/Voice/Avali/avali_scream.ogg
+  - type: MeleeWeapon
+    wideAnimationRotation: 180
+    soundHit:
+      path: /Audio/_RMC14/Voice/Felinid/cat_purr1.ogg
+
+- type: entity
+  parent: BasePlushie
+  id: PlushieKabuki
+  name: Vesca Plushie
+  description: An adorable plushie resembling a blue Avali in a light blue flower kimono. Its dark blue eyes and anxious little expression make it feel like it is watching once you look away. It seems shy. Somehow.
+  components:
+  - type: SolutionContainerManager
+    solutions:
+      internals:
+        maxVol: 10
+  - type: InjectableSolution
+    solution: internals
+  - type: Sprite
+    sprite: _HL/Objects/Fun/patreon_plushies.rsi
+    state: VescaPlush
+    scale: 0.8, 0.8
+  - type: EmitSoundOnUse
+    sound:
+      path: /Audio/_RMC14/Voice/Felinid/cat_purr1.ogg
+  - type: EmitSoundOnActivate
+    sound:
+      path: /Audio/_Starlight/Voice/Resomi/resomi_squawk_1.ogg
+ 
+- type: entity
+  parent: BasePlushie
   id: PlushieEinalia
   name: Einalia Plushie
   description: A marketable plushie of the Colonial Logistics Division's most annoying officer. It appears to have a perpetual scowl on it's face. Toy "Cycler" shotgun not included.
@@ -139,3 +213,20 @@
     wideAnimationRotation: 180
     soundHit:
       path: /Audio/_Starlight/Voice/Avali/avali_cry.ogg
+
+- type: entity
+  parent: BasePlushie
+  id: PlushieMrBones
+  name: Mr. Bones Plushie
+  description: He is coming to steal your calcium.
+  components:
+  - type: Sprite
+    sprite: _HL/Objects/Fun/patreon_plushies.rsi
+    state: MrBonesPlush
+    scale: 0.8, 0.8
+  - type: EmitSoundOnUse
+    sound:
+      path: /Audio/Voice/Skeleton/skeleton_scream.ogg
+  - type: EmitSoundOnActivate
+    sound:
+      path: /Audio/Voice/Skeleton/skeleton_scream.ogg

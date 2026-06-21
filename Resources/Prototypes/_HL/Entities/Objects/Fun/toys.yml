@@ -1103,6 +1103,12 @@
   name: Maints Plushie
   description: MARR
   components:
+  - type: SolutionContainerManager
+    solutions:
+      internals:
+        maxVol: 10
+  - type: InjectableSolution
+    solution: internals
   - type: Sprite
     sprite: _HL/Objects/Fun/HLtoys.rsi
     state: naked-maints-plush

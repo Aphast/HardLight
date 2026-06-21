@@ -61,6 +61,7 @@
     - id: SpaceCash1000
     - id: NFWeaponEnergyPistolDisabler
     - id: ClothingEyesGlassesCommand
+    - id: PlushieXTalal
 
 # Hardsuit table, used for suit storage as well
 - type: entityTable

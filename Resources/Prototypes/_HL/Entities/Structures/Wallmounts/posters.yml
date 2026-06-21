@@ -56,3 +56,30 @@
     graph: Poster
     node: PosterDuskEnclave
 
+- type: entity
+  parent: PosterBase
+  id: PosterChudMeansFrend
+  name: Chud Means Frend poster
+  description: "Chud - is vox pidgen for friend! ...this is blatant misinformation."
+  components:
+  - type: Sprite
+    sprite: _HL/Structures/Wallmounts/Posters/ChudMeans.rsi
+    state: poster_Chud_means_frend
+    scale: 0.9, 0.9
+  - type: Construction
+    graph: Poster
+    node: PosterChudMeansFrend
+
+- type: entity
+  parent: PosterBase
+  id: PosterChudMeansLetsFuck
+  name: Chud Means Lets Fuck poster
+  description: "Chud - is vox pidgen for your hot, let's fuck! ...this is blatant misinformation."
+  components:
+  - type: Sprite
+    sprite: _HL/Structures/Wallmounts/Posters/ChudMeans.rsi
+    state: poster_Chud_means_lets_fuck
+    scale: 0.9, 0.9
+  - type: Construction
+    graph: Poster
+    node: PosterChudMeansLetsFuck

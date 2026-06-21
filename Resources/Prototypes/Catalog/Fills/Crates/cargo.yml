@@ -313,6 +313,13 @@
       orGroup: Plushies
     - id: PlushieLoming
       prob: 0.1
+      orGroup: Plushies
+    - id: PlushieMrBones
+      prob: 0.01
+      orGroup: Plushies
+    - id: PlushieMaintsNaked
+      prob: 0.009
+      orGroup: Plushies
     #useful
     - id: AmeJar
       prob: 0.01

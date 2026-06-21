@@ -1713,3 +1713,28 @@
   conditions:
     - !type:WallmountCondition
 
+- type: construction
+  id: PosterChudMeansFrend
+  graph: Poster
+  startNode: start
+  targetNode: PosterChudMeansFrend
+  category: construction-category-Poster
+  objectType: Structure
+  placementMode: SnapgridCenter
+  canRotate: true
+  canBuildInImpassable: true
+  conditions:
+    - !type:WallmountCondition
+
+- type: construction
+  id: PosterChudMeansLetsFuck
+  graph: Poster
+  startNode: start
+  targetNode: PosterChudMeansLetsFuck
+  category: construction-category-Poster
+  objectType: Structure
+  placementMode: SnapgridCenter
+  canRotate: true
+  canBuildInImpassable: true
+  conditions:
+    - !type:WallmountCondition
