@@ -5122,3 +5122,16 @@ Entries:
       message: Changed the way that Speed boots and legs function
   id: 553
   time: '2026-06-21T08:40:40.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Fix
+      message: >-
+        Fixed some Felionoid species modifiers, meaning they will go into crit
+        at 85 and receive a speed boost when not wearing shoes, alongside silent
+        footsteps.
+    - type: Remove
+      message: >-
+        Removes Felionoids being able to drag without their hands as it's not
+        mentioned as something they should be receiving in the guidebook.
+  id: 554
+  time: '2026-06-21T08:41:03.0000000+00:00'
