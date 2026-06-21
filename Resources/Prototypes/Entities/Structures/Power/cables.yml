@@ -1,6 +1,6 @@
 - type: entity
   abstract: true
-  id: CableBase
+  id: CablePhysBase
   placement:
     mode: SnapgridCenter
   components:
@@ -13,11 +13,21 @@
   - type: Transform
     anchored: true
     noRot: true
-  # TODO: Remove both of these, same with CollideOnAnchor
+    # TODO: Remove both of these, same with CollideOnAnchor
   - type: Physics
     bodyType: Static
     canCollide: false
   - type: Fixtures
+  - type: CollideOnAnchor
+  - type: Appearance
+
+- type: entity
+  abstract: true
+  parent: CablePhysBase
+  id: CableBase
+  components:
+  - type: Visibility
+    layer: 1
   - type: Sprite
     drawdepth: ThinWire
     visible: false
@@ -33,8 +43,6 @@
       - !type:DoActsBehavior
         acts: ["Destruction"]
   - type: SubFloorHide
-  - type: CollideOnAnchor
-  - type: Appearance
   - type: Electrified
     onHandInteract: false
     onInteractUsing: false # wire-cutting handled separately.

@@ -50,8 +50,10 @@
     - id: NullspaceLocator
       amount: 1
     - id: GrenadeDePhase
-      amount: 5
+      amount: 4
     - id: ClothingNullHarness
       amount: 1
     - id: BluespaceFlasherFlatpack
       amount: 1
+    - id: CableNullenforcerStack
+      amount: 2

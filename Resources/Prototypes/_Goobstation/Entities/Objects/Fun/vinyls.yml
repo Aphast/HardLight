@@ -74,6 +74,9 @@
         whitelist:
           tags:
           - VinylSleeveFit
+  - type: Tag
+    tags:
+    - VinylSleeve
 
 # Vinyls
 

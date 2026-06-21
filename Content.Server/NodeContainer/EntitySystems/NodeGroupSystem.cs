@@ -468,6 +468,7 @@ namespace Content.Server.NodeContainer.EntitySystems
                 NodeGroupID.Pipe => Color.Blue,
                 NodeGroupID.WireNet => Color.DarkMagenta,
                 NodeGroupID.Teg => Color.Red,
+                NodeGroupID.NullEnforcer => Color.MediumPurple,
                 _ => Color.White
             };
         }

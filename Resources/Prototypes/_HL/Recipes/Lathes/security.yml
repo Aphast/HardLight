@@ -8,6 +8,15 @@
     Gold: 50
     Plasma: 500
 
+- type: latheRecipe
+  id: NullEnforcerCableStack
+  result: CableNullenforcerStack1
+  completetime: 0.1
+  materials:
+    Steel: 30
+    Glass: 30
+    Diamond: 30
+
 # Security Borg limbs
 
 - type: latheRecipe

@@ -1,5 +1,6 @@
 using Content.Shared._Starlight.Shadekin;
 using Robust.Client.GameObjects;
+using Robust.Shared.Containers;
 using Robust.Shared.Map;
 
 namespace Content.Client._Starlight.Shadekin;
@@ -43,6 +44,13 @@ public sealed class ShadegenSystem : EntitySystem
                 continue;
 
             var lightQuery = _lookup.GetEntitiesInRange<PointLightComponent>(Transform(uid).Coordinates, shadegen.Range);
+            var containerQuery = _lookup.GetEntitiesInRange<ContainerManagerComponent>(Transform(uid).Coordinates, shadegen.Range);
+            foreach (var containerent in containerQuery)
+                foreach (var container in _container.GetAllContainers(containerent.Owner, containerent.Comp))
+                    foreach (var contained in container.ContainedEntities)
+                        if (TryComp<PointLightComponent>(contained, out var pointLight))
+                            lightQuery.Add((contained, pointLight));
+
             foreach (var light in lightQuery)
             {
                 if (light.Comp.ContainerOccluded || HasComp<DarkLightComponent>(light))

@@ -1,0 +1,6 @@
+- type: stack
+  id: CableNullEnforcer
+  name: stack-nullenforcer-cable
+  icon: { sprite: "/Textures/Objects/Tools/cable-coils.rsi", state: coilmv-30 }
+  spawn: CableMVStack1
+  maxCount: 50

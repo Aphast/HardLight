@@ -16,6 +16,7 @@ using Content.Shared.Toggleable;
 using Content.Shared.Verbs;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
+using Content.Shared.Power;
 
 namespace Content.Server.EnergyDome;
 
@@ -46,6 +47,7 @@ public sealed partial class EnergyDomeSystem : EntitySystem
         SubscribeLocalEvent<EnergyDomeGeneratorComponent, PowerCellChangedEvent>(OnPowerCellChanged);
         SubscribeLocalEvent<EnergyDomeGeneratorComponent, PowerCellSlotEmptyEvent>(OnPowerCellSlotEmpty);
         SubscribeLocalEvent<EnergyDomeGeneratorComponent, ChargeChangedEvent>(OnChargeChanged);
+        SubscribeLocalEvent<EnergyDomeGeneratorComponent, PowerChangedEvent>(OnPower);
 
         SubscribeLocalEvent<EnergyDomeGeneratorComponent, EntParentChangedMessage>(OnParentChanged);
 
@@ -256,12 +258,25 @@ public sealed partial class EnergyDomeSystem : EntitySystem
             }
         }
 
-        Toggle(generator, status);
+        Toggle(generator.Owner, status, generator.Comp);
         return true;
     }
 
-    private void Toggle(Entity<EnergyDomeGeneratorComponent> generator, bool status)
+    private void OnPower(EntityUid uid, EnergyDomeGeneratorComponent component, ref PowerChangedEvent args)
     {
+        if (!TryComp<ApcPowerReceiverComponent>(uid, out var power))
+            return;
+
+        Toggle(uid, power.Powered, component);
+    }
+
+    public void Toggle(EntityUid uid, bool status, EnergyDomeGeneratorComponent? component = null)
+    {
+        if (!Resolve(uid, ref component))
+            return;
+
+        var generator = new Entity<EnergyDomeGeneratorComponent>(uid, component);
+
         if (status)
             TurnOn(generator);
         else

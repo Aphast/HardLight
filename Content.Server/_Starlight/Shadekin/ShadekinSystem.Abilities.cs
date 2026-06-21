@@ -32,7 +32,8 @@ public sealed partial class ShadekinSystem : EntitySystem
         if (HasComp<NullSpaceComponent>(uid))
             return;
 
-        EnsureComp<ShadegenComponent>(uid);
+        EnsureComp<ShadegenComponent>(uid, out var newshadegen);
+        newshadegen.Range = 8;
         _audio.PlayPvs(component.ShadegenSound, uid);
 
         args.Handled = true;

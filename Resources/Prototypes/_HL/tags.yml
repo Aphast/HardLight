@@ -367,6 +367,9 @@
 - type: Tag
   id: DinoFang
 
+- type: Tag
+  id: VinylSleeve
+
 # Forged Rifle Mag
 - type: Tag
   id: ForgedRifleMagazine

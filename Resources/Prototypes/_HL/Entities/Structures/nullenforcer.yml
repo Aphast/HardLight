@@ -1,0 +1,59 @@
+- type: entity
+  id: CableNullEnforcer
+  parent: CablePhysBase
+  name: phase-barrier cable
+  description: Spaghetti for people who hate nullspace.
+  components:
+  - type: Cable
+    cableDroppedOnCutPrototype: CableNullenforcerStack1
+    cableType: NullEnforcer
+  - type: Sprite
+    sprite: Structures/Power/Cables/mv_cable.rsi
+    layers:
+    - state: mvcable_0
+      color: "#6c15ae"
+    - state: mvstripes_0
+    drawdepth: ThickWire
+  - type: Icon
+    sprite: Structures/Power/Cables/mv_cable.rsi
+    state: mvcable_4
+  - type: Damageable
+    damageContainer: StructuralInorganic
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 50
+      behaviors:
+      - !type:DoActsBehavior
+        acts: ["Destruction"]
+    - trigger:
+        !type:DamageTrigger
+        damage: 35
+      behaviors:
+      - !type:SpawnEntitiesBehavior
+        spawn:
+          CableNullenforcerStack1:
+            min: 1
+            max: 1
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+  - type: CableVis
+    node: nullenforcer
+  - type: NodeContainer
+    nodes:
+      nullenforcer:
+        !type:CableNode
+        nodeGroupID: NullEnforcer
+  - type: CableVisualizer
+    statePrefix: mvcable_
+    extraLayerPrefix: mvstripes_
+  - type: ApcPowerReceiver
+    powerLoad: 1000
+  - type: ExtensionCableReceiver
+  - type: LightningTarget
+    priority: 1
+  - type: EnergyDomeGenerator
+    damageEnergyDraw: 0
+    domePrototype: EnergyDomeNullEnforcer
+    canInteractUse: false

@@ -1,0 +1,47 @@
+- type: entity
+  parent: CableStack
+  id: CableNullenforcerStack
+  name: phase-barrier cable coil
+  suffix: Full
+  description: Spaghetti for people who hate nullspace.
+  components:
+  - type: Stack
+    stackType: CableMV
+    baseLayer: base
+    layerStates:
+    - coilmv-10
+    - coilmv-20
+    - coilmv-30
+  - type: Sprite
+    state: coilmv-30
+    layers:
+    - state: coilmv-30
+      map: ["base"]
+      color: "#6c15ae"
+  - type: Item
+    heldPrefix: coilmv
+  - type: CablePlacer
+    cablePrototypeID: CableNullEnforcer
+    blockingWireType: NullEnforcer
+    overTile: true
+  - type: Appearance
+
+- type: entity
+  parent: CableNullenforcerStack
+  id: CableNullenforcerStack10
+  suffix: 10
+  components:
+  - type: Sprite
+    state: coilmv-10
+  - type: Stack
+    count: 10
+
+- type: entity
+  parent: CableNullenforcerStack
+  id: CableNullenforcerStack1
+  suffix: 1
+  components:
+  - type: Sprite
+    state: coilmv-10
+  - type: Stack
+    count: 1

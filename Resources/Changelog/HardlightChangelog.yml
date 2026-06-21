@@ -5083,3 +5083,34 @@ Entries:
       message: AI Eye no longer moves around while piloting a ship as an AI Core
   id: 549
   time: '2026-06-21T04:57:21.0000000+00:00'
+- author: Shades
+  changes:
+    - type: Add
+      message: >-
+        Phase-Barrier Cable, a new way to block shadekins able to be crafted in
+        protolathe or buy it from sec kit.
+    - type: Fix
+      message: Shadegen not working correctly with items in containers.
+    - type: Tweak
+      message: Bluespace Flashers Range from 12 to 6.2.
+    - type: Fix
+      message: HOPEFULLY... Fix The Dark Deleting Itself...
+    - type: Remove
+      message: The ability for Brighteyes to be Revolutionary.
+  id: 550
+  time: '2026-06-21T07:04:11.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Fix
+      message: >-
+        Fixed harpies racial modifiers not correctly applying, they will now be
+        correctly poisoned by allicin and theobromine, and breathe twice as fast
+        compared to humans.
+  id: 551
+  time: '2026-06-21T07:05:04.0000000+00:00'
+- author: 2DSiggy
+  changes:
+    - type: Add
+      message: Vinyls can now be stored in bluespace bookshelves.
+  id: 552
+  time: '2026-06-21T07:07:11.0000000+00:00'

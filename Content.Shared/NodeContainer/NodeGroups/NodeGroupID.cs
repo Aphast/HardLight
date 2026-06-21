@@ -21,4 +21,5 @@ public enum NodeGroupID : byte
     /// Group used for plumbing (reagent fluid ducts).
     /// </summary>
     Plumbing, // Starlight Plumbing System
+    NullEnforcer,
 }

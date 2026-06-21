@@ -30,6 +30,7 @@ using Robust.Shared.Timing;
 using Content.Shared.Cuffs.Components;
 using Robust.Shared.Player;
 using Content.Shared.GameTicking;
+using Content.Shared._Starlight.Shadekin;
 
 namespace Content.Server.GameTicking.Rules;
 
@@ -145,6 +146,7 @@ public sealed class RevolutionaryRuleSystem : GameRuleSystem<RevolutionaryRuleCo
             return;
 
         if (HasComp<RevolutionaryComponent>(ev.Target) ||
+            HasComp<BrighteyeComponent>(ev.Target) ||
             HasComp<MindShieldComponent>(ev.Target) ||
             !HasComp<HumanoidAppearanceComponent>(ev.Target) &&
             !alwaysConvertible ||
