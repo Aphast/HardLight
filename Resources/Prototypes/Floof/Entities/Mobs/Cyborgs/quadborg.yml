@@ -390,6 +390,55 @@
     movementStateOn: chews_movingballz
 
 - type: entity
+  id: littlehelper
+  parent: [BorgChassisApex]
+  components:
+  - type: Sprite
+    sprite: _HL/Mobs/Player/borgs/quads.rsi
+    scale: 0.7, 0.7
+    layers:
+    - state: littlehelper
+      map: ["movement"]
+    - state: littlehelperr
+      map: ["enum.BorgVisualLayers.Light"]
+      shader: unshaded
+      visible: false
+    - state: littlehelperl
+      shader: unshaded
+      map: ["light"]
+      visible: false
+  - type: BorgChassis
+    maxModules: 8
+    moduleWhitelist:
+      tags:
+      - BorgModuleGeneric
+      - BorgModuleSecurity
+      - BorgModuleMedical
+      - BorgModuleSyndicate
+      - BorgModuleSyndicateAssault
+      - XenoborgModuleGeneric
+    hasMindState: littlehelperr
+    noMindState: littlehelper
+  - type: SpriteMovement
+    movementLayers:
+      movement:
+        state: littlehelper_moving
+    noMovementLayers:
+      movement:
+        state: littlehelper
+  - type: BorgTransponder
+    sprite:
+      sprite: _HL/Mobs/Player/borgs/quads.rsi
+      state: littlehelper
+    name: cyborg
+  - type: SpriteStateToggle
+    spriteLayer: movement
+    stateOff: littlehelper
+    stateOn: littlehelperballz
+    movementStateOff: littlehelper_moving
+    movementStateOn: littlehelper_movingballz
+
+- type: entity
   id: wolfborg
   parent: [BorgChassisApex]
   components:

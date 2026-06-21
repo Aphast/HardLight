@@ -23,6 +23,7 @@
   - type: CombatMode
     canDisarm: false
   - type: InputMover
+  - type: ComplexInteraction
   - type: MobMover
   - type: GhostRole
     allowMovement: true

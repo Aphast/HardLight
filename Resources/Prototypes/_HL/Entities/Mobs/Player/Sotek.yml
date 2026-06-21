@@ -54,3 +54,23 @@
   - type: Gun
     soundGunshot: /Audio/Effects/holy.ogg
     projectileSpeed: 5
+
+- type: entity
+  parent: [ MobDragonDungeon ]
+  id: MobDragonThalmyr
+  suffix: ""
+  name: Thalmyr
+  description: Space dragon
+  components:
+  - type: Sprite
+    sprite: _HL/Mobs/Characters/thalmyr.rsi
+    noRot: true
+    layers:
+    - map: [ "enum.DamageStateVisualLayers.Base" ]
+      state: alive
+    - map: [ "enum.DamageStateVisualLayers.BaseUnshaded" ]
+      state: alive-unshaded
+      shader: unshaded
+  - type: ActionGun
+    action: ActionDragonsBreath
+    gunProto: DragonsBreathGun

@@ -1720,6 +1720,82 @@
                 0.2
             ]
         ]
+	},
+	{
+        "name": "littlehelper",
+        "directions": 4
+    },
+    {
+        "name": "littlehelperballz",
+        "directions": 4
+    },
+    {
+        "name": "littlehelperr",
+        "directions": 4
+    },
+    {
+        "name": "littlehelperl",
+        "directions": 4
+    },
+    {
+        "name": "littlehelper_moving",
+        "directions": 4,
+        "delays": [
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ],
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ],
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ],
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ]
+        ]
+    },
+    {
+        "name": "littlehelper_movingballz",
+        "directions": 4,
+        "delays": [
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ],
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ],
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ],
+            [
+                0.2,
+                0.2,
+                0.2,
+                0.2
+            ]
+        ]
     }
   ]
 }

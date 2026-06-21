@@ -1,0 +1,150 @@
+- type: entity
+  name: Spoder
+  id: Spoder
+  parent: SuperTalon
+  description: oh god what the fuck is that
+#  categories: [ HideSpawnMenu ] # Frontier
+  components:
+  - type: Sprite
+    sprite: _HL/Mobs/Empty/empty.rsi # this is a wangjangled solution but it was either this or refactoring one of the component systems sooooo...
+    scale: 1, 1
+    layers:
+    - state: empty
+      map: [ "enum.DamageStateVisualLayers.BaseUnshaded", "enum.BorgVisualLayers.Light" ]
+      shader: unshaded
+      visible: false
+    - state: empty
+      map: [ "light" ]
+      shader: unshaded
+      visible: false
+  - type: OptionsVisualizer
+    visuals:
+      base:
+      - options: Default
+        data:
+          drawdepth: Mobs
+          sprite: _HL/Mobs/Player/Spiders/spoder.rsi
+          map: [ "enum.DamageStateVisualLayers.Base", "movement" ]
+          state: spider
+      - options: Arachnophobia
+        data:
+          drawdepth: Mobs
+          sprite: _HL/Mobs/Player/Spiders/Arachnophobia/spoder.rsi
+          map: [ "enum.DamageStateVisualLayers.Base", "movement" ]
+          state: spider
+      enum.DamageStateVisualLayers.BaseUnshaded:
+      - options: Default
+        data:
+          sprite: _HL/Mobs/Player/Spiders/spoder.rsi
+          map: [ "enum.DamageStateVisualLayers.BaseUnshaded", "enum.BorgVisualLayers.Light" ]
+          state: glow
+          shader: unshaded
+          visible: false
+      - options: Arachnophobia
+        data:
+          sprite: _HL/Mobs/Player/Spiders/Arachnophobia/spoder.rsi
+          map: [ "enum.DamageStateVisualLayers.BaseUnshaded", "enum.BorgVisualLayers.Light" ]
+          state: glow
+          shader: unshaded
+          visible: false
+      light:
+      - options: Default
+        data:
+          sprite: _HL/Mobs/Player/Spiders/spoder.rsi
+          map: [ "light" ]
+          state: glow
+          shader: unshaded
+          visible: false
+      - options: Arachnophobia
+        data:
+          sprite: _HL/Mobs/Player/Spiders/Arachnophobia/spoder.rsi
+          map: [ "light" ]
+          state: glow
+          shader: unshaded
+          visible: false
+  - type: Bloodstream
+    bloodMaxVolume: 250
+    bloodReagent: UnstableMutagen
+  - type: HandheldLight
+    wattage: 0.1
+    toggleOnInteract: false
+  - type: Battery
+    maxCharge: 1
+    startingCharge: 1
+  - type: ToggleableLightVisuals
+    spriteLayer: light
+  - type: PointLight
+    enabled: false
+    mask: /Textures/Effects/LightMasks/cone.png
+    color: "#00FF00"
+    autoRot: true
+    radius: 4
+    netsync: false
+  - type: Fixtures
+    fixtures:
+      fix1:
+        shape:
+          !type:PhysShapeCircle
+          radius: 0.35
+        density: 120
+        mask:
+        - MobMask
+        layer:
+        - MobLayer
+  - type: MeleeWeapon
+    soundHit:
+      path: /Audio/Effects/bite.ogg
+    angle: 0
+    animation: WeaponArcBite
+    damage:
+      types:
+        Piercing: 6
+        Poison: 4
+  - type: SolutionContainerManager
+    solutions:
+      melee:
+        reagents:
+        - ReagentId: ChloralHydrate
+          Quantity: 80
+  - type: MeleeChemicalInjector
+    solution: melee
+    transferAmount: 4
+  - type: NoSlip
+  - type: IgnoreSpiderWeb
+  - type: Speech
+    speechVerb: Arachnid
+    speechSounds: Arachnid
+    allowedEmotes: ['Click', 'Chitter']
+  - type: Vocal
+    sounds:
+      Male: UnisexArachnid
+      Female: UnisexArachnid
+      Unsexed: UnisexArachnid
+  - type: DamageStateVisuals
+    states:
+      Alive:
+        Base: spider
+        BaseUnshaded: glow
+      Critical:
+        Base: spidercrit
+      Dead:
+        Base: spiderdead
+  - type: Sericulture
+    action: ActionSericulture
+    productionLength: 2
+    entityProduced: MaterialWebSilk1
+  - type: TypingIndicator
+    proto: spider
+  - type: SpriteMovement
+    movementLayers:
+      movement:
+        state: spider_moving
+    noMovementLayers:
+      movement:
+        state: spider
+  - type: SpriteStateToggle
+    spriteLayer: movement
+    stateOff: spider
+    stateOn: spiderballz
+    movementStateOff: spider_moving
+    movementStateOn: spider_movingballz
