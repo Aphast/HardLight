@@ -32,12 +32,12 @@ public sealed partial class DebrisFeaturePlacerControllerComponent : Component
     /// <summary>
     ///     Radius in which there should be no objects for debris to spawn.
     /// </summary>
-    [DataField("safetyZoneRadius")] public float SafetyZoneRadius = 24.0f;
+    [DataField("safetyZoneRadius")] public float SafetyZoneRadius = 16.0f;
 
     /// <summary>
     ///     Maximum number of debris entities that can be spawned per chunk. Null means no limit.
     /// </summary>
-    [DataField("maxDebrisCount")] public int? MaxDebrisCount = 1;
+    [DataField("maxDebrisCount")] public int? MaxDebrisCount = 18;
 
     /// <summary>
     ///     The noise channel to use as a density controller.
