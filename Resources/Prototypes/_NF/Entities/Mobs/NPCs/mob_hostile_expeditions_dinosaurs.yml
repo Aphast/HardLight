@@ -11,7 +11,7 @@
     rootTask:
        task: SimpleHostileCompound
     blackboard:
-      NavClimb: false
+      NavClimb: true
       NavInteract: true
       NavPry: true
       NavSmash: true

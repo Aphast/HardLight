@@ -1,10 +1,18 @@
 - type: entity
   name: DreadTalon
   id: dreadtalonbase
-  parent: MobSpaceBasic
+  parent: [MobHumanoidHostileAIComplex, MobSpaceBasic]
   description: It looks friendly. Why don't you give it a hug?
 #  categories: [ HideSpawnMenu ] # Frontier
   components:
+  - type: HTN
+    rootTask:
+       task: SimpleHostileCompound
+    blackboard:
+      NavClimb: true
+      NavInteract: true
+      NavPry: true
+      NavSmash: true
   - type: Sprite
     drawdepth: Mobs
     sprite: _HL/Mobs/Aliens/dreadtalon.rsi

@@ -8,7 +8,7 @@
     rootTask:
        task: SimpleHostileCompound
     blackboard:
-      NavClimb: false
+      NavClimb: true
       NavInteract: true
       NavPry: true
       NavSmash: true
@@ -23,7 +23,7 @@
     rootTask:
        task: SimpleRangedHostileCompound
     blackboard:
-      NavClimb: false
+      NavClimb: true
       NavInteract: true
       NavPry: true
       NavSmash: true

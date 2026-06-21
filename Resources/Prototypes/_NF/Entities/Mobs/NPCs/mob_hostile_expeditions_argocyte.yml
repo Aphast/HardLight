@@ -9,16 +9,12 @@
   components:
   - type: HTN
     rootTask:
-      task: XenoCompound # Will use this one for now, untill upstream makes custom AI for argocytes
+       task: SimpleHostileCompound
     blackboard:
-      NavClimb: !type:Bool
-        true
-      NavInteract: !type:Bool
-        true
-      NavPry: !type:Bool
-        true
-      NavSmash: !type:Bool
-        true
+      NavClimb: true
+      NavInteract: true
+      NavPry: true
+      NavSmash: true
   - type: NpcFactionMember
     factions:
     - Xeno
