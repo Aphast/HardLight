@@ -94178,8 +94178,6 @@ entities:
       pos: -33.5,-5.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24919
@@ -94189,8 +94187,6 @@ entities:
       pos: -33.5,-4.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24920
@@ -94200,8 +94196,6 @@ entities:
       pos: -33.5,-3.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24921
@@ -94211,8 +94205,6 @@ entities:
       pos: -44.5,1.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24922
@@ -94222,8 +94214,6 @@ entities:
       pos: -44.5,2.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24923
@@ -94233,8 +94223,6 @@ entities:
       pos: -41.5,-1.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24924
@@ -94244,8 +94232,6 @@ entities:
       pos: -40.5,-1.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24925
@@ -94255,8 +94241,6 @@ entities:
       pos: -39.5,-1.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
 - proto: FirelockGlass
@@ -96063,8 +96047,6 @@ entities:
       pos: -39.5,-47.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 11718
   - uid: 24707
@@ -96073,8 +96055,6 @@ entities:
       pos: -36.5,-41.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 11718
   - uid: 24916
@@ -96084,8 +96064,6 @@ entities:
       pos: -48.5,-4.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
   - uid: 24917
@@ -96095,8 +96073,6 @@ entities:
       pos: -48.5,-6.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
 - proto: Fireplace
@@ -117716,8 +117692,6 @@ entities:
       pos: -36.5,-46.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 11718
     - type: AtmosPipeColor
@@ -117729,8 +117703,6 @@ entities:
       pos: -37.5,-42.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 11718
     - type: AtmosPipeColor
@@ -119452,8 +119424,6 @@ entities:
       pos: -37.5,-4.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
     - type: AtmosPipeColor
@@ -119465,8 +119435,6 @@ entities:
       pos: -42.5,-3.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
     - type: AtmosPipeColor
@@ -119493,8 +119461,6 @@ entities:
       pos: -43.5,0.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
     - type: AtmosPipeColor
@@ -119555,8 +119521,6 @@ entities:
       pos: -36.5,-44.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 11718
     - type: AtmosPipeColor
@@ -119567,8 +119531,6 @@ entities:
       pos: -39.5,-40.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 11718
     - type: AtmosPipeColor
@@ -121222,8 +121184,6 @@ entities:
       pos: -35.5,-6.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
     - type: AtmosPipeColor
@@ -121235,8 +121195,6 @@ entities:
       pos: -42.5,-7.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
     - type: AtmosPipeColor
@@ -121263,8 +121221,6 @@ entities:
       pos: -37.5,1.5
       parent: 2
     - type: DeviceNetwork
-      configurators:
-      - invalid
       deviceLists:
       - 21598
     - type: AtmosPipeColor
