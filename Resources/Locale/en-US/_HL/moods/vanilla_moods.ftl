@@ -30,7 +30,7 @@ hl-erotic-mood-vanilla-breeding-name = Breeding
 hl-erotic-mood-vanilla-breeding-desc = The thought of filling someone up or being filled is persistent now. Find someone who shares the want.
 
 hl-erotic-mood-vanilla-threesome-name = Threesome
-hl-erotic-mood-vanilla-threesome-desc = Two bodies aren't enough — float the idea to someone and see if you can't pull in a third.
+hl-erotic-mood-vanilla-threesome-desc = Two bodies aren't enough — float the idea to someone and see if you can pull in a third.
 
 hl-erotic-mood-vanilla-exhibitionist-name = Exhibitionist
 hl-erotic-mood-vanilla-exhibitionist-desc = You want to be seen doing something explicit. Find an audience, or put yourself somewhere people can look.
