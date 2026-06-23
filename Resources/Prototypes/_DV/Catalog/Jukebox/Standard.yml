@@ -108,9 +108,3 @@
   name: Amie Waters - Superposition
   path:
     path: /Audio/_DV/Jukebox/superposition-MONO.ogg
-
-- type: jukebox
-  id: LoneDigger
-  name: Caravan Palace - Lone Digger
-  path:
-    path: /Audio/_DV/Jukebox/Caravan_Palace_Lone_Digger-MONO.ogg
