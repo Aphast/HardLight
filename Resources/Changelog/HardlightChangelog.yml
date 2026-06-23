@@ -5153,3 +5153,9 @@ Entries:
       message: Fixed a collision issue withy the Phase Barrier Cable.
   id: 557
   time: '2026-06-23T08:08:18.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Fix
+      message: Fixed Neuralyzers not saving added compulsions
+  id: 558
+  time: '2026-06-23T12:46:51.0000000+00:00'
