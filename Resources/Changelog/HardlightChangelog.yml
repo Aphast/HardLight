@@ -5165,3 +5165,9 @@ Entries:
       message: Psychologists are now allowed to bring other shoes to work
   id: 559
   time: '2026-06-23T12:47:05.0000000+00:00'
+- author: Khaomi
+  changes:
+    - type: Add
+      message: Missing localizations
+  id: 560
+  time: '2026-06-23T12:57:38.0000000+00:00'
