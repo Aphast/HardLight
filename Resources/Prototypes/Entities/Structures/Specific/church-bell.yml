@@ -12,11 +12,11 @@
     sprite: Structures/Specific/church-bell.rsi
     layers:
     - state: church-bell
-  - type: InteractionPopup
-    interactDelay: 1
-    successChance: 1
-    interactSuccessSound:
+  - type: EmitSoundOnActivate
+    sound:
       collection: ChurchBell
+  - type: UseDelay
+    delay: 1
   - type: Clickable
   - type: Rotatable
   - type: CollisionWake

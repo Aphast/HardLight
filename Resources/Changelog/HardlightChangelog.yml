@@ -5201,3 +5201,9 @@ Entries:
       message: Removed Lone Digger by Caravan Palace from Jukebox for copyright reason
   id: 564
   time: '2026-06-23T22:21:15.0000000+00:00'
+- author: re-silvered
+  changes:
+    - type: Fix
+      message: Fixed church bells putting blank messages in chat
+  id: 565
+  time: '2026-06-24T04:36:50.0000000+00:00'
