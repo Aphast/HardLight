@@ -378,6 +378,12 @@ marking-TailFox2 = Fox Tail, Monocolor Down
 marking-TailFox3-m_tail_fox3_BEHIND_primary = Fox Tail, Monocolor Burnt
 marking-TailFox3-m_tail_fox3_FRONT_primary = Fox Tail, Monocolor Burnt
 marking-TailFox3 = Fox Tail, Monocolor Burnt
+# Begin Hardlight
+marking-EarsFaeFox-m_ears_faefox_primary = Fae Fox Ears (Primary)
+marking-EarsFaeFox-m_ears_faefox_secondary = Fae Fox Ears (Secondary)
+marking-EarsFaeFox-m_ears_faefox_tertiary = Fae Fox Ears (Tertiary)
+marking-EarsFaeFox = Fae Fox Ears
+# End Hardlight
 # Begin Floof - M3739 - #1084
 marking-TailVirtuasaur-m_tail_virtuasaur_BEHIND_primary = Virtuasaur Tail
 marking-TailVirtuasaur-m_tail_virtuasaur_FRONT_primary = Virtuasaur Tail

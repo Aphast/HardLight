@@ -954,6 +954,18 @@
     {
       "name": "m_earsinner_bigwolfinnerdark_FRONT",
       "directions": 4
+    },
+    {
+      "name": "m_ears_faefox_primary",
+      "directions": 4
+    },
+    {
+      "name": "m_ears_faefox_secondary",
+      "directions": 4
+    },
+    {
+      "name": "m_ears_faefox_tertiary",
+      "directions": 4
     }
   ]
 }

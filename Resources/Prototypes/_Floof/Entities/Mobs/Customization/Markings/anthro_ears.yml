@@ -973,3 +973,16 @@
   sprites:
   - sprite: _Floof/Mobs/Customization/skyratears.rsi
     state: m_horns_virtuasaur
+
+- type: marking
+  id: EarsFaeFox
+  bodyPart: HeadTop
+  markingCategory: HeadTop
+  speciesRestriction: [Skrell, Thaven, Dwarf, Diona, Human, SlimePerson, Felinid, Oni, Harpy, Reptilian, Vulpkanin, Rodentia, Goblin, Sheleg, IPC, Feroxi, Moth, Arachnid, Kitsune, Chitinid, Tajaran]
+  sprites:
+  - sprite: _Floof/Mobs/Customization/skyratears.rsi
+    state: m_ears_faefox_primary
+  - sprite: _Floof/Mobs/Customization/skyratears.rsi
+    state: m_ears_faefox_secondary
+  - sprite: _Floof/Mobs/Customization/skyratears.rsi
+    state: m_ears_faefox_tertiary
